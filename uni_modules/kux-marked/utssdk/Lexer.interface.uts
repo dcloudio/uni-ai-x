@@ -1,0 +1,51 @@
+import { Token, Tokens, TokensList, NodesToken } from './Tokens.interface';
+import { MarkedOptions } from './MarkedOptions.interface';
+import { Block, Inline } from './Rules.interface';
+
+export type I_LexerState = {
+	inLink: boolean;
+	inRawBlock: boolean;
+	top: boolean;
+}
+
+export type I_LexerRules = {
+	block: Block;
+	inline: Inline;
+}
+
+export type I_LexerInlineQueue = {
+	src: string;
+	tokens: NodesToken[];
+}
+
+/**
+ * Block Lexer
+ */
+export interface I_Lexer {
+	tokens: TokensList;
+	options: MarkedOptions;
+	state: I_LexerState;
+	// readonly rules: I_LexerRules;
+	
+	/**
+	   * Preprocessing
+	   */
+	lex(src: string): TokensList;
+	
+	/**
+	   * Static Lex Inline Method
+	   */
+	// lexInline(src: string, options?: MarkedOptions): Token[];
+	
+	/**
+	   * Lexing
+	   */
+	blockTokens(src: string, tokens?: NodesToken[] | TokensList | null, lastParagraphClipped?: boolean | null): NodesToken[] | TokensList;
+	
+	inline(src: string, tokens?: NodesToken[] | null): NodesToken[];
+	
+	/**
+	   * Lexing/Compiling
+	   */
+	inlineTokens(src: string, tokens?: NodesToken[] | null): NodesToken[];
+}

@@ -1,0 +1,110 @@
+<template>
+	<view class="uni-ai-tool-bar">
+		<!-- 复制按钮、重新回答按钮 -->
+		<view class="btn"  @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
+			<uni-icons type="loop" size="18" color="#999"></uni-icons>
+		</view>
+		<view class="btn"  @click="copy">
+			<uni-ai-icon class="copy" code="e648" size="14" color="#999" />
+		</view>
+		<view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
+			<uni-icons class="delete" type="trash" size="18" color="#999"></uni-icons>
+		</view>
+	</view>
+</template>
+
+<script>
+	import {uniAi, MsgItem, BaseMsgItem} from '@/uni_modules/uni-ai-x/sdk';
+	export default {
+		name: 'msgToolBar',
+		props: {
+			msg: {
+				type: Object as PropType<MsgItem>,
+				required: true,
+				default: {},
+			}
+		},
+		data() {
+			return {}
+		},
+		computed: {
+			aiState(): string {
+				return uniAi.currentChat!.state
+			},
+			isLastAiMsg(): boolean {
+				return this.msg._id == uniAi.lastAiMsg?._id
+			}
+		},
+		methods: {
+			// 复制按钮
+			copy() {
+				if (typeof this.msg.body != 'string') {
+					uni.showToast({
+						title: '消息内容不是字符串',
+						icon: 'none',
+					})
+					return
+				}
+				uni.setClipboardData({
+					data: this.msg.body as string,
+					success: () => {
+						uni.showToast({
+							title: '复制成功',
+							icon: 'success',
+						})
+					}
+				})
+				console.error('当前会话是ai',this.msg.body)
+				// 如果最后一条消息是ai发的(即不是当前用户发的)
+			},
+			// 重新回答按钮
+			async loop() {
+				if (uniAi.currentChat!.state == 'processing') {
+					uniAi.currentChat!.state = 'stop'
+					// 终止请求
+					uniAi.abortRequest()
+					await new Promise(resolve => {setTimeout(()=>{resolve(true)}, 100)})
+				}
+				const aboutMsg = uniAi.currentChat!.msgList.find((item) => item._id == this.msg.about_msg_id)
+				// 删除原来的答案和问题
+				uniAi.deleteMsg(this.msg._id)
+				uniAi.deleteMsg(this.msg.about_msg_id!)
+				// 重新发送消息
+				uniAi.sendMsg(aboutMsg!.body)
+			},
+			// 删除按钮
+			deleteMsg() {
+				uniAi.deleteMsg(this.msg._id)
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+	.uni-ai-tool-bar {
+		border-radius: 5px;
+		z-index: 9;
+		flex-direction: row;
+		justify-content: flex-end;
+		.btn {
+			margin:3px;
+			margin-bottom: 0;
+			border: solid 1px #efefef;
+			border-radius: 5px;
+			width: 25px;
+			height: 25px;
+			justify-content: center;
+			align-items: center;
+			&.copy {
+				padding-top: 3px;
+				font-weight: 700;
+			}
+			// #ifdef WEB
+			cursor: pointer;
+			&:hover {
+				filter: brightness(0.8);
+			}
+			// #endif
+		}
+	}
+</style>

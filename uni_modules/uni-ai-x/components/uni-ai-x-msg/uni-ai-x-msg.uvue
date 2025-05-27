@@ -1,0 +1,202 @@
+<template>
+	<view class="msg-types-item-root">
+		<!-- <text>{{msg.body}}</text> -->
+		<template v-for="node in markdownTokenList">
+			<view v-if="node.type == 'hr'" class="hr"></view>
+			<view v-else-if="node.type == 'paragraph'" class="paragraph">
+				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
+			</view>
+			<view v-else-if="node.type == 'blockquote'" class="blockquote">
+				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
+			</view>
+			<view v-else-if="node.type == 'code'" class="code-box">
+				<uni-msg-code :code="node.text" :language="node.lang" />
+			</view>
+			<!-- 表格 -->
+			<view v-else-if="node.type == 'table'" class="table-box">
+				<uni-table :stripe="true">
+					<!-- 表头 -->
+					<uni-tr>
+						<uni-th v-for="(cell, cellIndex) in node.header" :key="cellIndex">
+							<text>{{cell.text}}</text>
+						</uni-th>
+					</uni-tr>
+					<!-- 表体 -->
+					<uni-tr v-for="(row, rowIndex) in node.rows" :key="rowIndex">
+						<uni-td v-for="(cell, cellIndex) in row" :key="cellIndex">
+							<text>{{cell.text}}</text>
+						</uni-td>
+					</uni-tr>
+				</uni-table>
+			</view>
+			<uni-marked-el v-else :token="node" :type="node.type" />
+		</template>
+		
+		<text v-if="isLastAiMsg && state == 'stop' && msg.body == ''" class="text stop">回答被用户终止</text>
+		<view v-if="isLastAiMsg && state == 'processing'" class="loging">
+			<uni-rotate-icon />
+			<text class="text">正在思考中...</text>
+		</view>
+		<text v-if="isLastAiMsg && state == 'none' && (msg.body as string).length == 0" class="needTry">错误：未回复</text>
+		<!-- <text style="color: red;border: solid 1px red;padding: 5px;border-radius: 5px;">markdown解析耗时：{{runTime}}ms</text> -->
+	</view>
+</template>
+
+<script>
+	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
+	import o_markdownText from '../markdownText.uts';
+	let markdownText = o_markdownText
+	import { useMarked, TokensList, NodesToken as MarkdownToken, Link } from '@/uni_modules/kux-marked';
+	import uniMsgCode from '../msg-code'
+	const marked = useMarked();
+	export default {
+		name: 'msg-uni-ai',
+		components: {
+			uniMsgCode
+		},
+		props: {
+			msg: {
+				type: Object as PropType<MsgItem>,
+				required: true,
+				default: {},
+			}
+		},
+		data() {
+			return {
+				// 耗时
+				runTime: 0,
+			}
+		},
+		computed: {
+			// 是否是自己发送的消息
+			state(): string {
+				return uniAi.currentChat!.state
+			},
+			isLastAiMsg(): boolean {
+				return uniAi.lastAiMsg?._id == this.msg._id
+			},
+			markdownTokenList(): MarkdownToken[]{
+				markdownText = this.msg.body as string
+				// 解析 markdown
+				// 计算耗时
+				const start = Date.now()
+				const TokensList = marked.lexer(markdownText,null) as TokensList
+				// console.error('TokensList',TokensList)
+				const end = Date.now()
+				// console.log('耗时',end - start)
+				this.runTime = end - start
+				const markdownTokenList = TokensList.tokens as MarkdownToken[]
+				// console.log('markdownTokenList',markdownTokenList)
+				return markdownTokenList
+			},
+		},
+		mounted() {},
+		methods: {
+			toLink(url: string) {
+				uni.showToast({
+					title: '点击了链接' + url,
+					icon: 'none'
+				});
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+	.msg-types-item-root {
+		flex-direction: row;
+		flex-wrap: wrap;
+		flex: 1;
+		background-color: #fff;
+		border-radius: 8px;
+		// #ifdef WEB
+		user-select: text;
+		// #endif
+		.paragraph {
+			flex-direction: row;
+			flex-wrap: wrap;
+			justify-content: flex-start;
+			// color: #333;
+			// font-size: 15px;
+			// line-height: 1.6;
+			justify-content: flex-start;
+			width: 100%;
+			.text {
+				// 自动换行
+				white-space: normal;
+				/* #ifndef APP */
+				max-width: 100%;
+				word-break: break-all;
+				/* #endif */
+			}
+		}
+		
+		.blockquote {
+			padding-left: 5px;
+			background: #f5f5f5;
+			border-left: 4px solid #ddd;
+			width: 100%;
+		}
+		
+		.code-box {
+			width: 100%;
+		}
+
+		.table-box {
+			width: 100%;
+		}
+
+		.hr {
+			height: 1px;
+			background-color: #ddd;
+			margin: 10px 0;
+			width: 100%;
+		}
+		
+		.text {
+			color: #333;
+			line-height: 1.5;
+			white-space: normal;
+			/* #ifndef APP */
+			word-break: break-all;
+			/* #endif */
+			&.stop {
+				color: #999;
+			}
+		}
+		
+		.loging {
+			flex-direction: row;
+			align-items: center;
+			justify-content: center;
+			padding: 15px 0;
+			
+			.text {
+				color: #666;
+				font-size: 14px;
+				margin-left: 8px;
+			}
+		}
+		
+		.needTry {
+			color: #ff4d4f;
+			font-size: 14px;
+			text-align: center;
+			padding: 10px;
+		}
+	}
+	.ui-theme-dark {
+		.msg-types-item-root {
+			.paragraph .text{
+				color: #fff !important;
+			}
+			.blockquote {
+				background-color: #3c3c3c !important;
+				.text {
+					color: #fff !important;
+				}
+			}
+			
+		}
+	}
+</style>

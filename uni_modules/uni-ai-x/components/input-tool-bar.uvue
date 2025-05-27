@@ -1,0 +1,194 @@
+<template>
+    <view class="input-tool-bar">
+        <view class="btn" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}" @click="setThinking">
+            <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !canThinking ? '#aaa' : '#666'"></uni-ai-icon>
+            <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}">深度思考</text>
+        </view>
+        <view class="btn" :class="{disable: !canWebSearch, active: webSearch}" @click="setWebSearch">
+            <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
+            <text class="text" :class="{disable: !canWebSearch, active: webSearch}">联网搜索</text>
+        </view>
+        <view v-if="aiState == 'processing'" class="stop active" @click="stop">
+            <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
+        </view>
+        <view v-else class="send" @click="send" :class="{active: inputContent.length > 0}">
+            <uni-ai-icon code="e627" color="#FFF"></uni-ai-icon>
+        </view>
+    </view>
+</template>
+<script>
+import uniAi from '@/uni_modules/uni-ai-x/sdk';
+import {llmModelMap, type LLMModel} from '../config';
+export default {
+    name: 'inputToolBar',
+    computed: {
+        aiState() : string {
+            return uniAi.currentChat?.state ?? 'done';
+        },
+        inputContent: {
+            get() : string {
+                return uniAi.currentChat?.inputContent ?? '';
+            },
+            set(value: string) {
+                uniAi.currentChat!.inputContent = value;
+            }
+        },
+        llmModel(): string {
+            return uniAi.llm.model
+        },
+        currentLLMModel(): LLMModel {
+            const provider = uniAi.llm.provider
+            const model = uniAi.llm.model
+            const currentLLMModel = llmModelMap.get(provider)?.models.find(m => m.name == model) as LLMModel;
+            // console.error('currentLLMModel',currentLLMModel);
+            return currentLLMModel
+        },
+        // 是否启用联网搜索
+        webSearch(): boolean {
+            return uniAi.llm.webSearch as boolean;
+        },
+        canWebSearch(): boolean {
+            const canWebSearch = this.currentLLMModel.webSearch ?? false;
+            if (!canWebSearch) {
+                // console.warn('当前模型不支持联网搜索，立即关闭联网搜索');
+                uniAi.llm.webSearch = false;
+            }
+            return canWebSearch
+        },
+        canThinking(): boolean {
+            return this.currentLLMModel.thinking ?? false;
+        }
+    },
+    data() {
+        const canWebSearchLLmList: string[] = [];
+        const canThinkingLLmList: string[] = [];
+        llmModelMap.forEach((provider,providerName) => {
+            provider.models.forEach(model => {
+                if (model.webSearch == true) {
+                    canWebSearchLLmList.push(providerName + ' - ' + model.name);
+                }
+                if (model.thinking == true) {
+                    canThinkingLLmList.push(providerName + ' - ' + model.name);
+                }
+            });
+        });
+
+        return {
+            canThinkingLLmList,
+            canWebSearchLLmList,
+            pushClientId: ''  
+        }
+    },
+    mounted() {
+        // #ifdef WEB
+        // 监听回车且没有按下 ctrl 、shift 、alt 、meta 键，时，发送消息
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+                e.preventDefault()
+                if (this.aiState == 'processing') {
+                    await this.stop()
+                }
+                this.send()
+            }
+        })
+        // #endif
+    },
+    methods: {
+        async stop() {
+            uniAi.currentChat!.state = 'stop';
+            uniAi.abortRequest()
+            // 给一个停止的等待时间
+            await new Promise(resolve => {
+							setTimeout(()=>{
+								resolve(true)
+							}, 100)
+						})
+        },
+        async send() {
+            if (this.inputContent.length == 0) {
+                return;
+            }
+            uniAi.sendMsg(this.inputContent)
+            this.inputContent = '';
+        },
+        setThinking(){
+            if (!this.canThinking) {
+                uni.showToast({
+                    title: `仅${this.canThinkingLLmList.join('、')}支持深度思考功能`,
+                    duration: 3000,
+                    icon: 'none'
+                });
+            } else {
+                uni.showToast({
+                    title: "当前模型，不支持关闭深度思考。请直接选择其他模型",
+                    duration: 3000,
+                    icon: 'none'
+                });
+            }
+        },
+        setWebSearch(){
+            if (!this.canWebSearch) {
+                uni.showToast({
+                    title: `仅${this.canWebSearchLLmList.join('、')}模型支持联网搜索`,
+                    duration: 3000,
+                    icon: 'none'
+                });
+                return
+            }
+            uniAi.llm.webSearch = !this.webSearch;
+        }
+    }
+}
+</script>
+<style lang="scss">
+.input-tool-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    padding:5px 0;
+    .btn {
+        flex-direction: row;
+        align-items: center;
+        padding: 2px 6px;
+        background-color: #efefef;
+        border-radius: 10rpx;
+				margin-right: 5px;
+				&.active {
+				    background-color: #e4efff;
+				}
+				&.disable {
+				    background-color: #efefef;
+				}
+        .text {
+            font-size: 14px;
+            color: #666;
+            margin-left: 3px;
+        }
+				.active.text {
+				    color: #3c76e4;
+				}
+				.disable.text {
+						color: #aaa;
+				}
+    }
+    .stop, .send {
+        margin-left: auto;
+        background-color: #9cc3fe;
+        width: 25px;
+        height: 25px;
+        justify-content: center;
+        align-items: center;
+        border-radius: 100px;
+        &.active {
+            background-color: #3c76e4;
+        }
+    }
+}
+.ui-theme-dark {
+	.input-tool-bar {
+		background-color: transparent;
+		.btn {
+			background-color: #4b4b4b;
+		}
+	}
+}
+</style>

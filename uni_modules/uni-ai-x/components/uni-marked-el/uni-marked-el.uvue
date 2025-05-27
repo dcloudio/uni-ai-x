@@ -1,0 +1,176 @@
+<template>
+	<uni-marked-el v-if="token.tokens != null && token.tokens!.length > 0" v-for="(nToken, index) in token.tokens" 
+		:key="index" :token="nToken" :type="type + ' ' + token.type + (token.depth != null ? ' depth-'+token.depth : '')" 
+		:link="link + (token.href ?? '')"
+	/>
+	<view v-else-if="token.type === 'list'" :class="['list', token.ordered != null? 'ordered-list' : 'unordered-list']">
+		<view v-for="(item, itemIndex) in token.items ?? []" :key="itemIndex" class="list-item">
+			<!-- 根据node.ordered判断是否有序列表，显示序号 或 圆点	 -->
+			<text class="list-item-index">{{ token.ordered != null ? itemIndex + 1 + '.' : '' }}</text>
+			<view class="list-item-content-box">
+				<uni-marked-el v-for="(token, tokenIndex) in item.tokens ?? []" :key="tokenIndex" :type="token.type" :token="token" />
+			</view>
+		</view>
+	</view>
+	<text v-else :class="type + ' text'" @click="toLink(link)">{{token.text}}</text>
+</template>
+
+<script>
+	import { useMarked, TokensList, NodesToken as MarkdownToken, Link } from '@/uni_modules/kux-marked';
+	// import {markdown2json,type MarkdownToken} from '@/uni_modules/uni-ai-x/sdk/markdown2json';
+	export default {
+		name: 'uni-marked-el',
+		props: {
+			link: {
+				type: String,
+				default: ''
+			},
+			token: {
+				type: Object as PropType<MarkdownToken>,
+				required: true,
+				default: {},
+			},
+			type: {
+				type: String,
+				default: ''
+			}
+		},
+		computed: {},
+		data() {
+			return {};
+		},
+		methods: {
+			toLink(url: string) {
+				if (url.length > 0) {
+					uni.showToast({
+						title: '点击了链接' + url,
+						icon: 'none'
+					});
+				}
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+	.strong {
+		font-weight: bold;
+	}
+	
+	.em {
+		font-style: italic;
+	}
+	
+	.del {
+		/* #ifndef APP */
+		text-decoration: line-through;
+		/* #endif */
+		color: #999;
+	}
+
+	.space {
+		height: 10px;
+	}
+
+	.link {
+		color: #0066cc;
+		// #ifdef WEB
+		cursor: pointer;
+		&:hover {
+			opacity: 0.8;
+		}
+		// #endif
+	}
+	.text {
+		color: #333;
+		line-height: 1.5;
+		white-space: normal;
+		/* #ifndef APP */
+		word-break: break-all;
+		max-width: 100%;
+		/* #endif */
+	}
+
+	.heading {
+		color: #333;
+		font-weight: bold;
+		margin-top: 5px;
+		
+		&.depth-1 {
+			font-size: 24px;
+		}
+		&.depth-2 {
+			font-size: 20px; 
+		}
+		&.depth-3 {
+			font-size: 18px;
+		}
+		&.depth-4 {
+			font-size: 16px;
+		}
+		&.depth-5 {
+			font-size: 14px;
+		}
+	}
+
+	.list {
+		margin-top: 5px;
+		padding-left: 5px;
+		width: 100%;
+		.list-item-content-box {
+			flex-direction: row;
+			flex-wrap: wrap;
+			flex: 1;
+			.list {
+				margin-top: 0;
+			}
+		}
+		
+		.list-item {
+			flex-direction: row;
+			margin-top: 5px;
+			.list-item-index {
+				width: 20px;
+				text-align: center;
+				font-size: 16px;
+				color: #555;
+			}
+		}
+		
+		&.unordered-list {
+			.list-item-index {
+				width: 8px;
+				height: 8px;
+				border-radius: 100px;
+				border: 1px solid #CCCCCC;
+				margin: 5px;
+			}
+		}
+	}
+
+	.ui-theme-dark {
+		.text {
+			color: #fff !important;
+		}
+		.strong {
+			color: #fff !important;
+		}
+		.em {
+			color: #fff !important;
+		}
+		.del {
+			color: #999 !important;
+		}
+		.link {
+			color: #0066cc !important;
+		}
+		.heading {
+			color: #fff !important;
+		}
+		.list {
+			.list-item-index {
+				color: #fff !important;
+			}
+		}
+	}
+</style>

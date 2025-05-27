@@ -1,0 +1,151 @@
+<template>
+	<view class="uni-im-setting" :class="{'ui-theme-dark': uiTheme == 'dark'}">
+		<uni-popup ref="popup">
+			<view class="popup-content">
+				<text class="title">系统设置</text>
+				<!-- 设置主题 -->
+				<view class="item">
+					<text class="label">设置主题</text>
+					<view class="value-box" @click="changeTheme">
+						<text class="value">{{currentThemeText}}</text>
+						<uni-icons type="down" size="16" color="#999"></uni-icons>
+					</view>
+				</view>
+			</view>
+		</uni-popup>
+	</view>
+</template>
+
+<script>
+	import uniAi from '@/uni_modules/uni-ai-x/sdk';
+	type UiThemeModeOptions = Map<string,string>
+	export default {
+		data() {
+			return {
+				uiThemeModeOptions: new Map<string,string>([
+					// ['auto', '跟随系统'],
+					['dark', '深色'],
+					['light', '浅色']
+				]) as UiThemeModeOptions
+			}
+		},
+		computed: {
+			uiTheme(): string {
+				return uniAi.setting.theme
+			},
+			uiThemeMode(): string {
+				return uniAi.setting.theme
+			},
+			currentThemeText(): string {
+				return this.uiThemeModeOptions.get(this.uiThemeMode) ?? '跟随系统'
+			}
+		},
+		mounted() {
+			// this.open()
+		},
+		methods: {
+			popupRef(): ComponentPublicInstance {
+				return this.$refs['popup'] as ComponentPublicInstance
+			},
+			open() {
+				this.popupRef().$callMethod('open');
+			},
+			close() {
+				this.popupRef().$callMethod('close');
+			},
+			changeTheme() {
+				const textList:string[] = [], keyList:string[] = []
+				this.uiThemeModeOptions.forEach((value, key) => {
+					textList.push(value)
+					keyList.push(key)
+				})
+				uni.showActionSheet({
+					title: "设置主题",
+					itemList: textList,
+					success: (res: ShowActionSheetSuccess) => {
+						console.log('设置主题', res.tapIndex, keyList[res.tapIndex])
+						uniAi.setting.theme = keyList[res.tapIndex]
+						this.close()
+					}
+				})
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+.uni-im-setting {
+	.popup-content {
+		background-color: #fff;
+		width: 320px;
+		height: auto;
+		max-height: 500rpx;
+		border-radius: 16px;
+		padding: 20px;
+		.title {
+			font-size: 18px;
+			font-weight: 700;
+			margin-bottom: 16px;
+			color: #333;
+		}
+		.item {
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+			padding: 14px 0;
+			// border-bottom: 1px solid #eaeaea;
+			// &:last-child {
+			// 	border-bottom: none;
+			// }
+			.label {
+				font-size: 16px;
+				color: #333;
+			}
+			.value-box {
+				flex-direction: row;
+				align-items: center;
+				justify-content: center;
+				border: 1px solid #e0e0e0;
+				border-radius: 8px;
+				padding: 8px 12px;
+				// #ifdef WEB
+				cursor: pointer;
+				&:hover {
+					filter: brightness(0.9);
+				}
+				// #endif
+				.value {
+					font-size: 14px;
+					color: #666;
+					margin-right: 8px;
+				}
+			}
+		}
+	}
+}
+.ui-theme-dark {
+	&.uni-im-setting {
+		.popup-content {
+			background-color: #3a3a46;
+			.title {
+				color: #e0e0e0;
+			}
+			.item {
+				border-bottom-color: #444;
+				.label {
+					color: #e0e0e0;
+				}
+				.value-box {
+					border-color: #444;
+					&:active {
+						background-color: #333;
+					}
+					.value {
+						color: #bbb;
+					}
+				}
+			}
+		}
+	}
+}
+</style>

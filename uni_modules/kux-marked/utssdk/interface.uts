@@ -1,0 +1,933 @@
+/**
+ * interface.uts
+ * uts插件接口定义文件，按规范定义接口文件可以在HBuilderX中更好的做到语法提示
+ */
+
+export * from './Rules.interface';
+export * from './Tokens.interface';
+export * from './MarkedOptions.interface';
+export * from './Parser.interface';
+export * from './Renderer.interface';
+export * from './TextRenderer.interface';
+export * from './Hooks.interface';
+export * from './Lexer.interface';
+export * from './Tokenizer.interface';
+export * from './Marked.interface';
+
+// export type MarkedToken = (
+// 	Tokens['Blockquote']
+// 	| Tokens['Br']
+// 	| Tokens['Code']
+// 	| Tokens['Codespan']
+// 	| Tokens['Def']
+// 	| Tokens['Del']
+// 	| Tokens['Em']
+// 	| Tokens['Escape']
+// 	| Tokens['Heading']
+// 	| Tokens['Hr']
+// 	| Tokens['HTML']
+// 	| Tokens['Image']
+// 	| Tokens['Link']
+// 	| Tokens['List']
+// 	| Tokens['ListItem']
+// 	| Tokens['Paragraph']
+// 	| Tokens['Space']
+// 	| Tokens['Strong']
+// 	| Tokens['Table']
+// 	| Tokens['Tag']
+// 	| Tokens['Text']
+// );
+
+// export type Token = (
+// 	MarkedToken
+// 	| Tokens['Generic']
+// );
+
+// export type Tokens = {
+// 	Blockquote : Blockquote;
+// 	Br : Br;
+// 	Code : Code;
+// 	Codespan : Codespan;
+// 	Checkbox : Checkbox;
+// 	Def : Def;
+// 	Del : Del;
+// 	Em : Em;
+// 	Escape : Escape;
+// 	Generic : Generic;
+// 	Heading : Heading;
+// 	Hr : Hr;
+// 	HTML : HTML;
+// 	Image : Image;
+// 	Link : Link;
+// 	List : List;
+// 	ListItem : ListItem;
+// 	Paragraph : Paragraph;
+// 	Space : Space;
+// 	Strong : Strong;
+// 	Table : Table;
+// 	TableCell : TableCell;
+// 	TableRow : TableRow;
+// 	Tag : Tag;
+// 	Text : Text;
+// }
+
+// export type Blockquote = {
+// 	type : 'blockquote';
+// 	raw : string;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Br = {
+// 	type : 'br';
+// 	raw : string;
+// 	tokens ?: Token[];
+// }
+
+// export type Checkbox = {
+// 	checked : boolean;
+// 	tokens ?: Token[];
+// }
+
+// export type Code = {
+// 	type : 'code';
+// 	raw : string;
+// 	codeBlockStyle ?: 'indented';
+// 	lang ?: string;
+// 	text : string;
+// 	escaped ?: boolean;
+// 	tokens ?: Token[];
+// }
+
+// export type Codespan = {
+// 	type : 'codespan';
+// 	raw : string;
+// 	text : string;
+// 	tokens ?: Token[];
+// }
+
+// export type Def = {
+// 	type : 'def';
+// 	raw : string;
+// 	tag : string;
+// 	href : string;
+// 	title : string;
+// 	tokens ?: Token[];
+// }
+
+// export type Del = {
+// 	type : 'del';
+// 	raw : string;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Em = {
+// 	type : 'em';
+// 	raw : string;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Escape = {
+// 	type : 'escape';
+// 	raw : string;
+// 	text : string;
+// 	tokens ?: Token[];
+// }
+
+// // export type Generic = {
+// // 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// // 	// [index : string] : any;
+// // 	type : string;
+// // 	raw : string;
+// // 	tokens ?: Token[];
+// // }
+// export type Generic = UTSJSONObject;
+
+// export type Heading = {
+// 	type : 'heading';
+// 	raw : string;
+// 	depth : number;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Hr = {
+// 	type : 'hr';
+// 	raw : string;
+// 	tokens ?: Token[];
+// }
+
+// export type HTML = {
+// 	type : 'html';
+// 	raw : string;
+// 	pre : boolean;
+// 	text : string;
+// 	block : boolean;
+// 	tokens ?: Token[];
+// }
+
+// export type Image = {
+// 	type : 'image';
+// 	raw : string;
+// 	href : string;
+// 	title : string | null;
+// 	text : string;
+// 	tokens: Token[];
+// }
+
+// export type Link = {
+// 	type : 'link';
+// 	raw : string;
+// 	href : string;
+// 	title ?: string | null;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type List = {
+// 	type : 'list';
+// 	raw : string;
+// 	ordered : boolean;
+// 	start : number | '';
+// 	loose : boolean;
+// 	items : ListItem[];
+// 	tokens ?: Token[];
+// }
+
+// export type ListItem = {
+// 	type : 'list_item';
+// 	raw : string;
+// 	task : boolean;
+// 	checked ?: boolean;
+// 	loose : boolean;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Paragraph = {
+// 	type : 'paragraph';
+// 	raw : string;
+// 	pre ?: boolean;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Space = {
+// 	type : 'space';
+// 	raw : string;
+// 	tokens ?: Token[];
+// }
+
+// export type Strong = {
+// 	type : 'strong';
+// 	raw : string;
+// 	text : string;
+// 	tokens : Token[];
+// }
+
+// export type Table = {
+// 	type : 'table';
+// 	raw : string;
+// 	align : Array<'center' | 'left' | 'right' | null>;
+// 	header : TableCell[];
+// 	rows : TableCell[][];
+// 	tokens ?: Token[];
+// }
+
+// export type TableCell = {
+// 	text : string;
+// 	tokens : Token[];
+// 	header : boolean;
+// 	align : 'center' | 'left' | 'right' | null;
+// }
+
+// export type TableRow = {
+// 	text : string;
+// 	tokens ?: Token[];
+// }
+
+// export type Tag = {
+// 	type : 'html';
+// 	raw : string;
+// 	inLink : boolean;
+// 	inRawBlock : boolean;
+// 	text : string;
+// 	block : boolean;
+// 	tokens ?: Token[];
+// }
+
+// export type Text = {
+// 	type : 'text';
+// 	raw : string;
+// 	text : string;
+// 	tokens ?: Token[];
+// 	escaped ?: boolean;
+// }
+
+// export type Links = UTSJSONObject;
+
+// export type InlineLink = {
+// 	href: string;
+// 	title?: string | null;
+// 	tokens ?: Token[];
+// }
+
+// export type TokensList = {
+// 	tokens: Token[];
+// 	links: Links;
+// };
+
+
+// export type Other = {
+// 	codeRemoveIndent: RegExp;
+// 	outputLinkReplace: RegExp;
+// 	indentCodeCompensation: RegExp;
+// 	beginningSpace: RegExp;
+// 	endingHash: RegExp;
+// 	startingSpaceChar: RegExp;
+// 	endingSpaceChar: RegExp;
+// 	nonSpaceChar: RegExp;
+// 	newLineCharGlobal: RegExp;
+// 	tabCharGlobal: RegExp;
+// 	multipleSpaceGlobal: RegExp;
+// 	blankLine: RegExp;
+// 	doubleBlankLine: RegExp;
+// 	blockquoteStart: RegExp;
+// 	blockquoteSetextReplace: RegExp;
+// 	blockquoteSetextReplace2: RegExp;
+// 	listReplaceTabs: RegExp;
+// 	listReplaceNesting: RegExp;
+// 	listIsTask: RegExp;
+// 	listReplaceTask: RegExp;
+// 	anyLine: RegExp;
+// 	hrefBrackets: RegExp;
+// 	tableDelimiter: RegExp;
+// 	tableAlignChars: RegExp;
+// 	tableRowBlankLine: RegExp;
+// 	tableAlignRight: RegExp;
+// 	tableAlignCenter: RegExp;
+// 	tableAlignLeft: RegExp;
+// 	startATag: RegExp;
+// 	endATag: RegExp;
+// 	startPreScriptTag: RegExp;
+// 	endPreScriptTag: RegExp;
+// 	startAngleBracket: RegExp;
+// 	endAngleBracket: RegExp;
+// 	pedanticHrefTitle: RegExp;
+// 	unicodeAlphaNumeric: RegExp;
+// 	escapeTest: RegExp;
+// 	escapeReplace: RegExp;
+// 	escapeTestNoEncode: RegExp;
+// 	escapeReplaceNoEncode: RegExp;
+// 	unescapeTest: RegExp;
+// 	caret: RegExp;
+// 	percentDecode: RegExp;
+// 	findPipe: RegExp;
+// 	splitPipe: RegExp;
+// 	slashPipe: RegExp;
+// 	carriageReturn: RegExp;
+// 	spaceLine: RegExp;
+// 	notSpaceStart: RegExp;
+// 	endingNewline: RegExp;
+// 	listItemRegex: (bull: string) => RegExp;
+// 	nextBulletRegex: (indent: number) => RegExp;
+// 	hrRegex: (indent: number) => RegExp;
+// 	fencesBeginRegex: (indent: number) => RegExp;
+// 	headingBeginRegex: (indent: number) => RegExp;
+// 	htmlBeginRegex: (indent: number) => RegExp;
+// }
+
+// export type RulesBlock = {
+// 	blockquote: RegExp;
+// 	code: RegExp;
+// 	def: RegExp;
+// 	fences: RegExp;
+// 	heading: RegExp;
+// 	hr: RegExp;
+// 	html: RegExp;
+// 	lheading: RegExp;
+// 	list: RegExp;
+// 	newline: RegExp;
+// 	paragraph: RegExp;
+// 	table: RegExp;
+// 	text: RegExp;
+// }
+
+// export type RulesInline = {
+// 	_backpedal: RegExp;
+// 	anyPunctuation: RegExp;
+// 	autolink: RegExp;
+// 	blockSkip: RegExp;
+// 	br: RegExp;
+// 	code: RegExp;
+// 	del: RegExp;
+// 	emStrongLDelim: RegExp;
+// 	emStrongRDelimAst: RegExp;
+// 	emStrongRDelimUnd: RegExp;
+// 	escape: RegExp;
+// 	link: RegExp;
+// 	nolink: RegExp;
+// 	punctuation: RegExp;
+// 	reflink: RegExp;
+// 	reflinkSearch: RegExp;
+// 	tag: RegExp;
+// 	text: RegExp;
+// 	url: RegExp;
+// }
+
+// export type Rules = {
+// 	other: Other;
+// 	block: BlockNormal;
+// 	inline: InlineNormal;
+// }
+
+// export type EditObject = {
+// 	replace(name: string | RegExp, val: string | RegExp): EditObject;
+// 	getRegex(): RegExp;
+// }
+
+// export type BlockNormal = {
+// 	blockquote: RegExp;
+// 	code: RegExp;
+// 	def: RegExp;
+// 	fences: any;
+// 	heading: RegExp;
+// 	hr: RegExp;
+// 	html: RegExp;
+// 	lheading: RegExp;
+// 	list: RegExp;
+// 	newline: RegExp;
+// 	paragraph: RegExp;
+// 	table: any;
+// 	text: RegExp;
+// };
+
+// export type NoopTest = {
+// 	exec: () => void;
+// }
+
+// export type BlockKeys = 
+// 	| 'blockquote' 
+// 	| 'code' 
+// 	| 'def' 
+// 	| 'fences' 
+// 	| 'heading' 
+// 	| 'hr' 
+// 	| 'html' 
+// 	| 'lheading' 
+// 	| 'list' 
+// 	| 'newline' 
+// 	| 'paragraph' 
+// 	| 'table' 
+// 	| 'text'
+
+// export type BlockGfm = {
+// 	blockquote: RegExp;
+// 	code: RegExp;
+// 	def: RegExp;
+// 	fences: RegExp;
+// 	heading: RegExp;
+// 	hr: RegExp;
+// 	html: RegExp;
+// 	list: RegExp;
+// 	newline: RegExp;
+// 	paragraph: RegExp;
+// 	text: RegExp;
+// 	lheading: RegExp;
+// 	table: RegExp;
+// }
+
+// export type BlockPedantic = {
+// 	blockquote: RegExp;
+// 	code: RegExp;
+// 	def: RegExp;
+// 	fences: any;
+// 	heading: RegExp;
+// 	hr: RegExp;
+// 	html: RegExp;
+// 	lheading: RegExp;
+// 	list: RegExp;
+// 	newline: RegExp;
+// 	paragraph: RegExp;
+// 	table: any;
+// 	text: RegExp;
+// }
+
+// export type InlineNormal = {
+// 	_backpedal: any;
+// 	anyPunctuation: RegExp;
+// 	autolink: RegExp;
+// 	blockSkip: RegExp;
+// 	br: RegExp;
+// 	code: RegExp;
+// 	del: any;
+// 	emStrongLDelim: RegExp;
+// 	emStrongRDelimAst: RegExp;
+// 	emStrongRDelimUnd: RegExp;
+// 	escape: RegExp;
+// 	link: RegExp;
+// 	nolink: RegExp;
+// 	punctuation: RegExp;
+// 	reflink: RegExp;
+// 	reflinkSearch: RegExp;
+// 	tag: RegExp;
+// 	text: RegExp;
+// 	url: any;
+// }
+
+// export type InlineKeys = 
+// 	| '_backpedal' 
+// 	| 'anyPunctuation' 
+// 	| 'autolink' 
+// 	| 'blockSkip' 
+// 	| 'br' 
+// 	| 'code' 
+// 	| 'del' 
+// 	| 'emStrongLDelim' 
+// 	| 'emStrongRDelimAst' 
+// 	| 'emStrongRDelimUnd' 
+// 	| 'escape' 
+// 	| 'link' 
+// 	| 'nolink' 
+// 	| 'punctuation' 
+// 	| 'reflink' 
+// 	| 'reflinkSearch' 
+// 	| 'tag' 
+// 	| 'text' 
+// 	| 'url'
+	
+// export type InlinePedantic = {
+// 	_backpedal: any;
+// 	anyPunctuation: RegExp;
+// 	autolink: RegExp;
+// 	blockSkip: RegExp;
+// 	br: RegExp;
+// 	code: RegExp;
+// 	del: any;
+// 	emStrongLDelim: RegExp;
+// 	emStrongRDelimAst: RegExp;
+// 	emStrongRDelimUnd: RegExp;
+// 	escape: RegExp;
+// 	link: RegExp;
+// 	nolink: RegExp;
+// 	punctuation: RegExp;
+// 	reflink: RegExp;
+// 	reflinkSearch: RegExp;
+// 	tag: RegExp;
+// 	text: RegExp;
+// 	url: any;
+// }
+
+// export type InlineGfm = {
+// 	_backpedal: RegExp;
+// 	anyPunctuation: RegExp;
+// 	autolink: RegExp;
+// 	blockSkip: RegExp;
+// 	br: RegExp;
+// 	code: RegExp;
+// 	del: RegExp;
+// 	emStrongLDelim: RegExp;
+// 	emStrongRDelimAst: RegExp;
+// 	emStrongRDelimUnd: RegExp;
+// 	escape: RegExp;
+// 	link: RegExp;
+// 	nolink: RegExp;
+// 	punctuation: RegExp;
+// 	reflink: RegExp;
+// 	reflinkSearch: RegExp;
+// 	tag: RegExp;
+// 	text: RegExp;
+// 	url: RegExp;
+// }
+
+// export type InlineBreaks = {
+// 	_backpedal: RegExp;
+// 	anyPunctuation: RegExp;
+// 	autolink: RegExp;
+// 	blockSkip: RegExp;
+// 	br: RegExp;
+// 	code: RegExp;
+// 	del: RegExp;
+// 	emStrongLDelim: RegExp;
+// 	emStrongRDelimAst: RegExp;
+// 	emStrongRDelimUnd: RegExp;
+// 	escape: RegExp;
+// 	link: RegExp;
+// 	nolink: RegExp;
+// 	punctuation: RegExp;
+// 	reflink: RegExp;
+// 	reflinkSearch: RegExp;
+// 	tag: RegExp;
+// 	text: RegExp;
+// 	url: RegExp;
+// }
+
+// export type Block = {
+// 	normal: BlockNormal;
+// 	gfm: BlockGfm;
+// 	pedantic: BlockPedantic;
+// }
+
+// export type Inline = {
+// 	normal: InlineNormal;
+// 	gfm: InlineGfm;
+// 	breaks: InlineBreaks;
+// 	pedantic: InlinePedantic;
+// }
+
+// export type TokenizerThis = {
+// 	lexer: I_Lexer;
+// }
+
+// export type TokenizerExtensionFunction = (instance: TokenizerThis, src: string, tokens: Token[] | TokensList) => Generic | null;
+
+// export type TokenizerStartFunction = (instance: TokenizerThis, src: string) => number | null;
+
+// export type TokenizerExtension = {
+// 	name: string;
+// 	level: 'block' | 'inline';
+// 	start?: TokenizerStartFunction;
+// 	tokenizer: TokenizerExtensionFunction;
+// 	childTokens?: string[];
+// }
+
+// export type RendererThis = {
+// 	parser: I_Parser;
+// }
+
+// export type RendererExtensionFunction = (instance: RendererThis, token: Generic) => string | false | null;
+
+// export type RendererExtension = {
+// 	name: string;
+// 	renderer: RendererExtensionFunction;
+// }
+
+// export type CombinedTokenizerAndRendererExtension = {
+// 	name: string;
+// 	level: 'block' | 'inline';
+// 	start?: TokenizerStartFunction;
+// 	tokenizer: TokenizerExtensionFunction;
+// 	childTokens?: string[];
+// 	renderer: RendererExtensionFunction;
+// }
+
+// export type TokenizerAndRendererExtension = TokenizerExtension | RendererExtension | CombinedTokenizerAndRendererExtension;
+
+// type HooksObject = UTSJSONObject;
+// type RendererObject = UTSJSONObject;
+// type TokenizerObject = UTSJSONObject;
+
+// export type MarkedExtension = {
+// 	/**
+// 	   * True will tell marked to await any walkTokens functions before parsing the tokens and returning an HTML string.
+// 	   */
+// 	async?: boolean;
+// 	/**
+// 	   * Enable GFM line breaks. This option requires the gfm option to be true.
+// 	   */
+// 	breaks?: boolean;
+// 	/**
+// 	   * Add tokenizers and renderers to marked
+// 	   */
+// 	extensions?: TokenizerAndRendererExtension[] | null;
+// 	/**
+// 	   * Enable GitHub flavored markdown.
+// 	   */
+// 	gfm?: boolean;
+// 	/**
+// 	   * Hooks are methods that hook into some part of marked.
+// 	   * preprocess is called to process markdown before sending it to marked.
+// 	   * processAllTokens is called with the TokensList before walkTokens.
+// 	   * postprocess is called to process html after marked has finished parsing.
+// 	   * provideLexer is called to provide a function to tokenize markdown.
+// 	   * provideParser is called to provide a function to parse tokens.
+// 	   */
+// 	hooks?: HooksObject | null;
+// 	/**
+// 	   * Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
+// 	   */
+// 	pedantic?: boolean;
+// 	/**
+// 	   * Type: object Default: new Renderer()
+// 	   *
+// 	   * An object containing functions to render tokens to HTML.
+// 	   */
+// 	renderer?: RendererObject | null;
+// 	/**
+// 	   * Shows an HTML error message when rendering fails.
+// 	   */
+// 	silent?: boolean;
+// 	/**
+// 	   * The tokenizer defines how to turn markdown text into tokens.
+// 	   */
+// 	tokenizer?: TokenizerObject | null;
+// 	/**
+// 	   * The walkTokens function gets called with every token.
+// 	   * Child tokens are called before moving on to sibling tokens.
+// 	   * Each token is passed by reference so updates are persisted when passed to the parser.
+// 	   * The return value of the function is ignored.
+// 	   */
+// 	walkTokens?: ((token: Token) => null | Promise<void>) | null;
+// }
+
+// export type CustomExtension = {
+// 	renderers: UTSJSONObject;
+// 	childTokens: UTSJSONObject;
+// 	inline?: TokenizerExtensionFunction[];
+// 	block?: TokenizerExtensionFunction[];
+// 	startInline?: TokenizerExtensionFunction[];
+// 	startBlock?: TokenizerExtensionFunction[];
+// }
+
+// export type MarkedOptions = {
+// 	/**
+// 	   * True will tell marked to await any walkTokens functions before parsing the tokens and returning an HTML string.
+// 	   */
+// 	async?: boolean;
+// 	/**
+// 	   * Enable GFM line breaks. This option requires the gfm option to be true.
+// 	   */
+// 	breaks?: boolean;
+// 	/**
+// 	   * Enable GitHub flavored markdown.
+// 	   */
+// 	gfm?: boolean;
+// 	/**
+// 	   * Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
+// 	   */
+// 	pedantic?: boolean;
+// 	/**
+// 	   * Shows an HTML error message when rendering fails.
+// 	   */
+// 	silent?: boolean;
+// 	/**
+// 	   * Hooks are methods that hook into some part of marked.
+// 	   */
+// 	hooks?: I_Hooks | null;
+// 	/**
+// 	   * Type: object Default: new Renderer()
+// 	   *
+// 	   * An object containing functions to render tokens to HTML.
+// 	   */
+// 	renderer?: I_Renderer | null;
+// 	/**
+// 	   * The tokenizer defines how to turn markdown text into tokens.
+// 	   */
+// 	tokenizer?: I_Tokenizer | null;
+// 	/**
+// 	   * Custom extensions
+// 	   */
+// 	extensions: CustomExtension | null;
+// 	/**
+// 	   * walkTokens function returns array of values for Promise.all
+// 	   */
+// 	walkTokens?: null | ((token: Token) => null | Promise<void> | (null | Promise<void>)[]);
+// };
+
+// export interface I_Parser {
+// 	options: MarkedOptions;
+// 	renderer: I_Renderer;
+// 	textRenderer: I_TextRenderer;
+	
+// 	/**
+// 	   * Parse Loop
+// 	   */
+// 	parse(tokens: Token[], top?: boolean): string;
+	
+// 	/**
+// 	   * Parse Inline Tokens
+// 	   */
+// 	parseInline(tokens: Token[], renderer?: I_Renderer | I_TextRenderer): string;
+// }
+
+// export interface I_Renderer {
+// 	options: MarkedOptions;
+// 	parser: I_Parser | null;
+	
+// 	space(token: Space): string;
+// 	code(option: Code): string;
+// 	blockquote(option: Blockquote): string;
+// 	html(option: HTML | Tag): string;
+// 	heading(option: Heading): string;
+// 	hr(token: Hr): string;
+// 	list(token: List): string;
+// 	listitem(item: ListItem): string;
+// 	checkbox(option: Checkbox): string;
+// 	paragraph(option: Paragraph): string;
+// 	table(option: Table): string;
+// 	tablerow(option: TableRow): string;
+// 	tablecell(option: TableCell): string;
+	
+// 	/**
+// 	* span level renderer
+// 	*/
+//    strong(option: Strong): string;
+//    em(option: Em): string;
+//    codespan(option: Codespan): string;
+//    br(option: Br): string;
+//    del(option: Del): string;
+//    link(option: Link): string;
+//    image(option: Image): string;
+//    text(option: Text | Escape): string;
+// }
+
+// export interface I_TextRenderer {
+// 	// no need for block level renderers
+// 	strong(option: Strong): string;
+// 	em(option: Em): string;
+// 	codespan(option: Codespan): string;
+// 	del(option: Del): string;
+// 	html(option: HTML | Tag): string;
+// 	text(option: Text | Escape | Tag): string;
+// 	link(option: Link): string;
+// 	image(option: Image): string;
+// 	br(): string;
+// }
+
+// export interface I_Hooks {
+// 	options : MarkedOptions;
+// 	block : boolean | null;
+
+// 	/**
+// 	   * Process markdown before marked
+// 	   */
+// 	preprocess(markdown : string) : string;
+	
+// 	/**
+// 	   * Process HTML after marked is finished
+// 	   */
+// 	postprocess(html: string): string;
+
+// 	/**
+// 	   * Process all tokens before walk tokens
+// 	   */
+// 	processAllTokens(tokens: Token[] | TokensList): Token[] | TokensList;
+	
+// 	/**
+// 	   * Provide function to tokenize markdown
+// 	   */
+// 	provideLexer(): ((src: string, options?: MarkedOptions) => Token[]) | ((src: string, options?: MarkedOptions) => TokensList);
+	
+// 	/**
+// 	   * Provide function to parse tokens
+// 	   */
+// 	provideParser(): ((tokens: Token[], options?: MarkedOptions) => string)
+// }
+
+
+// export type I_LexerState = {
+// 	inLink: boolean;
+// 	inRawBlock: boolean;
+// 	top: boolean;
+// }
+
+// export type I_LexerRules = {
+// 	block: Block;
+// 	inline: Inline;
+// }
+
+// export type I_LexerInlineQueue = {
+// 	src: string;
+// 	tokens: Token[];
+// }
+
+// /**
+//  * Block Lexer
+//  */
+// export interface I_Lexer {
+// 	tokens: TokensList;
+// 	options: MarkedOptions;
+// 	state: I_LexerState;
+// 	// readonly rules: I_LexerRules;
+	
+// 	/**
+// 	   * Preprocessing
+// 	   */
+// 	lex(src: string): TokensList;
+	
+// 	/**
+// 	   * Static Lex Inline Method
+// 	   */
+// 	// lexInline(src: string, options?: MarkedOptions): Token[];
+	
+// 	/**
+// 	   * Lexing
+// 	   */
+// 	blockTokens(src: string, tokens?: Token[] | TokensList, lastParagraphClipped?: boolean): Token[] | TokensList;
+	
+// 	inline(src: string, tokens?: Token[]): Token[];
+	
+// 	/**
+// 	   * Lexing/Compiling
+// 	   */
+// 	inlineTokens(src: string, tokens?: Token[]): Token[];
+// }
+
+
+// /**
+//  * Tokenizer
+//  */
+// export interface I_Tokenizer {
+// 	options: MarkedOptions;
+// 	rules: Rules | null;
+// 	lexer: I_Lexer | null;
+	
+// 	space(src: string): Space | null;
+// 	code(src: string): Code | null;
+// 	fences(src: string): Code | null;
+// 	heading(src: string): Heading | null;
+// 	hr(src: string): Hr | null;
+// 	blockquote(src: string): Blockquote | null;
+// 	list(src: string): List | null;
+// 	html(src: string): HTML | null;
+// 	def(src: string): Def | null;
+// 	table(src: string): Table | null;
+// 	lheading(src: string): Heading | null;
+// 	paragraph(src: string): Paragraph | null;
+// 	text(src: string): Text | null;
+// 	escape(src: string): Escape | null;
+// 	tag(src: string): Tag | null;
+// 	link(src: string): Link | Image | null;
+// 	reflink(src: string, links: Links): Link | Image | Text | null;
+// 	emStrong(src: string, maskedSrc: string, prevChar?: string): Em | Strong | null;
+// 	codespan(src: string): Codespan | null;
+// 	br(src: string): Br | null;
+// 	del(src: string): Del | null;
+// 	autolink(src: string): Link | null;
+// 	url(src: string): Link | null;
+// 	inlineText(src: string): Text | null;
+// }
+
+
+// export type MaybePromise = null | Promise<void>;
+
+// export type UnknownFunction = (...args: any[]) => any;
+// export type GenericRendererFunction = (...args: any[]) => string | false;
+
+// export type OverloadedParse = {
+// 	(src: string, options: MarkedOptions): Promise<string>;
+// 	(src: string, options: MarkedOptions): string;
+// 	(src: string, options?: MarkedOptions | null): string | Promise<string>;
+// }
+
+// export interface I_Marked {
+// 	defaults: MarkedOptions;
+// 	// options: (opt: MarkedOptions) => I_Marked;
+// 	parse: (src: string, options?: MarkedOptions) => string | Promise<string | Promise<string>>;
+// 	parseInline: (src: string, options?: MarkedOptions) => string | Promise<string | Promise<string>>;
+	
+// 	/**
+// 	   * Run callback for every token
+// 	   */
+// 	// walkTokens(tokens: Token[] | TokensList, callback: (token: Token) => MaybePromise | MaybePromise[]): MaybePromise[];
+	
+// 	// use(...args: MarkedExtension[]): I_Marked;
+	
+// 	setOptions(opt: MarkedOptions): I_Marked;
+	
+// 	lexer(src: string, options?: MarkedOptions): TokensList;
+	
+// 	parser(tokens: Token[], options?: MarkedOptions): string;
+// }

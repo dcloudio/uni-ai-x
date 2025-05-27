@@ -1,0 +1,14 @@
+import JSReg from 'io.dcloud.uts.jsreg.JSReg';
+
+export * from '../../common/marked';
+
+export function callJSReg(reg: string | RegExp): RegExp {
+	// if (typeof reg ==='string') {
+	// 	return JSReg(reg as string).toUTSRegExp();
+	// }
+	
+	// return JSReg(reg as RegExp).toUTSRegExp();
+	return new RegExp()
+}
+
+export * from '../interface';

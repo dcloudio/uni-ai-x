@@ -1,0 +1,62 @@
+import { Rules } from './Rules.interface';
+import { I_Lexer } from './Lexer.interface';
+import { Blockquote, Br, Code, Codespan, Def, Del, Em, Escape, HTML, Heading, Hr, Link, Links, List, Paragraph, Space, Strong, Table, Tag, Text, Image, NodesToken } from './Tokens.interface';
+import { MarkedOptions } from './MarkedOptions.interface';
+
+/**
+ * Tokenizer
+ */
+export interface I_Tokenizer {
+	options: MarkedOptions;
+	rules: Rules | null;
+	lexer: I_Lexer | null;
+	
+	// space(src: string): Space | null;
+	// code(src: string): Code | null;
+	// fences(src: string): Code | null;
+	// heading(src: string): Heading | null;
+	// hr(src: string): Hr | null;
+	// blockquote(src: string): Blockquote | null;
+	// list(src: string): List | null;
+	// html(src: string): HTML | null;
+	// def(src: string): Def | null;
+	// table(src: string): Table | null;
+	// lheading(src: string): Heading | null;
+	// paragraph(src: string): Paragraph | null;
+	// text(src: string): Text | null;
+	// escape(src: string): Escape | null;
+	// tag(src: string): Tag | null;
+	// link(src: string): Link | Image | null;
+	// reflink(src: string, links: Links): Link | Image | Text | null;
+	// emStrong(src: string, maskedSrc: string, prevChar?: string): Em | Strong | null;
+	// codespan(src: string): Codespan | null;
+	// br(src: string): Br | null;
+	// del(src: string): Del | null;
+	// autolink(src: string): Link | null;
+	// url(src: string): Link | null;
+	// inlineText(src: string): Text | null;
+	space(src: string): NodesToken | null;
+	code(src: string): NodesToken | null;
+	fences(src: string): NodesToken | null;
+	heading(src: string): NodesToken | null;
+	hr(src: string): NodesToken | null;
+	blockquote(src: string): NodesToken | null;
+	list(src: string): NodesToken | null;
+	html(src: string): NodesToken | null;
+	def(src: string): NodesToken | null;
+	table(src: string): NodesToken | null;
+	lheading(src: string): NodesToken | null;
+	paragraph(src: string): NodesToken | null;
+	text(src: string): NodesToken | null;
+	escape(src: string): NodesToken | null;
+	tag(src: string): NodesToken | null;
+	link(src: string): NodesToken | null;
+	reflink(src: string, links: Links): NodesToken | null;
+	emStrong(src: string, maskedSrc: string, prevChar?: string | null): NodesToken | null;
+	codespan(src: string): NodesToken | null;
+	br(src: string): NodesToken | null;
+	del(src: string): NodesToken | null;
+	autolink(src: string): NodesToken | null;
+	url(src: string): NodesToken | null;
+	inlineText(src: string): NodesToken | null;
+}

@@ -1,0 +1,107 @@
+<template>
+	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd">
+		<uni-ai-menu :ui-theme="uiTheme" @close-menu="closeMenu"></uni-ai-menu>
+		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+	</view>
+</template>
+
+<script lang="uts">
+	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
+	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
+	export default {
+		components: {uniAiMenu, uniAiChat},
+		data() {
+			return {
+				startX: 0,
+				translateX: -260,
+				isDragging: false,
+				isMoveing: false,
+				showMenu: false
+			}
+		},
+		watch: {
+			showMenu(newVal) {
+				if (newVal) {
+					this.translateX = 0
+				} else {
+					this.translateX = -260
+				}
+			}
+		},
+		computed: {
+			uiTheme(): string {
+				return 'light'
+			}
+		},
+		mounted() {
+			// #ifdef WEB
+			window.addEventListener('resize', () => {
+				this.showMenu = window.innerWidth > 960
+			})
+			// #endif
+		},
+		methods: {
+			changeMenu() {
+				this.showMenu = !this.showMenu
+			},
+			touchStart(event: TouchEvent) {
+				this.startX = event.touches[0].pageX
+				// this.isDragging = true
+			},
+			touchMove(event: TouchEvent) {
+				if (!this.isDragging) return
+				this.isMoveing = true
+				
+				const currentX = event.touches[0].pageX
+				const diffX = currentX - this.startX
+				
+				let newTranslateX = this.showMenu ? diffX : -260 + diffX
+				
+				if (newTranslateX > 0) newTranslateX = 0
+				if (newTranslateX < -260) newTranslateX = -260
+				
+				this.translateX = newTranslateX
+			},
+			touchEnd() {
+				setTimeout(()=>{
+					this.isMoveing = false
+				},0)
+				if (!this.isDragging) return
+				this.isDragging = false
+				if (this.translateX > -130) {
+					this.showMenu = true
+				} else {
+					this.showMenu = false
+				}
+			},
+			closeMenu() {
+				if (this.isMoveing) return
+				this.showMenu = false
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+.uni-ai-page {
+	padding-top: env(safe-area-inset-top);
+	position: fixed;
+	width: calc(100% + 260px);
+	transform: translateX(-260px);
+	height: 100%;
+	flex-direction: row;
+	background-color: #FFF;
+	transition: transform 0.3s, width 0.3s;
+	&.showMenu {
+		transform: translateX(0) !important;
+	}
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.uni-ai-page.showMenu {
+		width: 100%;
+	}
+}
+/* #endif */
+</style>

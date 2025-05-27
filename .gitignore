@@ -1,0 +1,14 @@
+yarn.lock
+.DS_Store
+.hbuilderx/
+.vite/
+uni_modules.config.json
+.DS_Store
+node_modules
+/unpackage/
+uniCloud-alipay/database/newQuery.jql
+package-lock.json
+*.yaml
+cementing-debug.log
+*.log
+uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-ai-x/config.json

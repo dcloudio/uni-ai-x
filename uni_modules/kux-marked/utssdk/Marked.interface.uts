@@ -1,0 +1,35 @@
+import { I_Lexer } from './Lexer.interface';
+import { MarkedOptions, MarkedExtension } from './MarkedOptions.interface';
+import { I_Parser } from './Parser.interface';
+import { Token, TokensList, NodesToken } from './Tokens.interface';
+
+export type MaybePromise = null | Promise<void>;
+
+export type UnknownFunction = (...args: any[]) => any;
+export type GenericRendererFunction = (...args: any[]) => string | false;
+
+export type OverloadedParse = {
+	(src: string, options: MarkedOptions): Promise<string>;
+	(src: string, options: MarkedOptions): string;
+	(src: string, options?: MarkedOptions | null): string | Promise<string>;
+}
+
+export interface I_Marked {
+	defaults: MarkedOptions;
+	// options: (opt: MarkedOptions) => I_Marked;
+	parse: (src: string, options?: MarkedOptions | null) => string | Promise<string | Promise<string>>;
+	parseInline: (src: string, options?: MarkedOptions | null) => string | Promise<string | Promise<string>>;
+	
+	/**
+	   * Run callback for every token
+	   */
+	// walkTokens(tokens: Token[] | TokensList, callback: (token: Token) => MaybePromise | MaybePromise[]): MaybePromise[];
+	
+	// use(...args: MarkedExtension[]): I_Marked;
+	
+	setOptions(opt: MarkedOptions): I_Marked;
+	
+	lexer(src: string, options?: MarkedOptions | null): TokensList;
+	
+	parser(tokens: NodesToken[], options?: MarkedOptions | null): string;
+}

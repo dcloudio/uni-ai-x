@@ -1,0 +1,312 @@
+export type MarkedToken = (
+	// Tokens['Blockquote']
+	// | Tokens['Br']
+	// | Tokens['Code']
+	// | Tokens['Codespan']
+	// | Tokens['Def']
+	// | Tokens['Del']
+	// | Tokens['Em']
+	// | Tokens['Escape']
+	// | Tokens['Heading']
+	// | Tokens['Hr']
+	// | Tokens['HTML']
+	// | Tokens['Image']
+	// | Tokens['Link']
+	// | Tokens['List']
+	// | Tokens['ListItem']
+	// | Tokens['Paragraph']
+	// | Tokens['Space']
+	// | Tokens['Strong']
+	// | Tokens['Table']
+	// | Tokens['Tag']
+	// | Tokens['Text']
+	Blockquote
+	| Br
+	| Code
+	| Codespan
+	| Def
+	| Del
+	| Em
+	| Escape
+	| Heading
+	| Hr
+	| HTML
+	| Image
+	| Link
+	| List
+	| ListItem
+	| Paragraph
+	| Space
+	| Strong
+	| Table
+	| Tag
+	| Text
+);
+
+export type Token = (
+	MarkedToken
+	| Generic
+);
+
+export type Tokens = {
+	Blockquote : Blockquote;
+	Br : Br;
+	Code : Code;
+	Codespan : Codespan;
+	Checkbox : Checkbox;
+	Def : Def;
+	Del : Del;
+	Em : Em;
+	Escape : Escape;
+	Generic : Generic;
+	Heading : Heading;
+	Hr : Hr;
+	HTML : HTML;
+	Image : Image;
+	Link : Link;
+	List : List;
+	ListItem : ListItem;
+	Paragraph : Paragraph;
+	Space : Space;
+	Strong : Strong;
+	Table : Table;
+	TableCell : TableCell;
+	TableRow : TableRow;
+	Tag : Tag;
+	Text : Text;
+}
+
+export type Blockquote = {
+	type : 'blockquote';
+	raw : string;
+	text : string;
+	tokens : Token[];
+}
+
+export type Br = {
+	type : 'br';
+	raw : string;
+	tokens ?: Token[] | null;
+}
+
+export type Checkbox = {
+	checked : boolean;
+	tokens ?: Token[] | null;
+}
+
+export type Code = {
+	type : 'code';
+	raw : string;
+	codeBlockStyle ?: 'indented' | null;
+	lang ?: string | null;
+	text : string | null;
+	escaped ?: boolean | null;
+	tokens ?: Token[] | null;
+}
+
+export type Codespan = {
+	type : 'codespan';
+	raw : string;
+	text : string;
+	tokens ?: Token[] | null;
+}
+
+export type Def = {
+	type : 'def';
+	raw : string;
+	tag : string;
+	href : string;
+	title : string;
+	tokens ?: Token[] | null;
+}
+
+export type Del = {
+	type : 'del';
+	raw : string;
+	text : string;
+	tokens : Token[];
+}
+
+export type Em = {
+	type : 'em';
+	raw : string;
+	text : string;
+	tokens : Token[];
+}
+
+export type Escape = {
+	type : 'escape';
+	raw : string;
+	text : string;
+	tokens ?: Token[] | null;
+}
+
+// export type Generic = {
+// 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// 	// [index : string] : any;
+// 	type : string;
+// 	raw : string;
+// 	tokens ?: Token[];
+// }
+export type Generic = UTSJSONObject;
+
+export type Heading = {
+	type : 'heading';
+	raw : string;
+	depth : number;
+	text : string;
+	tokens : Token[];
+}
+
+export type Hr = {
+	type : 'hr';
+	raw : string;
+	tokens ?: Token[];
+}
+
+export type HTML = {
+	type : 'html';
+	raw : string;
+	pre : boolean;
+	text : string;
+	block : boolean;
+	tokens ?: Token[];
+}
+
+export type Image = {
+	type : 'image';
+	raw : string;
+	href : string;
+	title : string | null;
+	text : string;
+	tokens: Token[];
+}
+
+export type Link = {
+	type : 'link';
+	raw : string;
+	href : string;
+	title ?: string | null;
+	text : string;
+	tokens : Token[];
+}
+
+export type List = {
+	type : 'list';
+	raw : string;
+	ordered : boolean;
+	start : number | '';
+	loose : boolean;
+	items : ListItem[];
+	tokens ?: Token[] | null;
+}
+
+export type ListItem = {
+	type : 'list_item';
+	raw : string;
+	task : boolean;
+	checked ?: boolean | null;
+	loose : boolean;
+	text : string;
+	tokens : Token[];
+}
+
+export type Paragraph = {
+	type : 'paragraph';
+	raw : string;
+	pre ?: boolean | null;
+	text : string;
+	tokens : Token[];
+}
+
+export type Space = {
+	type : 'space';
+	raw : string;
+	tokens ?: Token[] | null;
+}
+
+export type Strong = {
+	type : 'strong';
+	raw : string;
+	text : string;
+	tokens : Token[];
+}
+
+export type Table = {
+	type : 'table';
+	raw : string;
+	align : Array<'center' | 'left' | 'right' | null>;
+	header : TableCell[];
+	rows : TableCell[][];
+	tokens ?: Token[] | null;
+}
+
+export type TableCell = {
+	text : string;
+	tokens : NodesToken[];
+	header : boolean;
+	align : 'center' | 'left' | 'right' | null;
+}
+
+export type TableRow = {
+	text : string;
+	tokens ?: Token[] | null;
+}
+
+export type Tag = {
+	type : 'html';
+	raw : string;
+	inLink : boolean;
+	inRawBlock : boolean;
+	text : string;
+	block : boolean;
+	tokens ?: Token[] | null;
+}
+
+export type Text = {
+	type : 'text';
+	raw : string;
+	text : string;
+	tokens ?: Token[] | null;
+	escaped ?: boolean | null;
+}
+
+export type Links = UTSJSONObject;
+
+export type InlineLink = {
+	href: string;
+	title?: string | null;
+	tokens ?: Token[] | null;
+}
+
+export type TokensList = {
+	tokens: NodesToken[];
+	links: Links;
+};
+
+export type NodesToken = {
+	type?: string | null;
+	raw?: string | null;
+	text?: string | null;
+	tokens?: NodesToken[] | null;
+	checked?: boolean | null;
+	codeBlockStyle?: 'indented' | null;
+	lang?: string | null;
+	escaped?: boolean | null;
+	tag?: string | null;
+	href?: string | null;
+	title?: string | null;
+	depth?: number | null;
+	pre?: boolean | null;
+	block?: boolean | null;
+	ordered?: boolean | null;
+	start?: number | string | null;
+	loose?: boolean | null;
+	items?: NodesToken[] | null;
+	task?: boolean | null;
+	align?: Array<'center' | 'left' | 'right' | null> | null;
+	header?: TableCell[] | null;
+	rows?: TableCell[][] | null;
+	inLink?: boolean | null;
+	inRawBlock?: boolean | null;
+};

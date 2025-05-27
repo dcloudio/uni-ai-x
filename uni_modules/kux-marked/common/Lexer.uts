@@ -1,0 +1,1069 @@
+import { I_Lexer, Token, TokensList, Tokens, MarkedOptions, I_LexerState, I_LexerInlineQueue, Rules, I_LexerRules, Links, I_Tokenizer, TokenizerThis, Generic, BlockNormal, InlineNormal, MarkedToken, Paragraph, Text, Image, Link, Em, Strong, NodesToken } from '../utssdk/interface';
+import { _defaults } from './defaults';
+import { other, block, inlineGrammer } from './rules';
+import { Tokenizer } from './Tokenizer';
+
+/**
+ * Block Lexer
+ */
+export class Lexer implements I_Lexer {
+	tokens : TokensList;
+	options : MarkedOptions;
+	state : I_LexerState;
+
+	private tokenizer : I_Tokenizer;
+	private inlineQueue : I_LexerInlineQueue[];
+
+	constructor(options : MarkedOptions | null = null) {
+		// TokenList cannot be created in one go
+		this.tokens = {
+			tokens: [] as NodesToken[],
+			links: {} as UTSJSONObject,
+		} as TokensList;
+		this.options = options ?? _defaults;
+		this.options.tokenizer = this.options.tokenizer ?? new Tokenizer();
+		this.tokenizer = this.options!.tokenizer!;
+		this.tokenizer.options = this.options!;
+		this.tokenizer.lexer = this;
+		this.inlineQueue = [] as I_LexerInlineQueue[];
+		this.state = {
+			inLink: false,
+			inRawBlock: false,
+			top: true
+		} as I_LexerState;
+
+		const rules = {
+			other,
+			block: block.normal,
+			inline: inlineGrammer.normal
+		} as Rules;
+
+		if (this.options.pedantic == true) {
+			rules.block = {
+				blockquote: block.pedantic.blockquote,
+				code: block.pedantic.code,
+				def: block.pedantic.def,
+				fences: block.pedantic.fences,
+				heading: block.pedantic.heading,
+				hr: block.pedantic.hr,
+				html: block.pedantic.html,
+				lheading: block.pedantic.lheading,
+				list: block.pedantic.list,
+				newline: block.pedantic.newline,
+				paragraph: block.pedantic.paragraph,
+				table: block.pedantic.table,
+				text: block.pedantic.text,
+			} as BlockNormal;
+			rules.inline = {
+				_backpedal: inlineGrammer.pedantic._backpedal,
+				anyPunctuation: inlineGrammer.pedantic.anyPunctuation,
+				autolink: inlineGrammer.pedantic.autolink,
+				blockSkip: inlineGrammer.pedantic.blockSkip,
+				br: inlineGrammer.pedantic.br,
+				code: inlineGrammer.pedantic.code,
+				del: inlineGrammer.pedantic.del,
+				emStrongLDelim: inlineGrammer.pedantic.emStrongLDelim,
+				emStrongRDelimAst: inlineGrammer.pedantic.emStrongRDelimAst,
+				emStrongRDelimUnd: inlineGrammer.pedantic.emStrongRDelimUnd,
+				escape: inlineGrammer.pedantic.escape,
+				link: inlineGrammer.pedantic.link,
+				nolink: inlineGrammer.pedantic.nolink,
+				punctuation: inlineGrammer.pedantic.punctuation,
+				reflink: inlineGrammer.pedantic.reflink,
+				reflinkSearch: inlineGrammer.pedantic.reflinkSearch,
+				tag: inlineGrammer.pedantic.tag,
+				text: inlineGrammer.pedantic.text,
+				url: inlineGrammer.pedantic.url
+			} as InlineNormal;
+		} else if (this.options.gfm == true) {
+			rules.block = {
+				blockquote: block.gfm.blockquote,
+				code: block.gfm.code,
+				def: block.gfm.def,
+				fences: block.gfm.fences,
+				heading: block.gfm.heading,
+				hr: block.gfm.hr,
+				html: block.gfm.html,
+				lheading: block.gfm.lheading,
+				list: block.gfm.list,
+				newline: block.gfm.newline,
+				paragraph: block.gfm.paragraph,
+				table: block.gfm.table,
+				text: block.gfm.text,
+			} as BlockNormal;
+			if (this.options.breaks == true) {
+				rules.inline = {
+					_backpedal: inlineGrammer.breaks._backpedal,
+					anyPunctuation: inlineGrammer.breaks.anyPunctuation,
+					autolink: inlineGrammer.breaks.autolink,
+					blockSkip: inlineGrammer.breaks.blockSkip,
+					br: inlineGrammer.breaks.br,
+					code: inlineGrammer.breaks.code,
+					del: inlineGrammer.breaks.del,
+					emStrongLDelim: inlineGrammer.breaks.emStrongLDelim,
+					emStrongRDelimAst: inlineGrammer.breaks.emStrongRDelimAst,
+					emStrongRDelimUnd: inlineGrammer.breaks.emStrongRDelimUnd,
+					escape: inlineGrammer.breaks.escape,
+					link: inlineGrammer.breaks.link,
+					nolink: inlineGrammer.breaks.nolink,
+					punctuation: inlineGrammer.breaks.punctuation,
+					reflink: inlineGrammer.breaks.reflink,
+					reflinkSearch: inlineGrammer.breaks.reflinkSearch,
+					tag: inlineGrammer.breaks.tag,
+					text: inlineGrammer.breaks.text,
+					url: inlineGrammer.breaks.url
+				} as InlineNormal;
+			} else {
+				rules.inline = {
+					_backpedal: inlineGrammer.gfm._backpedal,
+					anyPunctuation: inlineGrammer.gfm.anyPunctuation,
+					autolink: inlineGrammer.gfm.autolink,
+					blockSkip: inlineGrammer.gfm.blockSkip,
+					br: inlineGrammer.gfm.br,
+					code: inlineGrammer.gfm.code,
+					del: inlineGrammer.gfm.del,
+					emStrongLDelim: inlineGrammer.gfm.emStrongLDelim,
+					emStrongRDelimAst: inlineGrammer.gfm.emStrongRDelimAst,
+					emStrongRDelimUnd: inlineGrammer.gfm.emStrongRDelimUnd,
+					escape: inlineGrammer.gfm.escape,
+					link: inlineGrammer.gfm.link,
+					nolink: inlineGrammer.gfm.nolink,
+					punctuation: inlineGrammer.gfm.punctuation,
+					reflink: inlineGrammer.gfm.reflink,
+					reflinkSearch: inlineGrammer.gfm.reflinkSearch,
+					tag: inlineGrammer.gfm.tag,
+					text: inlineGrammer.gfm.text,
+					url: inlineGrammer.gfm.url
+				} as InlineNormal;
+			}
+		}
+		this.tokenizer.rules = rules;
+	}
+
+	private _instance() : I_Lexer {
+		return this as I_Lexer;
+	}
+
+	/**
+	   * Expose Rules
+	   */
+	static get rules() : I_LexerRules {
+		return {
+			block,
+			inline: inlineGrammer
+		} as I_LexerRules;
+	}
+
+	/**
+	   * Static Lex Method
+	   */
+	static lex(src : string, options : MarkedOptions | null = null) {
+		const lexer = new Lexer(options);
+		return lexer.lex(src);
+	}
+
+	/**
+	   * Static Lex Inline Method
+	   */
+	static lexInline(src : string, options : MarkedOptions | null = null) {
+		const lexer = new Lexer(options);
+		return lexer.inlineTokens(src, null);
+	}
+
+	private _getTokenRaw(token : NodesToken) : string {
+		if (token['raw'] != null) {
+			return `${token['raw']}`;
+		}
+		return '';
+	}
+
+	/**
+	   * Preprocessing
+	   */
+	lex(src : string) : TokensList {
+		src = src.replace(other.carriageReturn, '\n');
+		this.blockTokens(src, this.tokens, null);
+
+		for (let i = 0; i < this.inlineQueue.length; i++) {
+			const next = this.inlineQueue[i];
+			this.inlineTokens(next.src, next.tokens);
+		}
+		this.inlineQueue = [] as I_LexerInlineQueue[];
+
+		return this.tokens;
+	}
+
+	private _pushTokens(tokens : NodesToken[] | TokensList | null, token : NodesToken) {
+		if (tokens != null) {
+			if (Array.isArray(tokens)) {
+				tokens.push(token);
+			} else {
+				tokens.tokens.push(token);
+			}
+		}
+	}
+
+	private _getLastToken(tokens : NodesToken[] | TokensList) : NodesToken | null {
+		if (Array.isArray(tokens)) {
+			if (tokens.length == 0) {
+				return null;
+			}
+			return tokens[tokens.length - 1] ?? null;
+		}
+
+		if (tokens.tokens.length == 0) {
+			return null;
+		}
+
+		return tokens.tokens[tokens.tokens.length - 1] ?? null;
+	}
+
+	/**
+	   * Lexing
+	   */
+	blockTokens(src : string, tokens : NodesToken[] | TokensList | null, lastParagraphClipped : boolean | null) : NodesToken[] | TokensList {
+		tokens = tokens ?? [] as NodesToken[];
+		if (this.options.pedantic == true) {
+			src = src.replace(other.tabCharGlobal, '    ').replace(other.spaceLine, '');
+		}
+
+		while (src.length > 0) {
+			let token : NodesToken | null = null;
+			if (this.options.extensions?.block?.some((extTokenizer) => {
+				token = extTokenizer?.({ lexer: this._instance() } as TokenizerThis, src, tokens ?? [] as NodesToken[]);
+				if (token != null) {
+					if (this._getTokenRaw(token!).length <= src.length) {
+						src = src.substring(this._getTokenRaw(token!).length);
+					} else {
+						src = '';
+					}
+					this._pushTokens(tokens, token!);
+					return true;
+				}
+				return false;
+			}) == true) {
+				continue;
+			}
+
+			// newline
+			const spaceToken = this.tokenizer.space(src);
+			if (spaceToken != null) {
+				// token = {
+				// 	type: spaceToken.type,
+				// 	raw: spaceToken.raw,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = spaceToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				const lastToken = this._getLastToken(tokens);
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				if (token!.raw != null && token!.raw!.length == 1 && lastToken != null) {
+					// if there's a single \n as a spacer, it's terminating the last line,
+					// so move it there so that we don't get unnecessary paragraph tags
+					// const lastTokenObj = JSON.parseObject(JSON.stringify(lastToken)!)!
+					// lastToken.raw += '\n';
+					// lastToken['raw'] = `${lastToken['raw']}\n`;
+					lastToken.raw = `${lastToken.raw}\n`;
+				} else {
+					this._pushTokens(tokens, token!);
+				}
+				continue;
+			}
+
+			// code
+			const codeToken = this.tokenizer.code(src);
+			if (codeToken != null) {
+				// token = {
+				// 	type: codeToken.type,
+				// 	raw: codeToken.raw,
+				// 	codeBlockStyle: codeToken.codeBlockStyle,
+				// 	text: codeToken.text,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = codeToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				const lastToken = this._getLastToken(tokens);
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				if (lastToken != null && (lastToken.type == 'paragraph' || lastToken.type == 'text')) {
+					lastToken.raw = `${lastToken.raw}\n${this._getTokenRaw(token!)}`;
+					lastToken.text = `${lastToken.text}\n${token!.text}`;
+					this.inlineQueue[this.inlineQueue.length - 1]!.src = `${lastToken.text}`;
+				} else {
+					this._pushTokens(tokens, token!);
+				}
+				continue;
+			}
+
+			// fences
+			const fencesToken = this.tokenizer.fences(src);
+			if (fencesToken != null) {
+				// token = {
+				// 	type: fencesToken.type,
+				// 	raw: fencesToken.raw,
+				// 	lang: fencesToken.lang,
+				// 	text: fencesToken.text,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = fencesToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// heading
+			const headingToken = this.tokenizer.heading(src);
+			if (headingToken != null) {
+				// token = {
+				// 	type: headingToken.type,
+				// 	raw: headingToken.raw,
+				// 	depth: headingToken.depth,
+				// 	text: headingToken.text,
+				// 	tokens: headingToken.tokens
+				// } as NodesToken;
+				token = headingToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// hr
+			const hrToken = this.tokenizer.hr(src);
+			if (hrToken != null) {
+				// token = {
+				// 	type: hrToken.type,
+				// 	raw: hrToken.raw,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = hrToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// blockquote
+			const blockquoteToken = this.tokenizer.blockquote(src);
+			if (blockquoteToken != null) {
+				// token = {
+				// 	type: blockquoteToken.type,
+				// 	raw: blockquoteToken.raw,
+				// 	tokens: blockquoteToken.tokens,
+				// 	text: blockquoteToken.text
+				// } as NodesToken;
+				token = blockquoteToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// list
+			const listToken = this.tokenizer.list(src);
+			if (listToken != null) {
+				// token = {
+				// 	type: listToken.type,
+				// 	raw: listToken.raw,
+				// 	ordered: listToken.ordered,
+				// 	start: listToken.start,
+				// 	loose: listToken.loose,
+				// 	items: listToken.items,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = listToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// html
+			const htmlToken = this.tokenizer.html(src);
+			if (htmlToken != null) {
+				// token = {
+				// 	type: htmlToken.type,
+				// 	block: htmlToken.block,
+				// 	raw: htmlToken.raw,
+				// 	pre: htmlToken.pre,
+				// 	text: htmlToken.text,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = htmlToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// def
+			const defToken = this.tokenizer.def(src);
+			if (defToken != null) {
+				// token = {
+				// 	type: defToken.type,
+				// 	tag: defToken.tag,
+				// 	raw: defToken.raw,
+				// 	href: defToken.href,
+				// 	title: defToken.title,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = defToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				const lastToken = this._getLastToken(tokens);
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				if (lastToken != null && (lastToken.type == 'paragraph' || lastToken.type == 'text')) {
+					lastToken.raw = `${lastToken.raw}\n${this._getTokenRaw(token!)}`;
+					lastToken.text = `${lastToken.text}\n${this._getTokenRaw(token!)}`;
+					this.inlineQueue[this.inlineQueue.length - 1]!.src = `${lastToken.text}`;
+				} else if (this.tokens.links[token!.tag!] == null) {
+					this.tokens.links[token!.tag!] = {
+						href: token!.href,
+						title: token!.title,
+						tokens: [] as Token[]
+					};
+				}
+				continue;
+			}
+
+			// table (gfm)
+			const gfmToken = this.tokenizer.table(src);
+			if (gfmToken != null) {
+				// token = {
+				// 	type: gfmToken.type,
+				// 	raw: gfmToken.raw,
+				// 	header: gfmToken.header,
+				// 	align: gfmToken.align,
+				// 	rows: gfmToken.rows,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = gfmToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// lheading
+			const lheadingToken = this.tokenizer.lheading(src);
+			if (lheadingToken != null) {
+				// token = {
+				// 	type: lheadingToken.type,
+				// 	raw: lheadingToken.raw,
+				// 	depth: lheadingToken.depth,
+				// 	text: lheadingToken.text,
+				// 	tokens: lheadingToken.tokens
+				// } as NodesToken;
+				token = lheadingToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// top-level paragraph
+			// prevent paragraph consuming extensions by clipping 'src' to extension start
+			let cutSrc = src;
+			if (this.options.extensions?.startBlock != null) {
+				let startIndex = Infinity;
+				const tempSrc = src.slice(1);
+				let tempStart : any | null = null;
+				this.options.extensions?.startBlock?.forEach((getStartIndex) => {
+					tempStart = getStartIndex({ lexer: this } as TokenizerThis, tempSrc, [] as NodesToken[]);
+					if (typeof tempStart === 'number' && (tempStart as number) >= 0) {
+						startIndex = Math.min(startIndex, tempStart);
+					}
+				});
+				if (startIndex < Infinity && startIndex >= 0) {
+					cutSrc = src.substring(0, startIndex + 1);
+				} else {
+					cutSrc = src;
+				}
+			}
+			const paragraphToken = this.tokenizer.paragraph(cutSrc);
+			if (paragraphToken != null) {
+				// token = {
+				// 	type: paragraphToken.type,
+				// 	raw: paragraphToken.raw,
+				// 	text: paragraphToken.text,
+				// 	tokens: paragraphToken.tokens
+				// } as NodesToken;
+				token = paragraphToken!;
+			}
+			if (this.state.top && token != null && tokens != null) {
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				const lastToken = this._getLastToken(tokens!);
+				if (lastToken != null && lastParagraphClipped == true && lastToken.type == 'paragraph') {
+					// const tokenRaw = {
+					// 	type: 'paragraph',
+					// 	raw: lastToken['raw'] != null ? `${lastToken['raw']}` : '',
+					// 	pre: lastToken['pre'] != null ? lastToken['pre'] as boolean : false,
+					// 	text: lastToken['text'] != null ? lastToken['text'] as string : '',
+					// 	tokens: lastToken['tokens'] != null ? lastToken['tokens'] as Token[] : [] as Token[]
+					// } as Paragraph;
+					// tokenRaw.raw += '\n' + this._getTokenRaw(token!);
+					// tokenRaw.text += '\n' + token!.text;
+					lastToken.raw = `${lastToken.raw}\n${this._getTokenRaw(token!)}`;
+					lastToken.text = `${lastToken.text}\n${token!.text}`;
+					this.inlineQueue.pop();
+					this.inlineQueue[this.inlineQueue.length - 1]!.src = `${lastToken.text}`;
+				} else {
+					this._pushTokens(tokens, token!);
+				}
+				lastParagraphClipped = cutSrc.length != src.length;
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				continue;
+			}
+			// text
+			const textToken = this.tokenizer.text(src);
+			if (textToken != null) {
+				// token = {
+				// 	type: textToken.type,
+				// 	raw: textToken.raw,
+				// 	text: textToken.text,
+				// 	tokens: textToken.tokens
+				// } as NodesToken;
+				token = textToken!;
+			}
+			if (token != null && tokens != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				// src = src.substring(this._getTokenRaw(token!).length);
+				const lastToken = this._getLastToken(tokens);
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				if (lastToken != null && lastToken.type == 'text') {
+					// const tokenRaw = {
+					// 	type: 'text',
+					// 	raw: lastToken['raw'] != null ? `${lastToken['raw']}` : '',
+					// 	escaped: lastToken['escaped'] != null ? lastToken['escaped'] as boolean : false,
+					// 	text: lastToken['text'] != null ? lastToken['text'] as string : '',
+					// 	tokens: lastToken['tokens'] != null ? lastToken['tokens'] as Token[] : [] as Token[]
+					// } as Text;
+					// tokenRaw.raw += '\n' + this._getTokenRaw(token!);
+					// tokenRaw.text += '\n' + token!.text;
+					lastToken.raw = `${lastToken.raw}\n${this._getTokenRaw(token!)}`;
+					lastToken.text = `${lastToken.text}\n${token!.text}`;
+					this.inlineQueue.pop();
+					this.inlineQueue[this.inlineQueue.length - 1]!.src = `${token!.text}`;
+				} else {
+					this._pushTokens(tokens, token!);
+				}
+				continue;
+			}
+
+			if (src.length > 0) {
+				const errMsg = 'Infinite loop on byte: ' + src.charCodeAt(0);
+				if (this.options.silent == true) {
+					console.error(errMsg);
+					break;
+				} else {
+					throw new Error(errMsg);
+				}
+			}
+		}
+
+		this.state.top = true;
+		return tokens!;
+	}
+
+	inline(src : string, tokens ?: NodesToken[]) : NodesToken[] {
+		tokens = tokens ?? [] as NodesToken[];
+		this.inlineQueue.push({ src, tokens } as I_LexerInlineQueue);
+		return tokens;
+	}
+
+	/**
+	   * Lexing/Compiling
+	   */
+	inlineTokens(src : string, tokens ?: NodesToken[]) : NodesToken[] {
+		tokens = tokens ?? [] as NodesToken[];
+		// String with links masked to avoid interference with em and strong
+		let maskedSrc = src;
+		let match : RegExpExecArray | null = null;
+
+		// Mask out reflinks
+		if (this.tokens.links != null) {
+			const links = UTSJSONObject.keys(this.tokens.links);
+			if (links.length > 0) {
+				match = this.tokenizer.rules!.inline.reflinkSearch.exec(maskedSrc);
+				while (match != null) {
+					if (links.includes(`${match[0]}`.slice(`${match[0]}`.lastIndexOf('[') + 1, -1))) {
+						maskedSrc = maskedSrc.slice(0, match.index)
+							+ '[' + 'a'.repeat(`${match[0]}`.length - 2) + ']'
+							+ maskedSrc.slice(this.tokenizer.rules!.inline.reflinkSearch.lastIndex);
+					}
+					match = this.tokenizer.rules!.inline.reflinkSearch.exec(maskedSrc);
+				}
+			}
+		}
+
+		// Mask out escaped characters
+		match = this.tokenizer.rules!.inline.anyPunctuation.exec(maskedSrc);
+		while (match != null) {
+			maskedSrc = maskedSrc.slice(0, match.index) + '++' + maskedSrc.slice(this.tokenizer.rules!.inline.anyPunctuation.lastIndex);
+			match = this.tokenizer.rules!.inline.anyPunctuation.exec(maskedSrc);
+		}
+
+		// Mask out other blocks
+		match = this.tokenizer.rules!.inline.blockSkip.exec(maskedSrc);
+		while (match != null) {
+			maskedSrc = maskedSrc.slice(0, match.index) + '[' + 'a'.repeat(`${match[0]}`.length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules!.inline.blockSkip.lastIndex);
+			match = this.tokenizer.rules!.inline.blockSkip.exec(maskedSrc);
+		}
+
+		let keepPrevChar = false;
+		let prevChar = '';
+		while (src.length > 0) {
+			if (!keepPrevChar) {
+				prevChar = '';
+			}
+			keepPrevChar = false;
+
+			let token : NodesToken | null = null;
+
+			// extensions
+			if (this.options.extensions?.inline?.some((extTokenizer) : boolean => {
+				token = extTokenizer({ lexer: this._instance() } as TokenizerThis, src, tokens!);
+				if (token != null) {
+					if (`${token!.raw}`.length <= src.length) {
+						src = src.substring(`${token!.raw}`.length);
+					} else {
+						src = '';
+					}
+					this._pushTokens(tokens, token!);
+					return true;
+				}
+				return false;
+			}) == true) {
+				continue;
+			}
+
+			// escape
+			const escapeToken = this.tokenizer.escape(src);
+			if (escapeToken != null) {
+				// token = {
+				// 	type: escapeToken.type,
+				// 	raw: escapeToken.raw,
+				// 	text: escapeToken.text,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = escapeToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// tag
+			const tagToken = this.tokenizer.tag(src);
+			if (tagToken != null) {
+				// token = {
+				// 	type: tagToken.type,
+				// 	raw: tagToken.raw,
+				// 	inLink: tagToken.inLink,
+				// 	inRawBlock: tagToken.inRawBlock,
+				// 	block: tagToken.block,
+				// 	text: tagToken.text,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = tagToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// link
+			let linkToken = this.tokenizer.link(src);
+			if (linkToken != null) {
+				// if (linkToken.type == 'image') {
+				// 	// linkToken = linkToken as Image;
+				// 	token = {
+				// 		type: linkToken.type,
+				// 		raw: linkToken.raw,
+				// 		href: linkToken.href,
+				// 		title: linkToken.title,
+				// 		text: linkToken.text,
+				// 		tokens: [] as NodesToken[]
+				// 	} as NodesToken;
+				// }
+
+				// if (linkToken.type == 'link') {
+				// 	// linkToken = linkToken as Link;
+				// 	token = {
+				// 		type: linkToken.type,
+				// 		raw: linkToken.raw,
+				// 		href: linkToken.href,
+				// 		title: linkToken.title,
+				// 		text: linkToken.text,
+				// 		tokens: linkToken.tokens
+				// 	} as NodesToken;
+				// }
+				token = linkToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// reflink, nolink
+			let reflinkToken = this.tokenizer.reflink(src, this.tokens.links);
+			if (reflinkToken != null) {
+				// if (reflinkToken.type == 'text') {
+				// 	// reflinkToken = reflinkToken as Text;
+				// 	token = {
+				// 		type: reflinkToken.type,
+				// 		raw: reflinkToken.raw,
+				// 		text: reflinkToken.text,
+				// 		tokens: [] as NodesToken[]
+				// 	} as NodesToken;
+				// } else if (reflinkToken.type == 'image') {
+				// 	// reflinkToken = reflinkToken as Image;
+				// 	token = {
+				// 		type: reflinkToken.type,
+				// 		raw: reflinkToken.raw,
+				// 		href: reflinkToken.href,
+				// 		title: reflinkToken.title,
+				// 		text: reflinkToken.text,
+				// 		tokens: [] as NodesToken[]
+				// 	} as NodesToken;
+				// } else {
+				// 	// reflinkToken = reflinkToken as Link;
+				// 	token = {
+				// 		type: reflinkToken.type,
+				// 		raw: reflinkToken.raw,
+				// 		href: reflinkToken.href,
+				// 		title: reflinkToken.title,
+				// 		text: reflinkToken.text,
+				// 		tokens: reflinkToken.tokens
+				// 	} as NodesToken;
+				// }
+				token = reflinkToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				const lastToken = this._getLastToken(tokens);
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				if (lastToken != null && token!.type == 'text' && lastToken.type == 'text') {
+					const tokenRaw = {
+						type: 'text',
+						raw: lastToken.raw != null ? `${lastToken.raw}` : '',
+						escaped: lastToken.escaped != null ? lastToken.escaped as boolean : false,
+						text: lastToken.text != null ? lastToken.text as string : '',
+						tokens: lastToken.tokens != null ? lastToken.tokens as NodesToken[] : [] as NodesToken[]
+					} as NodesToken;
+					tokenRaw.raw = `${tokenRaw.raw}${this._getTokenRaw(token!)}`;
+					tokenRaw.text = `${tokenRaw.text}${token!.text}`;
+				} else {
+					this._pushTokens(tokens, token!);
+				}
+				continue;
+			}
+
+			// em & strong
+			let emStrongToken = this.tokenizer.emStrong(src, maskedSrc, prevChar);
+			if (emStrongToken != null) {
+				// token = JSON.parseObject(JSON.stringify(emStrongToken)!)!;
+				// if (emStrongToken.type == 'em') {
+				// 	// emStrongToken = emStrongToken as Em;
+				// 	token = {
+				// 		type: emStrongToken.type,
+				// 		raw: emStrongToken.raw,
+				// 		text: emStrongToken.text,
+				// 		tokens: emStrongToken.tokens
+				// 	} as NodesToken;
+				// } else {
+				// 	// emStrongToken = emStrongToken as Strong;
+				// 	token = {
+				// 		type: emStrongToken.type,
+				// 		raw: emStrongToken.raw,
+				// 		text: emStrongToken.text,
+				// 		tokens: emStrongToken.tokens
+				// 	} as NodesToken;
+				// }
+				token = emStrongToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// code
+			const codeToken = this.tokenizer.codespan(src);
+			if (codeToken != null) {
+				// token = JSON.parseObject(JSON.stringify(codeToken)!)!;
+				// token = {
+				// 	type: codeToken.type,
+				// 	raw: codeToken.raw,
+				// 	text: codeToken.text,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = codeToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// br
+			const brToken = this.tokenizer.br(src);
+			if (brToken != null) {
+				// token = JSON.parseObject(JSON.stringify(brToken)!)!;
+				// token = {
+				// 	type: brToken.type,
+				// 	raw: brToken.raw,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken
+				token = brToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// del (gfm)
+			const delToken = this.tokenizer.del(src);
+			if (delToken != null) {
+				// token = JSON.parseObject(JSON.stringify(delToken)!)!;
+				// token = {
+				// 	type: delToken.type,
+				// 	raw: delToken.raw,
+				// 	text: delToken.text,
+				// 	tokens: delToken.tokens
+				// } as NodesToken
+				token = delToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// autolink
+			const autolinkToken = this.tokenizer.autolink(src);
+			if (autolinkToken != null) {
+				// token = JSON.parseObject(JSON.stringify(autolinkToken)!)!;
+				// token = {
+				// 	type: autolinkToken.type,
+				// 	raw: autolinkToken.raw,
+				// 	text: autolinkToken.text,
+				// 	href: autolinkToken.href,
+				// 	tokens: autolinkToken.tokens
+				// } as NodesToken
+				token = autolinkToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// url (gfm)
+			const urlToken = this.tokenizer.url(src);
+			if (urlToken != null) {
+				// token = JSON.parseObject(JSON.stringify(urlToken)!)!;
+				// token = {
+				// 	type: urlToken.type,
+				// 	raw: urlToken.raw,
+				// 	text: urlToken.text,
+				// 	href: urlToken.href,
+				// 	tokens: urlToken.tokens
+				// } as NodesToken
+				token = urlToken!;
+			}
+			if (!this.state.inLink && token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				this._pushTokens(tokens, token!);
+				continue;
+			}
+
+			// text
+			// prevent inlineText consuming extensions by clipping 'src' to extension start
+			let cutSrc = src;
+			if (this.options.extensions?.startInline != null) {
+				let startIndex = Infinity;
+				const tempSrc = src.slice(1);
+				this.options.extensions!.startInline!.forEach((getStartIndex) => {
+					const tempStart = getStartIndex({ lexer: this._instance() } as TokenizerThis, tempSrc, [] as NodesToken[]);
+					if (typeof tempStart === 'number' && (tempStart as number) >= 0) {
+						startIndex = Math.min(startIndex, tempStart);
+					}
+				});
+				if (startIndex < Infinity && startIndex >= 0) {
+					cutSrc = src.substring(0, startIndex + 1);
+				} else {
+					cutSrc = src;
+				}
+			}
+			const inlineTextToken = this.tokenizer.inlineText(cutSrc);
+			if (inlineTextToken != null) {
+				// token = JSON.parseObject(JSON.stringify(inlineTextToken)!)!;
+				// token = {
+				// 	type: inlineTextToken.type,
+				// 	raw: inlineTextToken.raw,
+				// 	text: inlineTextToken.text,
+				// 	escaped: inlineTextToken.escaped,
+				// 	tokens: [] as NodesToken[]
+				// } as NodesToken;
+				token = inlineTextToken!;
+			}
+			if (token != null) {
+				if (this._getTokenRaw(token!).length <= src.length) {
+					src = src.substring(this._getTokenRaw(token!).length);
+				} else {
+					src = '';
+				}
+				// src = src.substring(this._getTokenRaw(token!).length);
+				if (this._getTokenRaw(token!).slice(-1) != '_') { // Track prevChar before string of ____ started
+					prevChar = this._getTokenRaw(token!).slice(-1);
+				}
+				keepPrevChar = true;
+				const lastToken = this._getLastToken(tokens);
+				// const lastTokenData = this._getLastToken(tokens!);
+				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
+				if (lastToken != null && lastToken.type == 'text') {
+					const tokenRaw = {
+						type: 'text',
+						raw: lastToken.raw != null ? `${lastToken.raw}` : '',
+						escaped: lastToken.escaped != null ? lastToken.escaped as boolean : false,
+						text: lastToken.text != null ? lastToken.text as string : '',
+						tokens: lastToken.tokens != null ? lastToken.tokens as NodesToken[] : [] as NodesToken[]
+					} as NodesToken;
+					tokenRaw.raw += this._getTokenRaw(token!);
+					tokenRaw.text = `${tokenRaw.text}${token!.text}`;
+				} else {
+					this._pushTokens(tokens, token!);
+				}
+				continue;
+			}
+
+			if (src != null && src.length > 0) {
+				const errMsg = 'Infinite loop on byte: ' + src.charCodeAt(0);
+				if (this.options.silent == true) {
+					console.error(errMsg);
+					break;
+				} else {
+					throw new Error(errMsg);
+				}
+			}
+		}
+
+		return tokens;
+	}
+}

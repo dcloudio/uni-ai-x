@@ -1,0 +1,259 @@
+<template>
+	<view class="chat-box" :class="{'ui-theme-dark': uiTheme == 'dark'}">
+		<view class="nav-bar">
+			<uni-ai-icon @click="changeMenu" code="e622" color="#555" size="18"></uni-ai-icon>
+			<uni-ai-x-model></uni-ai-x-model>
+			<addChat></addChat>
+		</view>
+		<view class="chat" :class="{showMenu}" ref="chat">
+			<scroll-view :scroll-y="true" class="msg-list">
+				<view class="msg-list-content">
+					<view class="add-chat-btn"><add-chat-btn /></view>
+					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}">
+						<view v-if="item.from_uid == 'uni-ai'" class="ai-msg-box">
+							<image class="avatar" src="@/uni_modules/uni-ai-x/static/ai-provider/bailian.png"/>
+							<view class="msg-box">
+								<uni-ai-x-msg :msg="item"></uni-ai-x-msg>
+							</view>
+						</view>
+						<text v-else class="user-msg">{{item.body}}</text>
+						<msg-tool-bar :msg="item" />
+					</view>
+					<text v-if="msgList.length == 0" class="welcome-msg">你好，我是UNI-AI 助手，有什么可以帮你的？</text>
+				</view>
+			</scroll-view>
+			<view class="bottom">
+				<textarea class="chat-input" v-model="chatInputContent" placeholder="请输入内容" :cursor-spacing="100"></textarea>
+				<input-tool-bar />
+			</view>
+		</view>
+		<view class="mask" v-if="translateX != -260" @click="closeMenu" :style="{
+			opacity: (translateX + 260) / 260,
+			backgroundColor: `rgba(0,0,0,${0.3 * (translateX + 260) / 260})`
+		}"></view>
+	</view>
+</template>
+
+<script lang="uts">
+	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
+	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
+	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
+	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
+	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
+	
+	export default {
+		components: {
+			addChatBtn,
+			addChat,
+			inputToolBar,
+			msgToolBar
+		},
+		props: {
+			showMenu: {
+				type: Boolean,
+				default: false
+			},
+			translateX: {
+				type: Number,
+				default: -260
+			}
+		},
+		computed: {
+			uiTheme(): string {
+				return uniAi.setting.theme
+			},
+			msgList(): MsgItem[] {
+				return uniAi.currentChat?.msgList ?? []
+			},
+			chatInputContent: {
+				get(): string {
+					return uniAi.currentChat?.inputContent ?? ''
+				},
+				set(value: string) {
+					uniAi.currentChat!.inputContent = value
+				}
+			}
+		},
+		methods: {
+			changeMenu() {
+				this.$emit('change-menu')
+			},
+			closeMenu() {
+				this.$emit('close-menu')
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+.chat-box {
+	width: 750rpx;
+	.nav-bar {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding:0 10px 10px 10px;
+		background-color: #FFF;
+	}
+	.mask {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0,0,0,0.3);
+	}
+	::v-deep {
+		/* #ifdef WEB */
+		position: relative;
+		.popup-root {
+			top: 0;
+			right: 0;
+			left: unset;
+			width: calc(100% - 260px);
+		}
+		/* #endif */
+	}
+	.chat {
+		flex: 1;
+		background-color: #FFF;
+		.msg-list {
+			flex: 1;
+			.msg-list-content {
+				flex-grow: 1;
+				justify-content: flex-end;
+			}
+			.msg-item {
+				flex-direction: column;
+				padding: 10px;
+				.ai-msg-box {
+					flex-direction: row;
+					.avatar {
+						width: 25px;
+						height: 25px;
+					}
+					.msg-box {
+						flex: 1;
+						padding: 0 5px;
+					}
+				}
+				.user-msg {
+					font-size: 16px;
+					margin-left: auto;
+					padding: 10px;
+					border-radius: 10px;
+					background-color: #eff6ff;
+					/* #ifdef WEB */
+					white-space: pre-wrap;
+					word-break: break-all;
+					/* #endif */
+				}
+			}
+			.add-chat-btn {
+				margin: 10px auto;
+			}
+			.welcome-msg {
+				font-size: 14px;
+				color: #999;
+				text-align: center;
+				margin: 10px;
+			}
+			&, .msg-item, .add-chat-btn, .welcome-msg {
+				transform: scaleY(-1);
+			}
+		}
+		.bottom {
+			height: 130px;
+			flex-direction: column;
+			background-color: #F6f6f6;
+			padding: 10px;
+			border-radius: 20px;
+			margin: 10px;
+			margin-top: 0;
+			border: 1px solid #eee;
+			.chat-input {
+				flex: 1;
+				width: 100%;
+			}
+		}
+	}
+}
+
+.ui-theme-dark {
+	&.chat-box {
+		background-color: #212327;
+		.nav-bar {
+			background-color: #212327;
+			border-bottom-color: #333;
+		}
+		.chat {
+			background-color: #212327;
+			.msg-list {
+				.msg-list-content {
+					.msg-item {
+						.ai-msg-box {
+							.msg-box {
+								color: #e0e0e0;
+							}
+						}
+						.user-msg {
+							background-color: #2c4166;
+							color: #e0e0e0;
+						}
+					}
+					.welcome-msg {
+						color: #999;
+					}
+				}
+			}
+			.bottom {
+				background-color: #2c2c2c;
+				border-color: #333;
+				.chat-input {
+					color: #e0e0e0;
+					background-color: #2c2c2c;
+				}
+			}
+		}
+	}
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.chat-box {
+		flex: 1;
+		::v-deep {
+			.avatar {
+				margin-right: 10px;
+			}
+			.uni-im-msg-list {
+				background-color: #FFF;
+			}
+			.bottom {
+				background-color: #FFF;
+				.chat-input-root {
+					border: 1px solid #ddd;
+					margin: 30px 20px;
+					border-radius: 20px;
+					background-color: #F9F9F9;
+					.chat-input {
+						margin: 10px 5px 0 5px;
+						border: none;
+						.uni-webview.edit-box {
+							background-color: #F9F9F9;
+							height: 110px !important;
+						}
+					}
+					.input-tool-bar {
+						margin: 5px 10px;
+					}
+				}
+			}
+		}
+	}
+	.mask {
+		display: none;
+	}
+}
+/* #endif */
+</style> 

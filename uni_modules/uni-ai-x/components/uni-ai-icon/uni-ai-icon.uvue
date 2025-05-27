@@ -1,0 +1,82 @@
+<template>
+	<text :decode="true" :style="{ color: color, 'font-size': iconSize }" @click="_onClick" class="uni-ai-icon">{{unicode}}</text>
+</template>
+
+<script>
+	// #ifdef APP
+	function decodeUnicode(code: string): string {
+	  // 将字符串分割成 Unicode 编码的字符
+	  let codes = code.split('%u');
+	  // 遍历字符数组
+	  let chars = codes.map(code => {
+	    // 转换为十六进制
+	    let hexCode = parseInt(code, 16);
+	    // 将 UTF-16 编码转换为字符
+	    return String.fromCharCode(hexCode);
+	  });
+	  // 将字符数组转换成字符串
+	  return chars.join('');
+	}
+	// #endif
+	const getVal = (val: string) :string => {
+		const reg = /^[0-9]*$/g
+		return (typeof val === 'number' ||　reg.test(val) )? val + 'px' : val;
+	}
+	export default {
+		emits:['click'],
+		data() {
+			return {
+				
+			}
+		},
+		props: {
+			code: {
+				type: String,
+				default(){
+					return ''
+				}
+			},
+			color: {
+				type: String,
+				default: '#333333'
+			},
+			size: {
+				type: String,
+				default: '16'
+			},
+		},
+		computed:{
+			unicode(): string {
+				// #ifdef APP
+				return decodeUnicode(this.code as string)
+				// #endif
+				// #ifndef APP
+				return unescape(`%u${this.code}`) as string
+				// #endif
+			},
+			iconSize(): string {
+				return getVal(this.size as string)
+			}
+		},
+		methods:{
+			_onClick(e: UniEvent){
+				this.$emit('click',e as UniEvent)
+			}
+		}
+	}
+</script>
+
+<style>
+.uni-ai-icon {
+  font-family: uni-ai-icon !important;
+  font-size: 16px;
+  font-style: normal;
+  /* #ifdef H5 */
+  cursor: pointer;
+  /* #endif */
+}
+@font-face {
+  font-family: "uni-ai-icon";
+  src: url('https://at.alicdn.com/t/c/font_4884687_g6huesra82h.ttf?t=1744284841232');
+}
+</style>

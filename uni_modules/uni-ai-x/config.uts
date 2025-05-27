@@ -1,0 +1,170 @@
+type LLMModel = {
+	name: string,
+	thinking?: boolean,
+	webSearch?: boolean
+}
+
+export type Provider = {
+	models: LLMModel[],
+	description?: string,
+	baseURL?: string,
+	getToken?: () => Promise<string>,
+}
+
+type BailianTokenInfo = {
+	token: string,
+	expireTime: number
+}
+
+const bailianTokenInfo: BailianTokenInfo = {
+	token: '',
+	expireTime: 0
+}
+
+/** 
+ * 配置大语言模型
+ * 注意需要在，目录：`/uni_modules/uni-ai-x/static/ai-provider/${provider}.png` 中添加对应的logo图片
+ * 默认以第一个为默认模型
+ */
+const llmModelMap = new Map<string, Provider>([
+	// 阿里云百炼
+	[
+		'bailian', {
+			baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+			async getToken(): Promise<string> {
+				// 如果token存在且未过期，则直接返回
+				if (bailianTokenInfo.expireTime > Date.now()) {
+					return bailianTokenInfo.token
+				}
+
+				// unicloud项目 通过uni-ai-x-co 获取临时token
+				const uniAiChatCo = uniCloud.importObject("uni-ai-x-co", { customUI: true })
+				try {
+					const getTmpTokenRes = await uniAiChatCo.getBailianTmpToken()
+					if (getTmpTokenRes.errCode != 0) {
+						throw new Error('获取临时token失败')
+					}
+					const tmpToken = getTmpTokenRes.getString('data.token', '')
+					const expiresAt = getTmpTokenRes.getNumber('data.expiresAt', 0)
+					bailianTokenInfo.token = tmpToken
+					bailianTokenInfo.expireTime = expiresAt
+					return tmpToken
+				} catch (e) {
+					console.error('uni-ai-x-co 请求失败', e)
+					throw new Error('获取临时token失败，请检查云函数是否部署成功')
+				}
+				
+
+				// 非 unicloud项目 请求自己的服务器的接口得到临时 token 例如
+				/*
+				const res = await uni.request({
+					url: 'https://your-server.com/get-token',
+					method: 'GET'
+				})
+				if (res.statusCode !== 200) {
+					throw new Error('获取临时token失败')
+				}
+				const tmpToken = res.getString('data.token', '')
+				const expiresAt = res.getNumber('data.expiresAt', 0)
+				bailianTokenInfo.token = tmpToken
+				bailianTokenInfo.expireTime = expiresAt
+				return tmpToken
+				*/
+			},
+			models: [
+				{ name: 'qwen-plus' },
+				{ name: 'qwen-plus-latest' },
+				{ name: 'qwen-plus-0723' },
+				{ name: 'deepseek-r1' },
+				{ name: 'deepseek-v3' },
+				{ name: 'llama-4-scout-17b-16e-instruct' }
+			],
+			description: '阿里云百炼 - 专注AI技术研究和应用'
+		}
+	],
+
+	// // 硅基流动
+	// ['siliconflow', {
+	// 	models: [
+	// 		{ name: 'deepseek-ai/DeepSeek-V3' },
+	// 		{ name: 'Qwen/Qwen2.5-7B-Instruct' }
+	// 	],
+	// 	description: '硅基流动 - 专注AI技术研究和应用'
+	// }],
+	
+	// // 豆包
+	// ['doubao', {
+	// 	models: [
+	// 		{ name: 'doubao-1.5-vision-pro-250328' },
+	// 		{ name: 'doubao-1.5-thinking-pro-250415', thinking: true }
+	// 	],
+	// 	description: '豆包 - 抖音旗下AI助手'
+	// }],
+	
+	// // 深度求索
+	// ['deepseek', {
+	// 	models: [
+	// 		{ name: 'deepseek-chat' },
+	// 		{ name: 'deepseek-reasoner', thinking: true }
+	// 	],
+	// 	description: '深度求索 - 专注AI技术研究和应用'
+	// }],
+	
+	// // minimax 
+	// ['minimax', {
+	// 	models: [
+	// 		{ name: 'abab4-chat' },
+	// 		{ name: 'abab5-chat' },
+	// 		{ name: 'abab6.5s-chat', webSearch: true }
+	// 	],
+	// 	description: 'minimax - 专注AI技术研究和应用'
+	// }],
+	
+	// // Azure
+	// ['azure', {
+	// 	models: [
+	// 		{ name: 'gpt-3.5-turbo' }
+	// 	],
+	// 	description: 'azure - 微软旗下AI助手'
+	// }],
+	
+	// // 百度
+	// ['baidu', {
+	// 	models: [
+	// 		{ name: 'ERNIE-Bot' },
+	// 		{ name: 'ERNIE-Bot-turbo' }
+	// 	],
+	// 	description: '文心一言 - 百度旗下AI助手'
+	// }],
+	
+	// // 讯飞
+	// ['ifly', {
+	// 	models: [
+	// 		{ name: 'lite' },
+	// 		{ name: 'generalv3' },
+	// 		{ name: 'pro-128k' },
+	// 		{ name: 'generalv3.5' },
+	// 		{ name: 'max-32k' },
+	// 		{ name: '4.0Ultra', webSearch: true }
+	// 	],
+	// 	description: '科大讯飞 - 专注AI技术研究和应用'
+	// }]
+])
+
+const providerNameList: string[] = []
+llmModelMap.forEach((_, key: string) => {
+	providerNameList.push(key)
+})
+
+type DefaultLLM = {
+	provider: string,
+	model: string
+}
+
+const defaultLLM: DefaultLLM = {
+	provider: providerNameList[0],
+	model: llmModelMap.get(providerNameList[0])?.models?.[0].name!
+}
+
+export default llmModelMap
+export { llmModelMap, type LLMModel, providerNameList, defaultLLM }

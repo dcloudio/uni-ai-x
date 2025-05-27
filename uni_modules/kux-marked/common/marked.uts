@@ -1,0 +1,8 @@
+import { MarkedOptions, I_Marked } from '../utssdk/interface';
+import { Marked } from './Instance';
+
+export const useMarked = (): I_Marked => {
+	return new Marked();
+}
+
+export * from './Instance';

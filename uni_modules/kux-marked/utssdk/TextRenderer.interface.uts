@@ -1,0 +1,14 @@
+import { Strong, Em, Codespan, Del, HTML, Tag, Text, Escape, Link, Image, NodesToken } from './Tokens.interface';
+
+export interface I_TextRenderer {
+	// no need for block level renderers
+	strong(option: NodesToken): string;
+	em(option: NodesToken): string;
+	codespan(option: NodesToken): string;
+	del(option: NodesToken): string;
+	html(option: NodesToken): string;
+	text(option: NodesToken): string;
+	link(option: NodesToken): string;
+	image(option: NodesToken): string;
+	br(): string;
+}

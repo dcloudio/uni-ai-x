@@ -1,0 +1,296 @@
+export type Other = {
+	codeRemoveIndent: RegExp;
+	outputLinkReplace: RegExp;
+	indentCodeCompensation: RegExp;
+	beginningSpace: RegExp;
+	endingHash: RegExp;
+	startingSpaceChar: RegExp;
+	endingSpaceChar: RegExp;
+	nonSpaceChar: RegExp;
+	newLineCharGlobal: RegExp;
+	tabCharGlobal: RegExp;
+	multipleSpaceGlobal: RegExp;
+	blankLine: RegExp;
+	doubleBlankLine: RegExp;
+	blockquoteStart: RegExp;
+	blockquoteSetextReplace: RegExp;
+	blockquoteSetextReplace2: RegExp;
+	listReplaceTabs: RegExp;
+	listReplaceNesting: RegExp;
+	listIsTask: RegExp;
+	listReplaceTask: RegExp;
+	anyLine: RegExp;
+	hrefBrackets: RegExp;
+	tableDelimiter: RegExp;
+	tableAlignChars: RegExp;
+	tableRowBlankLine: RegExp;
+	tableAlignRight: RegExp;
+	tableAlignCenter: RegExp;
+	tableAlignLeft: RegExp;
+	startATag: RegExp;
+	endATag: RegExp;
+	startPreScriptTag: RegExp;
+	endPreScriptTag: RegExp;
+	startAngleBracket: RegExp;
+	endAngleBracket: RegExp;
+	pedanticHrefTitle: RegExp;
+	unicodeAlphaNumeric: RegExp;
+	escapeTest: RegExp;
+	escapeReplace: RegExp;
+	escapeTestNoEncode: RegExp;
+	escapeReplaceNoEncode: RegExp;
+	unescapeTest: RegExp;
+	caret: RegExp;
+	percentDecode: RegExp;
+	findPipe: RegExp;
+	splitPipe: RegExp;
+	slashPipe: RegExp;
+	carriageReturn: RegExp;
+	spaceLine: RegExp;
+	notSpaceStart: RegExp;
+	endingNewline: RegExp;
+	listItemRegex: (bull: string) => RegExp;
+	nextBulletRegex: (indent: number) => RegExp;
+	hrRegex: (indent: number) => RegExp;
+	fencesBeginRegex: (indent: number) => RegExp;
+	headingBeginRegex: (indent: number) => RegExp;
+	htmlBeginRegex: (indent: number) => RegExp;
+}
+
+export type RulesBlock = {
+	blockquote: RegExp;
+	code: RegExp;
+	def: RegExp;
+	fences: RegExp;
+	heading: RegExp;
+	hr: RegExp;
+	html: RegExp;
+	lheading: RegExp;
+	list: RegExp;
+	newline: RegExp;
+	paragraph: RegExp;
+	table: RegExp;
+	text: RegExp;
+}
+
+export type RulesInline = {
+	_backpedal: RegExp;
+	anyPunctuation: RegExp;
+	autolink: RegExp;
+	blockSkip: RegExp;
+	br: RegExp;
+	code: RegExp;
+	del: RegExp;
+	emStrongLDelim: RegExp;
+	emStrongRDelimAst: RegExp;
+	emStrongRDelimUnd: RegExp;
+	escape: RegExp;
+	link: RegExp;
+	nolink: RegExp;
+	punctuation: RegExp;
+	reflink: RegExp;
+	reflinkSearch: RegExp;
+	tag: RegExp;
+	text: RegExp;
+	url: RegExp;
+}
+
+export type Rules = {
+	other: Other;
+	block: BlockNormal;
+	inline: InlineNormal;
+}
+
+export type EditObject = {
+	replace(name: string | RegExp, val: string | RegExp): EditObject;
+	getRegex(): RegExp;
+}
+
+export type BlockNormal = {
+	blockquote: RegExp;
+	code: RegExp;
+	def: RegExp;
+	fences: any;
+	heading: RegExp;
+	hr: RegExp;
+	html: RegExp;
+	lheading: RegExp;
+	list: RegExp;
+	newline: RegExp;
+	paragraph: RegExp;
+	table: any;
+	text: RegExp;
+};
+
+export type NoopTest = {
+	exec: () => void;
+}
+
+export type BlockKeys = 
+	| 'blockquote' 
+	| 'code' 
+	| 'def' 
+	| 'fences' 
+	| 'heading' 
+	| 'hr' 
+	| 'html' 
+	| 'lheading' 
+	| 'list' 
+	| 'newline' 
+	| 'paragraph' 
+	| 'table' 
+	| 'text'
+
+export type BlockGfm = {
+	blockquote: RegExp;
+	code: RegExp;
+	def: RegExp;
+	fences: RegExp;
+	heading: RegExp;
+	hr: RegExp;
+	html: RegExp;
+	list: RegExp;
+	newline: RegExp;
+	paragraph: RegExp;
+	text: RegExp;
+	lheading: RegExp;
+	table: RegExp;
+}
+
+export type BlockPedantic = {
+	blockquote: RegExp;
+	code: RegExp;
+	def: RegExp;
+	fences: any;
+	heading: RegExp;
+	hr: RegExp;
+	html: RegExp;
+	lheading: RegExp;
+	list: RegExp;
+	newline: RegExp;
+	paragraph: RegExp;
+	table: any;
+	text: RegExp;
+}
+
+export type InlineNormal = {
+	_backpedal: any;
+	anyPunctuation: RegExp;
+	autolink: RegExp;
+	blockSkip: RegExp;
+	br: RegExp;
+	code: RegExp;
+	del: any;
+	emStrongLDelim: RegExp;
+	emStrongRDelimAst: RegExp;
+	emStrongRDelimUnd: RegExp;
+	escape: RegExp;
+	link: RegExp;
+	nolink: RegExp;
+	punctuation: RegExp;
+	reflink: RegExp;
+	reflinkSearch: RegExp;
+	tag: RegExp;
+	text: RegExp;
+	url: any;
+}
+
+export type InlineKeys = 
+	| '_backpedal' 
+	| 'anyPunctuation' 
+	| 'autolink' 
+	| 'blockSkip' 
+	| 'br' 
+	| 'code' 
+	| 'del' 
+	| 'emStrongLDelim' 
+	| 'emStrongRDelimAst' 
+	| 'emStrongRDelimUnd' 
+	| 'escape' 
+	| 'link' 
+	| 'nolink' 
+	| 'punctuation' 
+	| 'reflink' 
+	| 'reflinkSearch' 
+	| 'tag' 
+	| 'text' 
+	| 'url'
+	
+export type InlinePedantic = {
+	_backpedal: any;
+	anyPunctuation: RegExp;
+	autolink: RegExp;
+	blockSkip: RegExp;
+	br: RegExp;
+	code: RegExp;
+	del: any;
+	emStrongLDelim: RegExp;
+	emStrongRDelimAst: RegExp;
+	emStrongRDelimUnd: RegExp;
+	escape: RegExp;
+	link: RegExp;
+	nolink: RegExp;
+	punctuation: RegExp;
+	reflink: RegExp;
+	reflinkSearch: RegExp;
+	tag: RegExp;
+	text: RegExp;
+	url: any;
+}
+
+export type InlineGfm = {
+	_backpedal: RegExp;
+	anyPunctuation: RegExp;
+	autolink: RegExp;
+	blockSkip: RegExp;
+	br: RegExp;
+	code: RegExp;
+	del: RegExp;
+	emStrongLDelim: RegExp;
+	emStrongRDelimAst: RegExp;
+	emStrongRDelimUnd: RegExp;
+	escape: RegExp;
+	link: RegExp;
+	nolink: RegExp;
+	punctuation: RegExp;
+	reflink: RegExp;
+	reflinkSearch: RegExp;
+	tag: RegExp;
+	text: RegExp;
+	url: RegExp;
+}
+
+export type InlineBreaks = {
+	_backpedal: RegExp;
+	anyPunctuation: RegExp;
+	autolink: RegExp;
+	blockSkip: RegExp;
+	br: RegExp;
+	code: RegExp;
+	del: RegExp;
+	emStrongLDelim: RegExp;
+	emStrongRDelimAst: RegExp;
+	emStrongRDelimUnd: RegExp;
+	escape: RegExp;
+	link: RegExp;
+	nolink: RegExp;
+	punctuation: RegExp;
+	reflink: RegExp;
+	reflinkSearch: RegExp;
+	tag: RegExp;
+	text: RegExp;
+	url: RegExp;
+}
+
+export type Block = {
+	normal: BlockNormal;
+	gfm: BlockGfm;
+	pedantic: BlockPedantic;
+}
+
+export type Inline = {
+	normal: InlineNormal;
+	gfm: InlineGfm;
+	breaks: InlineBreaks;
+	pedantic: InlinePedantic;
+}

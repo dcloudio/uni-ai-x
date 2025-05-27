@@ -1,0 +1,98 @@
+{
+  "id": "uni-id-pages-x",
+  "displayName": "uni-id-pages-x",
+  "version": "1.1.5",
+  "description": "适用于 uni-app-x 的云端一体简单、统一、可扩展的用户中心页面模版",
+  "keywords": [
+    "用户中心",
+    "短信验证码",
+    "login",
+    "登录",
+    "uni-id"
+  ],
+  "repository": "https://gitcode.net/dcloud/hello_uni-id-pages-x",
+  "engines": {
+    "HBuilderX": "^3.99"
+  },
+  "dcloudext": {
+    "type": "unicloud-template-page",
+    "sale": {
+      "regular": {
+        "price": "0.00"
+      },
+      "sourcecode": {
+        "price": "0.00"
+      }
+    },
+    "contact": {
+      "qq": ""
+    },
+    "declaration": {
+      "ads": "无",
+      "data": "无",
+      "permissions": "无"
+    },
+    "npmurl": ""
+  },
+  "uni_modules": {
+    "dependencies": [
+      "uni-captcha",
+      "uni-cloud-s2s",
+      "uni-config-center",
+      "uni-id-common",
+      "uni-popup",
+      "uni-scss",
+      "uni-transition"
+    ],
+    "encrypt": [],
+    "platforms": {
+      "cloud": {
+        "tcb": "y",
+        "aliyun": "y",
+        "alipay": "y"
+      },
+      "client": {
+        "Vue": {
+          "vue2": "n",
+          "vue3": "y"
+        },
+        "App": {
+          "app-vue": "n",
+          "app-nvue": "n",
+          "app-uvue": "y",
+          "app-harmony": "u"
+        },
+        "H5-mobile": {
+          "Safari": "n",
+          "Android Browser": "n",
+          "微信浏览器(Android)": "n",
+          "QQ浏览器(Android)": "n"
+        },
+        "H5-pc": {
+          "Chrome": {
+            "minVersion": "HBuilderX4.0+"
+          },
+          "IE": "u",
+          "Edge": "u",
+          "Firefox": "u",
+          "Safari": "u"
+        },
+        "小程序": {
+          "微信": "n",
+          "阿里": "n",
+          "百度": "n",
+          "字节跳动": "n",
+          "QQ": "n",
+          "钉钉": "n",
+          "快手": "n",
+          "飞书": "n",
+          "京东": "n"
+        },
+        "快应用": {
+          "华为": "n",
+          "联盟": "n"
+        }
+      }
+    }
+  }
+}

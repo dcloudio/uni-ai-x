@@ -1,0 +1,71 @@
+import { _defaults } from './defaults';
+import { Lexer } from './Lexer';
+import { Parser } from './Parser';
+import { MarkedOptions, Token, TokensList, I_Hooks, I_Renderer, I_TextRenderer, NodesToken } from '../utssdk/interface';
+
+export class _Hooks implements I_Hooks {
+	options: MarkedOptions;
+	block: boolean | null = null;
+	
+	constructor(options: MarkedOptions | null = null) {
+	    this.options = options ?? _defaults;
+	}
+	
+	static passThroughHooks = new Set([
+		'preprocess',
+		'postprocess',
+		'processAllTokens',
+	]);
+	
+	/**
+	   * Process markdown before marked
+	   */
+	preprocess(markdown: string): string {
+		return markdown;
+	}
+	
+	/**
+	   * Process HTML after marked is finished
+	   */
+	postprocess(html: string): string {
+		return html;
+	}
+	
+	/**
+	   * Process all tokens before walk tokens
+	   */
+	processAllTokens(tokens: NodesToken[] | TokensList): NodesToken[] | TokensList {
+		return tokens;
+	}
+	
+	/**
+	   * Provide function to tokenize markdown
+	   */
+	provideLexer(): ((src: string, options?: MarkedOptions) => NodesToken[]) | ((src: string, options?: MarkedOptions) => TokensList) {
+		if (this.block == true) {
+			return (src: string, options?: MarkedOptions): TokensList => {
+				return Lexer.lex(src, options);
+			};
+		}
+		
+		return (src: string, options?: MarkedOptions): NodesToken[] => {
+			return Lexer.lexInline(src, options);
+		};
+	}
+	
+	/**
+	   * Provide function to parse tokens
+	   */
+	provideParser(): ((tokens: NodesToken[], options?: MarkedOptions) => string) {
+		// return this.block == true ? _Parser.parse : _Parser.parseInline;
+		if (this.block == true) {
+			return (tokens: NodesToken[], options?: MarkedOptions): string => {
+				return Parser.parse(tokens, options);
+			};
+		}
+		
+		return (tokens: NodesToken[], options?: MarkedOptions): string => {
+			return Parser.parseInline(tokens, options);
+		};
+	}
+}

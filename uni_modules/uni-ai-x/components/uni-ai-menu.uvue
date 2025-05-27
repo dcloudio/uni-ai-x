@@ -1,0 +1,251 @@
+<template>
+	<view class="menu-box" :class="{'ui-theme-dark': uiTheme == 'dark'}">
+		<text class="title">UNI-AI 助手</text>
+		<addChatBtn/>
+		<text class="nav">历史对话</text>
+		<scroll-view :scroll-y="true" class="chat-list">
+			<view v-for="chat in chatDatas" :key="chat.id" @click="setActiveChat(chat)" class="chat-item" :class="{active: chat.id ==  activeChatId}"
+				@longpress="longpress(chat)"
+			>
+				<text class="title" :class="{active: chat.id ==  activeChatId}">{{chat.title}}</text>
+				<uni-icons @click.stop="longpress(chat)" class="more" type="more-filled" size="14" color="#999"></uni-icons>
+			</view>
+		</scroll-view>
+		<view class="bottom">
+			<view class="user-info" @click="toUCenter">
+				<image class="avatar" :src="currentUser?.avatar_file?.url ?? '/uni_modules/uni-ai-x/static/default-avatar.png'"/>
+				<text v-if="currentUser._id != null" class="name">{{currentUser.nickname ?? '未设置'}}</text>
+				<text v-else class="to-login">未登录</text>
+			</view>
+			<!-- #ifdef H5 -->
+			<view class="btn-group">
+				<uni-icons class="setting-icon" @click="toSetting" type="gear-filled" size="20" :color="uiTheme == 'light' ? '#666' : '#FFF'"></uni-icons>
+				<uni-ai-x-setting class="setting-container" ref="uni-ai-x-setting"></uni-ai-x-setting>
+			</view>
+			<!-- #endif -->
+		</view>
+	</view>
+</template>
+
+<script lang="uts">
+	import {uniAi, ChatItem, Userinfo} from '@/uni_modules/uni-ai-x/sdk/'
+	import {state as uniIdState} from '@/uni_modules/uni-id-pages-x/store.uts';
+	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
+	
+	export default {
+		components: {
+			addChatBtn
+		},
+		computed: {
+			uiTheme(): string {
+				return uniAi.setting.theme
+			},
+			currentUser(): Userinfo {
+				return uniAi.currentUser
+			},
+			activeChatId(): string {
+				return uniAi.chat.activeId
+			},
+			chatDatas(): ChatItem[] {
+				// 按更新时间排序
+				return uniAi.chat.datas//.sort((a, b) => b.update_time - a.update_time)
+			}
+		},
+		methods: {
+			toUCenter() {
+				uni.navigateTo({
+					url: '/uni_modules/uni-id-pages-x/pages/userinfo/userinfo',
+					fail: (err) => {
+						console.error('navigateTo', err,'跳转失败的检查参考：1. 是否被设置为tabbar页面 2. 此页面是否已注册')
+					}
+				})
+			},
+			setActiveChat(chat: ChatItem) {
+				uniAi.chat.activeId = chat.id
+				this.$emit('close-menu')
+			},
+			longpress(chat: ChatItem) {
+				uni.showModal({
+					title: '删除对话',
+					content: '是否删除该对话？',
+					success: (res) => {
+						if (res.confirm) {
+							// 拿到要删除对话索引
+							const index = uniAi.chat.datas.findIndex((item) => item.id == chat.id)
+							uniAi.chat.datas.splice(index, 1)
+							if (uniAi.chat.datas.length == 0) {
+								uniAi.addChat()
+							} else if (uniAi.chat.activeId == chat.id) {
+								// 如果删除的是当前激活的对话，则设置为第一个对话
+								uniAi.chat.activeId = uniAi.chat.datas[0].id
+							}
+						}
+					}
+				})
+			},
+			toSetting() {
+				(this.$refs['uni-ai-x-setting'] as ComponentPublicInstance).$callMethod('open')
+			}
+		}
+	}
+</script>
+
+<style lang="scss">
+.menu-box {
+	width: 260px;
+	height: 100%;
+	background-color: #FFF;
+	padding-top: env(safe-area-inset-top);
+	.title {
+		padding: 10px;
+		font-size: 18px;
+		font-weight: 700;
+		color: #333;
+	}
+	.nav {
+		padding: 10px;
+		margin-top: 10px;
+		font-size: 16px;
+		color: #999;
+	}
+	.chat-list {
+		flex: 1;
+		.chat-item {
+			margin:1px 5px;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+			background-color: #FFF;
+			.title {
+				color: #333;
+				white-space: nowrap;
+				font-size: 14px;
+				flex: 1;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.more {
+				display: none;
+			}
+			&.active {
+				background-color: #e4efff;
+			}
+			.active.title {
+				color: #3c76e4;
+			}
+		}
+	}
+	.bottom {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		border-top: 1px solid #efefef;
+		padding: 10px;
+		.user-info {
+			flex-direction: row;
+			align-items: center;
+			margin: 10px;
+			.avatar {
+				margin-right: 10px;
+				width: 25px;
+				height: 25px;
+			}
+			.name {
+				font-size: 14px;
+				color: #333;
+			}
+			.to-login {
+				font-size: 14px;
+				color: #566b94;
+			}
+		}
+		.setting-container {
+			@media screen and (min-device-width:960px){
+				::v-deep {
+					.popup-root {
+						width: 100%;
+					}
+				}
+			}
+		}
+		.setting-icon {
+			// #ifdef WEB
+			cursor: pointer;
+			&:hover {
+				filter: brightness(0.5);
+			}
+			// #endif
+		}
+	}
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.menu-box {
+		background-color: #f9fbff;
+		.chat-item {
+			cursor: pointer;
+			margin: 2px 10px;
+			border-radius: 10px;
+			&:hover {
+				background-color: #ddd;
+			}
+			.more {
+				display: flex !important;
+				flex-shrink: 0;
+				margin:0 6px;
+				&:hover {
+					filter: brightness(0.5);
+				}
+			}
+		}
+		.bottom {
+			.user-info {
+				cursor: pointer;
+				&:hover {
+					filter: brightness(0.9);
+				}
+			}
+		}
+	}
+}
+/* #endif */
+
+.ui-theme-dark {
+	&.menu-box {
+		background-color: #212327;
+		.title {
+			color: #fff;
+		}
+		.nav {
+			color: #999;
+		}
+		.chat-list {
+			.chat-item {
+				.title {
+					color: #fff;
+				}
+				&.active {
+					background-color: #2c4166;
+				}
+				.active.title {
+					color: #3c76e4;
+				}
+				&:hover {
+					background-color: #2c4166;
+				}
+			}
+		}
+		.bottom {
+			.user-info {
+				.name {
+					color: #fff;
+				}
+				.to-login {
+					color: #999;
+				}
+			}
+		}
+	}
+}
+</style> 
