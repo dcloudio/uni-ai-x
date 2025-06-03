@@ -57,9 +57,10 @@
 
 4. 运行项目  
 在菜单点击`运行`，选择要运行的客户端。
+注意： 运行到 App 端需要打自定义基座
 
 
-更多** 客户端配置 **说明 @cinfig-client
+**完整客户端配置** @cinfig-client
 配置文件路径：`/uni_modules/uni-ai-x/config.uts`
 
 Provider 服务商 @Provider
@@ -121,14 +122,13 @@ uni_modules/uni-ai-x/
 
 更多相关文档：
 1. uni-ai-x 基于uni-ai，uni-ai的文档[详情参考](uni-ai.md)
-2. 通义大模型应用上架及合规备案 https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2667824.html&renderType=iframe
+2. 通义大模型应用上架及合规备案[详情参考](https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2667824.html&renderType=iframe)
 
 
 ## 常见问题  
-1. 常见报错： 16:26:22.466 ‌error: app-service.js(4737:38) ReferenceError:Can't find variable: TextDecoder parseChunkData@app-service.js:4737:38‌
-
-答：需要打自定义基座
-
+1. 如遇以下报错，则说明你未打自定义基座运行  
+- ‌error: app-service.js(4737:38) ReferenceError:Can't find variable: TextDecoder parseChunkData@app-service.js:4737:38‌
+- ‌error: java.util.regex.PatternSyntaxException: Syntax error in regexp pattern near index 110‌
 
 ## 交流群  
 更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=xxx)加入uni-ai官方交流群
