@@ -30,6 +30,13 @@ const llmModelMap = new Map<string, Provider>([
 	// 阿里云百炼
 	[
 		'bailian', {
+			models: [
+				{ name: 'qwen-plus', thinking: true },
+				{ name: 'qwen-turbo-0624'},
+				{ name: 'deepseek-r1', thinking: true },
+				{ name: 'deepseek-v3'}
+			],
+			description: '阿里云百炼 - 专注AI技术研究和应用',
 			baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
 			async getToken(): Promise<string> {
 				// 如果token存在且未过期，则直接返回
@@ -70,16 +77,7 @@ const llmModelMap = new Map<string, Provider>([
 				bailianTokenInfo.expireTime = expiresAt
 				return tmpToken
 				*/
-			},
-			models: [
-				{ name: 'qwen-plus' },
-				{ name: 'qwen-plus-latest' },
-				{ name: 'qwen-plus-0723' },
-				{ name: 'deepseek-r1' },
-				{ name: 'deepseek-v3' },
-				{ name: 'llama-4-scout-17b-16e-instruct' }
-			],
-			description: '阿里云百炼 - 专注AI技术研究和应用'
+			}
 		}
 	],
 
