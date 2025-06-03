@@ -65,8 +65,8 @@
 		},
 		methods: {
 			radioChange(provider: string, llmModel: string) {
-				console.error('provider',provider)
-				console.error('llmModel',llmModel)
+				// console.log('provider',provider)
+				// console.log('llmModel',llmModel)
 				uniAi.llm.provider = provider
 				uniAi.llm.model = llmModel
 				setTimeout(()=>this.close(),100)
