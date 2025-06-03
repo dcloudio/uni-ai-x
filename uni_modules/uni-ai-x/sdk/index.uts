@@ -324,7 +324,7 @@ class UniAi {
 		
 		const config: Provider = llmModelMap.get(this.llm.provider)!
 		// 请求的token
-		const tmpToken: string = await config?.getToken?.()!
+		const tmpToken: string = await config.getToken?.()!
 		requestTask = uni.request({
 			url: config.baseURL!,
 			method: 'POST',
