@@ -1,7 +1,7 @@
 <template>
 	<view class="menu-box" :class="{'ui-theme-dark': uiTheme == 'dark'}">
 		<text class="title">UNI-AI 助手</text>
-		<addChatBtn/>
+		<addChatBtn @click="closeMenu()" />
 		<text class="nav">历史对话</text>
 		<scroll-view :scroll-y="true" class="chat-list">
 			<view v-for="chat in chatDatas" :key="chat.id" @click="setActiveChat(chat)" class="chat-item" :class="{active: chat.id ==  activeChatId}"
@@ -13,7 +13,7 @@
 		</scroll-view>
 		<view class="bottom">
 			<view class="user-info" @click="toUCenter">
-				<image class="avatar" :src="currentUser?.avatar_file?.url ?? '/uni_modules/uni-ai-x/static/default-avatar.png'"/>
+				<image class="avatar" :src="currentUser.avatar_file?.url ?? '/uni_modules/uni-ai-x/static/default-avatar.png'"/>
 				<text v-if="currentUser._id != null" class="name">{{currentUser.nickname ?? '未设置'}}</text>
 				<text v-else class="to-login">未登录</text>
 			</view>
@@ -33,6 +33,7 @@
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	
 	export default {
+		emits: ['close-menu'],
 		components: {
 			addChatBtn
 		},
@@ -60,9 +61,12 @@
 					}
 				})
 			},
+			closeMenu() {
+				this.$emit('close-menu')
+			},
 			setActiveChat(chat: ChatItem) {
 				uniAi.chat.activeId = chat.id
-				this.$emit('close-menu')
+				this.closeMenu()
 			},
 			longpress(chat: ChatItem) {
 				uni.showModal({
