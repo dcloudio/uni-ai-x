@@ -8,9 +8,9 @@ import {
 } from './helpers';
 import { Rules, I_Lexer, Links, Tokens, Token, MarkedOptions, InlineLink, I_Tokenizer, Blockquote, Br, Code, Codespan, Def, Del, Em, Escape, HTML, Hr, Link, List, ListItem, Paragraph, Space, Strong, Table, Tag, Text, Image, TableCell, MarkedToken, Heading, NodesToken } from '../utssdk/interface';
 
-// // #ifdef APP-ANDROID
-// import JSReg from 'io.dcloud.uts.jsreg.JSReg';
-// // #endif
+// #ifdef APP-ANDROID
+import JSReg from 'io.dcloud.uts.jsreg.JSReg';
+// #endif
 
 function outputLink(cap : string[], link : NodesToken, raw : string, lexer : I_Lexer, rules : Rules) : NodesToken {
 	const href = link.href;
