@@ -44,7 +44,7 @@
 3. 配置获取临时鉴权token  
 为提供更好的用户体验，uni-ai-x 由客户端直接连接 AI 服务器。考虑到调用大模型时需保障服务商 API Key 信息的安全性，特采用方案：前端通过接口向服务端获取临时鉴权 Token，获取后使用该临时 Token 调用服务商 API，以此在确保安全的前提下实现高效调用。
 
-- 不基于unicloud的项目，需要根据[文档](https://help.aliyun.com/zh/model-studio/obtain-temporary-authentication-token)提供获取临时鉴权 token 接口。并配置到`/uni_modules/uni-im-x-ext-ai/config.uts`，bailian -> getToken 内
+- 不基于unicloud的项目，需要根据[文档](https://help.aliyun.com/zh/model-studio/obtain-temporary-authentication-token)提供获取临时鉴权 token 接口。并配置到`/uni_modules/uni-ai-x/config.uts`，bailian -> getToken 内
 
 - 基于unicloud的项目，默认将通过 uni-ai-x-co 获取，需要将API-Key配置到`uniCloud/cloudfunctions/common/uni-config-center/uni-ai-x/config.json` 
 配置示例：
@@ -61,7 +61,7 @@
 
 
 更多** 客户端配置 **说明 @cinfig-client
-配置文件路径：`/uni_modules/uni-im-x-ext-ai/config.uts`
+配置文件路径：`/uni_modules/uni-ai-x/config.uts`
 
 Provider 服务商 @Provider
 | 字段名    | 类型       | 说明                           |
