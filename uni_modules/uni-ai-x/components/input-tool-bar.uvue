@@ -112,30 +112,31 @@ export default {
             this.inputContent = '';
         },
         setThinking(){
-            if (!this.canThinking) {
+            if (this.canThinking) {
                 uni.showToast({
-                    title: `仅${this.canThinkingLLmList.join('、')}支持深度思考功能`,
+                    title: "当前模型，不支持关闭深度思考,请选择其他模型",
                     duration: 3000,
                     icon: 'none'
                 });
             } else {
                 uni.showToast({
-                    title: "当前模型，不支持关闭深度思考。请直接选择其他模型",
+                    title: this.canThinkingLLmList.length > 0 ? `仅${this.canThinkingLLmList.join('、')}支持深度思考功能` : '当前模型不支持深度思考功能',
                     duration: 3000,
                     icon: 'none'
                 });
             }
         },
         setWebSearch(){
-            if (!this.canWebSearch) {
+            if (this.canWebSearch) {
+                uniAi.llm.webSearch = !this.webSearch;
+            } else {
+                const title: string = this.canWebSearchLLmList.length > 0 ? `仅${this.canWebSearchLLmList.join('、')}模型支持联网搜索` : '当前模型不支持联网搜索';
                 uni.showToast({
-                    title: `仅${this.canWebSearchLLmList.join('、')}模型支持联网搜索`,
+                    title,
                     duration: 3000,
                     icon: 'none'
                 });
-                return
             }
-            uniAi.llm.webSearch = !this.webSearch;
         }
     }
 }
