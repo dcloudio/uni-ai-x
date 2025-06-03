@@ -18,10 +18,9 @@ const loginTypes = config.getArray<string>('loginTypes');
 // })
 
 // #ifdef APP 
-
-const univerifyManager = uni.getUniVerifyManager();
 export default class Univerify {
   verify(fullScreen : boolean) {
+	const univerifyManager = uni.getUniVerifyManager();
     // 校验预登录是否有效
     const isPreLoginValid = univerifyManager.isPreLoginValid();
     if (isPreLoginValid) {
@@ -71,6 +70,7 @@ export default class Univerify {
     }
   }
   login(fullScreen : boolean) {
+	const univerifyManager = uni.getUniVerifyManager();
     univerifyManager.login({
       // 登录页样式
       univerifyStyle: {
