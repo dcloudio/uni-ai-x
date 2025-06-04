@@ -22,10 +22,11 @@
 					<text v-if="msgList.length == 0" class="welcome-msg">你好，我是UNI-AI 助手，有什么可以帮你的？</text>
 				</view>
 			</scroll-view>
-			<view class="bottom">
-				<textarea class="chat-input" v-model="chatInputContent" placeholder="请输入内容" :cursor-spacing="100"></textarea>
+			<view class="bottom" id="bottom">
+				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息" :adjust-position="false"></textarea>
 				<input-tool-bar />
 			</view>
+			<text class="tip">内容由ai生成，仅供参考</text>
 		</view>
 		<view class="mask" v-if="translateX != -260" @click="closeMenu" :style="{
 			opacity: (translateX + 260) / 260,
@@ -73,6 +74,13 @@
 					uniAi.currentChat!.inputContent = value
 				}
 			}
+		},
+		mounted() {
+			// #ifndef WEB
+			uni.onKeyboardHeightChange((res: OnKeyboardHeightChangeCallbackResult) => {
+				uni.getElementById('bottom')?.style.setProperty('bottom', `${res.height != 0 ? res.height + 'px' : ''}`)
+			})
+			// #endif
 		},
 		methods: {
 			changeMenu() {
@@ -163,18 +171,20 @@
 			}
 		}
 		.bottom {
-			height: 130px;
+			height: 100px;
 			flex-direction: column;
-			background-color: #F6f6f6;
+			background-color: #FFF;
 			padding: 10px;
-			border-radius: 20px;
-			margin: 10px;
-			margin-top: 0;
+			border-radius: 15px 15px 0 0;
 			border: 1px solid #eee;
+			box-shadow: 0 0 30px 0 rgba(0,0,0,0.1);
 			.chat-input {
 				flex: 1;
 				width: 100%;
 			}
+		}
+		.tip {
+			display: none;
 		}
 	}
 }
@@ -222,6 +232,21 @@
 @media screen and (min-device-width:960px){
 	.chat-box {
 		flex: 1;
+		.chat {
+			.bottom {
+				border-radius: 15px;
+				margin: 10px;
+				margin-top: 0;
+			}
+			.tip {
+				display: block;
+				width: 100%;
+				font-size: 12px;
+				text-align: center;
+				color: #999;
+				margin-bottom: 10px;
+			}
+		}
 		::v-deep {
 			.avatar {
 				margin-right: 10px;
