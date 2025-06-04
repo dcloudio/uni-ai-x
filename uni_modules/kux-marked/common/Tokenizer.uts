@@ -123,7 +123,7 @@ export class Tokenizer implements I_Tokenizer {
 
 			return {
 				type: 'code',
-				raw: raw!
+				raw: raw!,
 				lang: cap[2] != null ? cap[2]!.trim().replace(this.rules!.inline.anyPunctuation, '$1') : cap[2],
 				text,
 				tokens: [] as NodesToken[]
