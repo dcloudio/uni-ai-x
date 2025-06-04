@@ -91,7 +91,7 @@
 	height: 100%;
 	flex-direction: row;
 	background-color: #FFF;
-	transition: transform 0.3s, width 0.3s;
+	transition: transform 0.3s;
 	&.showMenu {
 		transform: translateX(0) !important;
 	}
@@ -99,8 +99,11 @@
 
 /* #ifdef H5 */
 @media screen and (min-device-width:960px){
-	.uni-ai-page.showMenu {
-		width: 100%;
+	.uni-ai-page {
+		transition: transform 0.3s, width 0.3s;
+		&.showMenu {
+			width: 100%;
+		}
 	}
 }
 /* #endif */
