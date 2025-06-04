@@ -32,7 +32,8 @@
 
 <script>
 	import uniAi from '../../sdk';
-	import {llmModelMap, Provider, providerNameList} from '../../config';
+	import {Provider} from '@/uni_modules/uni-ai-x/types.uts';
+	import {llmModelMap, providerNameList} from '../../config';
 	export default {
 		name: 'aiModel',
 		computed: {

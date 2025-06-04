@@ -18,11 +18,12 @@
 
 <script>
 	import uniAi from '@/uni_modules/uni-ai-x/sdk';
-	type UiThemeModeOptions = Map<string,string>
+	import {Theme} from '@/uni_modules/uni-ai-x/types.uts';
+	type UiThemeModeOptions = Map<Theme,string>
 	export default {
 		data() {
 			return {
-				uiThemeModeOptions: new Map<string,string>([
+				uiThemeModeOptions: new Map<Theme,string>([
 					// ['auto', '跟随系统'],
 					['dark', '深色'],
 					['light', '浅色']
@@ -30,10 +31,10 @@
 			}
 		},
 		computed: {
-			uiTheme(): string {
+			uiTheme(): Theme {
 				return uniAi.setting.theme
 			},
-			uiThemeMode(): string {
+			uiThemeMode(): Theme {
 				return uniAi.setting.theme
 			},
 			currentThemeText(): string {
@@ -54,7 +55,7 @@
 				this.popupRef().$callMethod('close');
 			},
 			changeTheme() {
-				const textList:string[] = [], keyList:string[] = []
+				const textList:string[] = [], keyList:Theme[] = []
 				this.uiThemeModeOptions.forEach((value, key) => {
 					textList.push(value)
 					keyList.push(key)

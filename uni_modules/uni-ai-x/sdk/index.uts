@@ -1,8 +1,8 @@
 import { reactive, watch } from 'vue';
 import { defaultLLM } from '../config';
-import { Llm,ChatItem,Chunk,Chat, Msg, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting } from './types.uts';
+import { Llm,ChatItem,Chunk,Chat, Provider, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
-import { llmModelMap, Provider } from '@/uni_modules/uni-ai-x/config.uts';
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 
  type BailianOptionsOnChunkFn = (chunkObj: Chunk) => void
  type BailianOptionsOnErrorFn = (err: UTSJSONObject) => void

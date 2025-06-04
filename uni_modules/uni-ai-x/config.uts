@@ -1,40 +1,19 @@
-type LLMModel = {
-	name: string,
-	thinking?: boolean,
-	webSearch?: boolean
-}
-
-export type Provider = {
-	models: LLMModel[],
-	description?: string,
-	baseURL?: string,
-	getToken?: () => Promise<string>,
-}
-
-type BailianTokenInfo = {
-	token: string,
-	expireTime: number
-}
-
-const bailianTokenInfo: BailianTokenInfo = {
-	token: '',
-	expireTime: 0
-}
-
+import {LLMModel, Provider, BailianTokenInfo} from '@/uni_modules/uni-ai-x/types.uts';
 /** 
  * 配置大语言模型
  * 注意需要在，目录：`/uni_modules/uni-ai-x/static/ai-provider/${provider}.png` 中添加对应的logo图片
  * 默认以第一个为默认模型
  */
+const bailianTokenInfo: BailianTokenInfo = {token: '', expireTime: 0}
 const llmModelMap = new Map<string, Provider>([
 	// 阿里云百炼
 	[
 		'bailian', {
 			models: [
-				{ name: 'qwen-plus', thinking: true },
 				{ name: 'qwen-turbo-0624'},
-				{ name: 'deepseek-r1', thinking: true },
-				{ name: 'deepseek-v3'}
+				{ name: 'qwen-plus', thinking: true },
+				{ name: 'deepseek-v3'},
+				{ name: 'deepseek-r1', thinking: true }
 			],
 			description: '阿里云百炼 - 专注AI技术研究和应用',
 			baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",

@@ -1,3 +1,22 @@
+export type LLMModel = {
+	name: string,
+	thinking?: boolean,
+	webSearch?: boolean
+}
+
+export type Provider = {
+	models: LLMModel[],
+	description?: string,
+	baseURL?: string,
+	getToken?: () => Promise<string>,
+}
+
+export type BailianTokenInfo = {
+	token: string,
+	expireTime: number
+}
+
+
 export type Llm = {
 	provider: string
 	model: string
@@ -88,9 +107,10 @@ export type Userinfo = {
 }
 
 // 用户
+export type Theme =  "auto" | "dark" | "light"
 export type Setting = {
 	// 主题
-	theme: "auto" | "dark" | "light",
+	theme: Theme
 	// 语言
 	language: "zh-CN" | "en-US"
 }
