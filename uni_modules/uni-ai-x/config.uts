@@ -1,4 +1,26 @@
-import {LLMModel, Provider, BailianTokenInfo} from '@/uni_modules/uni-ai-x/types.uts';
+import {LLMModel, Provider, BailianTokenInfo, Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
+import {uniAi} from '@/uni_modules/uni-ai-x/sdk/'
+
+// 绑定系统的用户信息到uniAi.currentUser
+// 这里以 uni-id的用户信息绑定为例子，你自己的系统如果不是基于 unicloud 的，请参考此方法实现
+import {state as uniIdState} from '@/uni_modules/uni-id-pages-x/store.uts';
+import { reactive, watch } from 'vue';
+watch((): UTSJSONObject => uniIdState.userInfo, () => {
+	setTimeout(() => {
+		// console.log('uniIdState.userInfo', uniIdState.userInfo)
+		uniAi.currentUser._id = uniIdState.userInfo.getString('_id')
+		uniAi.currentUser.nickname = uniIdState.userInfo.getString('nickname')
+		// 根据 file_id 获取文件的 url
+		const avatarFileUrl = uniIdState.userInfo.getString('avatar_file.url', '')
+		uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
+			uniAi.currentUser.avatar_file = {
+				url: res.fileList[0].tempFileURL
+			}
+		})
+	}, 0)
+}, {deep: true, immediate: true})
+
+
 /** 
  * 配置大语言模型
  * 注意需要在，目录：`/uni_modules/uni-ai-x/static/ai-provider/${provider}.png` 中添加对应的logo图片
