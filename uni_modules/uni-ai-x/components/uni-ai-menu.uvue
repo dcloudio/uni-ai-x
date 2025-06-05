@@ -17,12 +17,10 @@
 				<text v-if="currentUser._id != null" class="name">{{currentUser.nickname ?? '未设置'}}</text>
 				<text v-else class="to-login">未登录</text>
 			</view>
-			<!-- #ifdef H5 -->
 			<view class="btn-group">
 				<uni-icons class="setting-icon" @click="toSetting" type="gear-filled" size="20" :color="uiTheme == 'light' ? '#666' : '#FFF'"></uni-icons>
 				<uni-ai-x-setting class="setting-container" ref="uni-ai-x-setting"></uni-ai-x-setting>
 			</view>
-			<!-- #endif -->
 		</view>
 	</view>
 </template>
@@ -100,6 +98,7 @@
 	height: 100%;
 	background-color: #FFF;
 	padding-top: env(safe-area-inset-top);
+	padding-bottom: env(safe-area-inset-bottom);
 	.title {
 		padding: 10px;
 		font-size: 18px;
@@ -116,12 +115,14 @@
 		flex: 1;
 		.chat-item {
 			margin:1px 5px;
+			height: 40px;
+			border-radius: 10px;
 			flex-direction: row;
 			justify-content: space-between;
 			align-items: center;
 			background-color: #FFF;
 			.title {
-				color: #333;
+				color: #666;
 				white-space: nowrap;
 				font-size: 14px;
 				flex: 1;
@@ -143,7 +144,6 @@
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		border-top: 1px solid #efefef;
 		padding: 10px;
 		.user-info {
 			flex-direction: row;

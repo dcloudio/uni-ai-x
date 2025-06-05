@@ -4,10 +4,20 @@
 			<view class="popup-content">
 				<text class="title">系统设置</text>
 				<!-- 设置主题 -->
+				<!-- #ifdef H5 -->
 				<view class="item">
-					<text class="label">设置主题</text>
+					<text class="label">外观主题</text>
 					<view class="value-box" @click="changeTheme">
 						<text class="value">{{currentThemeText}}</text>
+						<uni-icons type="down" size="16" color="#999"></uni-icons>
+					</view>
+				</view>
+				<!-- #endif -->
+				<!-- 设置大语言模型 -->
+				<view class="item">
+					<text class="label">大语言模型</text>
+					<view class="value-box" @click="changeModel">
+						<text class="value">{{currentModel}}</text>
 						<uni-icons type="down" size="16" color="#999"></uni-icons>
 					</view>
 				</view>
@@ -18,7 +28,9 @@
 
 <script>
 	import uniAi from '@/uni_modules/uni-ai-x/sdk';
-	import {Theme} from '@/uni_modules/uni-ai-x/types.uts';
+	import {Theme, Provider} from '@/uni_modules/uni-ai-x/types.uts';
+	
+	import {llmModelMap, providerNameList} from '@/uni_modules/uni-ai-x/config';
 	type UiThemeModeOptions = Map<Theme,string>
 	export default {
 		data() {
@@ -27,7 +39,9 @@
 					// ['auto', '跟随系统'],
 					['dark', '深色'],
 					['light', '浅色']
-				]) as UiThemeModeOptions
+				]) as UiThemeModeOptions,
+				llmModelMap: llmModelMap as Map<string, Provider>,
+				providerNameList : providerNameList as string[]
 			}
 		},
 		computed: {
@@ -39,7 +53,10 @@
 			},
 			currentThemeText(): string {
 				return this.uiThemeModeOptions.get(this.uiThemeMode) ?? '跟随系统'
-			}
+			},
+			currentModel(): string {
+				return uniAi.llm.model
+			},
 		},
 		mounted() {
 			// this.open()
@@ -66,6 +83,24 @@
 					success: (res: ShowActionSheetSuccess) => {
 						console.log('设置主题', res.tapIndex, keyList[res.tapIndex])
 						uniAi.setting.theme = keyList[res.tapIndex]
+						this.close()
+					}
+				})
+			},
+			changeModel() {
+				const textList:string[] = [], keyList:string[] = []
+				this.providerNameList.forEach((value, key) => {
+					this.llmModelMap.get(value)?.models.forEach((model) => {
+						textList.push(model.name)
+						keyList.push(model.name)
+					})
+				})
+				uni.showActionSheet({
+					title: "设置大语言模型",
+					itemList: textList,
+					success: (res: ShowActionSheetSuccess) => {
+						console.log('设置大语言模型', res.tapIndex, keyList[res.tapIndex])
+						uniAi.llm.model = keyList[res.tapIndex]
 						this.close()
 					}
 				})

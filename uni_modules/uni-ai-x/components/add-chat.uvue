@@ -1,6 +1,6 @@
 <template>
 	<view class="add-chat" @click="addChat">
-		<uni-ai-icon class="icon" code="e907" :color="canAddChat ? '#555':'#ddd'" :size="size"></uni-ai-icon>
+		<uni-ai-icon class="icon" code="e907" :color="canAddChat ? '#000':'#ddd'" :size="size"></uni-ai-icon>
 		<slot></slot>
 	</view>
 </template>
@@ -12,7 +12,7 @@
 		props: {
 			size: {
 				type: String,
-				default: '18' 
+				default: '20' 
 			},
 		},
 		data() {

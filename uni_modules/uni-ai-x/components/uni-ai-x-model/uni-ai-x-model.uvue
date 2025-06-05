@@ -6,7 +6,7 @@
 			<uni-ai-icon class="icon" code="e6bd" color="#555" size="8"></uni-ai-icon>
 		</view>
 		<uni-popup ref="popup" @clickMask="close">
-			<view class="choose-llm-model">
+			<!-- <view class="choose-llm-model">
 				<text class="title">选择AI模型</text>
 				<scroll-view :scroll-y="true" class="scroll-view">
 					<view v-for="provider in providerNameList" class="provider-item">
@@ -25,7 +25,7 @@
 						</view>
 					</view>	
 				</scroll-view>
-			</view>
+			</view> -->
 		</uni-popup>
 	</view>
 </template>

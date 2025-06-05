@@ -79,7 +79,6 @@
 
 <style lang="scss">
 .uni-ai-page {
-	padding-top: env(safe-area-inset-top);
 	position: fixed;
 	width: calc(100% + 260px);
 	transform: translateX(-260px);

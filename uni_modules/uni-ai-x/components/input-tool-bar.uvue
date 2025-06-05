@@ -149,27 +149,27 @@ export default {
     .btn {
         flex-direction: row;
         align-items: center;
-        padding: 2px 6px;
+        padding: 5px 10px;
         background-color: #efefef;
-        border-radius: 10rpx;
-				margin-right: 5px;
-				&.active {
-				    background-color: #e4efff;
-				}
-				&.disable {
-				    background-color: #efefef;
-				}
+        border-radius: 30px;
+        margin-right: 5px;
+        &.active {
+            background-color: #e4efff;
+        }
+        &.disable {
+            background-color: #efefef;
+        }
         .text {
             font-size: 14px;
             color: #666;
             margin-left: 3px;
         }
-				.active.text {
-				    color: #3c76e4;
-				}
-				.disable.text {
-						color: #aaa;
-				}
+        .active.text {
+            color: #3c76e4;
+        }
+        .disable.text {
+                color: #aaa;
+        }
     }
     .stop, .send {
         margin-left: auto;

@@ -1,8 +1,8 @@
 <template>
 	<view class="chat-box" :class="{'ui-theme-dark': uiTheme == 'dark'}">
 		<view class="nav-bar">
-			<uni-ai-icon @click="changeMenu" code="e622" color="#555" size="18"></uni-ai-icon>
-			<uni-ai-x-model></uni-ai-x-model>
+			<uni-ai-icon @click="changeMenu" code="e622" color="#000" size="20"></uni-ai-icon>
+			<text class="chat-title">{{chatTitle}}</text>
 			<addChat></addChat>
 		</view>
 		<view class="chat" :class="{showMenu}" ref="chat">
@@ -12,7 +12,9 @@
 				>
 					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}">
 						<view v-if="item.from_uid == 'uni-ai'" class="ai-msg-box">
-							<image class="avatar" src="@/uni_modules/uni-ai-x/static/ai-provider/bailian.png"/>
+							<view class="avatar-box">
+								<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+							</view>
 							<view class="msg-box">
 								<uni-ai-x-msg :msg="item"></uni-ai-x-msg>
 							</view>
@@ -20,7 +22,11 @@
 						<text v-else class="user-msg">{{item.body}}</text>
 						<msg-tool-bar :msg="item" />
 					</view>
-					<text v-if="msgList.length == 0" class="welcome-msg">你好，我是UNI-AI 助手，有什么可以帮你的？</text>
+					<view class="welcome-msg-box" v-if="msgList.length == 0">
+						<image class="logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+						<text class="title">嗨！我是 UNI-AI</text>
+						<text class="text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
+					</view>
 					<view class="add-chat-btn"><add-chat-btn /></view>
 					<!-- 最后一项，用于快速滚动到最底部 -->
 					<view style="height: 1px;" id="last-msg"></view>
@@ -32,12 +38,12 @@
 			</view>
 			<view class="bottom">
 				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
-					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange"
+					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 					@focus="scrollToLastMsg(true, 300)" :auto-height="true"
 				></textarea>
 				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" />
 				<!-- 开启键盘时，底部背景高度为键盘高度 -->
-				<view :style="{height: keyboardHeight + 'px'}"></view>
+				<view class="keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
 			</view>
 			<text class="tip">内容由ai生成，仅供参考</text>
 		</view>
@@ -100,6 +106,14 @@
 			},
 			chatActiveId(): string {
 				return uniAi.chat.activeId
+			},
+			chatTitle(): string {
+				const title = uniAi.currentChat?.title ?? ''
+				if (title.length > 0) {
+					// 如果标题长度大于10，则截取前10个字符，并添加省略号
+					return title.length > 10 ? title.slice(0, 10) + '...' : title
+				}
+				return '新对话'
 			}
 		},
 		watch: {
@@ -161,12 +175,16 @@
 <style lang="scss">
 .chat-box {
 	width: 750rpx;
+	padding-top: env(safe-area-inset-top);
 	.nav-bar {
 		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-		padding:0 10px 10px 10px;
+		padding:10px;
 		background-color: #FFF;
+		.chat-title {
+			font-size: 16px;
+		}
 	}
 	.mask {
 		position: absolute;
@@ -200,9 +218,17 @@
 					padding: 10px;
 					.ai-msg-box {
 						flex-direction: row;
-						.avatar {
+						.avatar-box {
 							width: 25px;
 							height: 25px;
+							justify-content: center;
+							align-items: center;
+							border: 1px solid #EEE;
+							border-radius: 50px;
+							.avatar {
+								width: 18px;
+								height: 18px;
+							}
 						}
 						.msg-box {
 							flex: 1;
@@ -224,11 +250,29 @@
 				.add-chat-btn {
 					margin: 10px auto;
 				}
-				.welcome-msg {
-					font-size: 14px;
-					color: #999;
-					text-align: center;
-					margin: 10px;
+				.welcome-msg-box {
+					margin: auto 20px;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+					.logo {
+						width: 50px;
+						height: 50px;
+						margin-bottom: 20px;
+					}
+					.title {
+						font-size: 24px;
+						font-weight: bold;
+						color: #333;
+						margin-bottom: 10px;
+					}
+					.text {
+						font-size: 16px;
+						color: #666;
+						text-align: center;
+						line-height: 24px;
+						margin: 0 30px;
+					}
 				}
 			}
 			.scroll-to-bottom {
@@ -249,14 +293,22 @@
 		.bottom {
 			flex-direction: column;
 			background-color: #FFF;
-			padding: 10px;
+			padding: 15px 15px 5px 15px;
 			border-radius: 15px 15px 0 0;
 			border: 1px solid #eee;
+			border-bottom: none;
 			box-shadow: 0 0 30px 0 rgba(0,0,0,0.1);
 			.chat-input {
-				min-height: 30px;
+				min-height: 50px;
 				max-height: 200px;
 				width: 100%;
+			}
+			.chat-input-placeholder {
+				color: #b9babc;
+			}
+			// 键盘弹出后，垫高底部。默认大小为安全区域高度，通过padding-bottom撑开
+			.keyboard-cover {
+				padding-bottom: env(safe-area-inset-bottom);
 			}
 		}
 		.tip {

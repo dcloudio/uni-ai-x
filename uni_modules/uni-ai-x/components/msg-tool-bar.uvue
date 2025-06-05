@@ -2,13 +2,13 @@
 	<view class="uni-ai-tool-bar">
 		<!-- 复制按钮、重新回答按钮 -->
 		<view class="btn"  @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
-			<uni-icons type="loop" size="18" color="#999"></uni-icons>
+			<uni-icons type="loop" size="20" color="#999"></uni-icons>
 		</view>
 		<view class="btn"  @click="copy">
-			<uni-ai-icon class="copy" code="e648" size="14" color="#999" />
+			<uni-ai-icon class="copy" code="e648" size="18" color="#999" />
 		</view>
 		<view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
-			<uni-icons class="delete" type="trash" size="18" color="#999"></uni-icons>
+			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>
 		</view>
 	</view>
 </template>
@@ -85,11 +85,11 @@
 		border-radius: 5px;
 		z-index: 9;
 		flex-direction: row;
-		justify-content: flex-end;
+		justify-content: flex-start;
+		margin-left: 20px;
 		.btn {
-			margin:3px;
+			margin: 5px;
 			margin-bottom: 0;
-			border: solid 1px #efefef;
 			border-radius: 5px;
 			width: 25px;
 			height: 25px;

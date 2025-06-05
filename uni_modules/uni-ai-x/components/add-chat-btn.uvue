@@ -1,6 +1,6 @@
 <template>
 	<view class="add-chat-box" v-if="msgListLength > 1">
-		<add-chat size="14">
+		<add-chat size="16">
 			<text class="text">开启新对话</text>
 		</add-chat>
 	</view>
@@ -34,7 +34,7 @@
 	border-radius: 30px;
 	background-color: #fff;
 	.text {
-		font-size: 12px;
+		font-size: 14px;
 		margin-left: 2px;
 	}
 	/* #ifdef WEB */
