@@ -6,9 +6,10 @@
 			<addChat></addChat>
 		</view>
 		<view class="chat" :class="{showMenu}" ref="chat">
-			<scroll-view :scroll-y="true" class="msg-list">
-				<view class="msg-list-content">
-					<view class="add-chat-btn"><add-chat-btn /></view>
+			<view class="scroll-view-box">
+				<scroll-view :scroll-y="true" class="msg-list" :scroll-into-view="scrollIntoView" 
+					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @scrolltolower="onScrollToLower"
+				>
 					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}">
 						<view v-if="item.from_uid == 'uni-ai'" class="ai-msg-box">
 							<image class="avatar" src="@/uni_modules/uni-ai-x/static/ai-provider/bailian.png"/>
@@ -20,13 +21,23 @@
 						<msg-tool-bar :msg="item" />
 					</view>
 					<text v-if="msgList.length == 0" class="welcome-msg">你好，我是UNI-AI 助手，有什么可以帮你的？</text>
+					<view class="add-chat-btn"><add-chat-btn /></view>
+					<!-- 最后一项，用于快速滚动到最底部 -->
+					<view style="height: 1px;" id="last-msg"></view>
+				</scroll-view>
+				<!-- 滚动到最底部 -->
+				<view class="scroll-to-bottom" @click="scrollToLastMsg(true)" v-if="!scrollInBottom">
+					<uni-icons type="down" size="20" color="#555"></uni-icons>
 				</view>
-			</scroll-view>
+			</view>
 			<view class="bottom">
-				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息" :adjust-position="false" @keyboardheightchange="onKeyboardheightchange"></textarea>
-				<input-tool-bar />
+				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
+					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange"
+					@focus="scrollToLastMsg(true, 300)"
+				></textarea>
+				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" />
 				<!-- 开启键盘时，底部背景高度为键盘高度 -->
-				<view class="bottom-bg" :style="{height: keyboardHeight + 'px'}"></view>
+				<view :style="{height: keyboardHeight + 'px'}"></view>
 			</view>
 			<text class="tip">内容由ai生成，仅供参考</text>
 		</view>
@@ -61,6 +72,14 @@
 				default: -260
 			}
 		},
+		data() {
+			return {
+				keyboardHeight: 0,
+				scrollIntoView: '',
+				scrollInBottom: false,
+				scrollWithAnimation: false
+			}
+		},
 		computed: {
 			uiTheme(): string {
 				return uniAi.setting.theme
@@ -75,12 +94,38 @@
 				set(value: string) {
 					uniAi.currentChat!.inputContent = value
 				}
+			},
+			lastMsg(): MsgItem | null {
+				return uniAi.lastAiMsg
+			},
+			chatActiveId(): string {
+				return uniAi.chat.activeId
 			}
 		},
-		data() {
-			return {
-				keyboardHeight: 0
+		watch: {
+			chatActiveId: {
+				handler(newVal: string) {
+					console.log('chatActiveId', newVal)
+					this.scrollToLastMsg(false)
+				},
+				deep: true,
+				immediate: true
+			},
+			lastMsg: {
+				handler(newVal: MsgItem | null) {
+					if (this.scrollInBottom) {
+						// console.log('-------------')
+						// 如果最后一条消息变化，则滚动到最底部
+						this.scrollToLastMsg(false)
+					}
+				},
+				deep: true
 			}
+		},
+		mounted() {
+			uniAi.onBeforeRequestAi((msgItem: MsgItem) => {
+				this.scrollToLastMsg(false)
+			})
 		},
 		methods: {
 			onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent){
@@ -91,6 +136,23 @@
 			},
 			closeMenu() {
 				this.$emit('close-menu')
+			},
+			onScroll(e: UniScrollEvent) {
+				// 如果是向上滚动，则设置当前不在最底部
+				if (e.detail.deltaY > 0) {
+					this.scrollInBottom = false
+				}
+			},
+			onScrollToLower() {
+				this.scrollInBottom = true
+			},
+			scrollToLastMsg(withAnimation: boolean = true, delay: number = 0) {
+				this.scrollIntoView = ""
+				this.scrollWithAnimation = withAnimation
+				setTimeout(() => {
+					this.scrollIntoView = "last-msg"
+					this.scrollInBottom = true
+				}, delay)
 			}
 		}
 	}
@@ -128,49 +190,60 @@
 	.chat {
 		flex: 1;
 		background-color: #FFF;
-		.msg-list {
+		.scroll-view-box {
 			flex: 1;
-			.msg-list-content {
-				flex-grow: 1;
-				justify-content: flex-end;
-			}
-			.msg-item {
-				flex-direction: column;
-				padding: 10px;
-				.ai-msg-box {
-					flex-direction: row;
-					.avatar {
-						width: 25px;
-						height: 25px;
-					}
-					.msg-box {
-						flex: 1;
-						padding: 0 5px;
-					}
-				}
-				.user-msg {
-					font-size: 16px;
-					margin-left: auto;
+			position: relative;
+			.msg-list {
+				flex: 1;
+				.msg-item {
+					flex-direction: column;
 					padding: 10px;
-					border-radius: 10px;
-					background-color: #eff6ff;
-					/* #ifdef WEB */
-					white-space: pre-wrap;
-					word-break: break-all;
-					/* #endif */
+					.ai-msg-box {
+						flex-direction: row;
+						.avatar {
+							width: 25px;
+							height: 25px;
+						}
+						.msg-box {
+							flex: 1;
+							padding: 0 5px;
+						}
+					}
+					.user-msg {
+						font-size: 16px;
+						margin-left: auto;
+						padding: 10px;
+						border-radius: 10px;
+						background-color: #eff6ff;
+						/* #ifdef WEB */
+						white-space: pre-wrap;
+						word-break: break-all;
+						/* #endif */
+					}
+				}
+				.add-chat-btn {
+					margin: 10px auto;
+				}
+				.welcome-msg {
+					font-size: 14px;
+					color: #999;
+					text-align: center;
+					margin: 10px;
 				}
 			}
-			.add-chat-btn {
-				margin: 10px auto;
-			}
-			.welcome-msg {
-				font-size: 14px;
-				color: #999;
-				text-align: center;
-				margin: 10px;
-			}
-			&, .msg-item, .add-chat-btn, .welcome-msg {
-				transform: scaleY(-1);
+			.scroll-to-bottom {
+				position: absolute;
+				bottom: 10px;
+				right: 10px;
+				width: 35px;
+				height: 35px;
+				justify-content: center;
+				align-items: center;
+				background-color: #FFF;
+				border-radius: 50px;
+				padding: 5px;
+				box-shadow: 0 0 10px 0 rgba(0,0,0,0.3);
+				z-index: 10;
 			}
 		}
 		.bottom {
@@ -201,21 +274,19 @@
 		.chat {
 			background-color: #212327;
 			.msg-list {
-				.msg-list-content {
-					.msg-item {
-						.ai-msg-box {
-							.msg-box {
-								color: #e0e0e0;
-							}
-						}
-						.user-msg {
-							background-color: #2c4166;
+				.msg-item {
+					.ai-msg-box {
+						.msg-box {
 							color: #e0e0e0;
 						}
 					}
-					.welcome-msg {
-						color: #999;
+					.user-msg {
+						background-color: #2c4166;
+						color: #e0e0e0;
 					}
+				}
+				.welcome-msg {
+					color: #999;
 				}
 			}
 			.bottom {

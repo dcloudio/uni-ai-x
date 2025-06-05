@@ -18,6 +18,8 @@ import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 	onSuccess?: BailianOptionsOnSuccessFn
  }
 
+ type BeforeRequestAiFn = (msgItem: MsgItem) => void
+
  // 请求任务列表
 let requestTask: RequestTask | null = null
 class UniAi {
@@ -46,12 +48,16 @@ class UniAi {
 	get currentChat(): ChatItem | null {
 		return this.chat.datas.find((item) => item.id == this.chat.activeId) as ChatItem | null
 	}
+	getLocalMsgId(): string {
+		// 生成一个 local_ 开头的随机字符串，时间戳 + 大于 1000 的随机数 再转 32 进制
+		return 'local_' + (this.currentUser._id ?? 'tmp_user') + "_"  + Date.now().toString(16)
+	}
 	addChat() {
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
 		const lastItem = this.chat.datas.length == 0 ? null : this.chat.datas[0] as ChatItem | null;
 		if (lastItem?.msgList.length != 0) {
 			const newChat: ChatItem = {
-				id: 'local_' + Date.now().toString(16),
+				id: this.getLocalMsgId(),
 				title: "新对话",
 				state: 'none',
 				update_time: Date.now(),
@@ -67,7 +73,12 @@ class UniAi {
 	}
 	get lastAiMsg(): MsgItem | null {
 		// 获取Ai的最后一条消息(因为 msg 是倒叙的，所以取第一条)
-		return this.currentChat!.msgList.length > 0 ? this.currentChat!.msgList[0] : null;
+		if (this.currentChat != null) {
+			const length = this.currentChat!.msgList.length
+			return length > 0 ? this.currentChat!.msgList[length - 1] : null;
+		} else {
+			return null;
+		}
 	}
 	constructor() {
 		// 从 storage 中获取数据
@@ -166,14 +177,14 @@ class UniAi {
 		const msgList = this.currentChat!.msgList
 		const newMsg: MsgItem = {
 			chat_id: this.currentChat!.id,
-			_id: "local_" + (Date.now() + Math.random()).toString(16),
+			_id: this.getLocalMsgId(),
 			about_msg_id: msg.about_msg_id,
 			body: msg.body,
 			from_uid: msg.from_uid,
 			create_time: Date.now(),
 			state: 0
 		}
-		msgList.unshift(newMsg)
+		msgList.push(newMsg)
 		if (msg.from_uid != 'uni-ai') {
 			// 把用户提的问题 内容的前 20 个字符作为标题
 			const title = msg.body.substring(0, 20)
@@ -182,7 +193,7 @@ class UniAi {
 		// 更新会话的更新时间
 		this.currentChat!.update_time = Date.now()
 		// 返回响应式的 msg
-		return msgList[0]
+		return msgList[msgList.length - 1]
 	}
 	deleteMsg(msgId: string) {
 		// 查出消息索引
@@ -247,14 +258,24 @@ class UniAi {
 	getMsgToAi(chatItem: ChatItem): RequestAiCoMessage[] {
 		const messages: RequestAiCoMessage[] = [];
 		chatItem.msgList.forEach((item) => {
-			messages.unshift({
+			messages.push({
 				role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
 				content: item.body as string
 			})
 		})
 		return messages
 	}
+	beforeRequestAiFns: BeforeRequestAiFn[] = []
+	onBeforeRequestAi(fn: BeforeRequestAiFn) {
+		this.beforeRequestAiFns.push(fn)
+	}
+	emitBeforeRequestAi(msgItem: MsgItem) {
+		this.beforeRequestAiFns.forEach((fn) => {
+			fn(msgItem)
+		})
+	}
 	async requestAi(msgItem: MsgItem): Promise<UTSJSONObject> {
+		this.emitBeforeRequestAi(msgItem)
 		const currentChat = this.chat.datas.find((item) => item.id == msgItem.chat_id) as ChatItem
 		const messages: RequestAiCoMessage[] = this.getMsgToAi(currentChat)
 		currentChat.state = 'processing'
