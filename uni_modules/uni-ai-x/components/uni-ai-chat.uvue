@@ -22,9 +22,11 @@
 					<text v-if="msgList.length == 0" class="welcome-msg">你好，我是UNI-AI 助手，有什么可以帮你的？</text>
 				</view>
 			</scroll-view>
-			<view class="bottom" id="bottom">
-				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息" :adjust-position="false"></textarea>
+			<view class="bottom">
+				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息" :adjust-position="false" @keyboardheightchange="onKeyboardheightchange"></textarea>
 				<input-tool-bar />
+				<!-- 开启键盘时，底部背景高度为键盘高度 -->
+				<view class="bottom-bg" :style="{height: keyboardHeight + 'px'}"></view>
 			</view>
 			<text class="tip">内容由ai生成，仅供参考</text>
 		</view>
@@ -75,14 +77,15 @@
 				}
 			}
 		},
-		mounted() {
-			// #ifndef WEB
-			uni.onKeyboardHeightChange((res: OnKeyboardHeightChangeCallbackResult) => {
-				uni.getElementById('bottom')?.style.setProperty('bottom', `${res.height != 0 ? res.height + 'px' : ''}`)
-			})
-			// #endif
+		data() {
+			return {
+				keyboardHeight: 0
+			}
 		},
 		methods: {
+			onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent){
+				this.keyboardHeight = res.detail.height
+			},
 			changeMenu() {
 				this.$emit('change-menu')
 			},
@@ -171,7 +174,6 @@
 			}
 		}
 		.bottom {
-			height: 100px;
 			flex-direction: column;
 			background-color: #FFF;
 			padding: 10px;
@@ -179,7 +181,7 @@
 			border: 1px solid #eee;
 			box-shadow: 0 0 30px 0 rgba(0,0,0,0.1);
 			.chat-input {
-				flex: 1;
+				height: 60px;
 				width: 100%;
 			}
 		}
