@@ -1,7 +1,8 @@
 {
   "name": "uni-ai-x-co",
   "dependencies": {
-    "uni-config-center": "file:../../../../uni-config-center/uniCloud/cloudfunctions/common/uni-config-center"
+    "uni-config-center": "file:../../../../uni-config-center/uniCloud/cloudfunctions/common/uni-config-center",
+    "uni-id-common": "file:../../../../uni-id-common/uniCloud/cloudfunctions/common/uni-id-common"
   },
   "extensions": {
     "uni-cloud-jql": {},
