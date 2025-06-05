@@ -33,7 +33,7 @@
 			<view class="bottom">
 				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
 					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange"
-					@focus="scrollToLastMsg(true, 300)"
+					@focus="scrollToLastMsg(true, 300)" :auto-height="true"
 				></textarea>
 				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" />
 				<!-- 开启键盘时，底部背景高度为键盘高度 -->
@@ -254,7 +254,8 @@
 			border: 1px solid #eee;
 			box-shadow: 0 0 30px 0 rgba(0,0,0,0.1);
 			.chat-input {
-				height: 60px;
+				min-height: 30px;
+				max-height: 200px;
 				width: 100%;
 			}
 		}
