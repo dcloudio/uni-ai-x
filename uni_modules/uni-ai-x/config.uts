@@ -12,11 +12,15 @@ watch((): UTSJSONObject => uniIdState.userInfo, () => {
 		uniAi.currentUser.nickname = uniIdState.userInfo.getString('nickname')
 		// 根据 file_id 获取文件的 url
 		const avatarFileUrl = uniIdState.userInfo.getString('avatar_file.url', '')
-		uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
-			uniAi.currentUser.avatar_file = {
-				url: res.fileList[0].tempFileURL
-			}
-		})
+		if (avatarFileUrl.length > 0) {
+			uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
+				uniAi.currentUser.avatar_file = {
+					url: res.fileList[0].tempFileURL
+				}
+			})
+		} else {
+			uniAi.currentUser.avatar_file = null
+		}
 	}, 0)
 }, {deep: true, immediate: true})
 
@@ -59,7 +63,13 @@ const llmModelMap = new Map<string, Provider>([
 					return tmpToken
 				} catch (e) {
 					console.error('uni-ai-x-co 请求失败', e)
-					throw new Error('获取临时token失败，请检查云函数是否部署成功')
+					uni.showModal({
+						title: '获取临时token失败',
+						content: e.message,
+						showCancel: false,
+						confirmText: '确定'
+					})
+					throw new Error('获取临时token失败')
 				}
 				
 

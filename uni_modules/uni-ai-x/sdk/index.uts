@@ -246,10 +246,6 @@ class UniAi {
 			// 状态为 stop 为用户手动执行了 停止 不需要再次提示用户
 			if (this.currentChat!.state != 'stop'){
 				console.error('发送失败', errMsg, ' 当前状态:' + this.currentChat!.state)
-				uni.showToast({
-					title: '发送失败' + JSON.stringify(errMsg) + ' 当前状态:' + this.currentChat!.state,
-					icon: 'none',
-				})
 			}
 			// aiMsgItem.body = errMsg
 		})
