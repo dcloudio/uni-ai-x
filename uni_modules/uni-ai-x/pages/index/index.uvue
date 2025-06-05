@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd">
+	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
 		<uni-ai-menu :ui-theme="uiTheme" @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 	</view>
@@ -19,15 +19,6 @@
 				showMenu: false
 			}
 		},
-		watch: {
-			showMenu(newVal) {
-				if (newVal) {
-					this.translateX = 0
-				} else {
-					this.translateX = -260
-				}
-			}
-		},
 		computed: {
 			uiTheme(): string {
 				return 'light'
@@ -36,13 +27,17 @@
 		mounted() {
 			// #ifdef WEB
 			window.addEventListener('resize', () => {
-				this.showMenu = window.innerWidth > 960
+				this.setMenu(window.innerWidth > 960)
 			})
 			// #endif
 		},
 		methods: {
+			setMenu(show: boolean) {
+				this.showMenu = show
+				this.translateX = show ? 0 : -260
+			},
 			changeMenu() {
-				this.showMenu = !this.showMenu
+				this.setMenu(!this.showMenu)
 			},
 			touchStart(event: TouchEvent) {
 				this.startX = event.touches[0].pageX
@@ -69,14 +64,14 @@
 				if (!this.isDragging) return
 				this.isDragging = false
 				if (this.translateX > -130) {
-					this.showMenu = true
+					this.setMenu(true)
 				} else {
-					this.showMenu = false
+					this.setMenu(false)
 				}
 			},
 			closeMenu() {
 				if (this.isMoveing) return
-				this.showMenu = false
+				this.setMenu(false)
 			}
 		}
 	}
