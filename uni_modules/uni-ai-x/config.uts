@@ -55,13 +55,15 @@ const llmModelMap = new Map<string, Provider>([
 					bailianTokenInfo.expireTime = expiresAt
 					return tmpToken
 				} catch (e) {
-					console.error('uni-ai-x-co 请求失败', e)
-					uni.showModal({
-						title: '获取临时token失败',
-						content: e.message,
-						showCancel: false,
-						confirmText: '确定'
-					})
+					// console.error('uni-ai-x-co 请求失败', e, e.message)
+					if (e.message != 'uni-id-check-token-failed' && e.message != "Check token failed"){
+						uni.showModal({
+							title: '获取临时token失败',
+							content: e.message,
+							showCancel: false,
+							confirmText: '确定'
+						})
+					}
 					throw new Error('获取临时token失败')
 				}
 				
@@ -98,7 +100,6 @@ const defaultLLM: DefaultLLM = {
 	provider: providerNameList[0]!,
 	model: llmModelMap.get(providerNameList[0])?.models?.[0].name!
 }
-console.error('defaultLLM2', defaultLLM)
 
 export default llmModelMap
 export { llmModelMap, type LLMModel, providerNameList, defaultLLM }

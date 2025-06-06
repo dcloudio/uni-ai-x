@@ -240,14 +240,14 @@ class UniAi {
 		this.requestAi(aiMsgItem).then((res) => {
 			// console.log('requestAi then', res)
 			userMsg.state = 100
-		}).catch((errMsg) => {
-			console.error('requestAi', errMsg)
+		}).catch((err) => {
+			console.error('requestAi', err)
 			userMsg.state = -100
 			// 状态为 stop 为用户手动执行了 停止 不需要再次提示用户
 			if (this.currentChat!.state != 'stop'){
-				console.error('发送失败', errMsg, ' 当前状态:' + this.currentChat!.state)
+				console.error('发送失败', err,typeof err, ' 当前状态:' + this.currentChat!.state)
+				this.currentChat!.state = 'stop';
 			}
-			// aiMsgItem.body = errMsg
 		})
 	}
 	// 拿到消息列表，用于发给 AI 
