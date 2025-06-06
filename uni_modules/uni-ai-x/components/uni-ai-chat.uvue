@@ -11,16 +11,18 @@
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @scrolltolower="onScrollToLower"
 				>
 					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}">
-						<view v-if="item.from_uid == 'uni-ai'" class="ai-msg-box">
-							<view class="avatar-box">
-								<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+						<template v-if="item.from_uid == 'uni-ai'">
+							<view class="ai-msg-box">
+								<view class="avatar-box">
+									<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+								</view>
+								<view class="msg-box">
+									<uni-ai-x-msg :msg="item"></uni-ai-x-msg>
+								</view>
 							</view>
-							<view class="msg-box">
-								<uni-ai-x-msg :msg="item"></uni-ai-x-msg>
-							</view>
-						</view>
+							<msg-tool-bar :msg="item" />
+						</template>
 						<text v-else class="user-msg">{{item.body}}</text>
-						<msg-tool-bar :msg="item" />
 					</view>
 					<view class="welcome-msg-box" v-if="msgList.length == 0">
 						<image class="logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
@@ -119,7 +121,6 @@
 		watch: {
 			chatActiveId: {
 				handler(newVal: string) {
-					console.log('chatActiveId', newVal)
 					this.scrollToLastMsg(false)
 				},
 				deep: true,
