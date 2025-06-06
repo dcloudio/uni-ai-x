@@ -47,7 +47,7 @@
 			},
 			chatDatas(): ChatItem[] {
 				// 按更新时间排序
-				return uniAi.chat.datas//.sort((a, b) => b.update_time - a.update_time)
+				return uniAi.chat.datas.sort((a, b) => b.update_time - a.update_time)
 			}
 		},
 		methods: {

@@ -1,17 +1,27 @@
 <template>
 	<uni-marked-el v-if="token.tokens != null && token.tokens!.length > 0" v-for="(nToken, index) in token.tokens" 
-		:key="index" :token="nToken" :type="type + ' ' + token.type + (token.depth != null ? ' depth-'+token.depth : '')" 
+		:key="index" :token="nToken" :type="type + ' ' + token.type + (token.depth != null ? ' depth-'+(token.depth-2) : '')" 
 		:link="link + (token.href ?? '')"
 	/>
-	<view v-else-if="token.type === 'list'" :class="['list', token.ordered != null? 'ordered-list' : 'unordered-list']">
-		<view v-for="(item, itemIndex) in token.items ?? []" :key="itemIndex" class="list-item">
-			<!-- 根据node.ordered判断是否有序列表，显示序号 或 圆点	 -->
-			<text class="list-item-index">{{ token.ordered != null ? itemIndex + 1 + '.' : '' }}</text>
-			<view class="list-item-content-box">
-				<uni-marked-el v-for="(token, tokenIndex) in item.tokens ?? []" :key="tokenIndex" :type="token.type" :token="token" />
-			</view>
-		</view>
-	</view>
+	<template v-else-if="token.type == 'list'">
+		<text class="list">
+			<text v-for="(item, itemIndex) in token.items ?? []" :key="itemIndex" class="list-item" :class="'deep-index-' + deepIndex">
+				<text v-if="itemIndex != 0 || deepIndex != 0" class="list-item-br">{{br}}</text>
+				<!-- 根据 deepIndex 来决定 列表的缩进 -->
+				<text v-for="i in deepIndex * 2" :key="i" class="list-item-nbsp" space="nbsp">&nbsp;</text>
+				<text v-if="token.ordered != true" class="list-item-index unordered">&#xec1e;</text>
+				<text v-else class="list-item-index">{{ itemIndex + 1 + '.' }}</text>
+				<!-- <text v-else class="list-item-index">{{ token.raw?.split('.')[0] + '.' }}</text> -->
+				<text class="list-item-nbsp" space="ensp">&nbsp;</text>
+				<text class="list-item-content-box">
+					<uni-marked-el v-for="(token, tokenIndex) in item.tokens ?? []" :key="tokenIndex" :type="token.type" :token="token" :deep-index="deepIndex + 1" />
+				</text>
+				<!-- 最后一个元素 添加一个换行 -->
+				<text v-if="itemIndex == token.items!.length - 1" class="list-item-br">{{br}}</text>
+			</text>
+		</text>
+	</template>
+	
 	<text v-else :class="type + ' text'" @click="toLink(link)">{{token.text}}</text>
 </template>
 
@@ -33,13 +43,35 @@
 			type: {
 				type: String,
 				default: ''
+			},
+			deepIndex: {
+				type: Number,
+				default: 0
 			}
 		},
 		computed: {},
 		data() {
-			return {};
+			return {
+				br: "\n"
+			};
 		},
 		methods: {
+			getTokens(tokens : Array<MarkdownToken>,type: string = ''): Array<MarkdownToken> {
+				// 把循环嵌套的tokens，转换为一维数组。并且子项需要继承父项的type
+				let newTokens: Array<MarkdownToken> = []
+				tokens.forEach(token => {
+					if (token.tokens != null && token.tokens.length > 0) {
+						newTokens.push(...this.getTokens(token.tokens??[],token.type ?? ''))
+					} else {
+						// 继承父项的type
+						if (type != '' && token.type!.includes(type) != true) {
+							token.type += ' ' + type
+						}
+						newTokens.push(token)
+					}
+				})
+				return newTokens
+			},
 			toLink(url: string) {
 				if (url.length > 0) {
 					uni.showToast({
@@ -83,7 +115,7 @@
 	}
 	.text {
 		color: #333;
-		line-height: 1.5;
+		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
 		white-space: normal;
 		/* #ifndef APP */
 		word-break: break-all;
@@ -98,28 +130,53 @@
 		
 		&.depth-1 {
 			font-size: 24px;
+			font-weight: 800;
+			margin: 6px 0;
+			line-height: 1.25;
 		}
+
 		&.depth-2 {
-			font-size: 20px; 
+			font-size: 22px;
+			font-weight: 700;
+			margin: 6px 0;
+			line-height: 1.3;
 		}
+
 		&.depth-3 {
-			font-size: 18px;
+			font-size: 20px;
+			font-weight: 700;
+			margin: 6px 0;
+			line-height: 1.4;
 		}
+
 		&.depth-4 {
-			font-size: 16px;
+			font-size: 18px;
+			font-weight: 700;
+			margin: 6px 0;
+			line-height: 1.5;
 		}
+
 		&.depth-5 {
+			font-size: 16px;
+			font-weight: 700;
+			margin: 6px 0;
+			line-height: 1.6;
+		}
+
+		&.depth-6 {
 			font-size: 14px;
+			font-weight: 700;
+			margin: 6px 0;
+			line-height: 1.6;
 		}
 	}
 
 	.list {
 		margin-top: 5px;
 		padding-left: 5px;
+		// border: solid 1px blue;
 		width: 100%;
 		.list-item-content-box {
-			flex-direction: row;
-			flex-wrap: wrap;
 			flex: 1;
 			.list {
 				margin-top: 0;
@@ -127,24 +184,31 @@
 		}
 		
 		.list-item {
-			flex-direction: row;
 			margin-top: 5px;
+			width: 100%;
+			&.deep-index-1 {
+				margin-left: 10px;
+			}
+			&.deep-index-2 {
+				margin-left: 20px;
+			}
+			&.deep-index-3 {
+				margin-left: 30px;
+			}
+			.list-item-br {}
 			.list-item-index {
 				width: 20px;
-				text-align: center;
-				font-size: 16px;
-				color: #555;
+				@font-face {
+					font-family: "uni-ai-icon";
+					src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
+				}
+				&.unordered {
+					font-family: uni-ai-icon;
+					font-size: 15px;
+					color: #000;
+				}
 			}
-		}
-		
-		&.unordered-list {
-			.list-item-index {
-				width: 8px;
-				height: 8px;
-				border-radius: 100px;
-				border: 1px solid #CCCCCC;
-				margin: 5px;
-			}
+			background-color: #FFF;
 		}
 	}
 

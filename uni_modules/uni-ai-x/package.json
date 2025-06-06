@@ -1,16 +1,19 @@
 {
 	"id": "uni-ai-x",
 	"displayName": "uni-ai-x",
-	"version": "1.0.0",
-	"description": "uni-ai-x",
+	"version": "0.0.0",
+	"description": "一个开源的、全平台的、原生的、云端一体的ai聊天套件",
 	"keywords": [
-        "uni-ai-x"
+        "uni-ai-x",
+        "uni-ai-chat",
+        "ai",
+        "deepseek"
     ],
 	"repository": "",
 	"engines": {
 		"HBuilderX": "^3.1.0",
-		"uni-app": "^3.1.0",
-		"uni-app-x": "^3.1.0"
+		"uni-app": "^4.71",
+		"uni-app-x": "^4.71"
 	},
 	"dcloudext": {
 		"type": "unicloud-template-page",
@@ -26,66 +29,66 @@
 			"qq": ""
 		},
 		"declaration": {
-			"ads": "",
-			"data": "",
-			"permissions": ""
+			"ads": "无",
+			"data": "无",
+			"permissions": "无"
 		},
 		"npmurl": "",
-		"darkmode": "-",
-		"i18n": "-",
-		"widescreen": "-"
+		"darkmode": "x",
+		"i18n": "x",
+		"widescreen": "√"
 	},
 	"uni_modules": {
 		"dependencies": [],
 		"encrypt": [],
 		"platforms": {
 			"cloud": {
-				"tcb": "-",
-				"aliyun": "-",
-				"alipay": "-"
+				"tcb": "√",
+				"aliyun": "√",
+				"alipay": "√"
 			},
 			"client": {
 				"uni-app": {
 					"vue": {
-						"vue2": "-",
-						"vue3": "-"
+						"vue2": "x",
+						"vue3": "x"
 					},
 					"web": {
-						"safari": "-",
-						"chrome": "-"
+						"safari": "x",
+						"chrome": "x"
 					},
 					"app": {
-						"vue": "-",
-						"nvue": "-",
-						"android": "-",
-						"ios": "-",
-						"harmony": "-"
+						"vue": "x",
+						"nvue": "x",
+						"android": "x",
+						"ios": "x",
+						"harmony": "x"
 					},
 					"mp": {
-						"weixin": "-",
-						"alipay": "-",
-						"toutiao": "-",
-						"baidu": "-",
-						"kuaishou": "-",
-						"jd": "-",
-						"harmony": "-",
-						"qq": "-",
-						"lark": "-"
+						"weixin": "x",
+						"alipay": "x",
+						"toutiao": "x",
+						"baidu": "x",
+						"kuaishou": "x",
+						"jd": "x",
+						"harmony": "x",
+						"qq": "x",
+						"lark": "x"
 					},
 					"quickapp": {
-						"huawei": "-",
-						"union": "-"
+						"huawei": "x",
+						"union": "x"
 					}
 				},
 				"uni-app-x": {
 					"web": {
 						"safari": "-",
-						"chrome": "-"
+						"chrome": "√"
 					},
 					"app": {
-						"android": "-",
-						"ios": "-",
-						"harmony": "-"
+						"android": "√",
+						"ios": "√",
+						"harmony": "√"
 					},
 					"mp": {
 						"weixin": "-"

@@ -3,6 +3,7 @@ import { defaultLLM, currentUser } from '../config';
 import { Llm,ChatItem,Chunk,Chat, Provider, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
+import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
 
  type BailianOptionsOnChunkFn = (chunkObj: Chunk) => void
  type BailianOptionsOnErrorFn = (err: UTSJSONObject) => void
@@ -182,7 +183,8 @@ class UniAi {
 			body: msg.body,
 			from_uid: msg.from_uid,
 			create_time: Date.now(),
-			state: 0
+			state: 0,
+			markdownTokenList: [] as MarkdownToken[]
 		}
 		msgList.push(newMsg)
 		if (msg.from_uid != 'uni-ai') {
@@ -315,7 +317,7 @@ class UniAi {
 	async updateChatTitle(currentChat: ChatItem, messages: RequestAiCoMessage[]): Promise<void> {
 		messages.push({
 			role: 'user',
-			content: '请总结一下这段对话的内容，用于更新会话的标题。注意不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
+			content: '请总结一下这段对话的内容，不包含本对话，用于更新会话的标题。注意：可以直接使用的不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
 		})
 		await this.requestBailian({
 			messages,
@@ -411,27 +413,6 @@ export default uniAi
 // 方便在控制台观察
 uni.ai = uniAi
 // #endif
-
-// 获取 pushClientId
-let pushClientId = '';
-async function getPushClientId(): Promise<string> {
-	if (pushClientId == '') {
-		await new Promise((resolve, reject) => {
-			uni.getPushClientId({
-				success: (res) => {
-					// console.error('获取到PushClientId:',res.cid)
-					pushClientId = res.cid
-					resolve(res.cid)
-				},
-				fail: (err) => {
-					console.error('getPushClientId error', err)
-					reject(err)
-				}
-			})
-		})
-	}
-	return pushClientId
-}
 
 // 解析流式数据
 function parseChunkData(chunkData: ArrayBuffer, callback: (chunkObj: Chunk) => void, errorCallback: (err: UTSJSONObject) => void, doneCallback: () => void) {

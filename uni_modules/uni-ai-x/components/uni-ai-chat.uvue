@@ -6,11 +6,11 @@
 			<addChat></addChat>
 		</view>
 		<view class="chat" :class="{showMenu}" ref="chat">
-			<view class="scroll-view-box">
-				<scroll-view :scroll-y="true" class="msg-list" :scroll-into-view="scrollIntoView" 
-					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @scrolltolower="onScrollToLower"
+			<view class="scroll-view-box" id="scroll-view-box">
+				<scroll-view :scroll-y="true" class="msg-list" :scroll-into-view="scrollIntoView" id="msg-list"
+					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll"
 				>
-					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}">
+					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}" @longpress="onlongTapMsg(item)">
 						<template v-if="item.from_uid == 'uni-ai'">
 							<view class="ai-msg-box">
 								<view class="avatar-box">
@@ -20,7 +20,7 @@
 									<uni-ai-x-msg :msg="item"></uni-ai-x-msg>
 								</view>
 							</view>
-							<msg-tool-bar :msg="item" />
+							<msg-tool-bar v-if="state != 'processing'" :msg="item" />
 						</template>
 						<text v-else class="user-msg">{{item.body}}</text>
 					</view>
@@ -29,12 +29,12 @@
 						<text class="title">嗨！我是 UNI-AI</text>
 						<text class="text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
 					</view>
-					<view class="add-chat-btn"><add-chat-btn /></view>
 					<!-- 最后一项，用于快速滚动到最底部 -->
-					<view style="height: 1px;" id="last-msg"></view>
+					<view style="height: 30px;" id="last-msg"></view>
 				</scroll-view>
+				<view :style="{visibility: scrollInBottom ? 'visible' : 'hidden'}" class="add-chat-btn"><add-chat-btn /></view>
 				<!-- 滚动到最底部 -->
-				<view class="scroll-to-bottom" @click="scrollToLastMsg(true)" v-if="!scrollInBottom">
+				<view :style="{visibility: scrollInBottom ? 'hidden' : 'visible'}" class="scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="20" color="#555"></uni-icons>
 				</view>
 			</view>
@@ -85,10 +85,15 @@
 				keyboardHeight: 0,
 				scrollIntoView: '',
 				scrollInBottom: false,
-				scrollWithAnimation: false
+				scrollWithAnimation: false,
+				lockAutoToLastMsg: false
 			}
 		},
 		computed: {
+			// 是否是自己发送的消息
+			state(): string {
+				return uniAi.currentChat?.state ?? 'none'
+			},
 			uiTheme(): string {
 				return uniAi.setting.theme
 			},
@@ -128,7 +133,7 @@
 			},
 			lastMsg: {
 				handler(newVal: MsgItem | null) {
-					if (this.scrollInBottom) {
+					if (this.scrollInBottom && !this.lockAutoToLastMsg) {
 						// console.log('-------------')
 						// 如果最后一条消息变化，则滚动到最底部
 						this.scrollToLastMsg(false)
@@ -143,6 +148,49 @@
 			})
 		},
 		methods: {
+			onlongTapMsg(item: MsgItem) {
+				console.log('onlongTapMsg',item)
+				// 判断是用户消息还是ai消息
+				// 弹出菜单
+				const itemList = ['复制'] as string[]
+				const isAiMsg = item.from_uid == 'uni-ai'
+				itemList.push(isAiMsg ? '选择' : '修改')
+				uni.showActionSheet({
+					itemList,
+					success: (res: ShowActionSheetSuccess) => {
+						console.log('res',res)
+						if (res.tapIndex == 0) {
+							uni.setClipboardData({
+								data: item.body,
+								success: () => {
+									setTimeout(()=>{
+										uni.showToast({
+											title: '复制成功',
+											icon: 'success'
+										})
+									},300)
+								}
+							})
+						} else if (res.tapIndex == 1) {
+							if (isAiMsg) {
+								console.log('选择')
+								uni.navigateTo({
+									url: '/uni_modules/uni-ai-x/pages/select-text/select-text?msgId=' + item._id,
+									fail(err){
+										console.error('err', err)
+									}
+								})
+							} else {
+								console.log('修改')
+								this.chatInputContent = item.body
+							}
+						}
+					},
+					fail(err){
+						console.error('err------', err)
+					}
+				})
+			},
 			onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent){
 				this.keyboardHeight = res.detail.height
 			},
@@ -153,15 +201,13 @@
 				this.$emit('close-menu')
 			},
 			onScroll(e: UniScrollEvent) {
-				// 如果是向上滚动，则设置当前不在最底部
-				if (e.detail.deltaY > 0) {
-					this.scrollInBottom = false
-				}
-			},
-			onScrollToLower() {
-				this.scrollInBottom = true
+				// 根据是否朝下滚动设置 lockAutoToLastMsg
+				this.lockAutoToLastMsg = e.detail.deltaY > 0
+				const scrollList = uni.getElementById('scroll-view-box')
+				this.scrollInBottom = e.detail.scrollHeight - e.detail.scrollTop - scrollList!.offsetHeight < 30
 			},
 			scrollToLastMsg(withAnimation: boolean = true, delay: number = 0) {
+				this.lockAutoToLastMsg = false
 				this.scrollIntoView = ""
 				this.scrollWithAnimation = withAnimation
 				setTimeout(() => {
@@ -215,6 +261,9 @@
 			.msg-list {
 				flex: 1;
 				.msg-item {
+					&.self  ::v-deep .uni-ai-tool-bar {
+						justify-content: flex-end;
+					}
 					flex-direction: column;
 					padding: 10px;
 					.ai-msg-box {
@@ -245,11 +294,11 @@
 						/* #ifdef WEB */
 						white-space: pre-wrap;
 						word-break: break-all;
+						// 可以滑选 用于复制
+						cursor: text;
+						user-select: text;
 						/* #endif */
 					}
-				}
-				.add-chat-btn {
-					margin: 10px auto;
 				}
 				.welcome-msg-box {
 					margin: auto 20px;
@@ -276,6 +325,12 @@
 					}
 				}
 			}
+			.add-chat-btn {
+				position: absolute;
+				bottom:5px;
+				left: 0;
+				width: 100%;
+			}
 			.scroll-to-bottom {
 				position: absolute;
 				bottom: 10px;
@@ -298,7 +353,7 @@
 			border-radius: 15px 15px 0 0;
 			border: 1px solid #eee;
 			border-bottom: none;
-			box-shadow: 0 0 30px 0 rgba(0,0,0,0.1);
+			// box-shadow: 10px 10px 0 0 rgba(0,0,0,0.1);
 			.chat-input {
 				min-height: 50px;
 				max-height: 200px;

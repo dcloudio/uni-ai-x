@@ -1,0 +1,205 @@
+<template>
+	<view class="msg-types-item-root uni-code-msg">
+		<view class="code-header">
+			<text class="language">{{language}}</text>
+			<!-- <text v-if="supportHighlight" class="run-time">代码解析耗时：{{runTime}}ms</text> -->
+			<text v-if="!supportHighlight" class="not-support-tip">注意：当前语言不支持高亮显示</text>
+			<view class="copy-btn" @click="copyCode">
+				<uni-ai-icon class="copy" code="e60c" size="20" color="#999"/>
+			</view>
+		</view>
+		<scroll-view class="code-scroll-view" direction="horizontal" :scroll-x="true">
+			<text v-if="tokensLines.length == 1 && tokensLines[0].length == 0" class="text" :selectable="true">{{codeText}}</text>
+			<text class="line" :selectable="true" v-else v-for="(tokens,index) in tokensLines" :key="index">
+				<text v-for="token in tokens" class="code" :class="token.className" space="nbsp">{{token.text}}</text>
+			</text>
+		</scroll-view>
+	</view>
+</template>
+
+<script>
+import { IToken, parseCode } from './parseCode.uts'
+export default {
+	name: 'msg-code',
+	props: {
+		// msg: {
+		// 	type: Object as PropType<MsgItem>,
+		// 	required: false,
+		// 	default: {},
+		// },
+		codeText: {
+			type: String,
+			default: `
+	import App from './App.uvue'
+	// 注释：这是注释的内容
+	import { createSSRApp } from 'vue'
+	export function createApp() {
+		const app = createSSRApp(App)
+		return {
+			app
+		}
+	}
+`
+		},
+		codeTokens:  {
+			type: Array as PropType<IToken[]>,
+			required: false,
+			default: [] as IToken[],
+		},
+		language: {
+			type: String,
+			default: 'javascript',
+		},
+	},
+	data() {
+		return {
+			tokens:[] as Array<IToken>,
+			runTime: 0,
+			// 当前语言是否支持高亮显示
+			supportHighlight: true,
+			tokensLines:[] as IToken[][]
+		}
+	},
+	watch: {
+		codeTokens:{
+			handler(codeTokens: IToken[]) {
+				const tokensLines = [[]] as IToken[][]
+				codeTokens.forEach(item => {
+					// 发现换行符就创建一个数组
+					if(item.text == '\n') {
+						tokensLines.push([])
+					} else {
+						tokensLines[tokensLines.length - 1].push(item)
+					}
+				})
+				// console.log('tokensLines',tokensLines)
+				this.tokensLines = tokensLines as IToken[][]
+			},
+			immediate: true,
+			deep: true
+		},
+		// codeText: {
+		// 	async handler() {
+		// 		// 计算耗时
+		// 		const res = await parseCode(this.codeText,this.language)
+		// 		console.log('res',res)
+		// 		this.tokens = res
+		// 	},
+		// 	immediate: true
+		// }
+	},
+	computed: {
+		// tokensLines(): IToken[][] {
+		// 	const tokensLines = [[]] as IToken[][]
+		// 	this.tokens.forEach(item => {
+		// 		// 发现行就创建一个数组
+		// 		if(item.text == '\n') {
+		// 			tokensLines.push([])
+		// 		} else {
+		// 			tokensLines[tokensLines.length - 1].push(item)
+		// 		}
+		// 	})
+		// 	console.log('tokensLines',tokensLines)
+		// 	return tokensLines as IToken[][]
+		// }
+	},
+	methods: {
+		copyCode() {
+			uni.setClipboardData({
+				data: this.codeText,
+				success: () => {
+					uni.showToast({
+						title: '代码已复制到剪贴板',
+						icon: 'success'
+					})
+				},
+				fail: () => {
+					uni.showToast({
+						title: '复制失败',
+						icon: 'none'
+					})
+				}
+			})
+		}
+	}
+}
+</script>
+
+<style lang="scss" scoped>
+.msg-types-item-root {
+	margin: 10px 0;
+	background-color: #1e1e1e !important; // 更深沉的背景色，适合深色主题
+	border-radius: 6px;
+	.code-header {
+		width: 100%;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 5px 12px;
+		background-color: #252526; // 稍微浅一点的头部背景色
+		
+		.language {
+			font-size: 14px;
+			color: #9cdcfe; // 更亮的蓝色，突出显示
+		}
+		
+		.run-time {
+			font-size: 12px;
+			color: #6a9955; // 更亮的绿色，易于识别
+		}
+		.not-support-tip {
+			font-size: 12px;
+			color: #e6a23c; // 警告文本使用暖黄色，提高可见性但不刺眼
+		}
+		
+		.copy-btn {
+			padding: 5px 10px;
+			border-radius: 4px;
+			// #ifdef WEB
+			cursor: pointer;
+			&:hover {
+				background-color: #37373d; // 悬停时的背景色
+			}
+			// #endif
+		}
+	}
+	.code-scroll-view {
+		padding: 6px 10px;
+		width: 100%;
+		.line {
+			white-space: nowrap;
+			overflow: visible;
+			.code {
+				white-space: nowrap;
+				color: #d4d4d4; // 默认代码文本颜色
+			}
+			// 代码高亮颜色，适合深色主题
+			.keyword { color: #569cd6; } // 关键字使用蓝色
+			.string { color: #ce9178; } // 字符串使用橙色
+			.comment { color: #999; } // 注释使用灰色
+			.meta { color: #d16969; } // 元信息使用红色
+			.storage { color: #569cd6; } // 存储类型使用蓝色
+			.eol {
+				/* #ifndef APP */
+				white-space: pre;
+				/* #endif */
+			}
+			.entity { color: #4ec9b0; } // 实体使用青色
+			.support { color: #4ec9b0; } // 支持类使用青色
+			.constant { color: #b5cea8; } // 常量使用浅绿色
+			.variable { color: #9cdcfe; } // 变量使用浅蓝色
+			.punctuation { color: #d4d4d4; } // 标点符号使用默认文本颜色
+			.function { color: #dcdcaa; } // 函数使用黄色
+		}
+
+		.text {
+			color: #d4d4d4; // 更亮的文本颜色，提高可读性
+			white-space: normal;
+			/* #ifndef APP */
+			word-break: break-all;
+			/* #endif */
+		}
+	}
+}
+// /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/extensions/theme-defaults/themes/light_vs.json
+</style>

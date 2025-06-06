@@ -12,7 +12,7 @@
 			</view>
 			<view class="item">
 				<text class="required">*</text>
-				<uni-id-pages-x-input class="my-input" title="设置密码" placeholder="请输入6位数密码" v-model="password"
+				<uni-id-pages-x-input class="my-input" title="设置密码" placeholder="密码必须包含字母和数字，长度范围：6-16位之间" v-model="password"
 					:password="true" ref="password"></uni-id-pages-x-input>
 			</view>
 			<view class="item">
@@ -84,11 +84,12 @@
 				if (!usernameRegExp.test(this.username)) {
 					// 给出错的项聚焦
 					(this.$refs['username'] as UniIdPagesXInputComponentPublicInstance).setFocus(true);
-					return uni.showModal({
+					uni.showModal({
 						content: "用户名由数字和小写字母的3-20个字符组成",
 						showCancel: false,
 						confirmText: "知道了"
 					});
+					return
 				}
 
 				// 校验昵称规则
@@ -97,11 +98,12 @@
 					if (!nicknameRegExp.test(this.username)) {
 						// 给出错的项聚焦
 						(this.$refs['username'] as UniIdPagesXInputComponentPublicInstance).setFocus(true);
-						return uni.showModal({
+						uni.showModal({
 							content: "昵称由小写字母、数字、中文组成的3-20位字符串",
 							showCancel: false,
 							confirmText: "知道了"
 						});
+						return 
 					}
 				}
 
@@ -109,7 +111,7 @@
 				let isPass = checkPasswordRes.getBoolean("pass") as Boolean
 				if (!isPass) {
 					const errMsg = checkPasswordRes.getString("errMsg")
-					return uni.showModal({
+					uni.showModal({
 						content: errMsg,
 						showCancel: false,
 						confirmText: "知道了",
@@ -117,10 +119,11 @@
 							(this.$refs['password'] as UniIdPagesXInputComponentPublicInstance).setFocus(true);
 						}
 					});
+					return 
 				}
 
 				if (this.password != this.password2) {
-					return uni.showModal({
+					uni.showModal({
 						content: "两次输入的密码不一致",
 						showCancel: false,
 						confirmText: "知道了",
@@ -128,10 +131,11 @@
 							(this.$refs["password2"] as UniIdPagesXInputComponentPublicInstance).setFocus(true);
 						}
 					});
+					return 
 				}
 
 				if (this.captcha.length != 4) {
-					return uni.showModal({
+					uni.showModal({
 						content: "请输入验证码",
 						showCancel: false,
 						confirmText: "知道了",
@@ -139,6 +143,7 @@
 							(this.$refs["captcha"] as UniCaptchaComponentPublicInstance).setFocus(true);
 						}
 					});
+					return 
 				}
 
 				if (state.pendingAgreements) {

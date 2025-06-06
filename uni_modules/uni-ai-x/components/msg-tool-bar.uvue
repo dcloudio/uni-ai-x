@@ -1,11 +1,11 @@
 <template>
 	<view class="uni-ai-tool-bar">
 		<!-- 复制按钮、重新回答按钮 -->
-		<view class="btn"  @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
+		<view class="btn loop"  @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
 			<uni-icons type="loop" size="20" color="#999"></uni-icons>
 		</view>
-		<view class="btn"  @click="copy">
-			<uni-ai-icon class="copy" code="e648" size="18" color="#999" />
+		<view class="btn copy"  @click="copy">
+			<uni-ai-icon code="e60c" size="22" color="#999" />
 		</view>
 		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>
@@ -87,6 +87,7 @@
 		flex-direction: row;
 		justify-content: flex-start;
 		margin-left: 20px;
+		margin-top: 5px;
 		.btn {
 			margin: 5px;
 			margin-bottom: 0;
@@ -95,9 +96,12 @@
 			height: 25px;
 			justify-content: center;
 			align-items: center;
-			&.copy {
-				padding-top: 3px;
-				font-weight: 700;
+			&.loop {
+				font-weight: 400 !important;
+			}
+			&.copy .uni-ai-icon {
+				padding-top: 1px;
+				font-weight: 900;
 			}
 			// #ifdef WEB
 			cursor: pointer;

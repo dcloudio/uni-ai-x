@@ -100,8 +100,7 @@ uni_modules/uni-ai-x/
 │   └── ai-menu-right.uvue         // 顶部导航栏菜单右侧组件
 ├── sdk/                           // AI能力相关SDK
 │   ├── index.uts                  // SDK主入口
-│   ├── types.uts                  // 类型定义
-│   └── uniCloudSse.uts            // uniCloud SSE相关工具
+│   └── types.uts                  // 类型定义
 ├── static/                        // 静态资源
 │   ├── ai-provider/               // AI服务商图标目录
 │   └── font/                      // 字体资源目录
@@ -131,4 +130,6 @@ uni_modules/uni-ai-x/
 - ‌error: java.util.regex.PatternSyntaxException: Syntax error in regexp pattern near index 110‌
 
 ## 交流群  
-更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=xxx)加入uni-ai官方交流群
+更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=68511b0b7ae60eb5c891cfbc)加入uni-ai官方交流群
+
+当前项目正在快速迭代UI体验，请关注本项目，订阅更新通知。

@@ -29,10 +29,10 @@ const llmModelMap = new Map<string, Provider>([
 	[
 		'bailian', {
 			models: [
-				{ name: 'qwen-turbo-0624'},
-				{ name: 'qwen-plus', thinking: true },
 				{ name: 'deepseek-v3'},
-				{ name: 'deepseek-r1', thinking: true }
+				{ name: 'deepseek-r1', thinking: true },
+				{ name: 'qwen-turbo'},
+				{ name: 'qwen-plus', thinking: true }
 			],
 			description: '阿里云百炼 - 专注AI技术研究和应用',
 			baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",

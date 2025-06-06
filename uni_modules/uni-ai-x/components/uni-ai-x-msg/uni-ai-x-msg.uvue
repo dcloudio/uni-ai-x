@@ -1,59 +1,59 @@
 <template>
 	<view class="msg-types-item-root">
-		<!-- <text>{{msg.body}}</text> -->
-		<template v-for="node in markdownTokenList">
-			<view v-if="node.type == 'hr'" class="hr"></view>
-			<view v-else-if="node.type == 'paragraph'" class="paragraph">
+		<!-- {{msg.body}} -->
+		<template v-for="(node, index) in msg.markdownTokenList">
+			<view v-if="node?.type == 'hr'" class="hr"></view>
+			<text v-else-if="node?.type == 'paragraph'" class="paragraph">
+				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
+			</text>
+			<view v-else-if="node?.type == 'blockquote'" class="blockquote">
 				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
 			</view>
-			<view v-else-if="node.type == 'blockquote'" class="blockquote">
-				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
-			</view>
-			<view v-else-if="node.type == 'code'" class="code-box">
-				<uni-msg-code :code="node.text" :language="node.lang" />
+			<view v-else-if="node?.type == 'code'" class="code-box">
+				<uni-ai-msg-code :codeTokens="node.codeTokens ?? []" :codeText="node.text" :language="node.lang" />
 			</view>
 			<!-- 表格 -->
-			<view v-else-if="node.type == 'table'" class="table-box">
-				<uni-table :stripe="true">
+			<view v-else-if="node?.type == 'table'" class="table-box">
+				<uni-table :stripe="false">
 					<!-- 表头 -->
 					<uni-tr>
 						<uni-th v-for="(cell, cellIndex) in node.header" :key="cellIndex">
-							<text>{{cell.text}}</text>
+							<!-- todo 暂时过滤 * 防止解析出错 -->
+							<text class="table-header-text">{{cell.text.replace(/\*/g, '')}}</text>
 						</uni-th>
 					</uni-tr>
 					<!-- 表体 -->
 					<uni-tr v-for="(row, rowIndex) in node.rows" :key="rowIndex">
 						<uni-td v-for="(cell, cellIndex) in row" :key="cellIndex">
-							<text>{{cell.text}}</text>
+							<!-- todo 暂时过滤 * 防止解析出错 -->
+							<text>{{cell.text.replace(/\*/g, '')}}</text>
 						</uni-td>
 					</uni-tr>
 				</uni-table>
 			</view>
-			<uni-marked-el v-else :token="node" :type="node.type" />
+			<view v-else style="width: 100%;flex-direction: row;">
+				<uni-marked-el :token="node" :type="node.type" />
+			</view>
 		</template>
-		
-		<text v-if="isLastAiMsg && state == 'stop' && msg.body == ''" class="text stop">回答被终止</text>
-		<view v-if="isLastAiMsg && state == 'processing'" class="loging">
-			<uni-rotate-icon />
-			<text class="text">正在思考中...</text>
-		</view>
-		<text v-if="isLastAiMsg && state == 'none' && (msg.body as string).length == 0" class="needTry">错误：未回复</text>
+		<template v-if="isLastAiMsg && msg.body == ''">
+			<text v-if="state == 'stop'" class="text stop">回答被终止</text>
+			<text v-if="state == 'none'" class="needTry">错误：未回复</text>
+			<uni-rotate-icon v-if="state == 'processing'" class="loging" />
+		</template>
 		<!-- <text style="color: red;border: solid 1px red;padding: 5px;border-radius: 5px;">markdown解析耗时：{{runTime}}ms</text> -->
 	</view>
 </template>
 
 <script>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
-	import o_markdownText from '../markdownText.uts';
-	let markdownText = o_markdownText
+	import markdownText from '../markdownText.uts';
 	import { useMarked, TokensList, NodesToken as MarkdownToken, Link } from '@/uni_modules/kux-marked';
-	import uniMsgCode from '../msg-code'
 	const marked = useMarked();
+	import { IToken, parseCode } from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
+	type TaskListItem = () => Promise<void>
 	export default {
 		name: 'msg-uni-ai',
-		components: {
-			uniMsgCode
-		},
+		components: {},
 		props: {
 			msg: {
 				type: Object as PropType<MsgItem>,
@@ -65,6 +65,9 @@
 			return {
 				// 耗时
 				runTime: 0,
+				markdownStrIndex: 0,
+				taskList: [] as TaskListItem[],
+				parseLock: false
 			}
 		},
 		computed: {
@@ -74,29 +77,122 @@
 			},
 			isLastAiMsg(): boolean {
 				return uniAi.lastAiMsg?._id == this.msg._id
+			}
+		},
+		watch: {
+			'msg.body': {
+				async handler(msgBody: string) {	
+					if (this.state == 'processing') {
+						this.taskList.push(async () => {
+							await this.markdownParse(msgBody)
+						})
+						this.runTask()
+					} else {
+						// 循环去掉 msg.markdownTokenList 中值为 null 的元素，并且要递归检查 token.tokens 中值为 null 的元素		
+						function removeNull(tokenList: MarkdownToken[]) {
+							tokenList = tokenList.filter(token => token != null)
+							tokenList.forEach(token => {
+								if (token.tokens != null && token.tokens.length > 0) {
+									removeNull(token.tokens)
+								}
+							})
+						}
+						removeNull(this.msg.markdownTokenList)
+						console.log('this.msg.body', this.msg.body)
+						// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
+
+						// await this.markdownParse(msgBody)
+						// 用于实现解析预设的 markdownText 测试 marked 的解析效果
+						/*
+						const start = Date.now()
+						// console.error('msgBody',msgBody)
+						const TokensList = marked.lexer(markdownText,null) as TokensList
+						this.runTime = Date.now() - start
+						// console.log('耗时',this.runTime)
+						this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
+						*/
+					}
+				},
+				immediate: true
+			}
+		},
+		methods: {
+			runTask(){
+				if (this.parseLock == false && this.taskList.length > 0) {
+					this.parseLock = true
+					this.taskList[0]().finally(() => {
+						this.taskList.shift()
+						this.parseLock = false
+						this.runTask()
+					})
+				}
 			},
-			markdownTokenList(): MarkdownToken[]{
-				markdownText = this.msg.body as string
+			async markdownParse(markdownText: string){
+				if (markdownText.length == 0){
+					return
+				}
+				// console.error('markdownText.l', markdownText.length, 'markdownStrI', this.markdownStrIndex)
+				// console.log('index', this.markdownStrIndex,'markdownText.length', markdownText.length)
+				// 从 markdownStrIndex 开始截取，如果截取后长度为0，则返回空数组
+				if (this.markdownStrIndex >= markdownText.length) {
+					console.log('markdownStrIndex >= markdownText.length -------------- 超长 该清理了')
+					if (this.msg.markdownTokenList.length == 0) {
+						// 这种情况是点击重新回答
+						this.markdownStrIndex = 0
+					} else {
+						throw new Error('超长')
+					}
+				}
+				markdownText = markdownText.slice(this.markdownStrIndex)
+				const length = this.msg.markdownTokenList.length
+				const lastToken: MarkdownToken | null  = length > 0 ? this.msg.markdownTokenList[length - 1] : null
+				if (lastToken?.type == 'code') {
+					// 拿到字符串中 ``` 的个数
+					const _arr = markdownText.split('```')
+					const lang = _arr[1].split('\n')[0]
+					const codeText = _arr[1].split('\n').slice(1).join('\n')
+					lastToken.text = codeText
+					lastToken.lang = lang
+					// console.error('codeText', codeText, lang)
+
+					const codeTokens = await parseCode(codeText,lang)
+					// console.error('codeTokens--------------',codeTokens, codeText, lang)
+					lastToken.codeTokens = codeTokens
+					// if 没有结束的```，则不继续解析 markdown
+					if (_arr.length < 3) {
+						return
+					}
+					this.markdownStrIndex += codeText.length + 6 + lang.length + 1
+					markdownText = markdownText.slice(codeText.length + 6 + lang.length + 1)
+				}
+
 				// 解析 markdown
 				// 计算耗时
 				const start = Date.now()
 				const TokensList = marked.lexer(markdownText,null) as TokensList
-				// console.error('TokensList',TokensList)
-				const end = Date.now()
-				// console.log('耗时',end - start)
-				this.runTime = end - start
-				const markdownTokenList = TokensList.tokens as MarkdownToken[]
-				// console.log('markdownTokenList',markdownTokenList)
-				return markdownTokenList
-			},
-		},
-		mounted() {},
-		methods: {
-			toLink(url: string) {
-				uni.showToast({
-					title: '点击了链接' + url,
-					icon: 'none'
-				});
+				this.runTime = Date.now() - start
+				// console.log('耗时',this.runTime)
+				const newTokenList = TokensList.tokens as MarkdownToken[]
+				// console.log('newTokenList',newTokenList)
+				// console.log('newTokenList.length',newTokenList.length)
+				
+				if (lastToken == null || lastToken.type == 'code') {
+					this.msg.markdownTokenList.push(newTokenList[0])
+				} else {
+					// 更新 最后一条数据
+					this.msg.markdownTokenList[length - 1] = newTokenList[0]
+				}
+				const newTokenListLength = newTokenList.length
+				// 大于两项 和 列表项分开解析的情况
+				if (newTokenListLength > 2 || (newTokenListLength == 2 && newTokenList[0]?.type != 'list' && newTokenList[1]?.type != 'list')) {
+					// console.error('berore add markdeNode length -----markdownStrI', this.markdownStrIndex)
+					this.markdownStrIndex += markdownText.length - newTokenList[newTokenListLength - 1]!.raw!.length
+					// console.error('after add markdeNode length -----markdownStrI', this.markdownStrIndex,markdownText.length,markdownText.length,newTokenList[newTokenListLength - 1]!.raw, newTokenList[newTokenListLength - 1]!.raw!.length)
+					const newTokenList2 = newTokenList.slice(1, newTokenListLength)
+					this.msg.markdownTokenList.push(...newTokenList2)
+				}
+				// console.log('this.msg.markdownTokenList',this.msg.markdownTokenList)
+				// console.log('--------------------------------')
 			}
 		}
 	}
@@ -113,13 +209,6 @@
 		user-select: text;
 		// #endif
 		.paragraph {
-			flex-direction: row;
-			flex-wrap: wrap;
-			justify-content: flex-start;
-			// color: #333;
-			// font-size: 15px;
-			// line-height: 1.6;
-			justify-content: flex-start;
 			width: 100%;
 			.text {
 				// 自动换行
@@ -144,6 +233,9 @@
 
 		.table-box {
 			width: 100%;
+			.table-header-text {
+				font-weight: bold;
+			}
 		}
 
 		.hr {
@@ -155,7 +247,7 @@
 		
 		.text {
 			color: #333;
-			line-height: 1.5;
+			// line-height: 1.5;
 			white-space: normal;
 			/* #ifndef APP */
 			word-break: break-all;
@@ -166,16 +258,7 @@
 		}
 		
 		.loging {
-			flex-direction: row;
-			align-items: center;
-			justify-content: center;
-			padding: 15px 0;
-			
-			.text {
-				color: #666;
-				font-size: 14px;
-				margin-left: 8px;
-			}
+			padding-top: 8px;
 		}
 		
 		.needTry {

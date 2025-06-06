@@ -1,3 +1,7 @@
+export type IToken = {
+	text : string,
+	className : string
+}
 export type MarkedToken = (
 	// Tokens['Blockquote']
 	// | Tokens['Br']
@@ -309,4 +313,5 @@ export type NodesToken = {
 	rows?: TableCell[][] | null;
 	inLink?: boolean | null;
 	inRawBlock?: boolean | null;
+	codeTokens?: IToken[] | null;
 };

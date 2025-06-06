@@ -12,7 +12,7 @@
             <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
         </view>
         <view v-else class="send" @click="send" :class="{active: inputContent.length > 0}">
-            <uni-ai-icon code="e627" color="#FFF"></uni-ai-icon>
+            <uni-ai-icon code="e627" color="#FFF" size="20"></uni-ai-icon>
         </view>
     </view>
 </template>
@@ -81,9 +81,9 @@ export default {
     },
     mounted() {
         // #ifdef WEB
-        // 监听回车且没有按下 ctrl 、shift 、alt 、meta 键，时，发送消息
+        // 监听回车且没有按下 ctrl 、shift 、alt 、meta 键，且不是输入法时，发送消息
         document.addEventListener('keydown', async (e) => {
-            if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+            if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !e.isComposing) {
                 e.preventDefault()
                 if (this.aiState == 'processing') {
                     await this.stop()
@@ -105,6 +105,7 @@ export default {
 						})
         },
         async send() {
+            console.log('send-----------------')
             if (this.inputContent.length == 0) {
                 return;
             }
@@ -174,8 +175,8 @@ export default {
     .stop, .send {
         margin-left: auto;
         background-color: #9cc3fe;
-        width: 25px;
-        height: 25px;
+        width: 30px;
+        height: 30px;
         justify-content: center;
         align-items: center;
         border-radius: 100px;

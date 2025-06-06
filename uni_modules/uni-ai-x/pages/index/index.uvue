@@ -80,7 +80,9 @@
 <style lang="scss">
 .uni-ai-page {
 	position: fixed;
+	// #ifdef H5
 	width: calc(100% + 260px);
+	// #endif
 	transform: translateX(-260px);
 	height: 100%;
 	flex-direction: row;

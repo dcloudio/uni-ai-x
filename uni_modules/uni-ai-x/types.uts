@@ -1,3 +1,5 @@
+import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
+
 export type LLMModel = {
 	name: string,
 	thinking?: boolean,
@@ -74,7 +76,8 @@ export type MsgItem = {
 	// 如果是ai回复的，则需要关联的msg_id
 	about_msg_id?: string
 	// 所属对话id
-	chat_id: string
+	chat_id: string,
+	markdownTokenList: MarkdownToken[]
 }
 export type BaseMsgItem = {
 	body: string
