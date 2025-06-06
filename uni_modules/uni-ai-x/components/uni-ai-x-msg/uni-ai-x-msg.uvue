@@ -32,7 +32,7 @@
 			<uni-marked-el v-else :token="node" :type="node.type" />
 		</template>
 		
-		<text v-if="isLastAiMsg && state == 'stop' && msg.body == ''" class="text stop">回答被用户终止</text>
+		<text v-if="isLastAiMsg && state == 'stop' && msg.body == ''" class="text stop">回答被终止</text>
 		<view v-if="isLastAiMsg && state == 'processing'" class="loging">
 			<uni-rotate-icon />
 			<text class="text">正在思考中...</text>
