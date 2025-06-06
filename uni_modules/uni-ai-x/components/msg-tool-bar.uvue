@@ -7,9 +7,9 @@
 		<view class="btn"  @click="copy">
 			<uni-ai-icon class="copy" code="e648" size="18" color="#999" />
 		</view>
-		<view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
+		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>
-		</view>
+		</view> -->
 	</view>
 </template>
 
