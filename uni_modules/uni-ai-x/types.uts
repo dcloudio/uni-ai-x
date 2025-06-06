@@ -11,6 +11,11 @@ export type Provider = {
 	getToken?: () => Promise<string>,
 }
 
+export type DefaultLLM = {
+	provider: string,
+	model: string
+}
+
 export type BailianTokenInfo = {
 	token: string,
 	expireTime: number
@@ -93,17 +98,17 @@ export type RequestAiCoMessage = {
 	content : string
 }
 
-type AvatarFile = {
-	url?: string
-	file_id?: string
-	// 略...
-}
-
 // 用户
 export type Userinfo = {
 	_id?: string
 	nickname?: string
 	avatar_file?: AvatarFile
+}
+
+export type AvatarFile = {
+	url?: string
+	file_id?: string
+	// 略...
 }
 
 // 用户

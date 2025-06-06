@@ -1,5 +1,5 @@
 import { reactive, watch } from 'vue';
-import { defaultLLM } from '../config';
+import { defaultLLM, currentUser } from '../config';
 import { Llm,ChatItem,Chunk,Chat, Provider, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
@@ -24,7 +24,7 @@ import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 let requestTask: RequestTask | null = null
 class UniAi {
 	// 当前用户
-	currentUser: Userinfo = reactive<Userinfo>({})
+	currentUser: Userinfo = currentUser
 	setting: Setting = reactive<Setting>({
 		// UI 主题
 		theme: 'light',

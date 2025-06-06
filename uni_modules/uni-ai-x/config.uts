@@ -1,27 +1,20 @@
-import {LLMModel, Provider, BailianTokenInfo, Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
-import {uniAi} from '@/uni_modules/uni-ai-x/sdk/'
-
-// 绑定系统的用户信息到uniAi.currentUser
-// 这里以 uni-id的用户信息绑定为例子，你自己的系统如果不是基于 unicloud 的，请参考此方法实现
+import {reactive, watch} from 'vue';
+import {LLMModel, Provider, DefaultLLM, BailianTokenInfo,Userinfo, AvatarFile} from '@/uni_modules/uni-ai-x/types.uts';
+// 定义登录到uniAi的用户信息，这里以uni-id的用户信息绑定为例，你自己的系统如果不是基于 unicloud 的，请参考此方法修改
 import {state as uniIdState} from '@/uni_modules/uni-id-pages-x/store.uts';
-import { reactive, watch } from 'vue';
-watch((): UTSJSONObject => uniIdState.userInfo, () => {
-	setTimeout(() => {
-		// console.log('uniIdState.userInfo', uniIdState.userInfo)
-		uniAi.currentUser._id = uniIdState.userInfo.getString('_id')
-		uniAi.currentUser.nickname = uniIdState.userInfo.getString('nickname')
-		// 根据 file_id 获取文件的 url
-		const avatarFileUrl = uniIdState.userInfo.getString('avatar_file.url', '')
-		if (avatarFileUrl.length > 0) {
-			uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
-				uniAi.currentUser.avatar_file = {
-					url: res.fileList[0].tempFileURL
-				}
-			})
-		} else {
-			uniAi.currentUser.avatar_file = null
-		}
-	}, 0)
+export const currentUser: Userinfo = reactive<Userinfo>({})
+watch((): UTSJSONObject => uniIdState.userInfo,(userInfo: UTSJSONObject)=>{
+	currentUser._id = userInfo.getString('_id')
+	currentUser.nickname = userInfo.getString('nickname')
+	// 根据 file_id 获取文件的 url
+	const avatarFileUrl = userInfo.getString('avatar_file.url')
+	if (avatarFileUrl != null) {
+		uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
+			currentUser.avatar_file = {url: res.fileList[0].tempFileURL}
+		})
+	} else {
+		currentUser.avatar_file = null
+	}
 }, {deep: true, immediate: true})
 
 
@@ -90,74 +83,7 @@ const llmModelMap = new Map<string, Provider>([
 				*/
 			}
 		}
-	],
-
-	// // 硅基流动
-	// ['siliconflow', {
-	// 	models: [
-	// 		{ name: 'deepseek-ai/DeepSeek-V3' },
-	// 		{ name: 'Qwen/Qwen2.5-7B-Instruct' }
-	// 	],
-	// 	description: '硅基流动 - 专注AI技术研究和应用'
-	// }],
-	
-	// // 豆包
-	// ['doubao', {
-	// 	models: [
-	// 		{ name: 'doubao-1.5-vision-pro-250328' },
-	// 		{ name: 'doubao-1.5-thinking-pro-250415', thinking: true }
-	// 	],
-	// 	description: '豆包 - 抖音旗下AI助手'
-	// }],
-	
-	// // 深度求索
-	// ['deepseek', {
-	// 	models: [
-	// 		{ name: 'deepseek-chat' },
-	// 		{ name: 'deepseek-reasoner', thinking: true }
-	// 	],
-	// 	description: '深度求索 - 专注AI技术研究和应用'
-	// }],
-	
-	// // minimax 
-	// ['minimax', {
-	// 	models: [
-	// 		{ name: 'abab4-chat' },
-	// 		{ name: 'abab5-chat' },
-	// 		{ name: 'abab6.5s-chat', webSearch: true }
-	// 	],
-	// 	description: 'minimax - 专注AI技术研究和应用'
-	// }],
-	
-	// // Azure
-	// ['azure', {
-	// 	models: [
-	// 		{ name: 'gpt-3.5-turbo' }
-	// 	],
-	// 	description: 'azure - 微软旗下AI助手'
-	// }],
-	
-	// // 百度
-	// ['baidu', {
-	// 	models: [
-	// 		{ name: 'ERNIE-Bot' },
-	// 		{ name: 'ERNIE-Bot-turbo' }
-	// 	],
-	// 	description: '文心一言 - 百度旗下AI助手'
-	// }],
-	
-	// // 讯飞
-	// ['ifly', {
-	// 	models: [
-	// 		{ name: 'lite' },
-	// 		{ name: 'generalv3' },
-	// 		{ name: 'pro-128k' },
-	// 		{ name: 'generalv3.5' },
-	// 		{ name: 'max-32k' },
-	// 		{ name: '4.0Ultra', webSearch: true }
-	// 	],
-	// 	description: '科大讯飞 - 专注AI技术研究和应用'
-	// }]
+	]
 ])
 
 const providerNameList: string[] = []
@@ -165,15 +91,14 @@ llmModelMap.forEach((_, key: string) => {
 	providerNameList.push(key)
 })
 
-type DefaultLLM = {
-	provider: string,
-	model: string
+if (providerNameList.length < 1) {
+	throw new Error('至少需要配置一个大语言模型提供商')
 }
-
 const defaultLLM: DefaultLLM = {
-	provider: providerNameList[0],
+	provider: providerNameList[0]!,
 	model: llmModelMap.get(providerNameList[0])?.models?.[0].name!
 }
+console.error('defaultLLM2', defaultLLM)
 
 export default llmModelMap
 export { llmModelMap, type LLMModel, providerNameList, defaultLLM }
