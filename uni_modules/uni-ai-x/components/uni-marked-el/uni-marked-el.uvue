@@ -1,6 +1,6 @@
 <template>
 	<uni-marked-el v-if="token.tokens != null && token.tokens!.length > 0" v-for="(nToken, index) in token.tokens" 
-		:key="index" :token="nToken" :type="type + ' ' + token.type + (token.depth != null ? ' depth-'+(token.depth-2) : '')" 
+		:key="index" :token="nToken" :type="type + ' ' + token.type + (token.depth != null ? ' depth-' + (token.depth - 2) : '')" 
 		:link="link + (token.href ?? '')"
 	/>
 	<template v-else-if="token.type == 'list'">
