@@ -32,7 +32,7 @@
 				</uni-table>
 			</view>
 			<view v-else style="width: 100%;flex-direction: row;">
-				<uni-marked-el :token="node" :type="node.type" />
+				<uni-marked-el :token="node" :type="node.type" :depth="node.depth ?? 0" />
 			</view>
 		</template>
 		<template v-if="isLastAiMsg && msg.body == ''">
@@ -89,17 +89,17 @@
 						this.runTask()
 					} else {
 						// 循环去掉 msg.markdownTokenList 中值为 null 的元素，并且要递归检查 token.tokens 中值为 null 的元素		
-						function removeNull(tokenList: MarkdownToken[]) {
-							tokenList = tokenList.filter(token => token != null)
-							tokenList.forEach(token => {
-								if (token.tokens != null && token.tokens.length > 0) {
-									removeNull(token.tokens)
-								}
-							})
-						}
-						removeNull(this.msg.markdownTokenList)
+						// function removeNull(tokenList: MarkdownToken[]) {
+						// 	tokenList = tokenList.filter(token => token != null)
+						// 	tokenList.forEach(token => {
+						// 		if (token.tokens != null && token.tokens.length > 0) {
+						// 			removeNull(token.tokens)
+						// 		}
+						// 	})
+						// }
+						// removeNull(this.msg.markdownTokenList)
 						console.log('this.msg.body', this.msg.body)
-						// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
+						console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
 
 						// await this.markdownParse(msgBody)
 						// 用于实现解析预设的 markdownText 测试 marked 的解析效果

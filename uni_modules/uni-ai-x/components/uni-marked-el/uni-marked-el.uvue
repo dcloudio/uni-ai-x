@@ -1,7 +1,7 @@
 <template>
 	<uni-marked-el v-if="token.tokens != null && token.tokens!.length > 0" v-for="(nToken, index) in token.tokens" 
-		:key="index" :token="nToken" :type="type + ' ' + token.type + (token.depth != null ? ' depth-' + (token.depth - 2) : '')" 
-		:link="link + (token.href ?? '')"
+		:key="index" :token="nToken" :type="type + ' ' + token.type + (depth != 0 ? ' depth-' + depth : '')" 
+		:link="link + (token.href ?? '')" :depth="depth"
 	/>
 	<template v-else-if="token.type == 'list'">
 		<text class="list">
@@ -45,6 +45,10 @@
 				default: ''
 			},
 			deepIndex: {
+				type: Number,
+				default: 0
+			},
+			depth: {
 				type: Number,
 				default: 0
 			}
@@ -167,6 +171,7 @@
 			font-size: 14px;
 			font-weight: 700;
 			margin: 6px 0;
+			color: #999;
 			line-height: 1.6;
 		}
 	}
