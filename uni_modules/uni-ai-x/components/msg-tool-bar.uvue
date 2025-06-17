@@ -101,7 +101,7 @@
 			}
 			&.copy .uni-ai-icon {
 				padding-top: 1px;
-				font-weight: 900;
+				font-weight: 700;
 			}
 			// #ifdef WEB
 			cursor: pointer;
