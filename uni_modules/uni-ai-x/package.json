@@ -12,8 +12,8 @@
 	"repository": "",
 	"engines": {
 		"HBuilderX": "^3.1.0",
-		"uni-app": "^4.71",
-		"uni-app-x": "^4.71"
+		"uni-app": "",
+		"uni-app-x": "^4.72"
 	},
 	"dcloudext": {
 		"type": "unicloud-template-page",
