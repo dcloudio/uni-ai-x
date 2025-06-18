@@ -108,10 +108,10 @@
 						})
 						this.runTask()
 					} else {
-						const TokensList = marked.lexer(msgBody,null) as TokensList
-						this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
-						console.log('this.msg.body', this.msg.body)
-						console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
+						// const TokensList = marked.lexer(msgBody,null) as TokensList
+						// this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
+						// console.log('this.msg.body', this.msg.body)
+						// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
 
 						// await this.markdownParse(msgBody)
 						// 用于实现解析预设的 markdownText 测试 marked 的解析效果
