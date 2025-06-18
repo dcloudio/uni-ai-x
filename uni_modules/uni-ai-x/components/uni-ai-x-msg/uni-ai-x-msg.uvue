@@ -1,7 +1,7 @@
 <template>
 	<view class="msg-types-item-root">
 		<!-- {{msg.body}} -->
-		<template v-for="(node, index) in msg.markdownTokenList">
+		<template v-for="(node, index) in [...msg.markdownTokenList, ...tmpTokenList]">
 			<view v-if="node?.type == 'hr'" class="hr"></view>
 			<text v-else-if="node?.type == 'paragraph'" class="paragraph">
 				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
@@ -49,7 +49,7 @@
 	import markdownText from '../markdownText.uts';
 	import { useMarked, TokensList, NodesToken as MarkdownToken, Link } from '@/uni_modules/kux-marked';
 	const marked = useMarked();
-	import { IToken, parseCode } from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
+	import { IToken, parseCode, ParseCodeRes } from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
 	type TaskListItem = () => Promise<void>
 	export default {
 		name: 'msg-uni-ai',
@@ -67,7 +67,8 @@
 				runTime: 0,
 				markdownStrIndex: 0,
 				taskList: [] as TaskListItem[],
-				parseLock: false
+				parseLock: false,
+				tmpTokenList: [] as MarkdownToken[]
 			}
 		},
 		computed: {
@@ -80,6 +81,25 @@
 			}
 		},
 		watch: {
+			state: {
+				handler(newVal: string, oldVal: string) {
+					if ((newVal == 'stop' || newVal == 'completed') && oldVal == 'processing') {
+						this.msg.markdownTokenList.push(...this.tmpTokenList)
+						this.tmpTokenList = []
+
+						// 循环去掉 msg.markdownTokenList 中值为 null 的元素，并且要递归检查 token.tokens 中值为 null 的元素		
+						function removeNull(tokenList: MarkdownToken[]) {
+							tokenList = tokenList.filter(token => token != null)
+							tokenList.forEach(token => {
+								if (token.tokens != null && token.tokens.length > 0) {
+									removeNull(token.tokens)
+								}
+							})
+						}
+						removeNull(this.msg.markdownTokenList)
+					}
+				}
+			},
 			'msg.body': {
 				async handler(msgBody: string) {	
 					if (this.state == 'processing') {
@@ -88,16 +108,8 @@
 						})
 						this.runTask()
 					} else {
-						// 循环去掉 msg.markdownTokenList 中值为 null 的元素，并且要递归检查 token.tokens 中值为 null 的元素		
-						// function removeNull(tokenList: MarkdownToken[]) {
-						// 	tokenList = tokenList.filter(token => token != null)
-						// 	tokenList.forEach(token => {
-						// 		if (token.tokens != null && token.tokens.length > 0) {
-						// 			removeNull(token.tokens)
-						// 		}
-						// 	})
-						// }
-						// removeNull(this.msg.markdownTokenList)
+						const TokensList = marked.lexer(msgBody,null) as TokensList
+						this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
 						console.log('this.msg.body', this.msg.body)
 						console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
 
@@ -135,7 +147,7 @@
 				// console.log('index', this.markdownStrIndex,'markdownText.length', markdownText.length)
 				// 从 markdownStrIndex 开始截取，如果截取后长度为0，则返回空数组
 				if (this.markdownStrIndex >= markdownText.length) {
-					console.log('markdownStrIndex >= markdownText.length -------------- 超长 该清理了')
+					// console.log('markdownStrIndex >= markdownText.length -------------- 超长 该清理了')
 					if (this.msg.markdownTokenList.length == 0) {
 						// 这种情况是点击重新回答
 						this.markdownStrIndex = 0
@@ -149,15 +161,21 @@
 				if (lastToken?.type == 'code') {
 					// 拿到字符串中 ``` 的个数
 					const _arr = markdownText.split('```')
-					const lang = _arr[1].split('\n')[0]
-					const codeText = _arr[1].split('\n').slice(1).join('\n')
+					const lang = _arr[1]?.split('\n')[0] ?? 'text'
+					const codeText = _arr[1]?.split('\n').slice(1).join('\n') ?? ''
 					lastToken.text = codeText
 					lastToken.lang = lang
 					// console.error('codeText', codeText, lang)
 
-					const codeTokens = await parseCode(codeText,lang)
-					// console.error('codeTokens--------------',codeTokens, codeText, lang)
-					lastToken.codeTokens = codeTokens
+					const parseCodeRes = await parseCode(codeText,lang)
+					const codeTokens = parseCodeRes.tokens
+					if (parseCodeRes.error != null) {
+						console.error('解析代码失败',parseCodeRes.error, codeText, lang)
+					} else {
+						// console.error('codeTokens--------------',codeTokens, codeText, lang)
+						lastToken.codeTokens = codeTokens
+					}
+
 					// if 没有结束的```，则不继续解析 markdown
 					if (_arr.length < 3) {
 						return
@@ -173,7 +191,7 @@
 				this.runTime = Date.now() - start
 				// console.log('耗时',this.runTime)
 				const newTokenList = TokensList.tokens as MarkdownToken[]
-				// console.log('newTokenList',newTokenList)
+				// console.log('newTokenList',newTokenList, markdownText)
 				// console.log('newTokenList.length',newTokenList.length)
 				
 				if (lastToken == null || lastToken.type == 'code') {
@@ -183,13 +201,20 @@
 					this.msg.markdownTokenList[length - 1] = newTokenList[0]
 				}
 				const newTokenListLength = newTokenList.length
-				// 大于两项 和 列表项分开解析的情况
-				if (newTokenListLength > 2 || (newTokenListLength == 2 && newTokenList[0]?.type != 'list' && newTokenList[1]?.type != 'list')) {
-					// console.error('berore add markdeNode length -----markdownStrI', this.markdownStrIndex)
-					this.markdownStrIndex += markdownText.length - newTokenList[newTokenListLength - 1]!.raw!.length
-					// console.error('after add markdeNode length -----markdownStrI', this.markdownStrIndex,markdownText.length,markdownText.length,newTokenList[newTokenListLength - 1]!.raw, newTokenList[newTokenListLength - 1]!.raw!.length)
+				// 大于两项 和 列表项分开解析的情况 
+
+				if (newTokenListLength > 1) {
 					const newTokenList2 = newTokenList.slice(1, newTokenListLength)
-					this.msg.markdownTokenList.push(...newTokenList2)
+
+					if (newTokenListLength == 2 && (newTokenList[0]?.type == 'list' || newTokenList[1]?.type == 'list')){
+						this.tmpTokenList = newTokenList2
+					} else {
+						this.tmpTokenList = []
+						// console.error('berore add markdeNode length -----markdownStrI', this.markdownStrIndex)
+						this.markdownStrIndex += markdownText.length - newTokenList[newTokenListLength - 1]!.raw!.length
+						// console.error('after add markdeNode length -----markdownStrI', this.markdownStrIndex,markdownText.length,markdownText.length,newTokenList[newTokenListLength - 1]!.raw, newTokenList[newTokenListLength - 1]!.raw!.length)
+						this.msg.markdownTokenList.push(...newTokenList2)
+					}
 				}
 				// console.log('this.msg.markdownTokenList',this.msg.markdownTokenList)
 				// console.log('--------------------------------')

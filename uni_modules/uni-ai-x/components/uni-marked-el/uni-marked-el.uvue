@@ -17,7 +17,7 @@
 					<uni-marked-el v-for="(token, tokenIndex) in item.tokens ?? []" :key="tokenIndex" :type="token.type" :token="token" :deep-index="deepIndex + 1" />
 				</text>
 				<!-- 最后一个元素 添加一个换行 -->
-				<text v-if="itemIndex == token.items!.length - 1" class="list-item-br">{{br}}</text>
+				<!-- <text v-if="itemIndex == token.items!.length - 1" class="list-item-br">{{br}}</text> -->
 			</text>
 		</text>
 	</template>

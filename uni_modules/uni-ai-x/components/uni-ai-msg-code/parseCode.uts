@@ -51,7 +51,13 @@ function getTmlFile(filePaths: TmlFile[]) {
 	return res
 }
 
-export async function parseCode(codeSource: string,language: string){
+export type ParseCodeRes = {
+	tokens: IToken[],
+	language: string,
+	error: string | null
+}
+
+export async function parseCode(codeSource: string,language: string): Promise<ParseCodeRes>{
 	if (uniCodeHighlighter == null) {
 		// #ifndef APP-ANDROID || APP-HARMONY
 		// 根据 grammarList 生成tmls
@@ -96,8 +102,12 @@ export async function parseCode(codeSource: string,language: string){
 
 	// 判断这个language是否在支持的列表中
 	if (!grammarList.includes(language)) {
-		console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
-		return []
+		// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
+		return {
+			tokens: [],
+			language: language,
+			error: '不支持解析的语言类型'
+		}
 	}
 	// console.log('language',language)
 	// const start = Date.now()
@@ -117,5 +127,9 @@ export async function parseCode(codeSource: string,language: string){
 			className: "eol"
 		});
 	})
-	return tokens
+	return {
+		tokens: tokens,
+		language: language,
+		error: null
+	}
 }
