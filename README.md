@@ -3,6 +3,7 @@
 
 能够连接ai大模型，真流式接收和输出内容，原生渲染markdown。  
 基于跨平台原生开发框架[uni-app x](https://doc.dcloud.net.cn/uni-app-x/)，可以被编译为不同平台的编程语言，如： 
+
 | 平台						| 编译语言		|
 |------					|----------	|
 | web平台/小程序	| JavaScript|
