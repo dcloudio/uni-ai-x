@@ -287,9 +287,11 @@
 					}
 					.user-msg {
 						font-size: 16px;
+						line-height: 24px;
 						margin-left: auto;
-						padding: 10px;
-						border-radius: 10px;
+						max-width: 600rpx;
+						padding: 14px;
+						border-radius: 15px 15px 0 15px;
 						background-color: #eff6ff;
 						/* #ifdef WEB */
 						white-space: pre-wrap;
@@ -297,7 +299,7 @@
 						// 可以滑选 用于复制
 						cursor: text;
 						user-select: text;
-						/* #endif */
+						/* #endif */;
 					}
 				}
 				.welcome-msg-box {
@@ -430,7 +432,7 @@
 			}
 		}
 		::v-deep {
-			.avatar {
+			.avatar-box {
 				margin-right: 10px;
 			}
 			.uni-im-msg-list {

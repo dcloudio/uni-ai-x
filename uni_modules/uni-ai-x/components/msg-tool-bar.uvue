@@ -5,7 +5,7 @@
 			<uni-icons type="loop" size="20" color="#999"></uni-icons>
 		</view>
 		<view class="btn copy"  @click="copy">
-			<uni-ai-icon code="e60c" size="22" color="#999" />
+			<uni-ai-icon code="e60c" size="21" color="#999" />
 		</view>
 		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>
@@ -96,12 +96,8 @@
 			height: 25px;
 			justify-content: center;
 			align-items: center;
-			&.loop {
-				font-weight: 400 !important;
-			}
 			&.copy .uni-ai-icon {
 				padding-top: 1px;
-				font-weight: 700;
 			}
 			// #ifdef WEB
 			cursor: pointer;
