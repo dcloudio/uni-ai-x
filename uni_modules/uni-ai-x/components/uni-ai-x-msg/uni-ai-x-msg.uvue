@@ -1,35 +1,31 @@
 <template>
 	<view class="msg-types-item-root">
-		<!-- {{msg.body}} -->
-		<template v-for="(node, index) in [...msg.markdownTokenList, ...tmpTokenList]">
-			<view v-if="node?.type == 'hr'" class="hr"></view>
-			<text v-else-if="node?.type == 'paragraph'" class="paragraph">
+		<template v-for="node in markdownTokenList">
+			<view v-if="node.type == 'hr'" class="hr"></view>
+			<text v-else-if="node.type == 'paragraph'" class="paragraph">
 				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
 			</text>
-			<view v-else-if="node?.type == 'blockquote'" class="blockquote">
+			<view v-else-if="node.type == 'blockquote'" class="blockquote">
 				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
 			</view>
-			<view v-else-if="node?.type == 'code'" class="code-box">
+			<view v-else-if="node.type == 'code'" class="code-box">
 				<uni-ai-msg-code :codeTokens="node.codeTokens ?? []" :codeText="node.text" :language="node.lang" />
 			</view>
 			<!-- 表格 -->
-			<view v-else-if="node?.type == 'table'" class="table-box">
-				<uni-table :stripe="false">
-					<!-- 表头 -->
-					<uni-tr>
-						<uni-th v-for="(cell, cellIndex) in node.header" :key="cellIndex">
-							<!-- todo 暂时过滤 * 防止解析出错 -->
-							<text class="table-header-text">{{cell.text.replace(/\*/g, '')}}</text>
-						</uni-th>
-					</uni-tr>
-					<!-- 表体 -->
-					<uni-tr v-for="(row, rowIndex) in node.rows" :key="rowIndex">
-						<uni-td v-for="(cell, cellIndex) in row" :key="cellIndex">
-							<!-- todo 暂时过滤 * 防止解析出错 -->
-							<text>{{cell.text.replace(/\*/g, '')}}</text>
-						</uni-td>
-					</uni-tr>
-				</uni-table>
+			<view v-else-if="node.type == 'table'" class="table-box">
+				<view class="table-header">
+					<template v-for="(cell, cellIndex) in node.header" :key="cellIndex">
+						<text class="table-header-text">{{cell.text.replace(/\*/g, '')}}</text>
+					</template>
+				</view>
+				<view class="table-body">
+					<view v-for="(row, rowIndex) in node.rows" :key="rowIndex" class="table-body-row">
+						<text class="table-body-text" v-for="(cell, cellIndex) in row" :key="cellIndex">
+							{{cell.text.replace(/\*/g, '')}}
+						</text>
+					</view> 
+				</view>
+				<!-- <uni-table v-else-if="node.type == 'table'" :stripe="true" :height="500" :columns="getTableInfo(node)['columns']" :data="getTableInfo(node)['data']"></uni-table> -->
 			</view>
 			<view v-else style="width: 100%;flex-direction: row;">
 				<uni-marked-el :token="node" :type="node.type" :depth="node.depth ?? 0" />
@@ -46,11 +42,12 @@
 
 <script>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
-	import markdownText from '../markdownText.uts';
-	import { useMarked, TokensList, NodesToken as MarkdownToken, Link } from '@/uni_modules/kux-marked';
+	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
+	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
+	import {TableCell} from '@/uni_modules/kux-marked/utssdk/Tokens.interface.uts'
 	const marked = useMarked();
-	import { IToken, parseCode, ParseCodeRes } from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
 	type TaskListItem = () => Promise<void>
+	// import testMarkdownText from '../markdownText.uts';
 	export default {
 		name: 'msg-uni-ai',
 		components: {},
@@ -65,9 +62,9 @@
 			return {
 				// 耗时
 				runTime: 0,
+				parseLock: false,
 				markdownStrIndex: 0,
 				taskList: [] as TaskListItem[],
-				parseLock: false,
 				tmpTokenList: [] as MarkdownToken[]
 			}
 		},
@@ -78,6 +75,9 @@
 			},
 			isLastAiMsg(): boolean {
 				return uniAi.lastAiMsg?._id == this.msg._id
+			},
+			markdownTokenList(): MarkdownToken[] {
+				return [...this.msg.markdownTokenList, ...this.tmpTokenList]
 			}
 		},
 		watch: {
@@ -86,17 +86,6 @@
 					if ((newVal == 'stop' || newVal == 'completed') && oldVal == 'processing') {
 						this.msg.markdownTokenList.push(...this.tmpTokenList)
 						this.tmpTokenList = []
-
-						// 循环去掉 msg.markdownTokenList 中值为 null 的元素，并且要递归检查 token.tokens 中值为 null 的元素		
-						function removeNull(tokenList: MarkdownToken[]) {
-							tokenList = tokenList.filter(token => token != null)
-							tokenList.forEach(token => {
-								if (token.tokens != null && token.tokens.length > 0) {
-									removeNull(token.tokens)
-								}
-							})
-						}
-						removeNull(this.msg.markdownTokenList)
 					}
 				}
 			},
@@ -104,30 +93,101 @@
 				async handler(msgBody: string) {	
 					if (this.state == 'processing') {
 						this.taskList.push(async () => {
+							if (msgBody.length == 0){
+								return
+							}
+							if (this.markdownStrIndex >= msgBody.length) {
+								if (this.msg.markdownTokenList.length == 0) {
+									// 这种情况是点击重新回答
+									this.markdownStrIndex = 0
+								} else {
+									this.markdownStrIndex = 0
+									console.error('意外超长，请检查')
+									return
+								}
+							}
 							await this.markdownParse(msgBody)
 						})
 						this.runTask()
 					} else {
-						// const TokensList = marked.lexer(msgBody,null) as TokensList
+						// const testMd = ''
+						// const TokensList = marked.lexer(testMd,null) as TokensList
 						// this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
+						
 						// console.log('this.msg.body', this.msg.body)
 						// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
-
-						// await this.markdownParse(msgBody)
-						// 用于实现解析预设的 markdownText 测试 marked 的解析效果
-						/*
-						const start = Date.now()
-						// console.error('msgBody',msgBody)
-						const TokensList = marked.lexer(markdownText,null) as TokensList
-						this.runTime = Date.now() - start
-						// console.log('耗时',this.runTime)
-						this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
-						*/
 					}
 				},
 				immediate: true
 			}
 		},
+// 		mounted(){
+// // 模拟ai 流式回答消息
+// const text = `# 五级标题示例
+
+// ## 二级标题
+// ### 三级标题
+// #### 四级标题
+// ##### 五级标题
+
+// ---
+
+// ## 有序列表示例
+
+// 1. 第一项
+// 2. 第二项
+//    1. 子项一
+//    2. 子项二
+// 3. 第三项
+
+// ---
+
+// ## 简单表格示例
+
+// | 姓名 | 年龄 | 职业 |
+// |------|------|------|
+// | 张三 | 28   | 工程师 |
+// | 李四 | 32   | 设计师 |
+// | 王五 | 25   | 学生 |
+
+// ---
+
+// ## 简单JS代码示例
+
+// \`\`\`javascript
+// // 计算两个数的和
+// function add(a, b) {
+//   return a + b;
+// }
+
+// // 使用示例
+// const result = add(5, 3);
+// console.log(result); // 输出: 8
+// \`\`\`
+
+// ---
+
+// ## 链接示例
+
+// [访问百度](https://www.baidu.com)
+
+// 或者直接显示URL：<https://www.baidu.com>`
+// 			const textMarkdown = text
+// 			uniAi.currentChat!.state = 'processing'
+// 			this.msg.body = ''
+// 			this.msg.markdownTokenList = []
+// 			// 一个字一个字往 this.msg.body 上追加
+// 			let i = 0
+// 			let timer: number = 0
+// 			timer = setInterval(() => {
+// 				if (i >= textMarkdown.length) {
+// 					clearInterval(timer)
+// 				} else {
+// 					this.msg.body += textMarkdown[i]
+// 					i++
+// 				}
+// 			}, 10)
+// 		},
 		methods: {
 			runTask(){
 				if (this.parseLock == false && this.taskList.length > 0) {
@@ -139,86 +199,149 @@
 					})
 				}
 			},
+			// 根据不同类型，判断是否闭合
+			isClose(type: string, markdownText: string): boolean {
+				// 需要双换行闭合的类型
+				const doubleNewlineTypes = ['list', 'table', 'code']
+				// 需要单换行闭合的类型
+				const singleNewlineTypes = ['paragraph', 'heading', 'hr', 'blockquote', 'def', 'space']
+				// 不需要换行闭合的类型
+				const noNewlineTypes = ['text', 'strong', 'em', 'del', 'link', 'image', 'codespan']
+				if (doubleNewlineTypes.includes(type)) {
+					return markdownText.includes('\n\n')
+				} else if (singleNewlineTypes.includes(type)) {
+					return markdownText.includes('\n')
+				} else if (noNewlineTypes.includes(type)) {
+					return markdownText.includes('\n') == false
+				} else {
+					// console.error('未找到闭合函数', type, markdownText)
+					return false
+				}
+			},
+			async parseCode(markdownText: string): Promise<string>{
+				// 如果 lastToken 是代码块，并且包含 ``` (无序列表不完整时可能会被解析成代码块)，则不继续解析 markdown
+				const codeToken: MarkdownToken | null = this.tmpTokenList.find(token => token.type == 'code') ?? null
+				if (codeToken != null && codeToken.isClose != true && markdownText.split('\n').length > 1) {
+					// 按行分割第 1 行是 ``` + lang，第 2 行起是代码内容
+					const codeTokenArr = markdownText.split('\n')
+					// console.error('codeTokenArr', codeTokenArr)
+					const lang = codeTokenArr[0].slice(3)
+					// 去掉首行和末行的 ```
+					const codeText = codeTokenArr.slice(1).join('\n').slice(0, -5)
+					// 末尾必须是换行符
+					if (markdownText.slice(-1) != '\n') {
+						if (codeToken.codeTokens == null) {
+							codeToken.text = codeText
+						}
+						// console.error('末尾必须是换行符')
+						return ''
+					}
+					// console.error('codeText', codeText,'\n\n\n lang', lang, '\n\n\n markdownText', markdownText)
+					codeToken.text = codeText
+					// console.error('codeText', codeText, lang)
+					if (lang != 'markdown') {
+						const parseCodeRes = await parseCode(codeText,lang)
+						const codeTokens = parseCodeRes.tokens
+						if (parseCodeRes.error != null) {
+							// console.log('解析代码失败',parseCodeRes.error, codeText, lang)
+						} else {
+							// console.error('codeTokens--------------',codeTokens, codeText, lang)
+							codeToken.codeTokens = codeTokens
+						}
+					}
+					// 拿到所有包含 ``` 的行
+					const codeBorderLines = codeTokenArr.filter(line => line.includes('```'))
+					// 如果 ``` 的行数小于 2，则不继续解析 markdown
+					if (codeBorderLines.length < 2) {
+						// console.error('代码还没结束',codeBorderLines.length, codeTokenArr)
+						return ''
+					}
+					// 如果 代码开始和结束标识 不相等，则不继续解析 markdown
+					// 统计结束标识的行数
+					const codeEndIndex = codeBorderLines.filter(line => line == '```').length
+					// 统计开始标识的行数
+					const codeStartIndex = codeBorderLines.length - codeEndIndex
+					if (codeStartIndex != codeEndIndex) {
+						// console.error('代码开始和结束标识 不相等',codeStartIndex, codeEndIndex)
+						return ''
+					} else {
+						// 闭合代码块
+						codeToken.isClose = true
+						this.msg.markdownTokenList.push(codeToken)
+						this.tmpTokenList = []
+						this.markdownStrIndex += markdownText.lastIndexOf('```') + 3
+						return ''
+					}
+				}
+				return markdownText
+			},
 			async markdownParse(markdownText: string){
-				if (markdownText.length == 0){
+				// 拿到本次解析的文本
+				markdownText = markdownText.slice(this.markdownStrIndex)
+				// console.log('markdownText111========>',markdownText)
+				markdownText = await this.parseCode(markdownText)
+				if (markdownText.length == 0) {
+					// console.error('空了，不继续执行',markdownText)
 					return
 				}
-				// console.error('markdownText.l', markdownText.length, 'markdownStrI', this.markdownStrIndex)
-				// console.log('index', this.markdownStrIndex,'markdownText.length', markdownText.length)
-				// 从 markdownStrIndex 开始截取，如果截取后长度为0，则返回空数组
-				if (this.markdownStrIndex >= markdownText.length) {
-					// console.log('markdownStrIndex >= markdownText.length -------------- 超长 该清理了')
-					if (this.msg.markdownTokenList.length == 0) {
-						// 这种情况是点击重新回答
-						this.markdownStrIndex = 0
-					} else {
-						throw new Error('超长')
-					}
+				let newTokenList: MarkdownToken[] = []
+				try {
+					newTokenList = (marked.lexer(markdownText,null) as TokensList).tokens as MarkdownToken[]
+				} catch (error) {
+					/*
+					 拦截部分场景下 marked 解析器出错的情况。
+					 已知问题：
+					 	1. Android 端，链接的 markdown 不完整时，会报错。但不影响整个流式解析逻辑。
+					*/
+					console.warn('markdownParse error',error)
+					return
 				}
-				markdownText = markdownText.slice(this.markdownStrIndex)
-				const length = this.msg.markdownTokenList.length
-				const lastToken: MarkdownToken | null  = length > 0 ? this.msg.markdownTokenList[length - 1] : null
-				if (lastToken?.type == 'code') {
-					// 拿到字符串中 ``` 的个数
-					const _arr = markdownText.split('```')
-					const lang = _arr[1]?.split('\n')[0] ?? 'text'
-					const codeText = _arr[1]?.split('\n').slice(1).join('\n') ?? ''
-					lastToken.text = codeText
-					lastToken.lang = lang
-					// console.error('codeText', codeText, lang)
-
-					const parseCodeRes = await parseCode(codeText,lang)
-					const codeTokens = parseCodeRes.tokens
-					if (parseCodeRes.error != null) {
-						console.error('解析代码失败',parseCodeRes.error, codeText, lang)
-					} else {
-						// console.error('codeTokens--------------',codeTokens, codeText, lang)
-						lastToken.codeTokens = codeTokens
-					}
-
-					// if 没有结束的```，则不继续解析 markdown
-					if (_arr.length < 3) {
-						return
-					}
-					this.markdownStrIndex += codeText.length + 6 + lang.length + 1
-					markdownText = markdownText.slice(codeText.length + 6 + lang.length + 1)
-				}
-
-				// 解析 markdown
-				// 计算耗时
-				const start = Date.now()
-				const TokensList = marked.lexer(markdownText,null) as TokensList
-				this.runTime = Date.now() - start
-				// console.log('耗时',this.runTime)
-				const newTokenList = TokensList.tokens as MarkdownToken[]
-				// console.log('newTokenList',newTokenList, markdownText)
-				// console.log('newTokenList.length',newTokenList.length)
 				
-				if (lastToken == null || lastToken.type == 'code') {
-					this.msg.markdownTokenList.push(newTokenList[0])
-				} else {
-					// 更新 最后一条数据
-					this.msg.markdownTokenList[length - 1] = newTokenList[0]
-				}
-				const newTokenListLength = newTokenList.length
-				// 大于两项 和 列表项分开解析的情况 
-
-				if (newTokenListLength > 1) {
-					const newTokenList2 = newTokenList.slice(1, newTokenListLength)
-
-					if (newTokenListLength == 2 && (newTokenList[0]?.type == 'list' || newTokenList[1]?.type == 'list')){
-						this.tmpTokenList = newTokenList2
-					} else {
-						this.tmpTokenList = []
-						// console.error('berore add markdeNode length -----markdownStrI', this.markdownStrIndex)
-						this.markdownStrIndex += markdownText.length - newTokenList[newTokenListLength - 1]!.raw!.length
-						// console.error('after add markdeNode length -----markdownStrI', this.markdownStrIndex,markdownText.length,markdownText.length,newTokenList[newTokenListLength - 1]!.raw, newTokenList[newTokenListLength - 1]!.raw!.length)
-						this.msg.markdownTokenList.push(...newTokenList2)
+				// 新增的元素是否闭合
+				newTokenList[0]!.isClose = this.isClose(newTokenList[0]!.type ?? '', markdownText)
+				// 解析结果为闭合的，则直接添加到 msg.markdownTokenList 中，否则添加到临时列表中
+				if (newTokenList[0].isClose == true) {
+					this.tmpTokenList = []
+					this.msg.markdownTokenList.push(newTokenList[0]!)
+					this.markdownStrIndex += newTokenList[0]!.raw!.length
+					// 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
+					const mdTLLength = this.msg.markdownTokenList.length
+					if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
+						const newMdText = this.msg.markdownTokenList[mdTLLength - 2]!.raw! + this.msg.markdownTokenList[mdTLLength - 1]!.raw!
+						const newTokenList2 = (marked.lexer(newMdText,null) as TokensList).tokens as MarkdownToken[]
+						if (newTokenList2.length == 1 && newTokenList2[0]!.type != newTokenList[0].type){
+							this.msg.markdownTokenList.splice(-2)
+							this.msg.markdownTokenList.push(newTokenList2[0]!)
+						}
 					}
+				} else {
+					this.tmpTokenList = newTokenList
 				}
-				// console.log('this.msg.markdownTokenList',this.msg.markdownTokenList)
-				// console.log('--------------------------------')
-			}
+			},
+			// getTableInfo(node: MarkdownToken): UTSJSONObject {
+			// 	const columns: UTSJSONObject[] = []
+			// 	node.header?.forEach((cell: TableCell) => {
+			// 		columns.push({
+			// 			dataKey: cell.text,
+			// 			title: cell.text,
+			// 			align: cell.align ?? 'left'
+			// 		})
+			// 	})
+			// 	const data: UTSJSONObject[] = []
+			// 	node.rows?.forEach((row: TableCell[]) => {
+			// 		const rowData: UTSJSONObject = {}
+			// 		row.forEach((cell: TableCell, index: number) => {
+			// 			rowData[columns![index]!.dataKey!] = cell.text
+			// 		})
+			// 		data.push(rowData)
+			// 	})
+			// 	// console.error('columns' + JSON.stringify(columns))
+			// 	// console.error('table data',JSON.stringify(data))
+			// 	return {
+			// 		columns,
+			// 		data
+			// 	}
+			// }
 		}
 	}
 </script>
@@ -258,8 +381,28 @@
 
 		.table-box {
 			width: 100%;
-			.table-header-text {
-				font-weight: bold;
+			border: solid 1px #ddd;
+			border-style: solid solid none none;
+			margin: 5px 0;
+			.table-header {
+				flex-direction: row;
+				.table-header-text {
+					font-weight: bold;
+					font-size: 16px;
+				}
+			}
+			.table-body {
+				flex-direction: column;
+				.table-body-row {
+					flex-direction: row;
+				}
+			}
+			.table-header-text, .table-body-text {
+				border: solid 1px #ddd;
+				border-style: none none solid solid;
+				text-align: center;
+				line-height: 35px;
+				flex: 1;
 			}
 		}
 

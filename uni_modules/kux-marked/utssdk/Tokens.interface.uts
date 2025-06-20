@@ -314,4 +314,6 @@ export type NodesToken = {
 	inLink?: boolean | null;
 	inRawBlock?: boolean | null;
 	codeTokens?: IToken[] | null;
+	// 是否闭合
+	isClose?: boolean | null;
 };
