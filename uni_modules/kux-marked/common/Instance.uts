@@ -135,7 +135,7 @@ export class Marked implements I_Marked {
 			}
 			
 			// const lexer = opt.hooks != null ? opt.hooks!.provideLexer() : (blockType ? _Lexer.lex : _Lexer.lexInline);
-			let lexer: any | null = null;
+			let lexer: any = ()=>{};
 			if (opt.hooks != null) {
 				lexer = opt.hooks!.provideLexer();
 			} else {

@@ -14,7 +14,7 @@ import { Rules, I_Lexer, Links, Tokens, Token, MarkedOptions, InlineLink, I_Toke
 
 function outputLink(cap : string[], link : NodesToken, raw : string, lexer : I_Lexer, rules : Rules) : NodesToken {
 	const href = link.href;
-	const title = link.title ?? null;
+	const title = link.title;
 	const text = cap[1].replace(rules.other.outputLinkReplace, '$1');
 
 	if (cap[0].charAt(0) != '!') {

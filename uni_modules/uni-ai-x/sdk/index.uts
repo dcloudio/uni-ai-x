@@ -411,7 +411,7 @@ export default uniAi
 
 // #ifdef WEB
 // 方便在控制台观察
-uni.ai = uniAi
+window.uniAi = uniAi
 // #endif
 
 // 解析流式数据

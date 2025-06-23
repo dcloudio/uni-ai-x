@@ -89,6 +89,10 @@
 </script>
 
 <style lang="scss">
+	@font-face {
+		font-family: "uni-ai-icon";
+		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
+	}
 	.strong {
 		font-weight: bold;
 	}
@@ -203,10 +207,6 @@
 			.list-item-br {}
 			.list-item-index {
 				width: 20px;
-				@font-face {
-					font-family: "uni-ai-icon";
-					src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
-				}
 				&.unordered {
 					font-family: uni-ai-icon;
 					font-size: 15px;
