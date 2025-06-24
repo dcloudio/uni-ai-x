@@ -22,7 +22,7 @@
 		</text>
 	</template>
 	
-	<text v-else :class="type + ' text'" @click="toLink(link)">{{token.text}}</text>
+	<text v-else :class="type + ' text' + (link != '' ? ' link' : '')" @click="toLink(link)">{{token.text}}</text>
 </template>
 
 <script>
@@ -78,10 +78,13 @@
 			},
 			toLink(url: string) {
 				if (url.length > 0) {
-					uni.showToast({
-						title: '点击了链接' + url,
-						icon: 'none'
-					});
+					console.error('url', url)
+					uni.navigateTo({
+						"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
+						fail:e=>{
+							console.error(e);
+						}
+					})
 				}
 			}
 		}
@@ -92,6 +95,15 @@
 	@font-face {
 		font-family: "uni-ai-icon";
 		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
+	}
+	.text {
+		color: #333;
+		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
+		white-space: normal;
+		/* #ifndef APP */
+		word-break: break-all;
+		max-width: 100%;
+		/* #endif */
 	}
 	.strong {
 		font-weight: bold;
@@ -111,7 +123,6 @@
 	.space {
 		height: 10px;
 	}
-
 	.link {
 		color: #0066cc;
 		// #ifdef WEB
@@ -121,16 +132,6 @@
 		}
 		// #endif
 	}
-	.text {
-		color: #333;
-		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
-		white-space: normal;
-		/* #ifndef APP */
-		word-break: break-all;
-		max-width: 100%;
-		/* #endif */
-	}
-
 	.heading {
 		color: #333;
 		font-weight: bold;
@@ -181,7 +182,10 @@
 	}
 
 	.list {
-		margin-top: 5px;
+		/* #ifndef APP */
+		// TODO： 由于 App 端 text 嵌套存在设置 line-height 后，会导致 text 渲染不全的问题，所以这里需要通过条件编译避免
+		line-height: 30px;
+		/* #endif */
 		padding-left: 5px;
 		// border: solid 1px blue;
 		width: 100%;
@@ -193,7 +197,6 @@
 		}
 		
 		.list-item {
-			margin-top: 5px;
 			width: 100%;
 			&.deep-index-1 {
 				margin-left: 10px;

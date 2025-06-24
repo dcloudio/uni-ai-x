@@ -14,6 +14,13 @@
 			}
 		},
 		{
+			"path" : "uni_modules/uni-ai-x/pages/common/webview/webview",
+			"style" : 
+			{
+				"navigationBarTitleText": "网页浏览"
+			}
+		},
+		{
 			"path": "uni_modules/uni-id-pages-x/pages/userinfo/userinfo",
 			"style": {
 				"navigationBarTitleText": "用户信息"
