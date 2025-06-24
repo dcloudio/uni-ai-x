@@ -1,112 +1,112 @@
 {
-	"id": "uni-ai-x",
-	"displayName": "uni-ai x",
-	"version": "0.1.3",
-	"description": "一个开源的、全平台的、原生的、云端一体的ai聊天套件",
-	"keywords": [
-        "uni-ai-x",
-        "uni-ai-chat",
-        "ai",
-        "deepseek"
-    ],
-	"repository": "https://gitcode.com/dcloud/uni-ai-x",
-	"engines": {
-		"HBuilderX": "^3.1.0",
-		"uni-app": "",
-		"uni-app-x": "^4.72"
-	},
-	"dcloudext": {
-		"type": "unicloud-template-page",
-		"sale": {
-			"regular": {
-				"price": "0.00"
-			},
-			"sourcecode": {
-				"price": "0.00"
-			}
-		},
-		"contact": {
-			"qq": ""
-		},
-		"declaration": {
-			"ads": "无",
-			"data": "无",
-			"permissions": "无"
-		},
-		"npmurl": "",
-		"darkmode": "x",
-		"i18n": "x",
-		"widescreen": "√"
-	},
-	"uni_modules": {
-		"dependencies": [],
-		"encrypt": [],
-		"platforms": {
-			"cloud": {
-				"tcb": "√",
-				"aliyun": "√",
-				"alipay": "√"
-			},
-			"client": {
-				"uni-app": {
-					"vue": {
-						"vue2": "x",
-						"vue3": "x"
-					},
-					"web": {
-						"safari": "x",
-						"chrome": "x"
-					},
-					"app": {
-						"vue": "x",
-						"nvue": "x",
-						"android": "x",
-						"ios": "x",
-						"harmony": "x"
-					},
-					"mp": {
-						"weixin": "x",
-						"alipay": "x",
-						"toutiao": "x",
-						"baidu": "x",
-						"kuaishou": "x",
-						"jd": "x",
-						"harmony": "x",
-						"qq": "x",
-						"lark": "x"
-					},
-					"quickapp": {
-						"huawei": "x",
-						"union": "x"
-					}
-				},
-				"uni-app-x": {
-					"web": {
-						"safari": "-",
-						"chrome": {
-                            "extVersion": "0.1.2",
-                            "minVersion": ""
-                        }
-					},
-					"app": {
-						"android": {
-                            "extVersion": "0.1.2",
-                            "minVersion": ""
-                        },
-						"ios": {
-                            "extVersion": "0.1.2",
-                            "minVersion": ""
-                        },
-						"harmony": {
-                            "extVersion": "0.1.2",
-                            "minVersion": ""
-                        }
-					},
-					"mp": {
-						"weixin": "-"
-					}
-				}
-			}
-		}
-	}
+  "id": "uni-ai-x",
+  "displayName": "uni-ai x",
+  "version": "0.2.0",
+  "description": "一个开源的、全平台的、原生的、云端一体的ai聊天套件",
+  "keywords": [
+    "uni-ai-x",
+    "uni-ai-chat",
+    "ai",
+    "deepseek"
+],
+  "repository": "https://gitcode.com/dcloud/uni-ai-x",
+  "engines": {
+    "HBuilderX": "^3.1.0",
+    "uni-app": "",
+    "uni-app-x": "^4.72"
+  },
+  "dcloudext": {
+    "type": "unicloud-template-page",
+    "sale": {
+      "regular": {
+        "price": "0.00"
+      },
+      "sourcecode": {
+        "price": "0.00"
+      }
+    },
+    "contact": {
+      "qq": ""
+    },
+    "declaration": {
+      "ads": "无",
+      "data": "无",
+      "permissions": "无"
+    },
+    "npmurl": "",
+    "darkmode": "x",
+    "i18n": "x",
+    "widescreen": "√"
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": {
+      "cloud": {
+        "tcb": "√",
+        "aliyun": "√",
+        "alipay": "√"
+      },
+      "client": {
+        "uni-app": {
+          "vue": {
+            "vue2": "x",
+            "vue3": "x"
+          },
+          "web": {
+            "safari": "x",
+            "chrome": "x"
+          },
+          "app": {
+            "vue": "x",
+            "nvue": "x",
+            "android": "x",
+            "ios": "x",
+            "harmony": "x"
+          },
+          "mp": {
+            "weixin": "x",
+            "alipay": "x",
+            "toutiao": "x",
+            "baidu": "x",
+            "kuaishou": "x",
+            "jd": "x",
+            "harmony": "x",
+            "qq": "x",
+            "lark": "x"
+          },
+          "quickapp": {
+            "huawei": "x",
+            "union": "x"
+          }
+        },
+        "uni-app-x": {
+          "web": {
+            "safari": "-",
+            "chrome": {
+            }
+          },
+          "app": {
+            "android": {
+              "extVersion": "",
+              "minVersion": "21"
+            },
+            "ios": {
+            },
+            "harmony": {
+            }
+          },
+          "mp": {
+            "weixin": "-"
+          }
+        },
+        "App": {
+          "app-harmony": "u",
+          "app-nvue": "u",
+          "app-uvue": "u",
+          "app-vue": "u"
+        }
+      }
+    }
+  }
 }
