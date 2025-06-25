@@ -27,7 +27,7 @@
 					</view> 
 				</view>
 			</view> -->
-			<view v-else-if="node.type == 'table'" style="width: 100%;">
+			<view v-else-if="node.type == 'table'" style="width: 100%;margin-bottom: 10px;">
 				<uni-table :stripe="false" :columns="getTableInfo(index)['columns']" :data="getTableInfo(index)['data']"></uni-table>
 			</view>
 			<view v-else style="width: 100%;flex-direction: row;">
