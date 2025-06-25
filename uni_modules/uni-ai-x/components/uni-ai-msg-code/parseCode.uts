@@ -25,7 +25,7 @@ import xslGrammar from '@/uni_modules/uni-ai-x/static/grammar/xsl.tmLanguage.jso
 // #endif
 // Import all grammar files - end
 
-import { createHighLighter, HighLighterOptions, CreateHighLighterRes, ILineTokens } from "@/uni_modules/uni-code-highlighting"
+import { createHighLighter, HighLighterOptions, CreateHighLighterRes, ILineTokens } from "@/uni_modules/uni-highlight"
 import { IToken } from '@/uni_modules/kux-marked/utssdk/Tokens.interface.uts'
 export { IToken }
 type TmlFile = {
