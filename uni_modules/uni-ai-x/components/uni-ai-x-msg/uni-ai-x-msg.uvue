@@ -151,7 +151,8 @@
 						})
 					}
 					// console.error('tableInfoMap',this.tableInfoMap)
-				}
+				},
+				immediate: true
 			}
 		},
 // 		mounted(){
