@@ -364,5 +364,6 @@
 
 	.table--border {
 		border: 1px $border-color solid;
+		border-bottom: none;
 	}
 </style>
