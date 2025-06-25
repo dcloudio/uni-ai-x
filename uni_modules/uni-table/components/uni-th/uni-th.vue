@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-table-th" :class="{'table--border':isBorder}" :style="{ width: customWidth + 'px', 'justify-content': customAlign }">
+	<view class="uni-table-th" :class="{'th-table--border':isBorder}" :style="{ width: customWidth + 'px', 'justify-content': customAlign }">
 		<slot></slot>
 	</view>
 </template>
@@ -77,7 +77,7 @@
 		flex-direction: row;
 	}
 
-	.table--border {
+	.th-table--border {
 		border-left: 1px $border-color solid;
 	}
 

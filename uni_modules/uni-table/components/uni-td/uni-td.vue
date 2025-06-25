@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-table-td" :class="{'table--border':isBorder}" :style="{width:customWidth + 'px','justify-content':customAlign}">
+	<view class="uni-table-td" :class="{'td-table--border':isBorder}" :style="{width:customWidth + 'px','justify-content':customAlign}">
 		<slot></slot> 
 	</view>
 </template>
@@ -59,7 +59,7 @@
 		min-width: 80px;
 	}
 
-	.table--border {
+	.td-table--border {
 		border-left: 1px $border-color solid;
 	}
 </style>

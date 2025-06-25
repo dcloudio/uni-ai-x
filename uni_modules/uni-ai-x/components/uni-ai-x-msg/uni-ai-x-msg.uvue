@@ -1,7 +1,7 @@
 <template>
 	<view class="msg-types-item-root">
 		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
-		<template v-else v-for="node in markdownTokenList">
+		<template v-else v-for="(node, index) in markdownTokenList">
 			<view v-if="node.type == 'hr'" class="hr"></view>
 			<text v-else-if="node.type == 'paragraph'" class="paragraph">
 				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
@@ -13,7 +13,7 @@
 				<uni-ai-msg-code :codeTokens="node.codeTokens ?? []" :codeText="node.text" :language="node.lang" />
 			</view>
 			<!-- 表格 -->
-			<view v-else-if="node.type == 'table'" class="table-box">
+			<!-- <view v-else-if="node.type == 'table'" class="table-box">
 				<view class="table-header">
 					<template v-for="(cell, cellIndex) in node.header" :key="cellIndex">
 						<text class="table-header-text">{{cell.text.replace(/\*/g, '')}}</text>
@@ -26,7 +26,9 @@
 						</text>
 					</view> 
 				</view>
-				<!-- <uni-table v-else-if="node.type == 'table'" :stripe="true" :height="500" :columns="getTableInfo(node)['columns']" :data="getTableInfo(node)['data']"></uni-table> -->
+			</view> -->
+			<view v-else-if="node.type == 'table'" style="width: 100%;">
+				<uni-table :stripe="false" :columns="getTableInfo(index)['columns']" :data="getTableInfo(index)['data']"></uni-table>
 			</view>
 			<view v-else style="width: 100%;flex-direction: row;">
 				<uni-marked-el :token="node" :type="node.type" :depth="node.depth ?? 0" />
@@ -61,6 +63,7 @@
 		},
 		data() {
 			return {
+				tableInfoMap: new Map<string, UTSJSONObject>() as Map<string, UTSJSONObject>,
 				// 耗时
 				runTime: 0,
 				parseLock: false,
@@ -120,59 +123,76 @@
 					}
 				},
 				immediate: true
+			},
+			'markdownTokenList': {
+				handler(markdownTokenList: MarkdownToken[]) {
+					if (this.state == 'processing') {
+						const length = markdownTokenList.length
+						const lastToken = length > 0 ? markdownTokenList[length - 1] : null
+						if (lastToken?.type == 'table') {
+							const oldTableInfo = this.tableInfoMap.get((length - 1).toString())
+							const newTableInfo = this.nodeToTableInfo(lastToken)
+							if (oldTableInfo == null) {
+								this.tableInfoMap.set((length - 1).toString(), newTableInfo)
+							} else {
+								// 旧的数据要 push 新数据 新增的项。不要整个更新避免闪烁
+								const oldTableData = oldTableInfo['data']! as UTSJSONObject[]
+								const newTableData = newTableInfo['data']! as UTSJSONObject[]
+								const oldTableDataLength = oldTableData.length
+								oldTableData.push(...newTableData.slice(oldTableDataLength))
+							}
+						}
+					} else {
+						// 解析时检查所有项
+						markdownTokenList.forEach((node: MarkdownToken, index: number) => {
+							if (node.type == 'table') {
+								this.tableInfoMap.set(index.toString(), this.nodeToTableInfo(node))
+							}
+						})
+					}
+					// console.error('tableInfoMap',this.tableInfoMap)
+				}
 			}
 		},
 // 		mounted(){
-// // 模拟ai 流式回答消息
-// const text = `# 五级标题示例
-
+// 			// 模拟ai 流式回答消息
+// 			const text = `# 五级标题示例
 // ## 二级标题
 // ### 三级标题
 // #### 四级标题
 // ##### 五级标题
-
 // ---
-
 // ## 有序列表示例
-
 // 1. 第一项
 // 2. 第二项
 //    1. 子项一
 //    2. 子项二
 // 3. 第三项
-
 // ---
-
 // ## 简单表格示例
 
 // | 姓名 | 年龄 | 职业 |
 // |------|------|------|
-// | 张三 | 28   | 工程师 |
-// | 李四 | 32   | 设计师 |
-// | 王五 | 25   | 学生 |
+// | *张三* | 28   | 工程师 |
+// | *李四* | 32   | 设计师 |
+// | *王五* | 25   | 学生 |
 
 // ---
-
 // ## 简单JS代码示例
-
 // \`\`\`javascript
 // // 计算两个数的和
 // function add(a, b) {
 //   return a + b;
 // }
-
 // // 使用示例
 // const result = add(5, 3);
 // console.log(result); // 输出: 8
 // \`\`\`
-
 // ---
-
-// ## 链接示例
-
-// [访问百度](https://www.baidu.com)
-
-// 或者直接显示URL：<https://www.baidu.com>`
+// ## 链接示例  
+// [访问百度](https://www.baidu.com)  
+// 或者直接显示URL：<https://www.baidu.com>
+// `
 // 			const textMarkdown = text
 // 			uniAi.currentChat!.state = 'processing'
 // 			this.msg.body = ''
@@ -187,7 +207,7 @@
 // 					this.msg.body += textMarkdown[i]
 // 					i++
 // 				}
-// 			}, 10)
+// 			}, 30)
 // 		},
 		methods: {
 			runTask(){
@@ -319,30 +339,37 @@
 					this.tmpTokenList = newTokenList
 				}
 			},
-			// getTableInfo(node: MarkdownToken): UTSJSONObject {
-			// 	const columns: UTSJSONObject[] = []
-			// 	node.header?.forEach((cell: TableCell) => {
-			// 		columns.push({
-			// 			dataKey: cell.text,
-			// 			title: cell.text,
-			// 			align: cell.align ?? 'left'
-			// 		})
-			// 	})
-			// 	const data: UTSJSONObject[] = []
-			// 	node.rows?.forEach((row: TableCell[]) => {
-			// 		const rowData: UTSJSONObject = {}
-			// 		row.forEach((cell: TableCell, index: number) => {
-			// 			rowData[columns![index]!.dataKey!] = cell.text
-			// 		})
-			// 		data.push(rowData)
-			// 	})
-			// 	// console.error('columns' + JSON.stringify(columns))
-			// 	// console.error('table data',JSON.stringify(data))
-			// 	return {
-			// 		columns,
-			// 		data
-			// 	}
-			// }
+			getTableInfo(index: number): UTSJSONObject {
+				return this.tableInfoMap.get(index.toString()) ?? {
+					columns: [] as UTSJSONObject[],
+					data: [] as UTSJSONObject[]
+				} as UTSJSONObject
+			},
+			nodeToTableInfo(node: MarkdownToken): UTSJSONObject {
+				const columns: UTSJSONObject[] = []
+				node.header?.forEach((cell: TableCell) => {
+					columns.push({
+						dataKey: cell.text,
+						title: cell.text,
+						align: cell.align ?? 'left'
+					})
+				})
+				const data: UTSJSONObject[] = []
+				node.rows?.forEach((row: TableCell[]) => {
+					const rowData: UTSJSONObject = {}
+					row.forEach((cell: TableCell, index: number) => {
+						// 内容中的 * 要去除，暂不实现表格内的样式
+						rowData[columns![index]!.dataKey!] = cell.text.replace(/\*/g, '')
+					})
+					data.push(rowData)
+				})
+				// console.error('columns' + JSON.stringify(columns))
+				// console.error('table data',JSON.stringify(data))
+				return {
+					columns,
+					data
+				}
+			}
 		}
 	}
 </script>

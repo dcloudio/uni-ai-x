@@ -249,9 +249,9 @@ class UniAi {
 			if (this.currentChat!.state != 'stop'){
 				console.error('发送失败', errRes,typeof errRes, ' 当前状态:' + this.currentChat!.state)
 				this.currentChat!.state = 'stop';
-				if (errRes['error']['code'] == 'data_inspection_failed') {
-					aiMsgItem.error_msg = '数据检查失败，疑似包含敏感信息'
-				}
+				// if (errRes['error']['code'] == 'data_inspection_failed') {
+				// 	aiMsgItem.error_msg = '数据检查失败，疑似包含敏感信息'
+				// }
 			}
 		})
 	}
