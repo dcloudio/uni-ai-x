@@ -1,7 +1,7 @@
 {
   "id": "kux-marked",
   "displayName": "kux-marked",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "基于 `UTS` 的高性能 `Markdown` 解析器，专为 `uts` 跨平台应用开发优化。",
   "keywords": [
     "kux-marked",

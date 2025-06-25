@@ -8,9 +8,9 @@ import {
 } from './helpers';
 import { Rules, I_Lexer, Links, Tokens, Token, MarkedOptions, InlineLink, I_Tokenizer, Blockquote, Br, Code, Codespan, Def, Del, Em, Escape, HTML, Hr, Link, List, ListItem, Paragraph, Space, Strong, Table, Tag, Text, Image, TableCell, MarkedToken, Heading, NodesToken } from '../utssdk/interface';
 
-// // #ifdef APP-ANDROID
-// import JSReg from 'io.dcloud.uts.jsreg.JSReg';
-// // #endif
+// #ifdef APP-ANDROID
+import JSReg from 'io.dcloud.uts.jsreg.JSReg';
+// #endif
 
 function outputLink(cap : string[], link : NodesToken, raw : string, lexer : I_Lexer, rules : Rules) : NodesToken {
 	const href = link.href;
@@ -111,7 +111,12 @@ export class Tokenizer implements I_Tokenizer {
 		if ((this.rules!.block.fences instanceof RegExp) == false) {
 			return null;
 		}
+		// #ifndef APP-HARMONY
 		const cap = (this.rules!.block.fences as RegExp).exec(src);
+		// #endif
+		// #ifdef APP-HARMONY
+		const cap = /^ {0,3}(`{3,}|~{3,})([^\n]*)\n([\s\S]*?)\n {0,3}\1 *(?:\n|$)/.exec(src);
+		// #endif
 		if (cap != null && cap[0] != null) {
 			const raw = cap[0];
 			const text = indentCodeCompensation(raw!, cap[3] ?? '', this.rules!);
@@ -636,7 +641,9 @@ export class Tokenizer implements I_Tokenizer {
 	}
 
 	paragraph(src : string) : NodesToken | null {
+		// console.log(this.rules!.block.paragraph);
 		const cap = this.rules!.block.paragraph.exec(src);
+		// console.log(this.rules!.block.paragraph);
 		if (cap != null && cap[0] != null) {
 			const text = cap[1]!.charAt(cap[1]!.length - 1) == '\n'
 				? cap[1]!.slice(0, -1)
@@ -775,7 +782,13 @@ export class Tokenizer implements I_Tokenizer {
 			cap = this.rules!.inline.nolink.exec(src) as string[]
 		}
 		if (cap != null && cap[0] != null) {
-			const linkString = (cap[2] ?? cap[1]).replace(this.rules!.other.multipleSpaceGlobal, ' ');
+			let linkString = '';
+			if (cap.length >= 3) {
+				linkString = cap[2].replace(this.rules!.other.multipleSpaceGlobal, ' ');
+			} else {
+				linkString = cap[1].replace(this.rules!.other.multipleSpaceGlobal, ' ');
+			}
+			// const linkString = (cap[2] ?? cap[1]).replace(this.rules!.other.multipleSpaceGlobal, ' ');
 			// #ifndef APP-HARMONY
 			const link = links[linkString.toLowerCase()];
 			// #endif

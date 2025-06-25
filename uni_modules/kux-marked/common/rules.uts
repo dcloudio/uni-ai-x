@@ -1,14 +1,14 @@
 import { Other, EditObject, NoopTest, BlockNormal, BlockGfm, BlockPedantic, InlineNormal, InlinePedantic, InlineGfm, InlineBreaks, Block, Inline } from '../utssdk/interface';
-// // #ifdef APP-ANDROID
-// import { callJSReg } from '../utssdk/app-android';
-// // #endif
+// #ifdef APP-ANDROID
+import { callJSReg } from '../utssdk/app-android';
+// #endif
 
 const noopTest = {
 	exec: () => { }
 } as NoopTest;
 
 export const other = {
-
+	// #ifdef uniVersion >= 4.72
 	codeRemoveIndent: /^(?: {1,4}| {0,3}\t)/gm,
 	indentCodeCompensation: /^(\s+)(?:```)/,
 	blockquoteSetextReplace: /\n {0,3}((?:=+|-+) *)(?=\n|$)/g,
@@ -17,16 +17,19 @@ export const other = {
 	escapeTestNoEncode: /[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/,
 	escapeReplaceNoEncode: /[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/g,
 	unescapeTest: /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig,
-	// // #ifdef APP-ANDROID
-	// codeRemoveIndent: callJSReg(/^(?: {1,4}| {0,3}\t)/gm),
-	// indentCodeCompensation: callJSReg(/^(\s+)(?:```)/),
-	// blockquoteSetextReplace: callJSReg(/\n {0,3}((?:=+|-+) *)(?=\n|$)/g),
-	// blockquoteSetextReplace2: callJSReg(/^ {0,3}>[ \t]?/gm),
-	// listReplaceNesting: callJSReg(/^ {1,4}(?=( {4})*[^ ])/g),
-	// escapeTestNoEncode: callJSReg(/[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/),
-	// escapeReplaceNoEncode: callJSReg(/[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/g),
-	// unescapeTest: callJSReg(/&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig),
-	// // #endif
+	// #endif
+	// #ifdef uniVersion < 4.72
+	// #ifdef APP-ANDROID
+	codeRemoveIndent: callJSReg(/^(?: {1,4}| {0,3}\t)/gm),
+	indentCodeCompensation: callJSReg(/^(\s+)(?:```)/),
+	blockquoteSetextReplace: callJSReg(/\n {0,3}((?:=+|-+) *)(?=\n|$)/g),
+	blockquoteSetextReplace2: callJSReg(/^ {0,3}>[ \t]?/gm),
+	listReplaceNesting: callJSReg(/^ {1,4}(?=( {4})*[^ ])/g),
+	escapeTestNoEncode: callJSReg(/[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/),
+	escapeReplaceNoEncode: callJSReg(/[<>"']|&(?!(#\d{1,7}|#[Xx][a-fA-F0-9]{1,6}|\w+);)/g),
+	unescapeTest: callJSReg(/&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig),
+	// #endif
+	// #endif
 	outputLinkReplace: /\\([\[\]])/g,
 	beginningSpace: /^\s+/,
 	endingHash: /#$/,
@@ -107,16 +110,20 @@ const fences = /^ {0,3}(`{3,}(?=[^`\n]*(?:\n|$))|~{3,})([^\n]*)(?:\n|$)(?:|([\s\
 const hr = /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})(?:\n+|$)/;
 const heading = /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/;
 
+// #ifdef uniVersion >= 4.72
 const bullet = /(?:[*+-]|\d{1,9}[.)])/;
 const blockCodeRegex = /(?: {4}| {0,3}\t)/;
 const htmlRegex = / {0,3}<[^\n>]+>\n/;
 const tableRegexGfm = / {0,3}\|?(?:[:\- ]*\|)+[\:\- ]*\n/;
-// // #ifdef APP-ANDROID
-// const bullet = callJSReg(/(?:[*+-]|\d{1,9}[.)])/);
-// const blockCodeRegex = callJSReg(/(?: {4}| {0,3}\t)/);
-// const htmlRegex = callJSReg(/ {0,3}<[^\n>]+>\n/);
-// const tableRegexGfm = callJSReg(/ {0,3}\|?(?:[:\- ]*\|)+[\:\- ]*\n/);
-// // #endif
+// #endif
+// #ifdef uniVersion < 4.72
+// #ifdef APP-ANDROID
+const bullet = callJSReg(/(?:[*+-]|\d{1,9}[.)])/);
+const blockCodeRegex = callJSReg(/(?: {4}| {0,3}\t)/);
+const htmlRegex = callJSReg(/ {0,3}<[^\n>]+>\n/);
+const tableRegexGfm = callJSReg(/ {0,3}\|?(?:[:\- ]*\|)+[\:\- ]*\n/);
+// #endif
+// #endif
 const lheadingCore = /^(?!bull |blockCode|fences|blockquote|heading|html|table)((?:.|\n(?!\s*?\n|bull |blockCode|fences|blockquote|heading|html|table))+?)\n {0,3}(=+|-+) *(?:\n+|$)/;
 const lheading = edit(lheadingCore)
 	.replace(/bull/g, bullet) // lists can interrupt
@@ -138,10 +145,15 @@ const lheadingGfm = edit(lheadingCore)
 	.getRegex();
 const _paragraph = /^([^\n]+(?:\n(?!hr|heading|lheading|blockquote|fences|list|html|table| +\n)[^\n]+)*)/;
 const blockText = /^[^\n]+/;
+
+// #ifdef uniVersion >= 4.72
 const _blockLabel = /(?!\s*\])(?:\\.|[^\[\]\\])+/;
-// // #ifdef APP-ANDROID
-// const _blockLabel = callJSReg(/(?!\s*\])(?:\\.|[^\[\]\\])+/);
-// // #endif
+// #endif
+// #ifdef uniVersion < 4.72
+// #ifdef APP-ANDROID
+const _blockLabel = callJSReg(/(?!\s*\])(?:\\.|[^\[\]\\])+/);
+// #endif
+// #endif
 const def = edit(/^ {0,3}\[(label)\]: *(?:\n[ \t]*)?([^<\s][^\s]*|<.*?>)(?:(?: +(?:\n[ \t]*)?| *\n[ \t]*)(title))? *(?:\n+|$)/)
 	.replace('label', _blockLabel)
 	.replace('title', /(?:"(?:\\"?|[^"\\])*"|'[^'\n]*(?:\n[^'\n]+)*\n?'|\([^()]*\))/)
@@ -158,10 +170,14 @@ const _tag = 'address|article|aside|base|basefont|blockquote|body|caption'
 	+ '|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title'
 	+ '|tr|track|ul';
 
+// #ifdef uniVersion >= 4.72
 const _comment = /<!--(?:-?>|[\s\S]*?(?:-->|$))/;
-// // #ifdef APP-ANDROID
-// const _comment = callJSReg(/<!--(?:-?>|[\s\S]*?(?:-->|$))/);
-// // #endif
+// #endif
+// #ifdef uniVersion < 4.72
+// #ifdef APP-ANDROID
+const _comment = callJSReg(/<!--(?:-?>|[\s\S]*?(?:-->|$))/);
+// #endif
+// #endif
 const html = edit(
 	'^ {0,3}(?:' // optional indentation
 	+ '<(script|pre|style|textarea)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
@@ -175,10 +191,14 @@ const html = edit(
 	+ ')')
 	.replace('comment', _comment)
 	.replace('tag', _tag)
-	// // #ifdef APP-ANDROID
-	// .replace('attribute', callJSReg(/ +[a-zA-Z:_][\w.:-]*(?: *= *"[^"\n]*"| *= *'[^'\n]*'| *= *[^\s"'=<>`]+)?/))
-	// // #endif
+	// #ifdef uniVersion < 4.72
+	// #ifdef APP-ANDROID
+	.replace('attribute', callJSReg(/ +[a-zA-Z:_][\w.:-]*(?: *= *"[^"\n]*"| *= *'[^'\n]*'| *= *[^\s"'=<>`]+)?/))
+	// #endif
+	// #endif
+	// #ifdef uniVersion >= 4.72
 	.replace('attribute', / +[a-zA-Z:_][\w.:-]*(?: *= *"[^"\n]*"| *= *'[^'\n]*'| *= *[^\s"'=<>`]+)?/)
+	// #endif
 	.getRegex();
 
 const paragraph = edit(_paragraph)
@@ -318,10 +338,14 @@ const _punctuationOrSpaceGfmStrongEm = /(?!~)[\s\p{P}\p{S}]/u;
 const _notPunctuationOrSpaceGfmStrongEm = /(?:[^\s\p{P}\p{S}]|~)/u;
 
 // sequences em should skip over [title](link), `code`, <html>
+// #ifdef uniVersion >= 4.72
 const blockSkip = /\[[^[\]]*?\]\((?:\\.|[^\\\(\)]|\((?:\\.|[^\\\(\)])*\))*\)|`[^`]*?`|<[^<>]*?>/g;
-// // #ifdef APP-ANDROID
-// const blockSkip = callJSReg(/\[[^[\]]*?\]\((?:\\.|[^\\\(\)]|\((?:\\.|[^\\\(\)])*\))*\)|`[^`]*?`|<[^<>]*?>/g);
-// // #endif
+// #endif
+// #ifdef uniVersion < 4.72
+// #ifdef APP-ANDROID
+const blockSkip = callJSReg(/\[[^[\]]*?\]\((?:\\.|[^\\\(\)]|\((?:\\.|[^\\\(\)])*\))*\)|`[^`]*?`|<[^<>]*?>/g);
+// #endif
+// #endif
 
 const emStrongLDelimCore = /^(?:\*+(?:((?!\*)punct)|[^\s*]))|^_+(?:((?!_)punct)|([^\s_]))/;
 
