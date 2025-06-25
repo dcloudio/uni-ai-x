@@ -62,7 +62,7 @@ class UniAi {
 				title: "新对话",
 				state: 'none',
 				update_time: Date.now(),
-				msgList: [],
+				msgList: reactive<MsgItem[]>([]),
 				inputContent: ''
 			};
 			this.chat.datas.unshift(newChat);
@@ -242,13 +242,16 @@ class UniAi {
 		this.requestAi(aiMsgItem).then((res) => {
 			// console.log('requestAi then', res)
 			userMsg.state = 100
-		}).catch((err) => {
-			console.error('requestAi', err)
+		}).catch((errRes) => {
+			console.error('requestAi', errRes)
 			userMsg.state = -100
 			// 状态为 stop 为用户手动执行了 停止 不需要再次提示用户
 			if (this.currentChat!.state != 'stop'){
-				console.error('发送失败', err,typeof err, ' 当前状态:' + this.currentChat!.state)
+				console.error('发送失败', errRes,typeof errRes, ' 当前状态:' + this.currentChat!.state)
 				this.currentChat!.state = 'stop';
+				if (errRes['error']['code'] == 'data_inspection_failed') {
+					aiMsgItem.error_msg = '数据检查失败，疑似包含敏感信息'
+				}
 			}
 		})
 	}

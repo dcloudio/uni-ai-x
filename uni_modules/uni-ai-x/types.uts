@@ -78,6 +78,7 @@ export type MsgItem = {
 	// 所属对话id
 	chat_id: string,
 	markdownTokenList: MarkdownToken[]
+	error_msg?: string
 }
 export type BaseMsgItem = {
 	body: string

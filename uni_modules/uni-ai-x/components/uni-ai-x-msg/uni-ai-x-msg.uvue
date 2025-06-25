@@ -1,6 +1,7 @@
 <template>
 	<view class="msg-types-item-root">
-		<template v-for="node in markdownTokenList">
+		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
+		<template v-else v-for="node in markdownTokenList">
 			<view v-if="node.type == 'hr'" class="hr"></view>
 			<text v-else-if="node.type == 'paragraph'" class="paragraph">
 				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
@@ -356,6 +357,12 @@
 		// #ifdef WEB
 		user-select: text;
 		// #endif
+
+		.error-msg {
+			color: #ff4d4f;
+			font-size: 14px;
+			line-height: 26px;
+		}
 		.paragraph {
 			width: 100%;
 			.text {
