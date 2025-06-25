@@ -39,7 +39,12 @@
     "widescreen": "√"
   },
   "uni_modules": {
-    "dependencies": [],
+    "dependencies": [
+			"kux-marked",
+			"uni-highlight",
+			"uni-id-pages-x",
+			"uni-table"
+		],
     "encrypt": [],
     "platforms": {
       "cloud": {
