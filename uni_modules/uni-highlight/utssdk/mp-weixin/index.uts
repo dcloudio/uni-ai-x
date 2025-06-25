@@ -24,7 +24,7 @@ export type CreateHighLighterRes = {
 
 async function loadOnigWasmFile(): Promise<ArrayBuffer> {
 	let fileManager = uni.getFileSystemManager()
-	let content = fileManager.readFileSync('/uni_modules/uni-code-highlighting/static/_onig.wasm')
+	let content = fileManager.readFileSync('/uni_modules/uni-highlight/static/_onig.wasm')
 	return content
 	
 }
@@ -41,7 +41,7 @@ export async function createHighLighter(options: HighLighterOptions):Promise<Cre
 	
 	// let wasmFile = await loadOnigWasmFile()
 	
-	const vscodeOnigurumaLib = onig.loadWASM({path: '/uni_modules/uni-code-highlighting/static/_onig.wasm'}).then(() => {
+	const vscodeOnigurumaLib = onig.loadWASM({path: '/uni_modules/uni-highlight/static/_onig.wasm'}).then(() => {
 		return {
 			createOnigScanner(patterns) { return new onig.OnigScanner(patterns); },
 			createOnigString(s) { return new onig.OnigString(s); }

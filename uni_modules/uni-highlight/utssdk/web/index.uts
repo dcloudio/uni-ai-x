@@ -25,11 +25,11 @@ export type CreateHighLighterRes = {
 async function loadOnigWasmFile(): Promise<ArrayBuffer> {
 	return new Promise((resolve, reject) =>{
 		uni.request({
-		  url: '/uni_modules/uni-code-highlighting/static/_onig.wasm',
+		  url: '/uni_modules/uni-highlight/static/_onig.wasm',
 		  method: 'GET',
 		  responseType: 'arraybuffer',
 		  success: (res) => {
-			// console.log(res)
+			console.log(res)
 			resolve(res.data as ArrayBuffer);
 		  },
 		  fail: (err) => {

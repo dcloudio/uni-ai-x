@@ -1,5 +1,4 @@
-# uni-code-highlighting
-
+# uni-highlight
 ## 本插件支持基于 TextMate 语法规则（如 javascript.tmLanguage.json）的前端代码高亮渲染
 ### 功能介绍
 - 用于代码文本高亮
@@ -15,17 +14,16 @@
 
 1. 引入uni-modules插件
 ``` typescript
-import { createHighLighter } from "../../uni_modules/uni-code-highlighting"
+import { createHighLighter } from "../../uni_modules/uni-highlight
 ```
 2. 准备语法定义文件（.tmLanguage.json）
 
-从 VSCode 官方仓库中下载你需要的语法定义文件，例如：
+准备好你需要的语法定义文件，例如：
 	•	JavaScript.tmLanguage.json
 	•	TypeScript.tmLanguage.json
 
 确保你的语法文件使用 JSON 格式。
 
-⸻
 
 3. 初始化高亮器
 
@@ -38,6 +36,28 @@ import grammar from './javascript.tmLanguage.json'
 	})
 ```
 
+###注意：引入.tmLanguage.json时，不同平台为不同的引入方式###
+
+``` typescript
+
+// #ifdef WEB || APP-IOS  || MP-WEIXIN
+import grammar from './javascript.tmLanguage.json'
+...
+// #endif
+
+// #ifdef APP-ANDROID || APP-HARMONY
+let fileManager = uni.getFileSystemManager()
+let content = fileManager.readFileSync('xxxx.tmLanguage.json', 'utf-8') as string
+let grammar = JSON.parse(content)
+...
+// #endif
+
+let uniCodeHighlighter = await createHighLighter({
+	languages: {
+		'javascript': grammar
+	}
+})
+```
 
 4. 传入代码文本进行高亮
 
@@ -55,7 +75,25 @@ export function createApp() {
 }
 `
 
+let tokens:[] as Array<IToken> = []
+
 let res = await uniCodeHighlighter.tokenizeFullText('javascript', sourceCode)
+
+const text = sourceCode.split(/\r|\n|\r\n/)
+
+ILineTokensList.forEach((line, i) => {
+	line.tokens.forEach((tk) => {
+		tokens.push({
+			text: text[i].substring(tk.startIndex, tk.endIndex),
+			className: tk.scopes[tk.scopes.length - 1].split(".")[0]
+		})
+	})
+	tokens.push({
+		text: "\n",
+		className: "eol"
+	});
+})
+
 
 ```
 

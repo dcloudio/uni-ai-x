@@ -24,7 +24,7 @@ export type CreateHighLighterRes = {
 
 async function loadOnigWasmFile(): Promise<ArrayBuffer> {
 	let fileManager = uni.getFileSystemManager()
-	let content = fileManager.readFileSync('/uni_modules/uni-code-highlighting/static/_onig.wasm')
+	let content = fileManager.readFileSync('/uni_modules/uni-codeHighlightingstatic/_onig.wasm')
 	return content
 	
 }
