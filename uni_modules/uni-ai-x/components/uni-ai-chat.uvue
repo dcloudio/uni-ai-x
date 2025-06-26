@@ -7,8 +7,8 @@
 		</view>
 		<view class="chat" :class="{showMenu}" ref="chat">
 			<view class="scroll-view-box" id="scroll-view-box">
-				<scroll-view :scroll-y="true" class="msg-list" :scroll-into-view="scrollIntoView" id="msg-list"
-					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll"
+				<scroll-view direction="vertical" class="msg-list" :scroll-into-view="scrollIntoView" id="msg-list"
+					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="scrollTouch = true" @touchend="scrollTouch = false"
 				>
 					<view v-for="(item, index) in msgList" :key="index" class="msg-item" :class="{'self': item.from_uid != 'uni-ai'}" @longpress="onlongTapMsg(item)">
 						<template v-if="item.from_uid == 'uni-ai'">
@@ -86,7 +86,12 @@
 				scrollIntoView: '',
 				scrollInBottom: false,
 				scrollWithAnimation: false,
-				lockAutoToLastMsg: false
+				lockAutoToLastMsg: false,
+				// 是否被按住滚动
+				scrollTouch: false,
+				// 是否正在滚动
+				scrolling: false,
+				scrollingT: null as null | number
 			}
 		},
 		computed: {
@@ -131,9 +136,10 @@
 				deep: true,
 				immediate: true
 			},
-			lastMsg: {
+			"lastMsg.markdownTokenList": {
 				handler(newVal: MsgItem | null) {
-					if (this.scrollInBottom && !this.lockAutoToLastMsg) {
+					// 如果被按住滚动，则不自动滚动到最底部
+					if (!this.scrollTouch && !this.lockAutoToLastMsg) {
 						// console.log('-------------')
 						// 如果最后一条消息变化，则滚动到最底部
 						this.scrollToLastMsg(false)
@@ -149,6 +155,10 @@
 		},
 		methods: {
 			onlongTapMsg(item: MsgItem) {
+				if (this.scrolling) {
+					// 防止滚动误触长按事件
+					return
+				}
 				console.log('onlongTapMsg',item)
 				// 判断是用户消息还是ai消息
 				// 弹出菜单
@@ -201,13 +211,26 @@
 				this.$emit('close-menu')
 			},
 			onScroll(e: UniScrollEvent) {
-				// 根据是否朝下滚动设置 lockAutoToLastMsg
-				this.lockAutoToLastMsg = e.detail.deltaY > 0
+				// 滚动条距离底部的值
 				const scrollList = uni.getElementById('scroll-view-box')
-				this.scrollInBottom = e.detail.scrollHeight - e.detail.scrollTop - scrollList!.offsetHeight < 30
+				const diff: number = e.detail.scrollHeight - e.detail.scrollTop - scrollList!.offsetHeight
+				this.scrollInBottom = diff < 30
+				// 根据是否朝下滚动设置
+				console.log('diff', diff)
+				if (this.scrollTouch) {
+					this.lockAutoToLastMsg = diff > 3
+				}
+
+				// 设置滚动状态
+				this.scrolling = true
+				if (this.scrollingT != null) {
+					clearTimeout(this.scrollingT)
+				}
+				this.scrollingT = setTimeout(() => {
+					this.scrolling = false
+				}, 500)
 			},
 			scrollToLastMsg(withAnimation: boolean = true, delay: number = 0) {
-				this.lockAutoToLastMsg = false
 				this.scrollIntoView = ""
 				this.scrollWithAnimation = withAnimation
 				setTimeout(() => {
