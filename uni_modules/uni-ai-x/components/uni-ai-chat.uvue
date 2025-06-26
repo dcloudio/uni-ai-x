@@ -136,9 +136,10 @@
 				deep: true,
 				immediate: true
 			},
-			"lastMsg.markdownTokenList": {
+			lastMsg: {
 				handler(newVal: MsgItem | null) {
 					// 如果被按住滚动，则不自动滚动到最底部
+					console.log('scrollTouch', this.scrollTouch, this.lockAutoToLastMsg)
 					if (!this.scrollTouch && !this.lockAutoToLastMsg) {
 						// console.log('-------------')
 						// 如果最后一条消息变化，则滚动到最底部
@@ -231,6 +232,7 @@
 				}, 500)
 			},
 			scrollToLastMsg(withAnimation: boolean = true, delay: number = 0) {
+				this.lockAutoToLastMsg = false
 				this.scrollIntoView = ""
 				this.scrollWithAnimation = withAnimation
 				setTimeout(() => {
