@@ -28,7 +28,8 @@ export class TextRenderer implements I_TextRenderer {
 	
 	html(option: NodesToken): string {
 		// option = option as HTML | Tag;
-		let text = '';
+		return option.text!;
+		let text: string = '';
 		if (option.type == 'html') {
 			// option = option as HTML;
 			text = option.text!;
@@ -42,6 +43,7 @@ export class TextRenderer implements I_TextRenderer {
 	text(option: NodesToken): string {
 		// console.log(option);
 		// option = option as Text | Escape | Tag
+		return option.text!;
 		let text = '';
 		if (option.type == 'text') {
 			// option = option as Text;

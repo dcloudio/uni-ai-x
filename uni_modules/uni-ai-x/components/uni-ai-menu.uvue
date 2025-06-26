@@ -226,6 +226,7 @@
 		}
 		.chat-list {
 			.chat-item {
+				background-color: #25282c;
 				.title {
 					color: #fff;
 				}

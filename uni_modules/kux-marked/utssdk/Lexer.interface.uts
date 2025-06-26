@@ -30,7 +30,7 @@ export interface I_Lexer {
 	/**
 	   * Preprocessing
 	   */
-	lex(src: string): TokensList;
+	lex(srcSource: string): TokensList;
 	
 	/**
 	   * Static Lex Inline Method
@@ -40,12 +40,12 @@ export interface I_Lexer {
 	/**
 	   * Lexing
 	   */
-	blockTokens(src: string, tokens?: NodesToken[] | TokensList | null, lastParagraphClipped?: boolean | null): NodesToken[] | TokensList;
+	blockTokens(srcSource: string, tokensSource?: NodesToken[] | TokensList | null, lastParagraphClippedSource?: boolean | null): NodesToken[] | TokensList;
 	
-	inline(src: string, tokens?: NodesToken[] | null): NodesToken[];
+	inline(src: string, tokensSource?: NodesToken[] | null): NodesToken[];
 	
 	/**
 	   * Lexing/Compiling
 	   */
-	inlineTokens(src: string, tokens?: NodesToken[] | null): NodesToken[];
+	inlineTokens(srcSource: string, tokensSource?: NodesToken[] | null): NodesToken[];
 }

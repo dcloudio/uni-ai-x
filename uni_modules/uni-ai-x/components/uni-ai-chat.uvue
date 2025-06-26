@@ -91,7 +91,9 @@
 				scrollTouch: false,
 				// 是否正在滚动
 				scrolling: false,
-				scrollingT: null as null | number
+				scrollingT: 0 as number,
+				// 是否鼠标滚轮滚动
+				mouseScroll: false
 			}
 		},
 		computed: {
@@ -139,7 +141,6 @@
 			lastMsg: {
 				handler(newVal: MsgItem | null) {
 					// 如果被按住滚动，则不自动滚动到最底部
-					console.log('scrollTouch', this.scrollTouch, this.lockAutoToLastMsg)
 					if (!this.scrollTouch && !this.lockAutoToLastMsg) {
 						// console.log('-------------')
 						// 如果最后一条消息变化，则滚动到最底部
@@ -153,6 +154,17 @@
 			uniAi.onBeforeRequestAi((msgItem: MsgItem) => {
 				this.scrollToLastMsg(false)
 			})
+			// 监听鼠标滚轮滚动
+			// #ifdef H5
+			window.addEventListener('wheel', (e: WheelEvent) => {
+				this.mouseScroll = true
+				let clear: number = 0
+				clear = setTimeout(() => {
+					this.mouseScroll = false
+					clearTimeout(clear)
+				}, 1000)
+			})
+			// #endif
 		},
 		methods: {
 			onlongTapMsg(item: MsgItem) {
@@ -216,15 +228,14 @@
 				const scrollList = uni.getElementById('scroll-view-box')
 				const diff: number = e.detail.scrollHeight - e.detail.scrollTop - scrollList!.offsetHeight
 				this.scrollInBottom = diff < 30
-				// 根据是否朝下滚动设置
-				console.log('diff', diff)
-				if (this.scrollTouch) {
+				// 根据人为滚动，锁定是否自动滚动到最底部。前提：手按住滚动条，或者鼠标滚轮滚动
+				if (this.scrollTouch || this.mouseScroll) {
 					this.lockAutoToLastMsg = diff > 3
 				}
 
 				// 设置滚动状态
 				this.scrolling = true
-				if (this.scrollingT != null) {
+				if (this.scrollingT != 0) {
 					clearTimeout(this.scrollingT)
 				}
 				this.scrollingT = setTimeout(() => {
@@ -388,9 +399,15 @@
 			.chat-input-placeholder {
 				color: #b9babc;
 			}
-			// 键盘弹出后，垫高底部。默认大小为安全区域高度，通过padding-bottom撑开
+			// 键盘弹出后，垫高底部。默认占位大小为底部安全区域高度
 			.keyboard-cover {
+				// Android 的键盘高度不包含安全区域高度，其他平台包含
+				// #ifdef APP-ANDROID
+				margin-bottom: env(safe-area-inset-bottom);
+				// #endif
+				// #ifndef APP-ANDROID
 				padding-bottom: env(safe-area-inset-bottom);
+				// #endif
 			}
 		}
 		.tip {

@@ -26,7 +26,7 @@ import xslGrammar from '@/uni_modules/uni-ai-x/static/grammar/xsl.tmLanguage.jso
 // Import all grammar files - end
 
 import { createHighLighter, HighLighterOptions, CreateHighLighterRes, ILineTokens } from "@/uni_modules/uni-highlight"
-import { IToken } from '@/uni_modules/kux-marked/utssdk/Tokens.interface.uts'
+import { IToken } from '@/uni_modules/kux-marked'
 export { IToken }
 type TmlFile = {
 	scopeName : string,
@@ -58,78 +58,85 @@ export type ParseCodeRes = {
 }
 
 export async function parseCode(codeSource: string,language: string): Promise<ParseCodeRes>{
-	if (uniCodeHighlighter == null) {
-		// #ifndef APP-ANDROID || APP-HARMONY
-		// 根据 grammarList 生成tmls
-		const tmls = {
-			javascript: javascriptGrammar,
-			python: pythonGrammar,
-			typescript: typescriptGrammar,
-			javascriptReact: javascriptReactGrammar,
-			html: htmlGrammar,
-			css: cssGrammar,
-			cpp: cppGrammar,
-			dart: dartGrammar,
-			go: goGrammar,
-			java: javaGrammar,
-			lua: luaGrammar,
-			php: phpGrammar,
-			r: rGrammar,
-			sql: sqlGrammar,
-			json: jsonGrammar,
-			jsonc: jsoncGrammar,
-			jsonl: jsonlGrammar,
-			c: cGrammar,
-			"cuda-cpp": cudaCppGrammar,
-			xml: xmlGrammar,
-			xsl: xslGrammar
-		}
-		// #endif
-		// #ifdef APP-ANDROID || APP-HARMONY
-		const tmlsList = [] as TmlFile[]
-		grammarList.forEach(item => {
-			tmlsList.push({
-				scopeName: item,
-				path: `/uni_modules/uni-ai-x/static/grammar/${item}.tmLanguage.json`
+	try {
+		if (uniCodeHighlighter == null) {
+			// #ifndef APP-ANDROID || APP-HARMONY
+			// 根据 grammarList 生成tmls
+			const tmls = {
+				javascript: javascriptGrammar,
+				python: pythonGrammar,
+				typescript: typescriptGrammar,
+				javascriptReact: javascriptReactGrammar,
+				html: htmlGrammar,
+				css: cssGrammar,
+				cpp: cppGrammar,
+				dart: dartGrammar,
+				go: goGrammar,
+				java: javaGrammar,
+				lua: luaGrammar,
+				php: phpGrammar,
+				r: rGrammar,
+				sql: sqlGrammar,
+				json: jsonGrammar,
+				jsonc: jsoncGrammar,
+				jsonl: jsonlGrammar,
+				c: cGrammar,
+				"cuda-cpp": cudaCppGrammar,
+				xml: xmlGrammar,
+				xsl: xslGrammar
+			}
+			// #endif
+			// #ifdef APP-ANDROID || APP-HARMONY
+			const tmlsList = [] as TmlFile[]
+			grammarList.forEach(item => {
+				tmlsList.push({
+					scopeName: item,
+					path: `/uni_modules/uni-ai-x/static/grammar/${item}.tmLanguage.json`
+				})
 			})
-		})
-		// console.log('tmlsList',tmlsList)
-		const tmls = getTmlFile(tmlsList)
-		// #endif
-		uniCodeHighlighter = await createHighLighter({ languages: tmls } as HighLighterOptions) as CreateHighLighterRes
-		// console.log(tmls)
-	}
-
-	// 判断这个language是否在支持的列表中
-	if (!grammarList.includes(language)) {
-		// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
-		return {
-			tokens: [],
-			language: language,
-			error: '不支持解析的语言类型'
+			// console.log('tmlsList',tmlsList)
+			const tmls = getTmlFile(tmlsList)
+			// #endif
+			uniCodeHighlighter = await createHighLighter({ languages: tmls } as HighLighterOptions) as CreateHighLighterRes
+			// console.log(tmls)
 		}
-	}
-	// console.log('language',language)
-	// const start = Date.now()
-	const ILineTokensList : ILineTokens[] = await uniCodeHighlighter!.tokenizeFullText(language, codeSource)
-	// console.log('代码解析耗时 ============', Date.now() - start)
-	const text = codeSource.split(/\r|\n|\r\n/);
-	const tokens = [] as Array<IToken>
-	ILineTokensList.forEach((line, i) => {
-		line.tokens.forEach((tk) => {
+	
+		// 判断这个language是否在支持的列表中
+		if (!grammarList.includes(language)) {
+			// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
+			return {
+				tokens: [],
+				language: language,
+				error: '不支持解析的语言类型'
+			}
+		}
+		// console.log('language',language)
+		// const start = Date.now()
+		// TODO: 第三个参数暂时传 0 即可，但下一个版本的 uni-highlight，需要将上一次解析返回的 state 传入 用于提升性能
+		const iLineToken : ILineTokens | null = await uniCodeHighlighter!.tokenizeLine(language, codeSource, 0)
+		// console.log('代码解析耗时 ============', Date.now() - start)
+		const tokens = [] as Array<IToken>
+		iLineToken?.tokens.forEach((tk) => {
 			tokens.push({
-				text: text[i].substring(tk.startIndex, tk.endIndex),
+				text: codeSource.substring(tk.startIndex, tk.endIndex),
 				className: tk.scopes[tk.scopes.length - 1].split(".")[0]
 			})
 		})
-		tokens.push({
-			text: "\n",
-			className: "eol"
-		});
-	})
-	return {
-		tokens: tokens,
-		language: language,
-		error: null
+		// tokens.push({
+		// 	text: "\n",
+		// 	className: "eol"
+		// });
+		// console.log('tokens',tokens)
+		return {
+			tokens: tokens,
+			language: language,
+			error: null
+		}
+	} catch (error) {
+		return {
+			tokens: [],
+			language: language,
+			error: error.message
+		}
 	}
 }

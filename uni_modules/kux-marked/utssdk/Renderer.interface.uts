@@ -16,9 +16,9 @@ export interface I_Renderer {
 	listitem(item: NodesToken): string;
 	checkbox(option: NodesToken): string;
 	paragraph(option: NodesToken): string;
-	table(option: NodesToken): string;
+	table(optionSource: NodesToken): string;
 	tablerow(option: NodesToken): string;
-	tablecell(option: TableCell): string;
+	tablecell(optionSource: TableCell): string;
 	
 	/**
 	* span level renderer
@@ -26,7 +26,7 @@ export interface I_Renderer {
    strong(option: NodesToken): string;
    em(option: NodesToken): string;
    codespan(option: NodesToken): string;
-   br(option: NodesToken): string;
+   br(optionSource: NodesToken): string;
    del(option: NodesToken): string;
    link(option: NodesToken): string;
    image(option: NodesToken): string;

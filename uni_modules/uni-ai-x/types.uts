@@ -48,7 +48,8 @@ export type ChatItem = {
 
 // 流式响应分块
 type ChunkChoiceDelta = {
-	content: string
+	content: string,
+	reasoning_content?: string
 }
 type ChunkMessage = {
 	content: string
@@ -70,6 +71,7 @@ export type Chunk = {
 export type MsgItem = {
 	_id: string
 	body: string
+	thinkContent?: string
 	from_uid: string
 	state: number
 	create_time: number

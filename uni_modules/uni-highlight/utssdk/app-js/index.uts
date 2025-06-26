@@ -24,7 +24,7 @@ export type CreateHighLighterRes = {
 
 async function loadOnigWasmFile(): Promise<ArrayBuffer> {
 	let fileManager = uni.getFileSystemManager()
-	let content = fileManager.readFileSync('/uni_modules/uni-codeHighlightingstatic/_onig.wasm')
+	let content = fileManager.readFileSync('/uni_modules/uni-highlight/static/_onig.wasm')
 	return content
 	
 }
@@ -93,13 +93,14 @@ export async function createHighLighter(options: HighLighterOptions):Promise<Cre
 			
 			return res
 		},
-		async tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | undefined> {
+		async tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | null> {
 			let scopeName = langMap.get(langId)
-			if (!scopeName) return
+			if (!scopeName) return null
 			let ruleStack = state ? state : vsctm.INITIAL;
 			const grammar = await registry.loadGrammar(scopeName)
 			const lineTokens = grammar?.tokenizeLine(lineText, ruleStack);
-			if (!lineTokens) return
+
+			if (!lineTokens) return null
 			const tokens:IToken[] = []
 			for (let j = 0; j < lineTokens.tokens.length; j++) {
 				const token = lineTokens.tokens[j];

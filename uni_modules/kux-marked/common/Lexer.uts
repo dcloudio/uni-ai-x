@@ -180,7 +180,8 @@ export class Lexer implements I_Lexer {
 	/**
 	   * Preprocessing
 	   */
-	lex(src : string) : TokensList {
+	lex(srcSource : string) : TokensList {
+		let src = srcSource;
 		src = src.replace(other.carriageReturn, '\n');
 		this.blockTokens(src, this.tokens, null);
 
@@ -208,20 +209,23 @@ export class Lexer implements I_Lexer {
 			if (tokens.length == 0) {
 				return null;
 			}
-			return tokens[tokens.length - 1] ?? null;
+			return tokens[tokens.length - 1];
 		}
 
 		if (tokens.tokens.length == 0) {
 			return null;
 		}
 
-		return tokens.tokens[tokens.tokens.length - 1] ?? null;
+		return tokens.tokens[tokens.tokens.length - 1];
 	}
 
 	/**
 	   * Lexing
 	   */
-	blockTokens(src : string, tokens : NodesToken[] | TokensList | null, lastParagraphClipped : boolean | null) : NodesToken[] | TokensList {
+	blockTokens(srcSource : string, tokensSource : NodesToken[] | TokensList | null, lastParagraphClippedSource : boolean | null) : NodesToken[] | TokensList {
+		let src = srcSource;
+		let tokens = tokensSource;
+		let lastParagraphClipped = lastParagraphClippedSource;
 		tokens = tokens ?? [] as NodesToken[];
 		if (this.options.pedantic == true) {
 			src = src.replace(other.tabCharGlobal, '    ').replace(other.spaceLine, '');
@@ -230,7 +234,8 @@ export class Lexer implements I_Lexer {
 		while (src.length > 0) {
 			let token : NodesToken | null = null;
 			if (this.options.extensions?.block?.some((extTokenizer) => {
-				token = extTokenizer?.({ lexer: this._instance() } as TokenizerThis, src, tokens ?? [] as NodesToken[]);
+				// token = extTokenizer?.({ lexer: this._instance() } as TokenizerThis, src, tokens ?? [] as NodesToken[]);
+				token = extTokenizer({ lexer: this._instance() } as TokenizerThis, src, tokens!);
 				if (token != null) {
 					if (this._getTokenRaw(token!).length <= src.length) {
 						src = src.substring(this._getTokenRaw(token!).length);
@@ -255,7 +260,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = spaceToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -289,7 +294,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = codeToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -320,7 +325,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = fencesToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -342,7 +347,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = headingToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -362,7 +367,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = hrToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -383,7 +388,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = blockquoteToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -407,7 +412,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = listToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -430,7 +435,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = htmlToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -453,7 +458,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = defToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -489,7 +494,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = gfmToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -511,7 +516,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = lheadingToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -527,7 +532,7 @@ export class Lexer implements I_Lexer {
 			if (this.options.extensions?.startBlock != null) {
 				let startIndex = Infinity;
 				const tempSrc = src.slice(1);
-				let tempStart : any | null = null;
+				let tempStart : any | null;
 				this.options.extensions?.startBlock?.forEach((getStartIndex) => {
 					tempStart = getStartIndex({ lexer: this } as TokenizerThis, tempSrc, [] as NodesToken[]);
 					if (typeof tempStart === 'number' && (tempStart as number) >= 0) {
@@ -550,7 +555,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = paragraphToken!;
 			}
-			if (this.state.top && token != null && tokens != null) {
+			if (this.state.top && token != null) {
 				// const lastTokenData = this._getLastToken(tokens!);
 				// const lastToken = lastTokenData == null ? null : (lastTokenData as UTSJSONObject);
 				const lastToken = this._getLastToken(tokens!);
@@ -590,7 +595,7 @@ export class Lexer implements I_Lexer {
 				// } as NodesToken;
 				token = textToken!;
 			}
-			if (token != null && tokens != null) {
+			if (token != null) {
 				if (this._getTokenRaw(token!).length <= src.length) {
 					src = src.substring(this._getTokenRaw(token!).length);
 				} else {
@@ -635,7 +640,8 @@ export class Lexer implements I_Lexer {
 		return tokens!;
 	}
 
-	inline(src : string, tokens ?: NodesToken[]) : NodesToken[] {
+	inline(src : string, tokensSource ?: NodesToken[]) : NodesToken[] {
+		let tokens = tokensSource;
 		tokens = tokens ?? [] as NodesToken[];
 		this.inlineQueue.push({ src, tokens } as I_LexerInlineQueue);
 		return tokens;
@@ -644,25 +650,25 @@ export class Lexer implements I_Lexer {
 	/**
 	   * Lexing/Compiling
 	   */
-	inlineTokens(src : string, tokens ?: NodesToken[]) : NodesToken[] {
+	inlineTokens(srcSource : string, tokensSource ?: NodesToken[]) : NodesToken[] {
+		let src = srcSource;
+		let tokens = tokensSource;
 		tokens = tokens ?? [] as NodesToken[];
 		// String with links masked to avoid interference with em and strong
 		let maskedSrc = src;
-		let match : RegExpExecArray | null = null;
+		let match : RegExpExecArray | null;
 
 		// Mask out reflinks
-		if (this.tokens.links != null) {
-			const links = UTSJSONObject.keys(this.tokens.links);
-			if (links.length > 0) {
-				match = this.tokenizer.rules!.inline.reflinkSearch.exec(maskedSrc);
-				while (match != null) {
-					if (links.includes(`${match[0]}`.slice(`${match[0]}`.lastIndexOf('[') + 1, -1))) {
-						maskedSrc = maskedSrc.slice(0, match.index)
-							+ '[' + 'a'.repeat(`${match[0]}`.length - 2) + ']'
-							+ maskedSrc.slice(this.tokenizer.rules!.inline.reflinkSearch.lastIndex);
-					}
-					match = this.tokenizer.rules!.inline.reflinkSearch.exec(maskedSrc);
+		const links = UTSJSONObject.keys(this.tokens.links);
+		if (links.length > 0) {
+			match = this.tokenizer.rules!.inline.reflinkSearch.exec(maskedSrc);
+			while (match != null) {
+				if (links.includes(`${match[0]}`.slice(`${match[0]}`.lastIndexOf('[') + 1, -1))) {
+					maskedSrc = maskedSrc.slice(0, match.index)
+						+ '[' + 'a'.repeat(`${match[0]}`.length - 2) + ']'
+						+ maskedSrc.slice(this.tokenizer.rules!.inline.reflinkSearch.lastIndex);
 				}
+				match = this.tokenizer.rules!.inline.reflinkSearch.exec(maskedSrc);
 			}
 		}
 
@@ -998,13 +1004,13 @@ export class Lexer implements I_Lexer {
 			let cutSrc = src;
 			if (this.options.extensions?.startInline != null) {
 				let startIndex = Infinity;
-				const tempSrc = src.slice(1);
-				this.options.extensions!.startInline!.forEach((getStartIndex) => {
-					const tempStart = getStartIndex({ lexer: this._instance() } as TokenizerThis, tempSrc, [] as NodesToken[]);
-					if (typeof tempStart === 'number' && (tempStart as number) >= 0) {
-						startIndex = Math.min(startIndex, tempStart);
-					}
-				});
+				// const tempSrc = src.slice(1);
+				// this.options.extensions!.startInline!.forEach((getStartIndex) => {
+				// 	const tempStart = getStartIndex({ lexer: this._instance() } as TokenizerThis, tempSrc, [] as NodesToken[]);
+				// 	if (typeof tempStart === 'number' && (tempStart as number) >= 0) {
+				// 		startIndex = Math.min(startIndex, tempStart);
+				// 	}
+				// });
 				if (startIndex < Infinity && startIndex >= 0) {
 					cutSrc = src.substring(0, startIndex + 1);
 				} else {
@@ -1053,7 +1059,7 @@ export class Lexer implements I_Lexer {
 				continue;
 			}
 
-			if (src != null && src.length > 0) {
+			if (src.length > 0) {
 				const errMsg = 'Infinite loop on byte: ' + src.charCodeAt(0);
 				if (this.options.silent == true) {
 					console.error(errMsg);

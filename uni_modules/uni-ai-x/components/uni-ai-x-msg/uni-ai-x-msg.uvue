@@ -1,45 +1,23 @@
 <template>
-	<view class="msg-types-item-root">
+	<view class="msg-types-item-root" :class="{'ui-theme-dark': uiTheme == 'dark'}">
 		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
-		<template v-else v-for="(node, index) in markdownTokenList">
-			<view v-if="node.type == 'hr'" class="hr"></view>
-			<text v-else-if="node.type == 'paragraph'" class="paragraph">
-				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
-			</text>
-			<view v-else-if="node.type == 'blockquote'" class="blockquote">
-				<uni-marked-el v-for="(token, tokenIndex) in node.tokens" :key="tokenIndex" :type="token.type" :token="token" />
-			</view>
-			<view v-else-if="node.type == 'code'" class="code-box">
-				<uni-ai-msg-code :codeTokens="node.codeTokens ?? []" :codeText="node.text" :language="node.lang" />
-			</view>
-			<!-- 表格 -->
-			<!-- <view v-else-if="node.type == 'table'" class="table-box">
-				<view class="table-header">
-					<template v-for="(cell, cellIndex) in node.header" :key="cellIndex">
-						<text class="table-header-text">{{cell.text.replace(/\*/g, '')}}</text>
-					</template>
+		<template v-else>
+			<view class="think-content" v-if="msg.thinkContent != null">
+				<view class="header">
+					<text class="title">深度思考 &nbsp;</text>
+					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888" @click="hideThinkContent = !hideThinkContent"></uni-icons>
 				</view>
-				<view class="table-body">
-					<view v-for="(row, rowIndex) in node.rows" :key="rowIndex" class="table-body-row">
-						<text class="table-body-text" v-for="(cell, cellIndex) in row" :key="cellIndex">
-							{{cell.text.replace(/\*/g, '')}}
-						</text>
-					</view> 
+				<view class="text-box" :class="{hideThinkContent}">
+					<text class="text" :decode="true">{{msg.thinkContent}}</text>
 				</view>
-			</view> -->
-			<view v-else-if="node.type == 'table'" style="width: 100%;margin-bottom: 10px;">
-				<uni-table :stripe="false" :columns="getTableInfo(index)['columns']" :data="getTableInfo(index)['data']"></uni-table>
 			</view>
-			<view v-else style="width: 100%;flex-direction: row;">
-				<uni-marked-el :token="node" :type="node.type" :depth="node.depth ?? 0" />
-			</view>
+			<uni-marked-el v-for="(node, index) in msg.markdownTokenList" :key="index" :token="node"/>
 		</template>
 		<template v-if="isLastAiMsg && msg.body == ''">
-			<text v-if="state == 'stop'" class="text stop">回答被终止</text>
-			<text v-if="state == 'none'" class="needTry">错误：未回复</text>
-			<uni-rotate-icon v-if="state == 'processing'" class="loging" />
+			<text v-if="state == 'stop'" class="stop-text">回答被终止</text>
+			<text v-if="state == 'none'" class="need-try">错误：未回复</text>
+			<uni-rotate-icon v-if="state == 'processing'" class="loging-icon" />
 		</template>
-		<!-- <text style="color: red;border: solid 1px red;padding: 5px;border-radius: 5px;">markdown解析耗时：{{runTime}}ms</text> -->
 	</view>
 </template>
 
@@ -47,10 +25,11 @@
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
 	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
 	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
-	import {TableCell} from '@/uni_modules/kux-marked/utssdk/Tokens.interface.uts'
 	const marked = useMarked();
 	type TaskListItem = () => Promise<void>
-	// import testMarkdownText from '../markdownText.uts';
+	import testMarkdownText from './testMarkdownText.uts';
+	// import testMarkdownNode from './testMarkdownNode.uts';
+
 	export default {
 		name: 'msg-uni-ai',
 		components: {},
@@ -63,13 +42,15 @@
 		},
 		data() {
 			return {
-				tableInfoMap: new Map<string, UTSJSONObject>() as Map<string, UTSJSONObject>,
 				// 耗时
 				runTime: 0,
 				parseLock: false,
 				markdownStrIndex: 0,
-				taskList: [] as TaskListItem[],
-				tmpTokenList: [] as MarkdownToken[]
+				lastParseLineCodeText: '',
+				// 是否隐藏深度思考
+				hideThinkContent: false,
+				// 准备解析的 markdown 文本
+				readyParseMarkdownText: ''
 			}
 		},
 		computed: {
@@ -80,146 +61,89 @@
 			isLastAiMsg(): boolean {
 				return uniAi.lastAiMsg?._id == this.msg._id
 			},
-			markdownTokenList(): MarkdownToken[] {
-				return [...this.msg.markdownTokenList, ...this.tmpTokenList]
+			uiTheme(): string {
+				return uniAi.setting.theme
 			}
 		},
 		watch: {
-			state: {
-				handler(newVal: string, oldVal: string) {
-					if ((newVal == 'stop' || newVal == 'completed') && oldVal == 'processing') {
-						this.msg.markdownTokenList.push(...this.tmpTokenList)
-						this.tmpTokenList = []
-					}
-				}
-			},
 			'msg.body': {
-				async handler(msgBody: string) {	
+				async handler(msgBody: string) {
+					if (msgBody.length == 0) {
+						this.readyParseMarkdownText = ''
+						this.markdownStrIndex = 0
+						this.msg.markdownTokenList = []
+						this.parseLock = false
+					}
 					if (this.state == 'processing') {
-						this.taskList.push(async () => {
-							if (msgBody.length == 0){
-								return
-							}
-							if (this.markdownStrIndex >= msgBody.length) {
-								if (this.msg.markdownTokenList.length == 0) {
-									// 这种情况是点击重新回答
-									this.markdownStrIndex = 0
-								} else {
-									this.markdownStrIndex = 0
-									console.error('意外超长，请检查')
-									return
-								}
-							}
-							await this.markdownParse(msgBody)
-						})
 						this.runTask()
 					} else {
-						// const testMd = ''
-						// const TokensList = marked.lexer(testMd,null) as TokensList
-						// this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
-						
 						// console.log('this.msg.body', this.msg.body)
 						// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
 					}
+
+					// 测试代码 模拟解析固定的md
+					// const testMd = testMarkdownText
+					// const TokensList = marked.lexer(testMd,null) as TokensList
+					// console.log('TokensList----------', TokensList)
+					// this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
 				},
-				immediate: true
+				// immediate: true
 			},
-			'markdownTokenList': {
-				handler(markdownTokenList: MarkdownToken[]) {
-					if (this.state == 'processing') {
-						const length = markdownTokenList.length
-						const lastToken = length > 0 ? markdownTokenList[length - 1] : null
-						if (lastToken?.type == 'table') {
-							const oldTableInfo = this.tableInfoMap.get((length - 1).toString())
-							const newTableInfo = this.nodeToTableInfo(lastToken)
-							if (oldTableInfo == null) {
-								this.tableInfoMap.set((length - 1).toString(), newTableInfo)
-							} else {
-								// 旧的数据要 push 新数据 新增的项。不要整个更新避免闪烁
-								const oldTableData = oldTableInfo['data']! as UTSJSONObject[]
-								const newTableData = newTableInfo['data']! as UTSJSONObject[]
-								const oldTableDataLength = oldTableData.length
-								oldTableData.push(...newTableData.slice(oldTableDataLength))
-							}
-						}
-					} else {
-						// 解析时检查所有项
-						markdownTokenList.forEach((node: MarkdownToken, index: number) => {
-							if (node.type == 'table') {
-								this.tableInfoMap.set(index.toString(), this.nodeToTableInfo(node))
-							}
-						})
+			state: {
+				handler(state: string) {
+					if (state == 'completed' || state == 'stop') {
+						console.log('this.msg.body', this.msg.body)
+						console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
 					}
-					// console.error('tableInfoMap',this.tableInfoMap)
 				},
-				immediate: true
 			}
 		},
-// 		mounted(){
-// 			// 模拟ai 流式回答消息
-// 			const text = `# 五级标题示例
-// ## 二级标题
-// ### 三级标题
-// #### 四级标题
-// ##### 五级标题
-// ---
-// ## 有序列表示例
-// 1. 第一项
-// 2. 第二项
-//    1. 子项一
-//    2. 子项二
-// 3. 第三项
-// ---
-// ## 简单表格示例
-
-// | 姓名 | 年龄 | 职业 |
-// |------|------|------|
-// | *张三* | 28   | 工程师 |
-// | *李四* | 32   | 设计师 |
-// | *王五* | 25   | 学生 |
-
-// ---
-// ## 简单JS代码示例
-// \`\`\`javascript
-// // 计算两个数的和
-// function add(a, b) {
-//   return a + b;
-// }
-// // 使用示例
-// const result = add(5, 3);
-// console.log(result); // 输出: 8
-// \`\`\`
-// ---
-// ## 链接示例  
-// [访问百度](https://www.baidu.com)  
-// 或者直接显示URL：<https://www.baidu.com>
-// `
-// 			const textMarkdown = text
-// 			uniAi.currentChat!.state = 'processing'
-// 			this.msg.body = ''
-// 			this.msg.markdownTokenList = []
-// 			// 一个字一个字往 this.msg.body 上追加
-// 			let i = 0
-// 			let timer: number = 0
-// 			timer = setInterval(() => {
-// 				if (i >= textMarkdown.length) {
-// 					clearInterval(timer)
-// 				} else {
-// 					this.msg.body += textMarkdown[i]
-// 					i++
-// 				}
-// 			}, 30)
-// 		},
+		mounted(){
+			// this.testRun()
+			// console.log('this.msg.body', this.msg.body)
+			// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
+			// console.log('this.msg.markdownTokenList', JSON.stringify(this.msg.markdownTokenList))
+		},
 		methods: {
 			runTask(){
-				if (this.parseLock == false && this.taskList.length > 0) {
-					this.parseLock = true
-					this.taskList[0]().finally(() => {
-						this.taskList.shift()
-						this.parseLock = false
-						this.runTask()
-					})
-				}
+				if (this.parseLock != false) return
+				this.parseLock = true
+				// 新增的 markdown 文本
+				const newMarkdownText = this.msg.body.slice(this.readyParseMarkdownText.length)
+				// 更新准备解析的 markdown 文本 = 新增的 markdown 文本的\n 之前的部分
+				this.readyParseMarkdownText +=  newMarkdownText.includes('\n') ? newMarkdownText.split('\n')[0] + '\n' : newMarkdownText
+				// 拿到本次解析的文本
+				let markdownText = this.readyParseMarkdownText.slice(this.markdownStrIndex)
+				// console.error('markdownText', markdownText)
+				this.markdownParse(markdownText).finally(()=>{
+					// console.error('this.markdownParse().finally', this.markdownStrIndex , this.msg.body.length)
+					this.parseLock = false
+					if (this.readyParseMarkdownText.length < this.msg.body.length && this.markdownStrIndex < this.msg.body.length) {
+						setTimeout(() => {
+							// console.log('未满')
+							this.runTask()
+						}, 300)
+					}
+				})
+			},
+			testRun(){
+				// 模拟ai 流式回答消息
+				uniAi.currentChat!.state = 'processing'
+				this.msg.body = ''
+				this.msg.markdownTokenList = []
+				// 10个字为一批往 this.msg.body 上追加
+				let i = 0
+				let timer: number = 0
+				timer = setInterval(() => {
+					if (i >= testMarkdownText.length) {
+						clearInterval(timer)
+					} else {
+						const batchSize = 30
+						const endIndex = Math.min(i + batchSize, testMarkdownText.length)
+						this.msg.body += testMarkdownText.slice(i, endIndex)
+						i = endIndex
+					}
+				}, 100)
 			},
 			// 根据不同类型，判断是否闭合
 			isClose(type: string, markdownText: string): boolean {
@@ -241,72 +165,91 @@
 				}
 			},
 			async parseCode(markdownText: string): Promise<string>{
-				// 如果 lastToken 是代码块，并且包含 ``` (无序列表不完整时可能会被解析成代码块)，则不继续解析 markdown
-				const codeToken: MarkdownToken | null = this.tmpTokenList.find(token => token.type == 'code') ?? null
-				if (codeToken != null && codeToken.isClose != true && markdownText.split('\n').length > 1) {
+				// 如果 lastToken 是代码块，并且以 ``` 开头 (无序列表不完整时可能会被解析成代码块)，则不继续解析 markdown
+				const codeToken: MarkdownToken | null = this.msg.markdownTokenList.filter(token => token.isClose != true).find(token => token.type == 'code')
+				if (codeToken != null && markdownText.split('\n').length > 1 && markdownText.startsWith('```')) {
+					
 					// 按行分割第 1 行是 ``` + lang，第 2 行起是代码内容
 					const codeTokenArr = markdownText.split('\n')
 					// console.error('codeTokenArr', codeTokenArr)
 					const lang = codeTokenArr[0].slice(3)
-					// 去掉首行和末行的 ```
-					const codeText = codeTokenArr.slice(1).join('\n').slice(0, -5)
-					// 末尾必须是换行符
-					if (markdownText.slice(-1) != '\n') {
-						if (codeToken.codeTokens == null) {
-							codeToken.text = codeText
-						}
-						// console.error('末尾必须是换行符')
-						return ''
+					// 去掉首行和末行的 ``` + 换行符
+					let codeText = codeTokenArr.slice(1).join('\n')
+					// console.error('this.msg.body', this.msg.body)
+					// console.error('markdownText', markdownText)
+					// console.error('codeText', codeText)
+
+					// 找到```+换行符的索引
+					const codeEndIndex = codeText.indexOf('```\n')
+					if (codeEndIndex != -1) {
+						codeText = codeText.slice(0, codeEndIndex)
 					}
-					// console.error('codeText', codeText,'\n\n\n lang', lang, '\n\n\n markdownText', markdownText)
+					// console.error('codeText', codeText)
 					codeToken.text = codeText
-					// console.error('codeText', codeText, lang)
+
 					if (lang != 'markdown') {
-						const parseCodeRes = await parseCode(codeText,lang)
-						const codeTokens = parseCodeRes.tokens
-						if (parseCodeRes.error != null) {
-							// console.log('解析代码失败',parseCodeRes.error, codeText, lang)
-						} else {
-							// console.error('codeTokens--------------',codeTokens, codeText, lang)
-							codeToken.codeTokens = codeTokens
+						// 当前已经解析的代码行数
+						const codeTokneLength = codeToken.codeTokens?.length ?? 0
+						// 1次只解析1行代码。按行分割代码
+						const codeTextArr = codeText.split('\n')
+						// 拿到本次要解析的代码
+						let lineCodeText: string | null = null;
+						// 拿到上一次解析过的那行代码所在位置的新代码
+						const lastLineCodeNewText: string = codeTextArr[codeTokneLength == 0 ? 0 : codeTokneLength - 1]
+						// 判断上一次解析过的那行代码是否更新了
+						const lastLineCodeTextIsUpdate = this.lastParseLineCodeText != lastLineCodeNewText
+						if (lastLineCodeTextIsUpdate) {
+							// 如果更新了，设为本次要解析的代码
+							lineCodeText = lastLineCodeNewText
+						} else if (codeTokneLength < codeTextArr.length) {
+							lineCodeText = codeTextArr[codeTokneLength]
+						}
+						// 保存本次要解析的代码
+						this.lastParseLineCodeText = lineCodeText ?? ''
+						// console.log('lineCodeText', lineCodeText)
+						// 3. 解析代码
+						if (lineCodeText != null) {
+							const parseCodeRes = await parseCode(lineCodeText,lang)
+							const lineCodeToken: IToken[] = parseCodeRes.tokens
+							if (parseCodeRes.error != null) {
+								console.warn('解析代码失败 lang',lang,parseCodeRes.error, codeText, lang)
+							} else {
+								if (codeToken.codeTokens == null) {
+									codeToken.codeTokens = [lineCodeToken] as IToken[][]
+								} else if (lastLineCodeTextIsUpdate) {
+									codeToken.codeTokens[codeTokneLength - 1] = lineCodeToken
+								}
+								else {
+									codeToken.codeTokens.push(lineCodeToken)
+								}
+							}
 						}
 					}
-					// 拿到所有包含 ``` 的行
-					const codeBorderLines = codeTokenArr.filter(line => line.includes('```'))
-					// 如果 ``` 的行数小于 2，则不继续解析 markdown
-					if (codeBorderLines.length < 2) {
-						// console.error('代码还没结束',codeBorderLines.length, codeTokenArr)
+					
+					if (codeEndIndex == -1) {
+						// console.error('代码还没结束')
 						return ''
 					}
-					// 如果 代码开始和结束标识 不相等，则不继续解析 markdown
-					// 统计结束标识的行数
-					const codeEndIndex = codeBorderLines.filter(line => line == '```').length
-					// 统计开始标识的行数
-					const codeStartIndex = codeBorderLines.length - codeEndIndex
-					if (codeStartIndex != codeEndIndex) {
-						// console.error('代码开始和结束标识 不相等',codeStartIndex, codeEndIndex)
-						return ''
-					} else {
-						// 闭合代码块
-						codeToken.isClose = true
-						this.msg.markdownTokenList.push(codeToken)
-						this.tmpTokenList = []
-						this.markdownStrIndex += markdownText.lastIndexOf('```') + 3
-						return ''
-					}
+					// 闭合代码块
+					codeToken.isClose = true
+					// 更新 this.msg.markdownTokenList 的最后一个元素
+					const length = this.msg.markdownTokenList.length
+					// console.error('闭合代码块', codeToken)
+					this.msg.markdownTokenList[length - 1] = codeToken
+					// 更新代码块的索引
+					this.markdownStrIndex += markdownText.lastIndexOf('```') + 3
+					return ''
 				}
 				return markdownText
 			},
 			async markdownParse(markdownText: string){
-				// 拿到本次解析的文本
-				markdownText = markdownText.slice(this.markdownStrIndex)
 				// console.log('markdownText111========>',markdownText)
 				markdownText = await this.parseCode(markdownText)
 				if (markdownText.length == 0) {
 					// console.error('空了，不继续执行',markdownText)
 					return
 				}
-				let newTokenList: MarkdownToken[] = []
+				let newTokenList: MarkdownToken[];
 				try {
 					newTokenList = (marked.lexer(markdownText,null) as TokensList).tokens as MarkdownToken[]
 				} catch (error) {
@@ -315,60 +258,69 @@
 					 已知问题：
 					 	1. Android 端，链接的 markdown 不完整时，会报错。但不影响整个流式解析逻辑。
 					*/
-					console.warn('markdownParse error',error)
+					console.warn('markdownParse error',markdownText,error)
+					return
+				}
+				if (newTokenList.length == 0) {
 					return
 				}
 				
 				// 新增的元素是否闭合
-				newTokenList[0]!.isClose = this.isClose(newTokenList[0]!.type ?? '', markdownText)
+				let fntIsClose = this.isClose(newTokenList[0]!.type ?? '', markdownText)
+				newTokenList[0]!.isClose = fntIsClose
+				// #ifdef APP-HARMONY
+				// TODO：临时方案解决鸿蒙平台的解析错误的 bug。如果是 paragraph 类型，且可能是代码块的开头，即包含 ```+语言名称 + 换行符，例如 ```javascript\n
+				if (newTokenList[0]!.type == 'paragraph' && /```[a-zA-Z]+\n/.test(newTokenList[0]!.raw!)) {
+					newTokenList[0]!.type = 'code'
+					fntIsClose = false
+					newTokenList[0]!.isClose = fntIsClose
+				}
+				// #endif
+
 				// 解析结果为闭合的，则直接添加到 msg.markdownTokenList 中，否则添加到临时列表中
-				if (newTokenList[0].isClose == true) {
-					this.tmpTokenList = []
-					this.msg.markdownTokenList.push(newTokenList[0]!)
-					this.markdownStrIndex += newTokenList[0]!.raw!.length
-					// 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
-					const mdTLLength = this.msg.markdownTokenList.length
-					if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
-						const newMdText = this.msg.markdownTokenList[mdTLLength - 2]!.raw! + this.msg.markdownTokenList[mdTLLength - 1]!.raw!
-						const newTokenList2 = (marked.lexer(newMdText,null) as TokensList).tokens as MarkdownToken[]
-						if (newTokenList2.length == 1 && newTokenList2[0]!.type != newTokenList[0].type){
-							this.msg.markdownTokenList.splice(-2)
-							this.msg.markdownTokenList.push(newTokenList2[0]!)
+				// 找到第一个未闭合的项的索引
+				const unCloseTokenIndex = this.msg.markdownTokenList.findIndex(token => token.isClose == false || token.isClose == null)
+				// console.log('unCloseTokenIndex', unCloseTokenIndex)
+				let markdownStrIndexDiff:number = 0
+				if (unCloseTokenIndex != -1) {
+					// 一一对应更新，如果更新后，新元素的类型和旧元素的类型不一致，则删除旧元素，并添加新元素。如果数量更多，需要新增
+					for (let i = 0; i < newTokenList.length; i++) {
+						if (unCloseTokenIndex + i < this.msg.markdownTokenList.length) {
+							this.msg.markdownTokenList[unCloseTokenIndex + i] = newTokenList[i]!
+						} else {
+							this.msg.markdownTokenList.push(newTokenList[i]!)
+						}
+
+						if (fntIsClose) {
+							markdownStrIndexDiff += newTokenList[i]!.raw!.length
 						}
 					}
 				} else {
-					this.tmpTokenList = newTokenList
+					if (fntIsClose) {
+						markdownStrIndexDiff += newTokenList[0]!.raw!.length
+					}
+					this.msg.markdownTokenList.push(newTokenList[0]!)
 				}
-			},
-			getTableInfo(index: number): UTSJSONObject {
-				return this.tableInfoMap.get(index.toString()) ?? {
-					columns: [] as UTSJSONObject[],
-					data: [] as UTSJSONObject[]
-				} as UTSJSONObject
-			},
-			nodeToTableInfo(node: MarkdownToken): UTSJSONObject {
-				const columns: UTSJSONObject[] = []
-				node.header?.forEach((cell: TableCell) => {
-					columns.push({
-						dataKey: cell.text,
-						title: cell.text,
-						align: cell.align ?? 'left'
-					})
-				})
-				const data: UTSJSONObject[] = []
-				node.rows?.forEach((row: TableCell[]) => {
-					const rowData: UTSJSONObject = {}
-					row.forEach((cell: TableCell, index: number) => {
-						// 内容中的 * 要去除，暂不实现表格内的样式
-						rowData[columns![index]!.dataKey!] = cell.text.replace(/\*/g, '')
-					})
-					data.push(rowData)
-				})
-				// console.error('columns' + JSON.stringify(columns))
-				// console.error('table data',JSON.stringify(data))
-				return {
-					columns,
-					data
+				if (fntIsClose) {
+					// console.log('newTokenList[0]', newTokenList[0])
+					// 游标向右移动
+					this.markdownStrIndex += markdownStrIndexDiff
+					// 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
+					const mdTLLength = this.msg.markdownTokenList.length
+					if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
+						// 最后2项闭合的 + 所有未闭合的
+						const newMdText = this.msg.markdownTokenList[mdTLLength - 2]!.raw! + this.msg.markdownTokenList[mdTLLength - 1]!.raw!
+						// console.log('newMdText', newMdText)
+						const newTokenList2 = (marked.lexer(newMdText,null) as TokensList).tokens as MarkdownToken[]
+						if (newTokenList2.length == 1 && newTokenList2[0]!.type != newTokenList[0].type){
+							this.msg.markdownTokenList[mdTLLength - 2] = newTokenList2[0]!
+							this.msg.markdownTokenList.splice(mdTLLength - 1, 1)
+						}	
+					}
+					// 所有项都设置为闭合
+					for (let unCloseTokenIndex = 0; unCloseTokenIndex < this.msg.markdownTokenList.length; unCloseTokenIndex++) {
+						this.msg.markdownTokenList[unCloseTokenIndex]!.isClose = true
+					}
 				}
 			}
 		}
@@ -386,92 +338,58 @@
 		user-select: text;
 		// #endif
 
+		.think-content {
+			padding: 5px;
+			background: #f5f5f5;
+			border-left: 4px solid #ddd;
+			width: 100%;
+			margin: 5px 0;
+			.header {
+				flex-direction: row;
+				.title {
+					font-size: 14px;
+					color: #888;
+				}
+			}
+			.text-box {
+				&.hideThinkContent {
+					height: 0;
+				}
+				.text {
+					text-align: left;
+					font-size: 14px;
+					color: #999;
+				}
+			}
+		}
+
 		.error-msg {
 			color: #ff4d4f;
 			font-size: 14px;
 			line-height: 26px;
 		}
-		.paragraph {
-			width: 100%;
-			.text {
-				// 自动换行
-				white-space: normal;
-				/* #ifndef APP */
-				max-width: 100%;
-				word-break: break-all;
-				/* #endif */
-			}
-		}
 		
-		.blockquote {
-			padding-left: 5px;
-			background: #f5f5f5;
-			border-left: 4px solid #ddd;
-			width: 100%;
-		}
-		
-		.code-box {
-			width: 100%;
-		}
-
-		.table-box {
-			width: 100%;
-			border: solid 1px #ddd;
-			border-style: solid solid none none;
-			margin: 5px 0;
-			.table-header {
-				flex-direction: row;
-				.table-header-text {
-					font-weight: bold;
-					font-size: 16px;
-				}
-			}
-			.table-body {
-				flex-direction: column;
-				.table-body-row {
-					flex-direction: row;
-				}
-			}
-			.table-header-text, .table-body-text {
-				border: solid 1px #ddd;
-				border-style: none none solid solid;
-				text-align: center;
-				line-height: 35px;
-				flex: 1;
-			}
-		}
-
-		.hr {
-			height: 1px;
-			background-color: #ddd;
-			margin: 10px 0;
-			width: 100%;
-		}
-		
-		.text {
-			color: #333;
-			// line-height: 1.5;
-			white-space: normal;
-			/* #ifndef APP */
-			word-break: break-all;
-			/* #endif */
-			&.stop {
-				color: #999;
-			}
-		}
-		
-		.loging {
+		.loging-icon {
 			padding-top: 8px;
 		}
 		
-		.needTry {
+		.stop-text {
+			font-size: 14px;
+			text-align: center;
+			padding: 10px 0;
+		}
+
+		.need-try {
 			color: #ff4d4f;
 			font-size: 14px;
 			text-align: center;
 			padding: 10px;
 		}
 	}
+	// 暗黑模式
 	.ui-theme-dark {
+		padding: 5px;
+		background-color: #29292d;
 		.msg-types-item-root {
 			.paragraph .text{
 				color: #fff !important;

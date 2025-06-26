@@ -16,5 +16,5 @@ export interface I_Parser {
 	/**
 	   * Parse Inline Tokens
 	   */
-	parseInline(tokens: NodesToken[], renderer?: I_Renderer | I_TextRenderer | null): string;
+	parseInline(tokens: NodesToken[], rendererSource?: I_Renderer | I_TextRenderer | null): string;
 }

@@ -2,7 +2,7 @@
     <view class="input-tool-bar">
         <view class="btn" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}" @click="setThinking">
             <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !canThinking ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}">深度思考</text>
+            <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}">深度思考 (R1)</text>
         </view>
         <view class="btn" :class="{disable: !canWebSearch, active: webSearch}" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
@@ -18,7 +18,7 @@
 </template>
 <script>
 import uniAi from '@/uni_modules/uni-ai-x/sdk';
-import {llmModelMap, type LLMModel} from '../config';
+import {llmModelMap, providerNameList, type LLMModel} from '../config';
 export default {
     name: 'inputToolBar',
     computed: {
@@ -62,6 +62,7 @@ export default {
     data() {
         const canWebSearchLLmList: string[] = [];
         const canThinkingLLmList: string[] = [];
+        let hasDeepseekR1Model = false;
         llmModelMap.forEach((provider,providerName) => {
             provider.models.forEach(model => {
                 if (model.webSearch == true) {
@@ -70,13 +71,16 @@ export default {
                 if (model.thinking == true) {
                     canThinkingLLmList.push(providerName + ' - ' + model.name);
                 }
+                if (model.name == 'deepseek-r1') {
+                    hasDeepseekR1Model = true;
+                }
             });
         });
-
         return {
             canThinkingLLmList,
             canWebSearchLLmList,
-            pushClientId: ''  
+            pushClientId: '',
+            hasDeepseekR1Model
         }
     },
     mounted() {
@@ -113,18 +117,15 @@ export default {
             this.inputContent = '';
         },
         setThinking(){
-            if (this.canThinking) {
+            // 切换深度思考模型
+            if (!this.hasDeepseekR1Model) {
                 uni.showToast({
-                    title: "当前模型，不支持关闭深度思考,请选择其他模型",
+                    title: '请在 config.json 中配置 deepseek-r1 模型',
                     duration: 3000,
                     icon: 'none'
                 });
             } else {
-                uni.showToast({
-                    title: this.canThinkingLLmList.length > 0 ? `仅${this.canThinkingLLmList.join('、')}支持深度思考功能` : '当前模型不支持深度思考功能',
-                    duration: 3000,
-                    icon: 'none'
-                });
+                uniAi.llm.model = this.canThinking ? "deepseek-v3" : "deepseek-r1"
             }
         },
         setWebSearch(){
@@ -150,7 +151,7 @@ export default {
     .btn {
         flex-direction: row;
         align-items: center;
-        padding: 5px 10px;
+        padding: 0 10px;
         background-color: #efefef;
         border-radius: 30px;
         margin-right: 5px;
@@ -161,7 +162,7 @@ export default {
             background-color: #efefef;
         }
         .text {
-            font-size: 14px;
+            font-size: 12px;
             color: #666;
             margin-left: 3px;
         }

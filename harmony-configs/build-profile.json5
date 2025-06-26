@@ -40,8 +40,8 @@
   },
   "modules": [
     {
-      "name": "uni_modules__uni_code_highlighting",
-      "srcPath": "./uni_modules/uni-code-highlighting"
+      "name": "uni_modules__uni_highlight",
+      "srcPath": "./uni_modules/uni-highlight"
     },
     {
       "name": "entry",

@@ -1,0 +1,97 @@
+export default`\`\`\`javascript
+var a = document.getElementById('app')
+console.log(a)
+console.log(b)
+console.log(c)
+function test(){
+	console.log(d)
+}
+test()
+\`\`\`
+
+\`\`\`php
+print_r($data);
+\`\`\`
+> 引用
+`
+// # 表格 
+
+// | 表头1 | 表头2 | 表头3 |
+// |-------|-------|-------|
+// | 单元格1 | 单元格2 | 单元格3 |
+// | 单元格4 | 单元格5 | 单元格6 |
+
+// ## 无序列表
+
+// - 无序列表1 
+// * 无序列表2	
+// 	* 无序列表2-1
+// 	* 无序列表2-2
+
+// ## 任务列表
+// - [ ] 任务列表-未完成任务
+// - [x] 任务列表-已完成任务
+
+// # 标题1
+// ## 标题2
+// ### 标题3
+// #### 标题4
+// ##### 标题5
+// ###### 标题6
+
+// # 列表
+// ## 有序列表
+// 1. 有序列表1
+// 	1. 有序列表1-1
+// 	2. 有序列表1-2
+// 2. 有序列表2
+// 	1. 有序列表2-1
+
+// ## 引用列表
+// > 引用1
+// > 引用2
+
+// # 文字样式语法
+// **加粗**  *倾斜* ~~删除线~~
+
+// 链接：[链接文字](http://dcloud.io)
+
+// # 分割线
+// -------------
+// *************
+
+// # 代码区
+// \`\`\`javascript
+// 	var a = document.getElementById('app')
+// \`\`\`
+// `
+
+
+// // 防抖函数
+// function debounce(func: Function, wait: number): Function {
+//     let timeout: number | null = null;
+//     return function(...args: any[]) {
+//         if (timeout) clearTimeout(timeout);
+//         timeout = setTimeout(() => func.apply(this, args), wait);
+//     };
+// }
+
+// // 节流函数
+// function throttle(func: Function, limit: number): Function {
+//     let inThrottle: boolean = false;
+//     return function(...args: any[]) {
+//         if (!inThrottle) {
+//             func.apply(this, args);
+//             inThrottle = true;
+//             setTimeout(() => inThrottle = false, limit);
+//         }
+//     };
+// }
+
+// // 使用示例
+// const debouncedAlert = debounce((message: string) => alert(message), 300);
+// const throttledAlert = throttle((message: string) => alert(message), 1000);
+
+// // 测试
+// debouncedAlert('防抖测试');
+// throttledAlert('节流测试');

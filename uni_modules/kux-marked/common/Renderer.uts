@@ -45,16 +45,17 @@ export class Renderer implements I_Renderer {
 	}
 	
 	html(option: NodesToken): string {
-		let text = '';
-		option = option as NodesToken;
-		if (option.type == 'html') {
-			option = option;
-			text = option.text!;
-		} else {
-			option = option;
-			text = option.text!;
-		}
-		return '';
+		// let text = '';
+		// option = option as NodesToken;
+		// if (option.type == 'html') {
+		// 	option = option;
+		// 	text = option.text!;
+		// } else {
+		// 	option = option;
+		// 	text = option.text!;
+		// }
+		// return '';
+		return option.text == null ? '' : option.text;
 	}
 	
 	heading(option: NodesToken): string {
@@ -124,7 +125,8 @@ export class Renderer implements I_Renderer {
 		return `<p>${this.parser!.parseInline(tokens!, null)}</p>\n`;
 	}
 	
-	table(token: NodesToken): string {
+	table(optionSource: NodesToken): string {
+		const token = optionSource;
 		let header = '';
 		
 		// header
@@ -160,7 +162,8 @@ export class Renderer implements I_Renderer {
 		return `<tr>${text}</tr>\n`;
 	}
 	
-	tablecell(token: TableCell): string {
+	tablecell(optionSource: TableCell): string {
+		const token = optionSource;
 		const content = this.parser!.parseInline(token.tokens, null);
 		const type = token.header ? 'th' : 'td';
 		const tag = token.align != null
@@ -188,7 +191,7 @@ export class Renderer implements I_Renderer {
 		return `<code>${escape(text!, true)}</code>`;
 	}
 	
-	br(token: NodesToken): string {
+	br(optionSource: NodesToken): string {
 		return '<br>';
 	}
 	
@@ -230,12 +233,12 @@ export class Renderer implements I_Renderer {
 		return out;
 	}
 	
-	text(token: NodesToken): string {
-		const obj = token as NodesToken;
+	text(option: NodesToken): string {
+		const obj = option;
 		if (obj.tokens != null && obj.tokens!.length > 0) {
 			return this.parser!.parseInline(obj.tokens as NodesToken[], null);
 		} else {
-			return (obj.escaped != null ? `${token.text}` : escape(`${token.text}`, null));
+			return (obj.escaped != null ? `${obj.text}` : escape(`${obj.text}`, null));
 		}
 	}
 }

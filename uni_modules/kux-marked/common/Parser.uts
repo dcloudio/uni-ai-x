@@ -148,19 +148,16 @@ export class Parser implements I_Parser {
 						tokens: textToken.tokens != null ? (textToken.tokens as NodesToken[]) : null,
 						escaped: textToken.escaped != null ? (textToken.escaped as boolean) : null
 					} as NodesToken);
-					if (tokens[i + 1] != null) {
-						// const nextToken = JSON.parseObject(JSON.stringify(tokens[i + 1])!)!;
-						const nextToken = tokens[i + 1];
-						while (i + 1 < tokens.length && nextToken.type == 'text') {
-							textToken = tokens[++i];
-							body += '\n' + this.renderer.text({
-								type: 'text',
-								raw: textToken.raw as string,
-								text: textToken.text as string,
-								tokens: textToken.tokens != null ? (textToken.tokens as NodesToken[]) : null,
-								escaped: textToken.escaped != null ? (textToken.escaped as boolean) : null
-							} as NodesToken);
-						}
+					const nextToken = tokens[i + 1];
+					while (i + 1 < tokens.length && nextToken.type == 'text') {
+						textToken = tokens[++i];
+						body += '\n' + this.renderer.text({
+							type: 'text',
+							raw: textToken.raw as string,
+							text: textToken.text as string,
+							tokens: textToken.tokens != null ? (textToken.tokens as NodesToken[]) : null,
+							escaped: textToken.escaped != null ? (textToken.escaped as boolean) : null
+						} as NodesToken);
 					}
 					if (top == true) {
 						out += this.renderer.paragraph({
@@ -199,7 +196,8 @@ export class Parser implements I_Parser {
 	/**
 	   * Parse Inline Tokens
 	   */
-	parseInline(tokens: NodesToken[], renderer?: I_Renderer | I_TextRenderer): string {
+	parseInline(tokens: NodesToken[], rendererSource?: I_Renderer | I_TextRenderer): string {
+		let renderer = rendererSource;
 		let out = '';
 		renderer = renderer ?? this.renderer;
 		

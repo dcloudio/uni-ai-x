@@ -13,9 +13,9 @@ export class Marked implements I_Marked {
 	parse = this.parseMarkdown(true);
 	parseInline = this.parseMarkdown(false);
 	
-	constructor(...args: MarkedExtension[]) {
+	// constructor(...args: MarkedExtension[]) {
 	    
-	}
+	// }
 	
 	/**
 	   * Run callback for every token
@@ -135,7 +135,7 @@ export class Marked implements I_Marked {
 			}
 			
 			// const lexer = opt.hooks != null ? opt.hooks!.provideLexer() : (blockType ? _Lexer.lex : _Lexer.lexInline);
-			let lexer: any = ()=>{};
+			let lexer: any | null;
 			if (opt.hooks != null) {
 				lexer = opt.hooks!.provideLexer();
 			} else {
@@ -150,7 +150,7 @@ export class Marked implements I_Marked {
 				}
 			}
 			// const parser = opt.hooks != null ? opt.hooks!.provideParser() : (blockType ? _Parser.parse : _Parser.parseInline);
-			let parser: any | null = null;
+			let parser: any | null;
 			if (opt.hooks!= null) {
 				parser = opt.hooks!.provideParser();
 			} else {
@@ -165,7 +165,12 @@ export class Marked implements I_Marked {
 			if (opt.async == true) {
 				return Promise.resolve(opt.hooks != null ? opt.hooks!.preprocess(src) : src)
 					// #ifndef APP-HARMONY
+					// #ifdef APP-ANDROID
 					.then((src): TokensList => lexer(src, opt))
+					// #endif
+					// #ifndef APP-ANDROID
+					.then((src): TokensList => lexer!(src, opt))
+					// #endif
 					// #endif
 					// #ifdef APP-HARMONY
 					.then((src): TokensList => (lexer as Function)(src, opt))
@@ -186,7 +191,7 @@ export class Marked implements I_Marked {
 				if (opt.hooks != null) {
 					src = opt.hooks!.preprocess(src);
 				}
-				let tokens: any | null = null;
+				let tokens: any | null;
 				let html = '';
 				await new Promise<any>((resolve, reject) => {
 					// #ifdef APP-ANDROID
@@ -194,7 +199,12 @@ export class Marked implements I_Marked {
 					// #endif
 						try {
 							// #ifndef APP-HARMONY
+							// #ifdef APP-ANDROID
 							tokens = lexer(src, opt);
+							// #endif
+							// #ifndef APP-ANDROID
+							tokens = lexer!(src, opt);
+							// #endif
 							// #endif
 							// #ifdef APP-HARMONY
 							tokens = (lexer as Function)(src, opt);

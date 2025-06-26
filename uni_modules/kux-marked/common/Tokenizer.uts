@@ -14,7 +14,11 @@ import JSReg from 'io.dcloud.uts.jsreg.JSReg';
 
 function outputLink(cap : string[], link : NodesToken, raw : string, lexer : I_Lexer, rules : Rules) : NodesToken {
 	const href = link.href;
-	const title = link.title;
+	// const title = link.title ?? null;
+	let title: string | null = null;
+	if (link.title != null) {
+		title = link.title;
+	}
 	const text = cap[1].replace(rules.other.outputLinkReplace, '$1');
 
 	if (cap[0].charAt(0) != '!') {
@@ -173,6 +177,9 @@ export class Tokenizer implements I_Tokenizer {
 		return null;
 	}
 
+	// #ifdef APP-ANDROID
+	@Suppress("RedundantFieldInitialization")
+	// #endif
 	blockquote(src : string) : NodesToken | null {
 		const cap = this.rules!.block.blockquote.exec(src);
 		if (cap != null && cap[0] != null) {
@@ -184,8 +191,8 @@ export class Tokenizer implements I_Tokenizer {
 			while (lines.length > 0) {
 				let inBlockquote = false;
 				const currentLines = [] as string[];
-
-				let i = 0;
+				
+				let i: number;
 				for (i = 0; i < lines.length; i++) {
 					// get lines up to a continuation
 					if (this.rules!.other.blockquoteStart.test(lines[i])) {
@@ -205,8 +212,8 @@ export class Tokenizer implements I_Tokenizer {
 					.replace(this.rules!.other.blockquoteSetextReplace, '\n    $1')
 					.replace(this.rules!.other.blockquoteSetextReplace2, '');
 
-				raw = raw != null ? `${raw}\n${currentRaw}` : currentRaw;
-				text = text != null ? `${text}\n${currentText}` : currentText;
+				raw = raw != '' ? `${raw}\n${currentRaw}` : currentRaw;
+				text = text != '' ? `${text}\n${currentText}` : currentText;
 
 				// parse blockquote lines as top level tokens
 				// merge paragraphs if this is a continuation
@@ -235,12 +242,12 @@ export class Tokenizer implements I_Tokenizer {
 					}
 
 					if ((raw.length - oldToken.raw.length) <= raw.length) {
-						raw = raw.substring(0, raw.length - oldToken.raw.length) + newToken?.raw ?? '';
+						raw = raw.substring(0, raw.length - oldToken.raw.length) + (newToken?.raw == null ? '' : newToken.raw);
 					} else {
 						raw = '';
 					}
 					if ((text.length - oldToken.text.length) <= text.length) {
-						text = text.substring(0, text.length - oldToken.text.length) + newToken?.text ?? '';
+						text = text.substring(0, text.length - oldToken.text.length) + (newToken?.text == null ? '' : newToken.text);
 					} else {
 						text = '';
 					}
@@ -255,12 +262,12 @@ export class Tokenizer implements I_Tokenizer {
 					}
 
 					if ((raw.length - oldToken.raw.length) <= raw.length) {
-						raw = raw.substring(0, raw.length - oldToken.raw.length) + newToken?.raw ?? '';
+						raw = raw.substring(0, raw.length - oldToken.raw.length) + (newToken?.raw == null ? '' : newToken.raw);
 					} else {
 						raw = '';
 					}
 					if ((text.length - oldToken.raw.length) <= text.length) {
-						text = text.substring(0, text.length - oldToken.raw.length) + newToken?.raw ?? '';
+						text = text.substring(0, text.length - oldToken.raw.length) + (newToken?.raw == null ? '' : newToken.raw);
 					} else {
 						text = '';
 					}
@@ -289,7 +296,8 @@ export class Tokenizer implements I_Tokenizer {
 		return JSON.parseObject(JSON.stringify(token)!)!;
 	}
 
-	list(src : string) : NodesToken | null {
+	list(source : string) : NodesToken | null {
+		let src = source;
 		let cap = this.rules!.block.list.exec(src);
 		if (cap != null && cap[0] != null) {
 			let bull = cap[1]!.trim();
@@ -299,7 +307,7 @@ export class Tokenizer implements I_Tokenizer {
 				type: 'list',
 				raw: '',
 				ordered: isordered,
-				start: isordered ? bull.slice(0, -1) : '',
+				start: isordered ? parseFloat(bull.slice(0, -1)) : '',
 				loose: false,
 				items: [] as NodesToken[],
 				tokens: [] as NodesToken[]
@@ -317,7 +325,7 @@ export class Tokenizer implements I_Tokenizer {
 			// Check if current bullet point can start a new List Item
 			while (src.length > 0) {
 				let endEarly = false;
-				let raw = '';
+				let raw: string;
 				let itemContents = '';
 				cap = itemRegex.exec(src);
 				if (cap == null) {
@@ -340,7 +348,7 @@ export class Tokenizer implements I_Tokenizer {
 				let nextLine = src.split('\n', 1)[0];
 				let blankLine = line.trim().length == 0;
 
-				let indent = 0;
+				let indent: number;
 				if (this.options.pedantic == true) {
 					indent = 2;
 					itemContents = trimStart(line);
@@ -373,7 +381,7 @@ export class Tokenizer implements I_Tokenizer {
 					// Check if following lines should be included in List Item
 					while (src.length > 0) {
 						const rawLine = src.split('\n', 1)[0];
-						let nextLineWithoutTabs = '';
+						let nextLineWithoutTabs: string;
 						nextLine = rawLine;
 
 						// Re-align to follow commonmark nesting rules
@@ -459,12 +467,12 @@ export class Tokenizer implements I_Tokenizer {
 				}
 
 				let istask : RegExpExecArray | null = null;
-				let ischecked : boolean = false;
+				let ischecked : boolean | null = null;
 				// Check for task list items
 				if (this.options.gfm != null) {
 					istask = this.rules!.other.listIsTask.exec(itemContents);
 					if (istask != null) {
-						ischecked = istask[0] !== '[ ] ';
+						ischecked = istask[0] != '[ ] ';
 						itemContents = itemContents.replace(this.rules!.other.listReplaceTask, '');
 					}
 				}
@@ -483,7 +491,7 @@ export class Tokenizer implements I_Tokenizer {
 			}
 
 			// Do not consume newlines at end of final item. Alternatively, make itemRegex *start* with any newlines to simplify/speed up endsWithBlankLine logic
-			const lastItem = list!.items![list.items!.length - 1];
+			const lastItem = list!.items![list.items!.length - 1] as (NodesToken | null);
 			if (lastItem != null) {
 				lastItem.raw = trimEnd(lastItem.raw as string);
 				lastItem.text = trimEnd(lastItem!.text as string);
@@ -781,8 +789,8 @@ export class Tokenizer implements I_Tokenizer {
 		if (this.rules!.inline.nolink.exec(src) != null) {
 			cap = this.rules!.inline.nolink.exec(src) as string[]
 		}
-		if (cap != null && cap[0] != null) {
-			let linkString = '';
+		if (cap != null && (cap[0] as string | null) != null) {
+			let linkString: string;
 			if (cap.length >= 3) {
 				linkString = cap[2].replace(this.rules!.other.multipleSpaceGlobal, ' ');
 			} else {
@@ -810,7 +818,9 @@ export class Tokenizer implements I_Tokenizer {
 		return null;
 	}
 
-	emStrong(src : string, maskedSrc : string, prevChar?: string) : NodesToken | null {
+	emStrong(src : string, maskedSrcSource : string, prevCharSource?: string) : NodesToken | null {
+		let maskedSrc = maskedSrcSource;
+		let prevChar = prevCharSource;
 		let match = this.rules!.inline.emStrongLDelim.exec(src);
 		if (match == null) return null;
 		prevChar = prevChar ?? '';
@@ -820,11 +830,11 @@ export class Tokenizer implements I_Tokenizer {
 
 		const nextChar = match[1] ?? match[2] ?? '';
 
-		if ((nextChar == '') || (prevChar == null || prevChar == '') || this.rules!.inline.punctuation.exec(prevChar) != null) {
+		if ((nextChar == '') || prevChar == '' || this.rules!.inline.punctuation.exec(prevChar) != null) {
 			// unicode Regex counts emoji as 1 char; spread into array for proper count (used multiple times below)
 			const lLength = ([...(match[0] as string)].length - 1) as number;
-			let rDelim: any | null = lLength;
-			let rLength = lLength;
+			let rDelim: any | null = null;
+			let rLength: number;
 			let delimTotal = lLength;
 			let midDelimTotal = 0;
 
@@ -836,7 +846,16 @@ export class Tokenizer implements I_Tokenizer {
 
 			match = endReg.exec(maskedSrc);
 			while (match != null) {
-				rDelim = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? match[6];
+				// rDelim = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? match[6];
+				const indices = [1, 2, 3, 4, 5, 6];
+				
+				for (const idx of indices) {
+				    // 检查索引是否在数组范围内，且对应元素非空
+				    if (match.length > idx && match[idx] != null) {
+				        rDelim = match[idx];
+				        break; // 找到有效值立即退出
+				    }
+				}
 
 				if (rDelim == '' || rDelim == null) {
 					match = endReg.exec(maskedSrc);
@@ -844,11 +863,18 @@ export class Tokenizer implements I_Tokenizer {
 				}
 
 				rLength = [...`${rDelim}`].length;
+				
+				// #ifndef APP-ANDROID
+				const isMatch5Or6 = match[5] != null || match[6] != null;
+				// #endif
+				// #ifdef APP-ANDROID
+				const isMatch5Or6 = match.getOrNull(5) != null || match.getOrNull(6) != null;
+				// #endif
 
 				if ((match[3] != null && `${match[3]}`.length > 0) || (match[4] != null && `${match[4]}`.length > 0)) {
 					delimTotal += rLength;
 					continue;
-				} else if (match[5] != null || match[6] != null) {
+				} else if (isMatch5Or6) {
 					if (lLength % 3 > 0 && (lLength + rLength) % 3 == 0) {
 						midDelimTotal += rLength;
 						continue;
@@ -943,8 +969,8 @@ export class Tokenizer implements I_Tokenizer {
 	autolink(src : string) : NodesToken | null {
 		const cap = this.rules!.inline.autolink.exec(src);
 		if (cap != null && cap[0] != null) {
-			let text = '';
-			let href = '';
+			let text: string;
+			let href: string;
 			if (cap[2] == '@') {
 				text = cap[1]!;
 				href = `mailto:${text}`;
@@ -974,14 +1000,14 @@ export class Tokenizer implements I_Tokenizer {
 	url(src : string) : NodesToken | null {
 		const cap = (this.rules!.inline.url as RegExp).exec(src);
 		if (cap != null && cap[0] != null) {
-			let text = '';
-			let href = '';
+			let text: string;
+			let href: string;
 			if (cap[2] == '@') {
 				text = cap[0]!;
 				href = `mailto:${text}`;
 			} else {
 				// do extended autolink path validation
-				let prevCapZero : any | null = null;
+				let prevCapZero : any | null;
 				do {
 					prevCapZero = cap[0];
 					cap[0] = (this.rules!.inline._backpedal as RegExp).exec(cap[0]!)?.[0] ?? '';

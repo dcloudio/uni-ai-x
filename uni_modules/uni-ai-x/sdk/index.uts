@@ -50,8 +50,8 @@ class UniAi {
 		return this.chat.datas.find((item) => item.id == this.chat.activeId) as ChatItem | null
 	}
 	getLocalMsgId(): string {
-		// 生成一个 local_ 开头的随机字符串，时间戳 + 大于 1000 的随机数 再转 32 进制
-		return 'local_' + (this.currentUser._id ?? 'tmp_user') + "_"  + Date.now().toString(16)
+		// 生成一个 local_ 开头的随机字符串
+		return 'local_' + (this.currentUser._id ?? 'tmp_user') + "_"  + Date.now().toString(16) + "_" + Math.floor(Math.random() * 100000)
 	}
 	addChat() {
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
@@ -291,8 +291,11 @@ class UniAi {
 						return
 					}
 					const content = chunkObj.choices?.[0]?.delta?.content
+					const reasoningContent = chunkObj.choices?.[0]?.delta?.reasoning_content
 					if (content != null) {
 						msgItem.body += content
+					} else if (reasoningContent != null) {
+						msgItem.thinkContent = (msgItem.thinkContent ?? '') + reasoningContent
 					} else {
 						console.error('content == null')
 					}

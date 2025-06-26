@@ -10,9 +10,9 @@
 			</view>
 		</view>
 		<scroll-view class="code-scroll-view" direction="horizontal" :scroll-x="true">
-			<text v-if="tokensLines.length == 1 && tokensLines[0].length == 0" class="text" :selectable="true">{{codeText}}</text>
+			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true">{{codeText}}</text>
 			<text class="line" :selectable="true" v-else v-for="(tokens,index) in tokensLines" :key="index">
-				<text v-for="token in tokens" class="code" :class="token.className" space="nbsp">{{token.text}}</text>
+				<text v-for="token in tokens" class="code" :class="token.className">{{token.text}}</text>
 			</text>
 		</scroll-view>
 	</view>
@@ -43,9 +43,9 @@ export default {
 `
 		},
 		codeTokens:  {
-			type: Array as PropType<IToken[]>,
+			type: Array as PropType<IToken[][]>,
 			required: false,
-			default: [] as IToken[],
+			default: [] as IToken[][],
 		},
 		language: {
 			type: String,
@@ -63,18 +63,8 @@ export default {
 	},
 	watch: {
 		codeTokens:{
-			handler(codeTokens: IToken[]) {
-				const tokensLines = [[]] as IToken[][]
-				codeTokens.forEach(item => {
-					// 发现换行符就创建一个数组
-					if(item.text == '\n') {
-						tokensLines.push([])
-					} else {
-						tokensLines[tokensLines.length - 1].push(item)
-					}
-				})
-				// console.log('tokensLines',tokensLines)
-				this.tokensLines = tokensLines as IToken[][]
+			handler(codeTokens: IToken[][]) {
+				this.tokensLines = codeTokens
 			},
 			immediate: true,
 			deep: true
@@ -127,6 +117,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@font-face {
+	font-family: CodeFontFamily;
+	src: url('/uni_modules/uni-ai-x/static/font/FiraCode-Regular.ttf') format('truetype');
+}
 .msg-types-item-root {
 	margin-bottom: 5px;
 	background-color: #1e1e1e !important; // 更深沉的背景色，适合深色主题
@@ -178,6 +172,7 @@ export default {
 			white-space: nowrap;
 			overflow: visible;
 			.code {
+				font-family: CodeFontFamily;
 				font-size: 14px;
 				white-space: nowrap;
 				color: #d4d4d4; // 默认代码文本颜色
@@ -207,6 +202,11 @@ export default {
 			/* #ifndef APP */
 			word-break: break-all;
 			/* #endif */
+		}
+		
+		.origin-code {
+			font-size: 14px;
+			font-family: CodeFontFamily;
 		}
 	}
 }

@@ -1,83 +1,201 @@
 <template>
-	<uni-marked-el v-if="token.tokens != null && token.tokens!.length > 0" v-for="(nToken, index) in token.tokens" 
-		:key="index" :token="nToken" :type="type + ' ' + token.type + (depth != 0 ? ' depth-' + depth : '')" 
-		:link="link + (token.href ?? '')" :depth="depth"
-	/>
-	<template v-else-if="token.type == 'list'">
-		<text class="list">
-			<text v-for="(item, itemIndex) in token.items ?? []" :key="itemIndex" class="list-item" :class="'deep-index-' + deepIndex">
-				<text v-if="itemIndex != 0 || deepIndex != 0" class="list-item-br">{{br}}</text>
-				<!-- 根据 deepIndex 来决定 列表的缩进 -->
-				<text v-for="i in deepIndex * 2" :key="i" class="list-item-nbsp" space="nbsp">&nbsp;</text>
-				<text v-if="token.ordered != true" class="list-item-index unordered">&#xec1e;</text>
-				<text v-else class="list-item-index">{{ itemIndex + 1 + '.' }}</text>
-				<!-- <text v-else class="list-item-index">{{ token.raw?.split('.')[0] + '.' }}</text> -->
-				<text class="list-item-nbsp" space="ensp">&nbsp;</text>
-				<text class="list-item-content-box">
-					<uni-marked-el v-for="(token, tokenIndex) in item.tokens ?? []" :key="tokenIndex" :type="token.type" :token="token" :deep-index="deepIndex + 1" />
-				</text>
-				<!-- 最后一个元素 添加一个换行 -->
-				<!-- <text v-if="itemIndex == token.items!.length - 1" class="list-item-br">{{br}}</text> -->
+	<view style="width: 100%;" :class="token.type! +  '-box ui-theme-' + uiTheme">
+		<template v-for="(items) in treeToList(token, token.type!)">
+			<uni-ai-msg-table v-if="items[0]?.type == 'table'" v-for="item in items" :key="item.type" :table-node="item" />
+			<uni-ai-msg-code v-else-if="items[0]?.type == 'code'" v-for="item in items" :key="item.type" :codeTokens="item.codeTokens ?? []" :codeText="item.text" :language="item.lang" />
+			<!-- <view v-else-if="items[0]?.type == 'image'" v-for="item in items" :key="item.type">
+				<image :src="item.href" mode="widthFix" :class="item.class + ' image'" @click="toLink(item.linkHref)" />
+			</view> -->
+			<view v-else-if="items[0]?.type == 'hr'" v-for="item in items" :key="item.type" class="hr">hr</view>
+			<text v-else :decode="true" class="text" :class="token.type! == 'list' ? 'list-content' : ''">
+				<text v-for="item in items" :key="item.type"
+					:class="item.class ?? ''" 
+					@click="toLink(item.href)"
+					:decode="true"
+				>{{item.text}}</text>
 			</text>
-		</text>
-	</template>
-	
-	<text v-else :class="type + ' text' + (link != '' ? ' link' : '')" @click="toLink(link)">{{token.text}}</text>
+		</template>
+	</view>
 </template>
 
 <script>
 	import { useMarked, TokensList, NodesToken as MarkdownToken, Link } from '@/uni_modules/kux-marked';
-	// import {markdown2json,type MarkdownToken} from '@/uni_modules/uni-ai-x/sdk/markdown2json';
+	import {uniAi} from '@/uni_modules/uni-ai-x/sdk'
 	export default {
 		name: 'uni-marked-el',
 		props: {
-			link: {
-				type: String,
-				default: ''
-			},
 			token: {
 				type: Object as PropType<MarkdownToken>,
 				required: true,
 				default: {},
-			},
-			type: {
-				type: String,
-				default: ''
-			},
-			deepIndex: {
-				type: Number,
-				default: 0
-			},
-			depth: {
-				type: Number,
-				default: 0
 			}
 		},
-		computed: {},
+		computed: {
+			uiTheme(): string {
+				return uniAi.setting.theme
+			},
+		},
 		data() {
 			return {
-				br: "\n"
+				br: "\n",
+				// 哪些类型不需要处理
+				noProcessTypes: ['code', 'table', 'hr'] as string[]
 			};
 		},
 		methods: {
-			getTokens(tokens : Array<MarkdownToken>,type: string = ''): Array<MarkdownToken> {
-				// 把循环嵌套的tokens，转换为一维数组。并且子项需要继承父项的type
-				let newTokens: Array<MarkdownToken> = []
-				tokens.forEach(token => {
-					if (token.tokens != null && token.tokens.length > 0) {
-						newTokens.push(...this.getTokens(token.tokens??[],token.type ?? ''))
-					} else {
-						// 继承父项的type
-						if (type != '' && token.type!.includes(type) != true) {
-							token.type += ' ' + type
-						}
-						newTokens.push(token)
-					}
-				})
-				return newTokens
+			uicon(code: string) {
+				// #ifdef APP
+				// 将字符串分割成 Unicode 编码的字符
+				let codes = code.split('%u');
+				// 遍历字符数组
+				let chars = codes.map(code => {
+					// 转换为十六进制
+					let hexCode = parseInt(code, 16);
+					// 将 UTF-16 编码转换为字符
+					return String.fromCharCode(hexCode);
+				});
+				// 将字符数组转换成字符串
+				return chars.join('');
+				// #endif
+				// #ifndef APP
+				return unescape(`%u${code}`) as string
+				// #endif
 			},
-			toLink(url: string) {
-				if (url.length > 0) {
+			getTokenClass(token: MarkdownToken) {
+				return token.type + ' text' + (token.href != null ? ' link' : '') + (token.depth != null ? ' depth-' + token.depth : '')
+			},
+			// 获取叶子节点
+			getLeafNodes(items: MarkdownToken[], parent: MarkdownToken): MarkdownToken[] {
+				const list: MarkdownToken[] = []
+				items.forEach((item: MarkdownToken, index: number) => {
+					if (this.noProcessTypes.includes(item.type!) ) {
+						list.push(item)
+						return
+					}
+					// 设置节点属性
+					item.start = parent.start ?? 1
+					item.depth = parent.depth ?? 0
+					item.deepIndex = (parent.deepIndex ?? 0) + 1
+					item.ordered = parent.ordered ?? false
+					item.href == null ? item.href = parent.href ?? '' : ''
+					item.checked == null ? item.checked = parent.checked ?? false : ''
+					if (parent.type == 'list'){
+						item.orderedIndex = index
+					} else {
+						item.orderedIndex =  parent.orderedIndex ?? 0
+					}
+
+					item.class = item.class ?? item.type
+					if (item.type?.includes(parent.type!) != true) {
+						item.class = parent.type + ' ' + item.type
+					}
+					if (item.depth > 0 && item.type?.includes("depth-") != true) {
+						item.class = 'heading-text depth-' + item.depth
+					}
+
+					if (item.type == 'list_item') {
+						// 插入换行
+						const newItem: MarkdownToken = {
+							type: 'text',
+							class: 'list-item-br',
+							text: "\n"
+						}
+						list.push(newItem)
+						// 插入 list item 缩进的空格
+						if (item.deepIndex > 0) {
+							// 根据 orderedIndex 的值，插入对应的空格
+							const newItem: MarkdownToken = {
+								type: 'text',
+								text: "&nbsp;".repeat(item.deepIndex  * 2)
+							}			
+							list.push(newItem)
+						}
+						if (item.task == true) {
+							const newItem: MarkdownToken = {
+								type: 'text',
+								text: (item.checked == true ? this.uicon('e607') : this.uicon('e608') )+ ' ',
+								class: 'uni-ai-icon list-item-index task' + (item.checked == true ? ' checked' : '')
+							}			
+							list.push(newItem)
+						} else if (item.ordered == false) {
+							const newItem: MarkdownToken = {
+								type: 'text',
+								text: this.uicon("ec1e"),
+								class: 'uni-ai-icon list-item-index unordered'
+							}
+							list.push(newItem)
+						}
+						// 插入索引
+						if (item.ordered) {
+							const newItem: MarkdownToken = {
+								type: 'text',
+								text: item.orderedIndex + 1 + '. ',
+								class: 'list-item-index'
+							}
+							list.push(newItem)
+						}
+					}
+					// 拿到子节点
+					const nextItems = item.tokens != null && (item.tokens as MarkdownToken[]).length > 0 ? item.tokens : item.items != null && item.items.length > 0 ? item.items : []
+					if (nextItems.length > 0) {
+						let nextList = this.getLeafNodes(nextItems, item)
+						list.push(...nextList)
+					} else {
+						// #ifdef WEB
+						// 方便分析，web 端把值为 null 的属性删除
+						for (const key in item) {
+							if (item[key] == null) {
+								delete item[key]
+							}
+						}
+						// #endif
+
+						// 如果上级是链接
+						// if (parent.type == 'link') {
+						// 	item.inLink = true
+						// 	item.class += ' link'
+						// 	item.linkHref = parent.href
+						// }
+						list.push(item)
+					}
+				});
+				return list
+			},
+			treeToList(_listToken: MarkdownToken, type: string): MarkdownToken[][] {
+				// 深拷贝，防止修改响应式数据造成无限递归
+				const listToken = JSON.parse<MarkdownToken>(JSON.stringify(_listToken)) as MarkdownToken
+				let lists: MarkdownToken[] = []
+				if (this.noProcessTypes.includes(type)) {
+					return [[listToken]]
+				} else {
+					lists = this.getLeafNodes(listToken.items ?? listToken.tokens ?? [listToken],listToken)
+				}
+				// 为了更好的性能，将连续的 text 合并，定义假设条件：所有连续的项类型是一致的，不同类型需要新建一项存放
+				const tokenListArr: MarkdownToken[][] = []
+				const listsLength = lists.length
+				for (let i = 0; i < listsLength; i++) {
+					const item = lists[i]
+					const prevItemType: string | null = i > 0 ? lists[i - 1].type : null
+					// 当前项和前一项的类型不一致，则将当前元素添加到新的数组中
+					if (
+						(item.type != prevItemType || (item.type == null && prevItemType == null))
+						&& !(prevItemType == 'codespan' && item.type == 'text')
+						&& !(prevItemType == 'text' && item.type == 'codespan')
+					) {
+						tokenListArr.push([])
+					}
+					const lastItem = tokenListArr[tokenListArr.length - 1]!
+					// console.log('lastItem', lastItem, item, item.type, prevItemType)
+					// 每一项的第一项不能是换行
+					if (lastItem.length != 0 || item.class != 'list-item-br') {
+						lastItem.push(item)
+					}
+				}
+				// console.log('tokenListArr', type, tokenListArr)
+				return tokenListArr
+			},
+			toLink(url: string | null) {
+				if (url != null && url!.length > 0) {
 					console.error('url', url)
 					uni.navigateTo({
 						"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
@@ -93,9 +211,13 @@
 
 <style lang="scss">
 	@font-face {
-		font-family: "uni-ai-icon";
+		font-family: uniAiIconFontFamily;
 		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
 	}
+	.uni-ai-icon {
+		font-family: uniAiIconFontFamily;
+	}
+	
 	.text {
 		color: #333;
 		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
@@ -114,9 +236,7 @@
 	}
 	
 	.del {
-		/* #ifndef APP */
-		text-decoration: line-through;
-		/* #endif */
+		text-decoration-line: line-through;
 		color: #999;
 	}
 
@@ -124,7 +244,7 @@
 		height: 10px;
 	}
 	.link {
-		color: #0066cc;
+		color: #0066cc!important;
 		// #ifdef WEB
 		cursor: pointer;
 		&:hover {
@@ -132,95 +252,121 @@
 		}
 		// #endif
 	}
-	.heading {
-		color: #333;
-		font-weight: bold;
-		margin-bottom: 5px;
-		
-		&.depth-1 {
-			font-size: 24px;
-			font-weight: 700;
-			margin-bottom: 6px;
-			line-height: 1.25;
-		}
+	// .image {
+	// 	max-width: 60%;
+	// }
 
-		&.depth-2 {
-			font-size: 22px;
-			font-weight: 700;
-			margin-bottom: 6px;
-			line-height: 1.3;
-		}
-
-		&.depth-3 {
-			font-size: 20px;
-			font-weight: 700;
-			margin-bottom: 6px;
-			line-height: 1.4;
-		}
-
-		&.depth-4 {
+	.paragraph-box {
+		width: 100%;
+		margin-bottom: 13px;
+		flex-direction: row;
+		.text {
 			font-size: 18px;
+			// 自动换行
+			white-space: normal;
+			/* #ifndef APP */
+			max-width: 100%;
+			word-break: break-all;
+			/* #endif */
+		}
+	}
+	
+	.blockquote-box {
+		padding: 5px;
+		background: #f5f5f5;
+		border-left: 4px solid #ddd;
+		width: 100%;
+		margin: 5px 0;
+	}
+	.heading-box {
+		margin-bottom: 13px;
+		.heading-text {
 			font-weight: 700;
-			margin-bottom: 6px;
-			line-height: 1.5;
+		}
+		.depth-1 {
+			font-size: 30px;
+			line-height: 36px;
 		}
 
-		&.depth-5 {
+		.depth-2 {
+			font-size: 26px;
+			line-height: 34px;
+		}
+
+		.depth-3 {
+			font-size: 22px;
+			line-height: 32px;
+		}
+
+		.depth-4 {
+			font-size: 20px;
+			line-height: 30px;
+		}
+
+		.depth-5 {
+			font-size: 18px;
+			line-height: 28px;
+		}
+
+		.depth-6 {
 			font-size: 16px;
-			font-weight: 700;
-			margin-bottom: 6px;
-			line-height: 1.6;
-		}
-
-		&.depth-6 {
-			font-size: 14px;
-			font-weight: 700;
-			margin-bottom: 6px;
 			color: #999;
-			line-height: 1.6;
+			line-height: 24px;
 		}
 	}
 
-	.list {
-		/* #ifndef APP */
-		// TODO： 由于 App 端 text 嵌套存在设置 line-height 后，会导致 text 渲染不全的问题，所以这里需要通过条件编译避免
-		line-height: 30px;
-		/* #endif */
+	.hr {
+		height: 1px;
+		background: #ddd;
+		margin: 10px 0;
+	}
+
+	.list-box {
 		padding-left: 5px;
-		// border: solid 1px blue;
 		width: 100%;
+		.list-content {
+			width: 100%;
+		}
+		.text {
+			line-height: 28px;
+		}
 		.list-item-content-box {
 			flex: 1;
 			.list {
 				margin-top: 0;
 			}
 		}
-		
-		.list-item {
+		.list-item-br {
 			width: 100%;
-			&.deep-index-1 {
-				margin-left: 10px;
+		}
+		.list-item-index {
+			width: 20px;
+			&.unordered {
+				font-size: 14px;
+				color: #000;
 			}
-			&.deep-index-2 {
-				margin-left: 20px;
+			&.task {
+				font-size: 14px;
+				color: #666;
 			}
-			&.deep-index-3 {
-				margin-left: 30px;
-			}
-			.list-item-br {}
-			.list-item-index {
-				width: 20px;
-				&.unordered {
-					font-family: uni-ai-icon;
-					font-size: 15px;
-					color: #000;
-				}
-			}
-			background-color: #FFF;
 		}
 	}
 
+	.space-box {
+		height: 15px;
+	}
+
+	.codespan {
+		color: #666;
+		background-color: #f5f5f5;
+		padding: 2px 4px;
+		border-radius: 5px;
+		font-size: 14px;
+	}
+
+
 	.ui-theme-dark {
+		background-color: #25282c;
 		.text {
 			color: #fff !important;
 		}
