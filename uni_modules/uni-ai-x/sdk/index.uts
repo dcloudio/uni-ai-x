@@ -307,7 +307,10 @@ class UniAi {
 				onDone: () => {
 					console.log('流式数据结束')
 					currentChat.state = 'completed';
-
+					// 多加个换行结尾方便解析，防止解析到最后一行时，没有换行符，导致解析失败
+					if (!msgItem.body.endsWith('\n')) {
+						msgItem.body += "\n"
+					}
 					// 让阿里百联总结更新
 					this.updateChatTitle(currentChat, messages)
 				}

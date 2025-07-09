@@ -183,6 +183,7 @@ export class Lexer implements I_Lexer {
 	lex(srcSource : string) : TokensList {
 		let src = srcSource;
 		src = src.replace(other.carriageReturn, '\n');
+		
 		this.blockTokens(src, this.tokens, null);
 
 		for (let i = 0; i < this.inlineQueue.length; i++) {

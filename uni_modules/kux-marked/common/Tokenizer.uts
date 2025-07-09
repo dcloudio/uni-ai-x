@@ -15,7 +15,7 @@ import JSReg from 'io.dcloud.uts.jsreg.JSReg';
 function outputLink(cap : string[], link : NodesToken, raw : string, lexer : I_Lexer, rules : Rules) : NodesToken {
 	const href = link.href;
 	// const title = link.title ?? null;
-	let title: string | null = null;
+	let title : string | null = null;
 	if (link.title != null) {
 		title = link.title;
 	}
@@ -69,6 +69,73 @@ function indentCodeCompensation(raw : string, text : string, rules : Rules) : st
 		.join('\n');
 }
 
+// #ifdef APP-HARMONY
+function parseCodeBlock(src : string) : string[] | null {
+	// 1. 匹配开头的0-3个空格
+	let startIdx = 0;
+	while (startIdx < 3 && src[startIdx] === ' ') {
+		startIdx++;
+	}
+
+	// 2. 检查代码块起始标记
+	const opener = src.startsWith('```', startIdx) ? '```' :
+		src.startsWith('~~~', startIdx) ? '~~~' : null;
+
+	if (!opener) return null;
+
+	const markStart = startIdx;
+	const markEnd = startIdx + opener.length;
+	let cursor = markEnd;
+
+	// 3. 提取语言标签
+	const langEnd = findLineEnd(src, cursor);
+	const lang = src.substring(cursor, langEnd).trimEnd();
+	cursor = langEnd + 1; // 跳过换行符
+
+	// 4. 查找结束标记位置
+	const endMark = `\n${opener}`;
+	const endIdx = src.indexOf(endMark, cursor);
+
+	// 5. 处理边界情况
+	if (endIdx === -1) {
+		// 尝试不包含前置换行的情况
+		if (src.endsWith(opener)) {
+			return [
+				src.substring(markStart),
+				opener,
+				lang,
+				src.substring(cursor, src.length - opener.length)
+			];
+		}
+		return null;
+	}
+
+	// 6. 提取代码内容
+	const codeContent = src.substring(cursor, endIdx);
+
+	// 7. 检查结束标记后的空格（0-3个）
+	const blockEnd = endIdx + endMark.length;
+	let postSpaces = 0;
+	let endPos = blockEnd;
+
+	// 8. 返回与原正则完全相同的结构
+	return [
+		src.substring(markStart, endPos),  // 完整匹配
+		opener,                           // 分隔符标记
+		lang,                             // 语言标签
+		codeContent                       // 代码内容
+	];
+}
+
+// 辅助函数：查找行结束位置
+function findLineEnd(str : string, start : number) : number {
+	for (let i = start; i < str.length; i++) {
+		if (str[i] === '\n') return i;
+	}
+	return str.length; // 没有换行则到字符串结尾
+}
+// #endif
+
 /**
  * Tokenizer
  */
@@ -119,7 +186,8 @@ export class Tokenizer implements I_Tokenizer {
 		const cap = (this.rules!.block.fences as RegExp).exec(src);
 		// #endif
 		// #ifdef APP-HARMONY
-		const cap = /^ {0,3}(`{3,}|~{3,})([^\n]*)\n([\s\S]*?)\n {0,3}\1 *(?:\n|$)/.exec(src);
+		// const cap = /^ {0,3}(`{3,}|~{3,})([^\n]*)\n([\s\S]*?)\n {0,3}\1 *(?:\n|$)/.exec(src);
+		const cap = parseCodeBlock(src);
 		// #endif
 		if (cap != null && cap[0] != null) {
 			const raw = cap[0];
@@ -191,8 +259,8 @@ export class Tokenizer implements I_Tokenizer {
 			while (lines.length > 0) {
 				let inBlockquote = false;
 				const currentLines = [] as string[];
-				
-				let i: number;
+
+				let i : number;
 				for (i = 0; i < lines.length; i++) {
 					// get lines up to a continuation
 					if (this.rules!.other.blockquoteStart.test(lines[i])) {
@@ -218,7 +286,7 @@ export class Tokenizer implements I_Tokenizer {
 				// parse blockquote lines as top level tokens
 				// merge paragraphs if this is a continuation
 				const top = this.lexer!.state.top;
-				this.lexer!.state.top = top;
+				this.lexer!.state.top = true;
 				this.lexer!.blockTokens(currentText, tokens, true);
 				this.lexer!.state.top = top;
 
@@ -262,7 +330,7 @@ export class Tokenizer implements I_Tokenizer {
 					}
 
 					if ((raw.length - oldToken.raw.length) <= raw.length) {
-						raw = raw.substring(0, raw.length - oldToken.raw.length) + (newToken?.raw == null ? '' : newToken.raw);
+						raw = raw.substring(0, raw.length - lastToken.raw.length) + (newToken?.raw == null ? '' : newToken.raw);
 					} else {
 						raw = '';
 					}
@@ -325,7 +393,7 @@ export class Tokenizer implements I_Tokenizer {
 			// Check if current bullet point can start a new List Item
 			while (src.length > 0) {
 				let endEarly = false;
-				let raw: string;
+				let raw : string;
 				let itemContents = '';
 				cap = itemRegex.exec(src);
 				if (cap == null) {
@@ -348,7 +416,7 @@ export class Tokenizer implements I_Tokenizer {
 				let nextLine = src.split('\n', 1)[0];
 				let blankLine = line.trim().length == 0;
 
-				let indent: number;
+				let indent : number;
 				if (this.options.pedantic == true) {
 					indent = 2;
 					itemContents = trimStart(line);
@@ -381,7 +449,7 @@ export class Tokenizer implements I_Tokenizer {
 					// Check if following lines should be included in List Item
 					while (src.length > 0) {
 						const rawLine = src.split('\n', 1)[0];
-						let nextLineWithoutTabs: string;
+						let nextLineWithoutTabs : string;
 						nextLine = rawLine;
 
 						// Re-align to follow commonmark nesting rules
@@ -504,6 +572,7 @@ export class Tokenizer implements I_Tokenizer {
 			// Item child tokens handled here at end because we needed to have the final item to trim it first
 			for (let i = 0; i < list.items!.length; i++) {
 				this.lexer!.state.top = false;
+				// console.log([] as any[], list.items![i].text, list.items![i].type);
 				list.items![i].tokens = this.lexer!.blockTokens(list.items![i].text as string, [] as NodesToken[], null) as NodesToken[];
 
 				if (list.loose != true) {
@@ -790,7 +859,7 @@ export class Tokenizer implements I_Tokenizer {
 			cap = this.rules!.inline.nolink.exec(src) as string[]
 		}
 		if (cap != null && (cap[0] as string | null) != null) {
-			let linkString: string;
+			let linkString : string;
 			if (cap.length >= 3) {
 				linkString = cap[2].replace(this.rules!.other.multipleSpaceGlobal, ' ');
 			} else {
@@ -801,7 +870,7 @@ export class Tokenizer implements I_Tokenizer {
 			const link = links[linkString.toLowerCase()];
 			// #endif
 			// #ifdef APP-HARMONY
-			const link: any = links[linkString.toLowerCase()];
+			const link : any = links[linkString.toLowerCase()];
 			// #endif
 			if (link == null) {
 				const text = cap[0]!.charAt(0);
@@ -818,7 +887,7 @@ export class Tokenizer implements I_Tokenizer {
 		return null;
 	}
 
-	emStrong(src : string, maskedSrcSource : string, prevCharSource?: string) : NodesToken | null {
+	emStrong(src : string, maskedSrcSource : string, prevCharSource ?: string) : NodesToken | null {
 		let maskedSrc = maskedSrcSource;
 		let prevChar = prevCharSource;
 		let match = this.rules!.inline.emStrongLDelim.exec(src);
@@ -833,8 +902,8 @@ export class Tokenizer implements I_Tokenizer {
 		if ((nextChar == '') || prevChar == '' || this.rules!.inline.punctuation.exec(prevChar) != null) {
 			// unicode Regex counts emoji as 1 char; spread into array for proper count (used multiple times below)
 			const lLength = ([...(match[0] as string)].length - 1) as number;
-			let rDelim: any | null = null;
-			let rLength: number;
+			let rDelim : any | null = null;
+			let rLength : number;
 			let delimTotal = lLength;
 			let midDelimTotal = 0;
 
@@ -848,13 +917,13 @@ export class Tokenizer implements I_Tokenizer {
 			while (match != null) {
 				// rDelim = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? match[6];
 				const indices = [1, 2, 3, 4, 5, 6];
-				
+
 				for (const idx of indices) {
-				    // 检查索引是否在数组范围内，且对应元素非空
-				    if (match.length > idx && match[idx] != null) {
-				        rDelim = match[idx];
-				        break; // 找到有效值立即退出
-				    }
+					// 检查索引是否在数组范围内，且对应元素非空
+					if (match.length > idx && match[idx] != null) {
+						rDelim = match[idx];
+						break; // 找到有效值立即退出
+					}
 				}
 
 				if (rDelim == '' || rDelim == null) {
@@ -863,7 +932,7 @@ export class Tokenizer implements I_Tokenizer {
 				}
 
 				rLength = [...`${rDelim}`].length;
-				
+
 				// #ifndef APP-ANDROID
 				const isMatch5Or6 = match[5] != null || match[6] != null;
 				// #endif
@@ -969,8 +1038,8 @@ export class Tokenizer implements I_Tokenizer {
 	autolink(src : string) : NodesToken | null {
 		const cap = this.rules!.inline.autolink.exec(src);
 		if (cap != null && cap[0] != null) {
-			let text: string;
-			let href: string;
+			let text : string;
+			let href : string;
 			if (cap[2] == '@') {
 				text = cap[1]!;
 				href = `mailto:${text}`;
@@ -1000,8 +1069,8 @@ export class Tokenizer implements I_Tokenizer {
 	url(src : string) : NodesToken | null {
 		const cap = (this.rules!.inline.url as RegExp).exec(src);
 		if (cap != null && cap[0] != null) {
-			let text: string;
-			let href: string;
+			let text : string;
+			let href : string;
 			if (cap[2] == '@') {
 				text = cap[0]!;
 				href = `mailto:${text}`;

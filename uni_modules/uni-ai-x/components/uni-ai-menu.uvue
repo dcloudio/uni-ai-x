@@ -27,7 +27,6 @@
 
 <script lang="uts">
 	import {uniAi, ChatItem, Userinfo} from '@/uni_modules/uni-ai-x/sdk/'
-	import {state as uniIdState} from '@/uni_modules/uni-id-pages-x/store.uts';
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	
 	export default {
@@ -120,7 +119,6 @@
 			flex-direction: row;
 			justify-content: space-between;
 			align-items: center;
-			background-color: #FFF;
 			.title {
 				color: #666;
 				white-space: nowrap;
@@ -226,7 +224,6 @@
 		}
 		.chat-list {
 			.chat-item {
-				background-color: #25282c;
 				.title {
 					color: #fff;
 				}

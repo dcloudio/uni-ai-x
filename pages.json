@@ -10,7 +10,8 @@
 			"path" : "uni_modules/uni-ai-x/pages/index/index",
 			"style" : 
 			{
-				"navigationStyle" : "custom"
+				"navigationStyle" : "custom",
+				"navigationBarTitleText" : "uni-ai x"
 			}
 		},
 		{

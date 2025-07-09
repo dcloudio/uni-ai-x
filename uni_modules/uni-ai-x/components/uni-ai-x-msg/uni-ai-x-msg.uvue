@@ -148,9 +148,9 @@
 			// 根据不同类型，判断是否闭合
 			isClose(type: string, markdownText: string): boolean {
 				// 需要双换行闭合的类型
-				const doubleNewlineTypes = ['list', 'table', 'code']
+				const doubleNewlineTypes = ['list', 'table', 'code', 'blockquote']
 				// 需要单换行闭合的类型
-				const singleNewlineTypes = ['paragraph', 'heading', 'hr', 'blockquote', 'def', 'space']
+				const singleNewlineTypes = ['paragraph', 'heading', 'hr',  'def', 'space']
 				// 不需要换行闭合的类型
 				const noNewlineTypes = ['text', 'strong', 'em', 'del', 'link', 'image', 'codespan']
 				if (doubleNewlineTypes.includes(type)) {
