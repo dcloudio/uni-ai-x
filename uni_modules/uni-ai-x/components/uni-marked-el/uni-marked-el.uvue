@@ -61,9 +61,6 @@
 				return unescape(`%u${code}`) as string
 				// #endif
 			},
-			getTokenClass(token: MarkdownToken) {
-				return token.type + ' text' + (token.href != null ? ' link' : '') + (token.depth != null ? ' depth-' + token.depth : '')
-			},
 			// 获取叶子节点
 			getLeafNodes(items: MarkdownToken[], parent: MarkdownToken): MarkdownToken[] {
 				const list: MarkdownToken[] = []
@@ -85,14 +82,23 @@
 						item.orderedIndex =  parent.orderedIndex ?? 0
 					}
 
-					item.class = item.class ?? item.type
-					if (item.type?.includes(parent.type!) != true) {
-						item.class = parent.type + ' ' + item.type
+					// 设置 class 默认值为 type
+					item.class = item.type
+					// 继承父节点的 class
+					if (parent.class != null) {
+						parent.class.split(' ').forEach((classItem: string) => {
+							if (item.class == null) {
+								item.class = classItem
+							} else if (!item.class.includes(classItem)) {
+								item.class = item.class + ' ' + classItem
+							}
+						})
 					}
-					if (item.depth > 0 && item.type?.includes("depth-") != true) {
-						item.class = 'heading-text depth-' + item.depth
+					// 设置深度
+					if (item.depth > 0) {
+						item.class = (item.class == null ? '' : item.class + ' ') + 'depth-' + item.depth
 					}
-
+					
 					if (item.type == 'list_item') {
 						// 插入换行
 						const newItem: MarkdownToken = {
@@ -280,7 +286,7 @@
 	}
 	.heading-box {
 		margin-bottom: 13px;
-		.heading-text {
+		.text {
 			font-weight: 700;
 		}
 		.depth-1 {
