@@ -45,12 +45,13 @@
 				// 耗时
 				runTime: 0,
 				parseLock: false,
-				markdownStrIndex: 0,
 				lastParseLineCodeText: '',
 				// 是否隐藏深度思考
 				hideThinkContent: false,
-				// 准备解析的 markdown 文本
-				readyParseMarkdownText: ''
+				// 准备解析的 markdown 文本索引
+				readyParseMdIndex: 0,
+				// 已解析的 markdown 文本索引
+				parseMdIndex: 0
 			}
 		},
 		computed: {
@@ -69,8 +70,8 @@
 			'msg.body': {
 				async handler(msgBody: string) {
 					if (msgBody.length == 0) {
-						this.readyParseMarkdownText = ''
-						this.markdownStrIndex = 0
+						this.readyParseMdIndex = 0
+						this.parseMdIndex = 0
 						this.msg.markdownTokenList = []
 						this.parseLock = false
 					}
@@ -109,16 +110,16 @@
 				if (this.parseLock != false) return
 				this.parseLock = true
 				// 新增的 markdown 文本
-				const newMarkdownText = this.msg.body.slice(this.readyParseMarkdownText.length)
+				const newMd = this.msg.body.slice(this.readyParseMdIndex)
 				// 更新准备解析的 markdown 文本 = 新增的 markdown 文本的\n 之前的部分
-				this.readyParseMarkdownText +=  newMarkdownText.includes('\n') ? newMarkdownText.split('\n')[0] + '\n' : newMarkdownText
+				this.readyParseMdIndex +=  (newMd.includes('\n') ? newMd.split('\n')[0] + '\n' : newMd).length
 				// 拿到本次解析的文本
-				let markdownText = this.readyParseMarkdownText.slice(this.markdownStrIndex)
+				let markdownText = this.msg.body.slice(this.parseMdIndex, this.readyParseMdIndex)
 				// console.error('markdownText', markdownText)
 				this.markdownParse(markdownText).finally(()=>{
-					// console.error('this.markdownParse().finally', this.markdownStrIndex , this.msg.body.length)
+					// console.error('this.markdownParse().finally', this.parseMdIndex , this.msg.body.length)
 					this.parseLock = false
-					if (this.readyParseMarkdownText.length < this.msg.body.length && this.markdownStrIndex < this.msg.body.length) {
+					if (this.readyParseMdIndex < this.msg.body.length && this.parseMdIndex < this.msg.body.length) {
 						setTimeout(() => {
 							// console.log('未满')
 							this.runTask()
@@ -237,7 +238,7 @@
 					// console.error('闭合代码块', codeToken)
 					this.msg.markdownTokenList[length - 1] = codeToken
 					// 更新代码块的索引
-					this.markdownStrIndex += markdownText.lastIndexOf('```') + 3
+					this.parseMdIndex += markdownText.lastIndexOf('```') + 3
 					return ''
 				}
 				return markdownText
@@ -281,7 +282,7 @@
 				// 找到第一个未闭合的项的索引
 				const unCloseTokenIndex = this.msg.markdownTokenList.findIndex(token => token.isClose == false || token.isClose == null)
 				// console.log('unCloseTokenIndex', unCloseTokenIndex)
-				let markdownStrIndexDiff:number = 0
+				let parseMdIndexDiff:number = 0
 				if (unCloseTokenIndex != -1) {
 					// 一一对应更新，如果更新后，新元素的类型和旧元素的类型不一致，则删除旧元素，并添加新元素。如果数量更多，需要新增
 					for (let i = 0; i < newTokenList.length; i++) {
@@ -292,19 +293,19 @@
 						}
 
 						if (fntIsClose) {
-							markdownStrIndexDiff += newTokenList[i]!.raw!.length
+							parseMdIndexDiff += newTokenList[i]!.raw!.length
 						}
 					}
 				} else {
 					if (fntIsClose) {
-						markdownStrIndexDiff += newTokenList[0]!.raw!.length
+						parseMdIndexDiff += newTokenList[0]!.raw!.length
 					}
 					this.msg.markdownTokenList.push(newTokenList[0]!)
 				}
 				if (fntIsClose) {
 					// console.log('newTokenList[0]', newTokenList[0])
 					// 游标向右移动
-					this.markdownStrIndex += markdownStrIndexDiff
+					this.parseMdIndex += parseMdIndexDiff
 					// 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
 					const mdTLLength = this.msg.markdownTokenList.length
 					if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
