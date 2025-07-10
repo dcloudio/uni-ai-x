@@ -43,13 +43,19 @@
 支持 AI 回复内容的流式输出和原生 Markdown 格式渲染，内置高性能解析器，支持代码高亮和复杂文本结构展示
 
 各端效果如下截图，依次平台为：iOS、Android、鸿蒙<br/>
-<img width="216px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/ai-x-3.png"/>
-<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/ai-x-4.png"/>
-<img width="211px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/ai-x-6.png"/>
+<img width="200px" src="https://img-cdn-tx.dcloud.net.cn/stream/plugin_screens/69cf7a60-4b4d-11f0-acb4-1f9e73bd04f1_3.jpg/webp?&v=1752044804"/>
+<img width="260px" src="https://img-cdn-tx.dcloud.net.cn/stream/plugin_screens/69cf7a60-4b4d-11f0-acb4-1f9e73bd04f1_1.png/webp?&v=1752044564"/>
+<img width="200px" src="https://img-cdn-tx.dcloud.net.cn/stream/plugin_screens/69cf7a60-4b4d-11f0-acb4-1f9e73bd04f1_2.png/webp?&v=1752044569"/>
 <br/>
 web pc端：
 <br/>
-<img width="630px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/ai-x-5.png"/>
+<img width="630px" src="https://img-cdn-tx.dcloud.net.cn/stream/plugin_screens/69cf7a60-4b4d-11f0-acb4-1f9e73bd04f1_0.png/webp?&v=1752044560"/>
+
+### Android端demo：
+
+<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/download_ai_x.png"/>
+
+扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/uni_ai_x_demo.apk)
 
 ## 交流群  
 更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=68511b0b7ae60eb5c891cfbc)加入uni-ai官方交流群
@@ -57,3 +63,8 @@ web pc端：
 当前项目正在快速迭代UI体验，请关注本项目，订阅更新通知。
 
 ## 开发文档[详情查看](https://doc.dcloud.net.cn/uniCloud/uni-ai-x.html#install)
+
+## 声明
+本项目依赖以下作品
+1. markdown 语法解析依赖 [kux-marked](https://ext.dcloud.net.cn/plugin?name=kux-marked)
+2. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
