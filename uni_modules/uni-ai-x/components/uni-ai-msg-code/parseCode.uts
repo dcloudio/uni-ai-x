@@ -136,7 +136,12 @@ export async function parseCode(codeSource: string,language: string): Promise<Pa
 		return {
 			tokens: [],
 			language: language,
+			// #ifdef WEB
+			error: (error as any).message
+			// #endif
+			// #ifndef WEB
 			error: error.message
+			// #endif
 		}
 	}
 }

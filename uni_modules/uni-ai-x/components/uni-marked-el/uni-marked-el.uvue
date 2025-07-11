@@ -74,8 +74,8 @@
 					item.depth = parent.depth ?? 0
 					item.deepIndex = (parent.deepIndex ?? 0) + 1
 					item.ordered = parent.ordered ?? false
-					item.href == null ? item.href = parent.href ?? '' : ''
-					item.checked == null ? item.checked = parent.checked ?? false : ''
+					item.href == null ? (item.href = parent.href ?? '') : ''
+					item.checked == null ? (item.checked = parent.checked ?? false) : ''
 					if (parent.type == 'list'){
 						item.orderedIndex = index
 					} else {
@@ -217,6 +217,9 @@
 
 <style lang="scss">
 	@font-face {
+		// #ifdef WEB
+		font-display: swap;
+		// #endif
 		font-family: uniAiIconFontFamily;
 		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
 	}

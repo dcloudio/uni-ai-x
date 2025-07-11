@@ -48,8 +48,11 @@
 
 <style>
 	@font-face {
+		// #ifdef WEB
+		font-display: swap;
+		// #endif
 		font-family: "uni-id-icon";
-    src: url('/uni_modules/uni-id-pages-x/static/fonts/uni-id-icon.ttf');
+    	src: url('/uni_modules/uni-id-pages-x/static/fonts/uni-id-icon.ttf');
 	}
 
 	.uni-id-icon {

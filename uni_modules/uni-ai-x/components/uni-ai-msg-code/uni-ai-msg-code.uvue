@@ -118,6 +118,9 @@ export default {
 
 <style lang="scss" scoped>
 @font-face {
+	// #ifdef WEB
+	font-display: swap;
+	// #endif
 	font-family: CodeFontFamily;
 	src: url('/uni_modules/uni-ai-x/static/font/FiraCode-Regular.ttf') format('truetype');
 }

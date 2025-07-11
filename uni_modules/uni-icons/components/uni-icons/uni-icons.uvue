@@ -78,6 +78,9 @@
 
 <style scoped>
   @font-face {
+    // #ifdef WEB
+    font-display: swap;
+    // #endif
     font-family: UniIconsFontFamily;
     src: url('./uniicons.ttf');
   }
