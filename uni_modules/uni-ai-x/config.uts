@@ -1,23 +1,30 @@
-import {reactive, watch} from 'vue';
-import {LLMModel, Provider, DefaultLLM, BailianTokenInfo,Userinfo, AvatarFile} from '@/uni_modules/uni-ai-x/types.uts';
-// 定义登录到uniAi的用户信息，这里以uni-id的用户信息绑定为例，你自己的系统如果不是基于 unicloud 的，请参考此方法修改
-import {state as uniIdState} from '@/uni_modules/uni-id-pages-x/store.uts';
+import {reactive} from 'vue';
+import {LLMModel, Provider, DefaultLLM, BailianTokenInfo,Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
+// 1. 定义左侧菜单区域下方的用户头像信息
 export const currentUser: Userinfo = reactive<Userinfo>({})
-watch((): UTSJSONObject => uniIdState.userInfo,(userInfo: UTSJSONObject)=>{
-	currentUser._id = userInfo.getString('_id')
-	currentUser.nickname = userInfo.getString('nickname')
-	// 根据 file_id 获取文件的 url
-	const avatarFileUrl = userInfo.getString('avatar_file.url')
-	if (avatarFileUrl != null) {
-		uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
-			currentUser.avatar_file = {url: res.fileList[0].tempFileURL}
-		})
-	} else {
-		currentUser.avatar_file = null
-	}
-}, {deep: true, immediate: true})
+// 这里以uni-id的用户信息绑定为例，你自己的系统如果不是基于 unicloud 的，请参考此方法修改
+// import {watch} from 'vue';
+// 导入 uni-id 中的用户信息
+// import {state as uniIdState} from '@/uni_modules/uni-id-pages-x/store.uts';
+// 监听用户信息变化，更新 currentUser 对象
+// watch((): UTSJSONObject => uniIdState.userInfo,(userInfo: UTSJSONObject)=>{
+// 	currentUser._id = userInfo.getString('_id')
+// 	currentUser.nickname = userInfo.getString('nickname')
+// 	// 根据 file_id 获取文件的 url
+// 	const avatarFileUrl = userInfo.getString('avatar_file.url')
+// 	if (avatarFileUrl != null) {
+// 		uniCloud.getTempFileURL({fileList: [avatarFileUrl]}).then((res) => {
+// 			currentUser.avatar_file = {url: res.fileList[0].tempFileURL}
+// 		})
+// 	} else {
+// 		currentUser.avatar_file = null
+// 	}
+// }, {deep: true, immediate: true})
 
+// 2. 点击左侧菜单区域下方的用户头像信息后跳转的页面路径
+export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userinfo?showLoginManage=true'
 
+// 3. 配置大语言模型
 /** 
  * 配置大语言模型
  * 注意需要在，目录：`/uni_modules/uni-ai-x/static/ai-provider/${provider}.png` 中添加对应的logo图片

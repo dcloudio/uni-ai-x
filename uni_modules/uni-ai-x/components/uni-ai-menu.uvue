@@ -28,7 +28,7 @@
 <script lang="uts">
 	import {uniAi, ChatItem, Userinfo} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
-	
+	import {userCenterPage} from '@/uni_modules/uni-ai-x/config.uts'
 	export default {
 		emits: ['close-menu'],
 		components: {
@@ -52,9 +52,14 @@
 		methods: {
 			toUCenter() {
 				uni.navigateTo({
-					url: '/uni_modules/uni-id-pages-x/pages/userinfo/userinfo',
+					url: userCenterPage,
 					fail: (err) => {
-						console.error('navigateTo', err,'跳转失败的检查参考：1. 是否被设置为tabbar页面 2. 此页面是否已注册')
+						console.error('navigateTo', err, '跳转失败：1. 检查在uni_modules/uni-ai-x/config.uts中配置的用户中心路径 2. 此页面是否已在pages.json中注册')
+						uni.showModal({
+							title: '跳转失败',
+							content: '请检查在 uni_modules/uni-ai-x/config.uts 中配置的用户中心路径是否正确，并确认此页面是否已在pages.json中注册',
+							showCancel: false
+						})
 					}
 				})
 			},
