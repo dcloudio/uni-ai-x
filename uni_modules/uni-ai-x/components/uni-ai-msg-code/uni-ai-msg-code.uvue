@@ -9,9 +9,9 @@
 				<text class="copy-text">复制代码</text>
 			</view>
 		</view>
-		<scroll-view class="code-scroll-view" direction="horizontal" :scroll-x="true">
+		<scroll-view class="code-scroll-view" direction="horizontal">
 			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true">{{codeText}}</text>
-			<text class="line" :selectable="true" v-else v-for="(tokens,index) in tokensLines" :key="index">
+			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index">
 				<text v-for="token in tokens" class="code" :class="token.className">{{token.text}}</text>
 			</text>
 		</scroll-view>
@@ -172,13 +172,12 @@ export default {
 		padding: 6px 10px;
 		width: 100%;
 		.line {
+			white-space: nowrap;
+			align-self: flex-start;
 			.code {
+				white-space: nowrap;
 				font-family: CodeFontFamily;
 				font-size: 14px;
-				white-space: normal;
-				/* #ifndef APP */
-				white-space: pre;
-				/* #endif */
 				color: #d4d4d4; // 默认代码文本颜色
 			}
 			// 代码高亮颜色，适合深色主题
