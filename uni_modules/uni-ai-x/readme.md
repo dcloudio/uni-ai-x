@@ -1,9 +1,10 @@
-# 简介  
-`uni-ai-x`，是一个开源的、全平台的、原生的、云端一体的ai聊天套件。
+> 新增于HBuilderX 4.72+  
+# 简介
+
+`uni-ai x`，是一个开源的、全平台的、原生的、云端一体的ai聊天套件。
 
 能够连接ai大模型，真流式接收和输出内容，原生渲染markdown。  
-基于跨平台原生开发框架[uni-app x](https://doc.dcloud.net.cn/uni-app-x/)，可以被编译为不同平台的编程语言，如： 
-
+基于跨平台原生开发框架 [uni-app x](https://doc.dcloud.net.cn/uni-app-x/) 可以被编译为不同平台的编程语言，如： 
 | 平台						| 编译语言		|
 |------					|----------	|
 | web平台/小程序	| JavaScript|
@@ -22,16 +23,16 @@
 - **跨平台开发困境**：缺乏成熟跨平台框架，鸿蒙端开发尤为艰难  
 - **极致性能要求**：每个Token需同步完成Markdown解析、代码高亮及排版渲染，运算密集且不能卡顿UI  
 
-**uni-ai-x由此应运而生**，专注攻克全平台原生AI聊天场景的技术痛点。
+**uni-ai x由此应运而生**，专注攻克全平台原生AI聊天场景的技术痛点。
 
 可以满足开发者的如下需求：
-1. 基于`uni-ai-x`开发全新的ai应用
-2. 在之前的app中引入`uni-ai-x`的sdk，给app补充ai聊天能力
+1. 基于`uni-ai x`开发全新的ai应用
+2. 在之前的app中引入`uni-ai x`的sdk，给app补充ai聊天能力
 3. 客户端和服务器均开源，可以自由定制扩展
 
 ## 功能和特点
 
-`uni-ai-x`功能上参考 deepseek 的客户端设计，并扩展了更多平台。
+`uni-ai x`功能上参考 deepseek 的客户端设计，并扩展了更多平台。
 
 1. 多端支持与主题适配 
 支持Web/H5、iOS、Android、鸿蒙 App、微信小程序。Web 端采用响应式布局，适配 PC 宽屏和移动设备，并提供浅色和暗黑两种主题模式
@@ -53,9 +54,9 @@ web pc端：
 
 ### Android端demo：
 
-<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/download_ai_x.png"/>
+<img width="200px" src="https://web-ext-storage.dcloud.net.cn/doc/uni-ai-x/qrcode.png"/>
 
-扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/uni_ai_x_demo.apk)
+扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/doc/uni-ai-x/qrcode.png)
 
 ## 交流群  
 更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=68511b0b7ae60eb5c891cfbc)加入uni-ai官方交流群
