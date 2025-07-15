@@ -40,11 +40,11 @@
   },
   "uni_modules": {
     "dependencies": [
-			"kux-marked",
-			"uni-highlight",
-			"uni-id-pages-x",
-			"uni-table"
-		],
+    	"kux-marked",
+    	"uni-highlight",
+    	"uni-id-pages-x",
+    	"uni-table"
+    ],
     "encrypt": [],
     "platforms": {
       "cloud": {
@@ -55,61 +55,55 @@
       "client": {
         "uni-app": {
           "vue": {
-            "vue2": "x",
-            "vue3": "x"
+            "vue2": "-",
+            "vue3": "-"
           },
           "web": {
-            "safari": "x",
-            "chrome": "x"
+            "safari": "-",
+            "chrome": "-"
           },
           "app": {
-            "vue": "x",
-            "nvue": "x",
-            "android": "x",
-            "ios": "x",
-            "harmony": "x"
+            "vue": "-",
+            "nvue": "-",
+            "android": "-",
+            "ios": "-",
+            "harmony": "-"
           },
           "mp": {
-            "weixin": "x",
-            "alipay": "x",
-            "toutiao": "x",
-            "baidu": "x",
-            "kuaishou": "x",
-            "jd": "x",
-            "harmony": "x",
-            "qq": "x",
-            "lark": "x"
+            "weixin": "-",
+            "alipay": "-",
+            "toutiao": "-",
+            "baidu": "-",
+            "kuaishou": "-",
+            "jd": "-",
+            "harmony": "-",
+            "qq": "-",
+            "lark": "-"
           },
           "quickapp": {
-            "huawei": "x",
-            "union": "x"
+            "huawei": "-",
+            "union": "-"
           }
         },
         "uni-app-x": {
           "web": {
             "safari": "-",
-            "chrome": {
-            }
+            "chrome": "√"
           },
           "app": {
             "android": {
-              "extVersion": "",
-              "minVersion": "21"
+                "extVersion": "",
+                "minVersion": "21"
             },
-            "ios": {
-            },
-            "harmony": {
-            }
+            "ios": "√",
+            "harmony": "√"
           },
           "mp": {
-            "weixin": "√"
+            "weixin": {
+                "extVersion": "1.0.2",
+                "minVersion": ""
+            }
           }
-        },
-        "App": {
-          "app-harmony": "u",
-          "app-nvue": "u",
-          "app-uvue": "u",
-          "app-vue": "u"
         }
       }
     }
