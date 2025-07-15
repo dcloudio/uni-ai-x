@@ -8,7 +8,9 @@
 				@longpress="longpress(chat)"
 			>
 				<text class="title" :class="{active: chat.id ==  activeChatId}">{{chat.title}}</text>
-				<uni-icons @click.stop="longpress(chat)" class="more" type="more-filled" size="14" color="#999"></uni-icons>
+				<view class="more-box" @click.stop="longpress(chat)">
+					<uni-icons type="more-filled" size="14" color="#999"></uni-icons>
+				</view>
 			</view>
 		</scroll-view>
 		<view class="bottom">
@@ -103,6 +105,9 @@
 	background-color: #FFF;
 	padding-top: env(safe-area-inset-top);
 	padding-bottom: env(safe-area-inset-bottom);
+	/* #ifdef MP-WEIXIN */
+	padding-top: var(--status-bar-height);
+	/* #endif */
 	.title {
 		padding: 10px;
 		font-size: 18px;
@@ -132,7 +137,7 @@
 				overflow: hidden;
 				text-overflow: ellipsis;
 			}
-			.more {
+			.more-box {
 				display: none;
 			}
 			&.active {
@@ -197,7 +202,7 @@
 			&:hover {
 				background-color: #ddd;
 			}
-			.more {
+			.more-box {
 				display: flex !important;
 				flex-shrink: 0;
 				margin:0 6px;

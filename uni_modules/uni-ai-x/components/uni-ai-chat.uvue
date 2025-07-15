@@ -3,7 +3,13 @@
 		<view class="nav-bar">
 			<uni-ai-icon @click="changeMenu" code="e622" color="#000" size="20"></uni-ai-icon>
 			<text class="chat-title">{{chatTitle}}</text>
+			<!-- #ifndef MP-WEIXIN -->
 			<addChat></addChat>
+			<!-- #endif -->
+			<!-- #ifdef MP-WEIXIN -->
+			 <!-- 微信小程序端特殊占位 -->
+			<view></view>
+			<!-- #endif -->
 		</view>
 		<view class="chat" :class="{showMenu}" ref="chat">
 			<view class="scroll-view-box" id="scroll-view-box">
@@ -269,6 +275,9 @@
 		.chat-title {
 			font-size: 16px;
 		}
+		/* #ifdef MP-WEIXIN */
+		padding-top: calc(var(--status-bar-height) + 35px);
+		/* #endif */
 	}
 	.mask {
 		position: absolute;
