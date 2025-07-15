@@ -1,6 +1,6 @@
 <template>
-	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
-		<uni-ai-menu :ui-theme="uiTheme" @close-menu="closeMenu"></uni-ai-menu>
+	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">	
+		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 	</view>
 </template>

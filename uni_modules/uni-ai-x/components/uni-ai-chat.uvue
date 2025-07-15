@@ -64,6 +64,7 @@
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
 	
 	export default {
+		emits: ['change-menu', 'close-menu'],
 		components: {
 			addChatBtn,
 			addChat,
