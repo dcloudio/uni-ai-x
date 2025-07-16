@@ -1,7 +1,7 @@
 {
   "id": "uni-highlight",
   "displayName": "uni-highlight",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "本插件支持基于 TextMate 语法规则（如 javascript.tmLanguage.json）的代码高亮渲染。",
   "keywords": [
     "uni-highlight"

@@ -17,6 +17,7 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 	const languages = options.languages;
 	const langMap : Map<string, string> = new Map();
 	const grammar = await new MainActivity()
+	const handleMap: Map<string, Long> = new Map();
 
 	for (let id in languages) {
 
@@ -69,7 +70,11 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 		async tokenizeLine(langId : string, lineText : string, state : any) : Promise<ILineTokens | null> {
 			let tmlStr = langMap.get(langId)
 			if (tmlStr === null) return null
-			let handle = grammar.addGrammar(langId, tmlStr)
+			let handle: Long | null = handleMap.get(langId)
+			if (handle === null) {
+				handle = grammar.addGrammar(langId, tmlStr)
+				handleMap.set(langId, handle)
+			}
 			let res : ILineTokens | null = null
 			// let ruleStack = state ? state : vsctm.INITIAL;
 			grammar.resetHandle(handle)
