@@ -79,14 +79,18 @@
 					success: (res) => {
 						if (res.confirm) {
 							// 拿到要删除对话索引
-							const index = uniAi.chat.datas.findIndex((item) => item.id == chat.id)
-							uniAi.chat.datas.splice(index, 1)
-							if (uniAi.chat.datas.length == 0) {
+							if (uniAi.chat.datas.length == 1) {
 								uniAi.addChat()
+								this.setActiveChat(uniAi.chat.datas[0])
 							} else if (uniAi.chat.activeId == chat.id) {
-								// 如果删除的是当前激活的对话，则设置为第一个对话
-								uniAi.chat.activeId = uniAi.chat.datas[0].id
+								// 如果删除的是当前激活的对话，则激活其他对话
+								const otherChat = uniAi.chat.datas.find((item) => item.id != chat.id)!
+								uniAi.chat.activeId = otherChat.id
 							}
+							setTimeout(() => {
+								const index = uniAi.chat.datas.findIndex((item) => item.id == chat.id)
+								uniAi.chat.datas.splice(index, 1)
+							}, 0);
 						}
 					}
 				})

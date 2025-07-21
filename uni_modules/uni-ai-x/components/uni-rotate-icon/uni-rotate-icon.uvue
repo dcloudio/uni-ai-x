@@ -1,13 +1,10 @@
 <template>
-	<view>
-		<view class="rotate-icon" id="rotate-icon" @transitionend="updateRotate"
-			:style="{
-				transform: `rotate(${times * 360}deg)`
-			}"
-		></view>
-	</view>
+	<view class="rotate-icon" id="rotate-icon" @transitionend="updateRotate"
+		:style="{
+			transform: `rotate(${times * 360}deg)`
+		}"
+	></view>
 </template>
-
 <script>
 	export default {
 		data() {
@@ -27,7 +24,6 @@
 		}
 	}
 </script>
-
 <style lang="scss">
 	.rotate-icon {
 		width: 16px;

@@ -1,108 +1,77 @@
-
 import { HighLighterOptions, CreateHighLighter, CreateHighLighterRes, ILineTokens, IToken, AndroidToken } from '../interface.uts'
 
-
-
 export class lineTokens {
-	constructor(readonly tokens : IToken[]) { }
+    constructor(readonly tokens : IToken[]) { }
 }
-
 
 import { MainActivity } from 'com.dcloud.scopeparser'
 import { mapByteOffsetsToCharOffsets, ktToken } from 'com.dcloud.ConvertedToken'
 
+export function createHighLighter(options : HighLighterOptions) : Promise<CreateHighLighterRes> {
+    const languages = options.languages;
+    const langMap : Map<string, string> = new Map();
+    const grammar = new MainActivity()
+    const handleMap: Map<string, Long> = new Map();
 
-export async function createHighLighter(options : HighLighterOptions) : Promise<CreateHighLighterRes> {
+    for (let id in languages) {
+        try {
+            let jsonStr = JSON.stringify(languages[id])
+            langMap.set(id, jsonStr)
+        } catch {
+        }
+    }
 
-	const languages = options.languages;
-	const langMap : Map<string, string> = new Map();
-	const grammar = await new MainActivity()
-	const handleMap: Map<string, Long> = new Map();
+    let fns : CreateHighLighterRes = {
+        tokenizeFullText(langId : string, fullCodeText : string) : Promise<ILineTokens[]> {
+            let tmlStr = langMap.get(langId)
+            if (tmlStr === null) return Promise.resolve([])
+            let handle = grammar.addGrammar(langId, tmlStr)
 
-	for (let id in languages) {
+            const text = fullCodeText.split(/\r\n|\r|\n/);
+            let res : ILineTokens[] = []
+            for (let i = 0; i < text.length; i++) {
+                const line = text[i] + "\n";
+                const lineTokens : String = grammar.tokenizeLine(handle, langId, line);
+                const tokens : IToken[] = []
+                let lineTokensJson : ktToken[] | null = JSON.parse<ktToken[]>(lineTokens)
+                if (lineTokensJson !== null) {
+                    let nLineTokens = mapByteOffsetsToCharOffsets(line, lineTokensJson.toTypedArray())
+                    nLineTokens.forEach((item : ktToken) => {
+                        const iToken = new IToken(item.start, item.end, item.token.split(" "))
+                        tokens.push(iToken)
+                    })
+                    let nTokens : ILineTokens = new ILineTokens(tokens)
+                    res.push(nTokens)
+                }
+            }
+            grammar.resetHandle(handle)
+            return Promise.resolve(res)
+        },
+        tokenizeLine(langId : string, lineText : string, state : any) : Promise<ILineTokens | null> {
+            let tmlStr = langMap.get(langId)
+            if (tmlStr === null) return Promise.resolve(null)
+            let handle: Long | null = handleMap.get(langId)
+            if (handle === null) {
+                handle = grammar.addGrammar(langId, tmlStr)
+                handleMap.set(langId, handle)
+            }
+            let res : ILineTokens | null = null
+            grammar.resetHandle(handle)
+            const lineTokens : String = grammar.tokenizeLine(handle, langId, lineText);
+            const tokens : IToken[] = []
+            let lineTokensJson : ktToken[] | null = JSON.parse<ktToken[]>(lineTokens)
+            if (lineTokensJson !== null) {
+                let nLineTokens = mapByteOffsetsToCharOffsets(lineText, lineTokensJson.toTypedArray())
+                nLineTokens.forEach((item : ktToken) => {
+                    const iToken = new IToken(item.start, item.end, item.token.split(" "))
+                    tokens.push(iToken)
+                })
+                let nTokens : ILineTokens = new ILineTokens(tokens)
+                res = nTokens
+            }
+            return Promise.resolve(res)
+        }
+    }
 
-		try {
-			let jsonStr = JSON.stringify(languages[id])
-			langMap.set(id, jsonStr)
-		} catch {
-
-		}
-		// langMap.set(id, languages[id]?.scopeName)
-		// scopeMap.set(languages[id].scopeName, languages[id])
-	}
-
-	let fns : CreateHighLighterRes = {
-
-		async tokenizeFullText(langId : string, fullCodeText : string) : Promise<ILineTokens[]> {
-			let tmlStr = langMap.get(langId)
-			if (tmlStr === null) return []
-			let handle = grammar.addGrammar(langId, tmlStr)
-
-			const text = fullCodeText.split(/\r\n|\r|\n/);
-			// let ruleStack = vsctm.INITIAL;
-			let res : ILineTokens[] = []
-			for (let i = 0; i < text.length; i++) {
-				const line = text[i] + "\n";
-				const lineTokens : String = await grammar.tokenizeLine(handle, langId, line);
-				if (lineTokens === null) return []
-				const tokens : IToken[] = []
-				// console.log(line, '----', lineTokens)
-
-
-				let lineTokensJson : ktToken[] | null = JSON.parse<ktToken[]>(lineTokens)
-
-
-				if (lineTokensJson !== null) {
-					let nLineTokens = await mapByteOffsetsToCharOffsets(line, lineTokensJson.toTypedArray())
-					nLineTokens?.forEach((item : ktToken) => {
-						// console.log(item.start)
-						const iToken = new IToken(item.start, item.end, item.token.split(" "))
-						tokens.push(iToken)
-
-					})
-					let nTokens : ILineTokens = new ILineTokens(tokens)
-					res.push(nTokens)
-				}
-			}
-			grammar.resetHandle(handle)
-			return res
-		},
-		async tokenizeLine(langId : string, lineText : string, state : any) : Promise<ILineTokens | null> {
-			let tmlStr = langMap.get(langId)
-			if (tmlStr === null) return null
-			let handle: Long | null = handleMap.get(langId)
-			if (handle === null) {
-				handle = grammar.addGrammar(langId, tmlStr)
-				handleMap.set(langId, handle)
-			}
-			let res : ILineTokens | null = null
-			// let ruleStack = state ? state : vsctm.INITIAL;
-			grammar.resetHandle(handle)
-			const lineTokens : String = await grammar.tokenizeLine(handle, langId, lineText);
-
-			if (lineTokens === null) return null
-
-			const tokens : IToken[] = []
-
-			let lineTokensJson : ktToken[] | null = JSON.parse<ktToken[]>(lineTokens)
-
-			if (lineTokensJson !== null) {
-				let nLineTokens = await mapByteOffsetsToCharOffsets(lineText, lineTokensJson.toTypedArray())
-				nLineTokens?.forEach((item : ktToken) => {
-					// console.log(item.start)
-					const iToken = new IToken(item.start, item.end, item.token.split(" "))
-					tokens.push(iToken)
-			
-				})
-				let nTokens : ILineTokens = new ILineTokens(tokens)
-				res = nTokens
-			}
-
-			return res
-		}
-
-	}
-
-	return fns
-
+    return Promise.resolve(fns)
 }

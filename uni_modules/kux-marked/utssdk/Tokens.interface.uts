@@ -317,4 +317,6 @@ export type NodesToken = {
 	deepIndex?: number | null;
 	orderedIndex?: number | null;
 	class?: string | null;
+	// 唯一标识，用于标记节点是否是同一个节点
+	uniqueId?: string | null;
 };

@@ -1,13 +1,24 @@
 <!-- 网络链接内容展示页（uni-id-pages-x中用于展示隐私政策协议内容） -->
 <template>
-	<web-view class="web-view" v-if="url.length != 0" :src="url"></web-view>
+	<view class="nav-bar">
+		<view class="nav-bar-left">
+			<uni-icons type="left" size="20" color="#000" @click="back"></uni-icons>
+		</view>
+		<text class="nav-bar-title">{{title}}</text>
+		<view class="nav-bar-right">
+			<!-- #ifdef APP -->
+			<uni-icons type="refresh" size="20" color="#000" @click="refresh"></uni-icons>
+			<!-- #endif -->
+		</view>
+	</view>
+	<web-view class="web-view" v-if="url.length != 0" @load="webviewLoad" @error="webviewError" :src="url" id="webview"></web-view>
 </template>
 
 <script>
 	export default {
 		onLoad(param) {
 			const url = param["url"] as string;
-			let title = (param["title"] ?? '') as string;
+			this.title = (param["title"] ?? url) as string;
 			// console.log('url', url);
 			if (url.substring(0, 4) != 'http') {
 				uni.showModal({
@@ -19,22 +30,61 @@
 						uni.navigateBack()
 					}
 				});
-				title = "页面路径错误"
+				this.title = "页面路径错误"
 			} else {
 				this.url = url;
 			}
-			if (title.length != 0) {
-				uni.setNavigationBarTitle({ title });
+			if (this.title.length != 0) {
+				uni.setNavigationBarTitle({ title: this.title });
 			}
 		},
 		data() {
 			return {
-				url: ""
+				url: "",
+				title: ""
 			};
+		},
+		methods: {
+			webviewLoad(event: UniWebViewLoadEvent) {
+				// console.log('webviewLoad', event);
+			},
+			webviewError(event: UniWebViewErrorEvent) {
+				console.log('webviewError', event);
+			},
+			back() {
+				uni.navigateBack()
+			},
+			// #ifdef APP
+			refresh() {
+				uni.createWebviewContext('webview', this)?.reload()
+			}
+			// #endif
 		}
 	}
 </script>
-<style>
+<style lang="scss">
+	.nav-bar {
+		flex-direction: row;
+		padding: 10px;
+		/* #ifndef WEB */
+		padding-top: env(safe-area-inset-top);
+		/* #endif */
+		justify-content: space-between;
+		border-bottom: 1px solid #ccc;
+		.nav-bar-left, .nav-bar-right {
+			width: 25px;
+			align-items: center;
+		}
+		.nav-bar-title {
+			width: 50%;
+			text-overflow: ellipsis;
+			text-align: center;
+			// 不换行
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	}
 	.web-view {
 		width: 750rpx;
 		flex: 1;

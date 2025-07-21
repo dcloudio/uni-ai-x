@@ -1,5 +1,5 @@
 <template>
-	<view style="width: 100%;margin-bottom: 10px;">
+	<view style="margin-bottom: 10px;">
 		<uni-table :stripe="false" :columns="columns" :data="data"></uni-table>
 	</view>
 </template>

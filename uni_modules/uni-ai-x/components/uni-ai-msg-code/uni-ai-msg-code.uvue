@@ -9,7 +9,7 @@
 				<text class="copy-text">复制代码</text>
 			</view>
 		</view>
-		<scroll-view class="code-scroll-view" direction="horizontal">
+		<scroll-view class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true">{{codeText}}</text>
 			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index">
 				<text v-for="token in tokens" class="code" :class="token.className">{{token.text}}</text>
@@ -23,11 +23,6 @@ import { IToken, parseCode } from './parseCode.uts'
 export default {
 	name: 'msg-code',
 	props: {
-		// msg: {
-		// 	type: Object as PropType<MsgItem>,
-		// 	required: false,
-		// 	default: {},
-		// },
 		codeText: {
 			type: String,
 			default: `
@@ -68,31 +63,12 @@ export default {
 			},
 			immediate: true,
 			deep: true
-		},
-		// codeText: {
-		// 	async handler() {
-		// 		// 计算耗时
-		// 		const res = await parseCode(this.codeText,this.language)
-		// 		console.log('res',res)
-		// 		this.tokens = res
-		// 	},
-		// 	immediate: true
-		// }
+		}
 	},
 	computed: {
-		// tokensLines(): IToken[][] {
-		// 	const tokensLines = [[]] as IToken[][]
-		// 	this.tokens.forEach(item => {
-		// 		// 发现行就创建一个数组
-		// 		if(item.text == '\n') {
-		// 			tokensLines.push([])
-		// 		} else {
-		// 			tokensLines[tokensLines.length - 1].push(item)
-		// 		}
-		// 	})
-		// 	console.log('tokensLines',tokensLines)
-		// 	return tokensLines as IToken[][]
-		// }
+		scrollViewHeight(): string {
+			return `${this.codeText.split('\n').length * 20 + 12}px`
+		}
 	},
 	methods: {
 		copyCode() {
@@ -170,8 +146,12 @@ export default {
 	}
 	.code-scroll-view {
 		padding: 6px 10px;
+		height: auto;
 		width: 100%;
+		// 高度变化的过渡动画
+		transition: height 0.2s linear;
 		.line {
+			height: 20px;
 			white-space: nowrap;
 			align-self: flex-start;
 			.code {
@@ -208,6 +188,7 @@ export default {
 		}
 		
 		.origin-code {
+			line-height: 20px;
 			font-size: 14px;
 			font-family: CodeFontFamily;
 		}

@@ -1,16 +1,12 @@
 <template>
-	<view class="uni-ai-tool-bar">
+	<!-- <view class="uni-ai-tool-bar"> -->
 		<!-- 复制按钮、重新回答按钮 -->
-		<view class="btn loop"  @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
-			<uni-icons type="loop" size="20" color="#999"></uni-icons>
-		</view>
-		<view class="btn copy"  @click="copy">
-			<uni-ai-icon code="e60c" size="21" color="#999" />
-		</view>
+		<text class="btn loop"  @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">{{loopIcon}}</text>
+		<text class="btn copy"  @click="copy">{{copyIcon}}</text>
 		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>
 		</view> -->
-	</view>
+	<!-- </view> -->
 </template>
 
 <script>
@@ -33,6 +29,12 @@
 			},
 			isLastAiMsg(): boolean {
 				return this.msg._id == uniAi.lastAiMsg?._id
+			},
+			copyIcon(): string {
+				return this.uicon('e60c')
+			},
+			loopIcon(): string {
+				return this.uicon('e633')
 			}
 		},
 		methods: {
@@ -63,48 +65,81 @@
 					uniAi.currentChat!.state = 'stop'
 					// 终止请求
 					uniAi.abortRequest()
-					await new Promise(resolve => {setTimeout(()=>{resolve(true)}, 100)})
 				}
-				const aboutMsg = uniAi.currentChat!.msgList.find((item) => item._id == this.msg.about_msg_id)
-				// 删除原来的答案和问题
-				uniAi.deleteMsg(this.msg._id)
-				uniAi.deleteMsg(this.msg.about_msg_id!)
-				// 重新发送消息
-				uniAi.sendMsg(aboutMsg!.body)
+				// 计算 nextTick的耗时
+				// const start = Date.now()
+				await nextTick()
+				// const end = Date.now()
+				// console.error('nextTick的耗时', end - start)
+				// 删除原来的答案
+				this.msg.body = ''
+				this.msg.rendered = false
+				this.msg.error_msg = null
+				this.msg.thinkContent = null
+				this.msg.markdownElList = []
+				uniAi.answerQuestion(this.msg)
 			},
 			// 删除按钮
 			deleteMsg() {
 				uniAi.deleteMsg(this.msg._id)
+			},
+			uicon(code: string) {
+				// #ifdef APP
+				// 将字符串分割成 Unicode 编码的字符
+				let codes = code.split('%u');
+				// 遍历字符数组
+				let chars = codes.map(code => {
+					// 转换为十六进制
+					let hexCode = parseInt(code, 16);
+					// 将 UTF-16 编码转换为字符
+					return String.fromCharCode(hexCode);
+				});
+				// 将字符数组转换成字符串
+				return chars.join('');
+				// #endif
+				// #ifndef APP
+				return unescape(`%u${code}`) as string
+				// #endif
 			}
 		}
 	}
 </script>
 
 <style lang="scss">
-	.uni-ai-tool-bar {
+	@font-face {
+		// #ifdef WEB
+		font-display: swap;
+		// #endif
+		font-family: uniAiIconFontFamily;
+		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
+	}
+	@font-face {
+		// #ifdef WEB
+		font-display: swap;
+		// #endif
+		font-family: UniIconsFontFamily;
+		src: url('/uni_modules/uni-icons/components/uni-icons/uniicons.ttf');
+	}
+	.btn {
 		border-radius: 5px;
-		z-index: 9;
-		flex-direction: row;
-		justify-content: flex-start;
-		margin-left: 20px;
-		margin-top: 5px;
-		.btn {
-			margin: 5px;
-			margin-bottom: 0;
-			border-radius: 5px;
-			width: 25px;
-			height: 25px;
-			justify-content: center;
-			align-items: center;
-			&.copy .uni-ai-icon {
-				padding-top: 1px;
-			}
-			// #ifdef WEB
-			cursor: pointer;
-			&:hover {
-				filter: brightness(0.8);
-			}
-			// #endif
+		width: 25px;
+		height: 25px;
+		font-size: 20px;
+		line-height: 25px;
+		text-align: center;
+		margin-top: 10px;
+		margin-right: 15px;
+		&.copy {
+			font-family: uniAiIconFontFamily;
 		}
+		&.loop {
+			font-family: UniIconsFontFamily;
+		}
+		// #ifdef WEB
+		cursor: pointer;
+		&:hover {
+			filter: brightness(0.8);
+		}
+		// #endif
 	}
 </style>

@@ -102,14 +102,10 @@ export default {
             uniAi.currentChat!.state = 'stop';
             uniAi.abortRequest()
             // 给一个停止的等待时间
-            await new Promise(resolve => {
-							setTimeout(()=>{
-								resolve(true)
-							}, 100)
-						})
+            await nextTick()
         },
         async send() {
-            console.log('send-----------------')
+            // console.log('send-----------------')
             if (this.inputContent.length == 0) {
                 return;
             }
@@ -155,6 +151,9 @@ export default {
         background-color: #efefef;
         border-radius: 30px;
         margin-right: 5px;
+        // #ifdef H5
+        cursor: pointer;
+        // #endif
         &.active {
             background-color: #e4efff;
         }

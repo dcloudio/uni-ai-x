@@ -62,16 +62,8 @@ const llmModelMap = new Map<string, Provider>([
 					bailianTokenInfo.expireTime = expiresAt
 					return tmpToken
 				} catch (e: any) {
-					const error = JSON.parse<UniCloudError>(JSON.stringify(e)) as UniCloudError
+					// const error = JSON.parse<UniCloudError>(JSON.stringify(e)) as UniCloudError
 					// console.error('uni-ai-x-co 请求失败', error, error.message)
-					if (error.message != 'uni-id-check-token-failed' && error.message != "Check token failed"){
-						uni.showModal({
-							title: '获取临时token失败',
-							content: error.message,
-							showCancel: false,
-							confirmText: '确定'
-						})
-					}
 					throw new Error('获取临时token失败')
 				}
 				
@@ -82,7 +74,7 @@ const llmModelMap = new Map<string, Provider>([
 					url: 'https://your-server.com/get-token',
 					method: 'GET'
 				})
-				if (res.statusCode !== 200) {
+				if (res.statusCode != 200) {
 					throw new Error('获取临时token失败')
 				}
 				const tmpToken = res.getString('data.token', '')

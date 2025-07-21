@@ -1,7 +1,7 @@
 {
   "id": "kux-marked",
   "displayName": "kux-marked",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "基于 `UTS` 的高性能 `Markdown` 解析器，专为 `uts` 跨平台应用开发优化。",
   "keywords": [
     "kux-marked",
@@ -10,7 +10,9 @@
 ],
   "repository": "https://gitcode.com/uvuejs/kux-marked",
   "engines": {
-    "HBuilderX": "^3.6.8"
+    "HBuilderX": "^3.6.8",
+    "uni-app": "",
+    "uni-app-x": "^4.72"
   },
   "dcloudext": {
     "type": "uts",
@@ -30,54 +32,69 @@
       "data": "插件不采集任何数据",
       "permissions": "无"
     },
-    "npmurl": ""
+    "npmurl": "",
+    "darkmode": "x",
+    "i18n": "x",
+    "widescreen": "x"
   },
   "uni_modules": {
     "dependencies": [],
     "encrypt": [],
     "platforms": {
       "cloud": {
-        "tcb": "y",
-        "aliyun": "y",
-        "alipay": "y"
+        "tcb": "√",
+        "aliyun": "√",
+        "alipay": "√"
       },
       "client": {
-        "Vue": {
-          "vue2": "u",
-          "vue3": "y"
+        "uni-app": {
+          "vue": {
+            "vue2": "-",
+            "vue3": "-"
+          },
+          "web": {
+            "safari": "-",
+            "chrome": "-"
+          },
+          "app": {
+            "vue": "-",
+            "nvue": "-",
+            "android": "-",
+            "ios": "-",
+            "harmony": "-"
+          },
+          "mp": {
+            "weixin": "-",
+            "alipay": "-",
+            "toutiao": "-",
+            "baidu": "-",
+            "kuaishou": "-",
+            "jd": "-",
+            "harmony": "-",
+            "qq": "-",
+            "lark": "-"
+          },
+          "quickapp": {
+            "huawei": "-",
+            "union": "-"
+          }
         },
-        "App": {
-            "app-android": "y",
-            "app-ios": "y",
-            "app-harmony": "y"
-        },
-        "H5-mobile": {
-          "Safari": "y",
-          "Android Browser": "y",
-          "微信浏览器(Android)": "y",
-          "QQ浏览器(Android)": "y"
-        },
-        "H5-pc": {
-          "Chrome": "y",
-          "IE": "y",
-          "Edge": "y",
-          "Firefox": "y",
-          "Safari": "y"
-        },
-        "小程序": {
-          "微信": "y",
-          "阿里": "u",
-          "百度": "u",
-          "字节跳动": "u",
-          "QQ": "u",
-          "钉钉": "u",
-          "快手": "u",
-          "飞书": "u",
-          "京东": "u"
-        },
-        "快应用": {
-          "华为": "u",
-          "联盟": "u"
+        "uni-app-x": {
+          "web": {
+            "safari": "√",
+            "chrome": "√"
+          },
+          "app": {
+            "android": {
+                "extVersion": "",
+                "minVersion": "21"
+            },
+            "ios": "√",
+            "harmony": "√"
+          },
+          "mp": {
+            "weixin": "√"
+          }
         }
       }
     }

@@ -1,29 +1,41 @@
 import { reactive, watch } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chunk,Chat, Provider, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting } from '@/uni_modules/uni-ai-x/types.uts';
-export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
+import { Llm,ChatItem,Chunk,Chat, Provider, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem } from '@/uni_modules/uni-ai-x/types.uts';
+export { MsgItem, ChatItem, BaseMsgItem, Userinfo, markdownElItem }
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
-
- type BailianOptionsOnChunkFn = (chunkObj: Chunk) => void
- type BailianOptionsOnErrorFn = (err: UTSJSONObject) => void
- type BailianOptionsOnDoneFn = () => void
- type BailianOptionsOnSuccessFn = (chunkObj: Chunk) => void
-
- type BailianOptions = {
+import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
+import testMarkdownText from '@/uni_modules/uni-ai-x/components/uni-ai-x-msg/testMarkdownText.uts';
+import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
+type OnChunkFn = (chunkObj: Chunk) => void
+type BailianOptionsOnChunkFn = (chunkObj: Chunk) => void
+type BailianOptionsOnErrorFn = (err: UTSJSONObject) => void
+type BailianOptionsOnDoneFn = (data: UTSJSONObject) => void
+type BailianOptionsOnSuccessFn = (chunkObj: Chunk) => void
+type BailianOptions = {
 	messages: RequestAiCoMessage[],
 	stream?: boolean,
 	onChunk?: BailianOptionsOnChunkFn,
 	onError?: BailianOptionsOnErrorFn,
 	onDone?: BailianOptionsOnDoneFn,
 	onSuccess?: BailianOptionsOnSuccessFn
- }
-
- type BeforeRequestAiFn = (msgItem: MsgItem) => void
-
- // 请求任务列表
+}
+type CheckDiffEndFn = () => void
+type CheckDiffFn = (index: number, checkDiffEndFn: CheckDiffEndFn) => void
+type BeforeRequestAiFn = () => void
+type BeforeUpdateMdElList = (markdownTokenList: MarkdownToken[]) => void;
+// 请求任务列表
 let requestTask: RequestTask | null = null
+
+function checkThreadInMain(taskName: string) {
+	// #ifdef APP-ANDROID
+	if (Thread.currentThread().name == 'main') {
+		console.log('任务：' taskName, '在主线程执行')
+	}
+	// #endif
+}
 class UniAi {
+	canRender: boolean = true
 	// 当前用户
 	currentUser: Userinfo = currentUser
 	setting: Setting = reactive<Setting>({
@@ -52,6 +64,17 @@ class UniAi {
 	getLocalMsgId(): string {
 		// 生成一个 local_ 开头的随机字符串
 		return 'local_' + (this.currentUser._id ?? 'tmp_user') + "_"  + Date.now().toString(16) + "_" + Math.floor(Math.random() * 100000)
+	}
+	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
+	uniGetDispatcher(taskName: string, fn: () => void) {
+		// #ifdef APP-ANDROID
+		UTSAndroid.getDispatcher(taskName).async((_) => {
+			fn()
+		})
+		// #endif
+		// #ifndef APP-ANDROID
+		fn()
+		// #endif
 	}
 	addChat() {
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
@@ -86,7 +109,6 @@ class UniAi {
 		uni.getStorage({
 			key: 'uni-ai-chatList',
 			success: (res) => {
-				
 				if (res.data != null){
 					// #ifdef WEB
 					res.data = res.data as ChatItem[]
@@ -97,6 +119,7 @@ class UniAi {
 					// #endif
 				} else {
 					this.addChat()
+					res.data = [] as ChatItem[]
 				}
 
 				// console.error('res.data 获取成功', res.data)
@@ -137,40 +160,45 @@ class UniAi {
 			}
 		})
 
+		// 在 IO 线程执行存储操作
 		let saveStorageTimer: number | null = null
-		watch((): ChatItem[] => this.chat.datas as ChatItem[], (newVal: ChatItem[]) => {
-			// console.error('chatList 发生变化', newVal)
-			// 防止短时间内重复触发存储
-			if (saveStorageTimer != null) {
-				// console.error('防止短时间内重复触发存储')
-				clearTimeout(saveStorageTimer as number)
+		watch((): ChatItem[] => this.chat.datas as ChatItem[], (newVal: ChatItem[] | null) => {
+			if (newVal != null) {
+				// console.error('chatList 发生变化', newVal)
+				// 防止短时间内重复触发存储
+				if (saveStorageTimer != null) {
+					// console.error('防止短时间内重复触发存储')
+					clearTimeout(saveStorageTimer as number)
+				}
+				saveStorageTimer = setTimeout(() => {
+					// 存储到 storage 中
+					uni.setStorage({
+						key: 'uni-ai-chatList',
+						data: newVal,
+						success: () => {
+							// console.log('uni-ai-chatList 存储成功', newVal)
+						},
+						fail: (err) => {
+							console.error('uni-ai-chatList 存储失败', err)
+						}
+					})
+				}, 1000)
 			}
-			saveStorageTimer = setTimeout(() => {
-				// 存储到 storage 中
-				uni.setStorage({
-					key: 'uni-ai-chatList',
-					data: newVal,
-					success: () => {
-						// console.log('uni-ai-chatList 存储成功', newVal)
-					},
-					fail: (err) => {
-						console.error('uni-ai-chatList 存储失败', err)
-					}
-				})
-			}, 1000)
 		}, { deep: true })
 
-		watch((): Setting => this.setting, (newVal: Setting) => {
-			uni.setStorage({
-				key: 'uni-ai-setting',
-				data: newVal,
-				success: () => {
-					// console.log('uni-ai-setting 存储成功', newVal)
-				},
-				fail: (err) => {
-					console.error('uni-ai-setting 存储失败', err)
-				}
-			})
+		watch((): Setting => this.setting, (newVal: Setting | null) => {
+			if (newVal != null) {
+				uni.setStorage({
+					key: 'uni-ai-setting',
+					data: newVal,
+					success: () => {
+						// console.log('uni-ai-setting 存储成功', newVal)
+					},
+					fail: (err) => {
+						console.error('uni-ai-setting 存储失败', err)
+					}
+				})
+			}
 		}, { deep: true })
 	}
 	addMsg(msg: BaseMsgItem): MsgItem {
@@ -184,12 +212,13 @@ class UniAi {
 			from_uid: msg.from_uid,
 			create_time: Date.now(),
 			state: 0,
-			markdownTokenList: [] as MarkdownToken[]
+			markdownElList: [] as markdownElItem[],
+			rendered: false
 		}
 		msgList.push(newMsg)
 		if (msg.from_uid != 'uni-ai') {
-			// 把用户提的问题 内容的前 20 个字符作为标题
-			const title = msg.body.substring(0, 20)
+			// 把用户提的问题 内容的前 20 个字符作为标题，去掉换行符
+			const title = msg.body.substring(0, 20).replace(/\n/g, '')
 			this.currentChat!.title = title
 		}
 		// 更新会话的更新时间
@@ -212,6 +241,14 @@ class UniAi {
 		// 终止请求
 		requestTask?.abort()
 	}
+	// 转换
+	token2el(token: MarkdownToken): markdownElItem {
+		return {
+			uniqueId: token.uniqueId!,
+			type: token.type!,
+			datasList: treeToListSdk.markTreeToList(token)
+		}
+	}
 	async sendMsg(inputContent: string = ''): Promise<void> {
 		// 发送消息
 		if (inputContent == '') {
@@ -229,7 +266,7 @@ class UniAi {
 			from_uid: this.currentUser._id ?? 'tmp_user_'
 		}
 		const userMsg: MsgItem = this.addMsg(baseUserMsg)
-		console.log('before-send-msg', userMsg)
+		// console.log('before-send-msg', userMsg)
 
 		// 生成一条空的 ai 回复的内容
 		let baseAiMsgItem: BaseMsgItem = {
@@ -238,20 +275,226 @@ class UniAi {
 			about_msg_id: userMsg._id
 		}
 		const aiMsgItem: MsgItem = this.addMsg(baseAiMsgItem)
+		return this.answerQuestion(aiMsgItem)
+	}
+	// 回答问题
+	answerQuestion(aiMsgItem: MsgItem) {
+		this.currentChat!.state = 'processing';
+		let setRenderedTimer: number = 0;
+		this.uniGetDispatcher("io", () => {
+			const oldMarkdownTokenList: MarkdownToken[] = []
+			checkThreadInMain('sendMsg')
+			let delayTaskTimer: number = 0;
+			let beforeUpdateMdElList: BeforeUpdateMdElList = (markdownTokenList: MarkdownToken[]) => {}
+			let lockBeforeUpdateMdElList = false
+			const setRendered = (rendered: boolean) => {
+				this.uniGetDispatcher("main", () => {
+					if (rendered == true){
+						if (this.currentChat!.state != 'completed'){
+							// console.log('setRendered 当前状态不是 completed', this.currentChat!.state)
+							if (setRenderedTimer != 0) clearTimeout(setRenderedTimer)
+							setRenderedTimer = setTimeout(() => {
+								aiMsgItem.rendered = true
+								setRenderedTimer = 0
+							},
+							// #ifdef APP-HARMONY
+							1000
+							// #endif
+							// #ifndef APP-HARMONY
+							 500
+							// #endif
+							)
+						} else {
+							aiMsgItem.rendered = true
+						}
+					} else {
+						aiMsgItem.rendered = false
+						setRenderedTimer = 0
+					}
+				})
+			}
+			beforeUpdateMdElList = (markdownTokenList: MarkdownToken[]) => {
+				// 清除延迟任务
+				if (delayTaskTimer != 0) {
+					clearTimeout(delayTaskTimer)
+				}
+				if (!lockBeforeUpdateMdElList && this.canRender) {
+					lockBeforeUpdateMdElList = true
 
-		this.requestAi(aiMsgItem).then((res) => {
-			// console.log('requestAi then', res)
-			userMsg.state = 100
-		}).catch((errRes) => {
-			console.error('requestAi', errRes)
-			userMsg.state = -100
-			// 状态为 stop 为用户手动执行了 停止 不需要再次提示用户
-			if (this.currentChat!.state != 'stop'){
-				console.error('发送失败', errRes,typeof errRes, ' 当前状态:' + this.currentChat!.state)
-				this.currentChat!.state = 'stop';
-				// if (errRes['error']['code'] == 'data_inspection_failed') {
-				// 	aiMsgItem.error_msg = '数据检查失败，疑似包含敏感信息'
-				// }
+					const newMarkdownTokenList = markdownTokenList.slice(0)
+					const newLength = newMarkdownTokenList.length
+					const oldLength = oldMarkdownTokenList.length
+					
+
+					// // 测试简化逻辑，直接全量更新
+					// this.uniGetDispatcher("main", () => {
+					// 	const newMarkdownElList = newMarkdownTokenList.map((item: MarkdownToken) => this.token2el(item))
+					// 	// 直接赋值，避免频繁的数组操作
+					// 	aiMsgItem.markdownElList = newMarkdownElList
+					// })
+
+					// 倒着检查，如果发现有不一样的，就更新。直到检查到有相同项为止
+					let checkDiffCount: number = 0
+					let checkDiff: CheckDiffFn = () => {}
+					checkDiff = (index: number, checkDiffEndFn: CheckDiffEndFn)=>{
+						if (index < 0 || index >= newLength) {
+							checkDiffEndFn()
+							return
+						}
+						if (oldMarkdownTokenList[index].uniqueId != newMarkdownTokenList[index].uniqueId) {
+							checkDiffCount++
+							// console.log('检查到不一样的', checkDiffCount)
+							oldMarkdownTokenList[index] = newMarkdownTokenList[index]
+							checkThreadInMain('checkDiff')
+							const newMarkdownElListItem = this.token2el(newMarkdownTokenList[index])
+							this.uniGetDispatcher("main", () => {
+								aiMsgItem.markdownElList[index] = newMarkdownElListItem
+								this.uniGetDispatcher("io", () => {
+									checkDiff(index - 1, checkDiffEndFn)
+								})
+							})
+						} else {
+							checkDiffEndFn()
+						}
+					}
+					
+
+					const checkAndRemoveOldItems = (oldLength: number, newLength: number) => {
+						// 如果旧的更长，则把多的部分删除
+						if (oldLength > newLength) {
+							oldMarkdownTokenList.splice(newLength)
+							this.uniGetDispatcher("main", () => {
+								// console.log('删除过期项', oldLength - newLength)
+								aiMsgItem.markdownElList.splice(newLength, oldLength - newLength)
+							})
+						}
+					}
+
+
+					checkDiff(oldLength - 1, ()=>{
+						// 如果新的更长，则把多的部分添加到 oldMarkdownTokenList 中
+						if (newLength > oldLength) {
+							const newItems = newMarkdownTokenList.slice(oldLength)
+							oldMarkdownTokenList.push(...newItems)
+							const newItemsElList = newItems.map((item: MarkdownToken) => this.token2el(item))
+							this.uniGetDispatcher("main", () => {
+								aiMsgItem.markdownElList.push(...newItemsElList)
+								checkAndRemoveOldItems(oldLength, newLength)
+								setRendered(true)
+								this.uniGetDispatcher("io", () => {
+									lockBeforeUpdateMdElList = false
+								})
+							})
+						} else {
+							checkAndRemoveOldItems(oldLength, newLength)
+							setRendered(true)
+							lockBeforeUpdateMdElList = false
+						}
+					})
+				} else {
+					setRendered(false)
+					// 创建延迟任务
+					delayTaskTimer = setTimeout(()=>{
+						beforeUpdateMdElList(markdownTokenList)
+					}, 500)
+				}
+			}
+			const parseMarkdown = new ParseMarkdown(beforeUpdateMdElList)
+			const isDemo = false;
+			if (isDemo == false) { // 1个字为一批往 this.msg.body 上追加
+				checkThreadInMain('before requestAi')
+				const messages = this.getMsgToAi(this.currentChat!)
+				this.requestAi(messages,(chunkObj: Chunk) => {
+					checkThreadInMain('requestAi onChunk')
+					// console.log('chunkObj', chunkObj)
+					const content = chunkObj.choices?.[0]?.delta?.content
+					const reasoningContent = chunkObj.choices?.[0]?.delta?.reasoning_content
+					this.uniGetDispatcher("main", () => {
+						if (this.currentChat!.state == 'stop') {
+							console.warn('请求已被终止')
+							return
+						}
+						if (content != null) {
+							aiMsgItem.body += content
+						} else if (reasoningContent != null) {
+							aiMsgItem.thinkContent = (aiMsgItem.thinkContent ?? '') + reasoningContent
+						} else {
+							console.error('content == null')
+						}
+
+						if (content != null || reasoningContent != null){
+							// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
+							const msgBody = aiMsgItem.body
+							this.uniGetDispatcher("io", () => {
+								parseMarkdown.runTask(msgBody)
+							})
+						}
+					})
+				}).then((res) => {
+					// console.log('requestAi then', res)
+					this.uniGetDispatcher("main", () => {
+						console.log('流式数据结束')
+						this.currentChat!.state = 'completed';
+						// 多加个换行结尾方便解析，防止解析到最后一行时，没有换行符，导致解析失败
+						if (!aiMsgItem.body.endsWith('\n')) {
+							aiMsgItem.body += "\n"
+							const aiMsgItemBody = aiMsgItem.body
+							this.uniGetDispatcher("io", () => {
+								// console.log('加个换行继续解析', aiMsgItemBody, aiMsgItemBody.length)
+								parseMarkdown.runTask(aiMsgItemBody)
+							})
+						}
+					})
+					// 让阿里百联总结更新
+					this.updateChatTitle(this.currentChat!, messages)
+				}).catch((errRes) => {
+					errRes = errRes as UTSJSONObject
+					// console.error('requestAi catch', errRes)
+					// 回到主线程更新状态
+					this.uniGetDispatcher("main", () => {
+						// 状态为 stop 为用户手动执行了 停止 不需要再次提示用户
+						if (this.currentChat!.state != 'stop'){
+							this.currentChat!.state = 'stop';
+							const errCode = errRes.getString('errCode', '')
+							let errMsg = errRes.getString('errMsg', '未知错误')
+							console.log('errCode', errCode)
+							console.log('errMsg', errMsg)
+							if (errCode == 'data_inspection_failed') {
+								errMsg = '数据检查失败，疑似包含敏感信息'
+							}
+							aiMsgItem.error_msg = errMsg
+						}
+					})
+				})
+			} else {
+				this.uniGetDispatcher("main", () => {
+					this.emitBeforeRequestAi()
+				})
+				let i = 0
+				let timer: number = 0
+				timer = setInterval(() => {
+					if (i >= testMarkdownText.length) {
+						clearInterval(timer)
+						this.uniGetDispatcher("main", () => {
+							this.currentChat!.state = 'completed'
+						})
+					} else {
+						const batchSize = 3
+						const endIndex = Math.min(i + batchSize, testMarkdownText.length)
+						this.uniGetDispatcher("main", () => {
+							const newText = testMarkdownText.slice(i, endIndex)
+							// console.log('aiMsgItem.body', aiMsgItem.body, newText)
+							aiMsgItem.body += newText
+							// console.log('aiMsgItem.body', aiMsgItem.body)
+							i = endIndex
+							// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
+							const msgBody = aiMsgItem.body
+							this.uniGetDispatcher("io", () => {
+								parseMarkdown.runTask(msgBody)
+							})
+						})
+					}
+				}, 100)
 			}
 		})
 	}
@@ -270,57 +513,33 @@ class UniAi {
 	onBeforeRequestAi(fn: BeforeRequestAiFn) {
 		this.beforeRequestAiFns.push(fn)
 	}
-	emitBeforeRequestAi(msgItem: MsgItem) {
+	emitBeforeRequestAi() {
 		this.beforeRequestAiFns.forEach((fn) => {
-			fn(msgItem)
+			fn()
 		})
 	}
-	async requestAi(msgItem: MsgItem): Promise<UTSJSONObject> {
-		this.emitBeforeRequestAi(msgItem)
-		const currentChat = this.chat.datas.find((item) => item.id == msgItem.chat_id) as ChatItem
-		const messages: RequestAiCoMessage[] = this.getMsgToAi(currentChat)
-		currentChat.state = 'processing'
-		if (this.llm.provider == 'bailian') {
-			return await this.requestBailian({
-				messages,
-				stream: true,
-				onChunk: (chunkObj: Chunk) => {
-					// console.log('chunkObj', chunkObj)
-					if (currentChat.state == 'stop') {
-						console.warn('请求已被终止')
-						return
-					}
-					const content = chunkObj.choices?.[0]?.delta?.content
-					const reasoningContent = chunkObj.choices?.[0]?.delta?.reasoning_content
-					if (content != null) {
-						msgItem.body += content
-					} else if (reasoningContent != null) {
-						msgItem.thinkContent = (msgItem.thinkContent ?? '') + reasoningContent
-					} else {
-						console.error('content == null')
-					}
-				},
-				onError: (err: UTSJSONObject) => {
-					console.error('parseChunkData error', err)
-					msgItem.body = err.getString('error.message', '未知错误')
-				},
-				onDone: () => {
-					console.log('流式数据结束')
-					currentChat.state = 'completed';
-					// 多加个换行结尾方便解析，防止解析到最后一行时，没有换行符，导致解析失败
-					if (!msgItem.body.endsWith('\n')) {
-						msgItem.body += "\n"
-					}
-					// 让阿里百联总结更新
-					this.updateChatTitle(currentChat, messages)
-				}
+	// 子线程请求AI
+	requestAi(messages: RequestAiCoMessage[],onChunkFn: OnChunkFn): Promise<UTSJSONObject> {
+		return new Promise<UTSJSONObject>((resolve, reject) => {
+			this.uniGetDispatcher("main", () => {
+				this.emitBeforeRequestAi()
+				this.currentChat!.state = 'processing'
 			})
-		} else {
-			currentChat.state = 'completed'
-			msgItem.body = '不支持的模型: ' + this.llm.provider + ' ' + this.llm.model
-			console.error('requestAi', '不支持的模型: ' + this.llm.model)
-			throw new Error('requestAi: 不支持的模型: ' + this.llm.model)
-		}
+			if (this.llm.provider == 'bailian') {
+				this.requestBailian({
+					messages,
+					stream: true,
+					onChunk: onChunkFn,
+					onError: reject,
+					onDone: resolve
+				})
+			} else {
+				reject({
+					errCode: -100,
+					errMsg: '不支持的模型: ' + this.llm.model
+				} as UTSJSONObject)
+			}
+		})
 	}
 	// 让阿里百联总结更新
 	async updateChatTitle(currentChat: ChatItem, messages: RequestAiCoMessage[]): Promise<void> {
@@ -337,79 +556,106 @@ class UniAi {
 			onSuccess: (chunkObj: Chunk) => {
 				// console.log('updateChatTitle success', chunkObj, typeof chunkObj)
 				const newTitle = chunkObj.choices?.[0]?.message?.content
-				if (newTitle != null) {
+				this.uniGetDispatcher("main", () => {
+					currentChat.title = newTitle ?? '更新失败'
 					// console.log('updateChatTitle success', 'newTitle', newTitle, chunkObj)
-					currentChat.title = newTitle
-				} else {
-					// console.error('updateChatTitle success', 'newTitle == null', chunkObj)
-				}
+				})
 			}
 		})
 	}
-	async requestBailian(options: BailianOptions): Promise<UTSJSONObject> {
-		
-		let resolveFn = (_: UTSJSONObject): void => {}, rejectFn = resolveFn;
-		
-		const config: Provider = llmModelMap.get(this.llm.provider)!
+	async requestBailian(options : BailianOptions) : Promise<UTSJSONObject> {
+		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
+		const config : Provider = llmModelMap.get(this.llm.provider)!
 		// 请求的token
-		const tmpToken: string = await config.getToken?.()!
-		requestTask = uni.request({
-			url: config.baseURL!,
-			method: 'POST',
-			dataType: 'text',
-			data: {
-				messages: options.messages,
-				stream: options.stream ?? true,
-				model: this.llm.model
-			},
-			enableChunked: options.stream ?? true,
-			header: {
-				'Authorization': `Bearer ${tmpToken}`,
-				'Content-Type': 'application/json'
-			},
-			success: (res: RequestSuccess<any>) => {
-				if (options.stream == false) {
-					// console.error('非流式数据----',res.data,typeof res.data)
-					const strData = typeof res.data == 'string' ? res.data : JSON.stringify(res.data)
-					const chunkObj: Chunk = (JSON.parse<Chunk>(strData) ?? {}) as Chunk					
-					options.onSuccess?.(chunkObj)
-				} else {
-					resolveFn( {} as UTSJSONObject)
-				}
-			},
-			fail: (err: RequestFail) => {
-				console.error('request失败', err)
-				rejectFn({
-					errCode: err.errCode,
-					errMsg: err.errMsg
+		let tmpToken : string;
+		try {
+			tmpToken = await config.getToken?.()!
+		} catch (e) {
+			options.onError?.({
+				errCode: -100,
+				errMsg: '获取临时token失败'
+			} as UTSJSONObject)
+			return new Promise<UTSJSONObject>((resolve, reject) => {
+				reject({
+					errCode: -100,
+					errMsg: '获取临时token失败'
 				} as UTSJSONObject)
-			},
-			complete: () => {
-				console.log('request complete')
-				requestTask = null
-			}
-		})
-		if (options.stream == true) {
-			requestTask?.onChunkReceived((chunk: RequestTaskOnChunkReceivedListenerResult) => {
-				// console.log('onChunkReceived-----------------------------------',chunk)
-				parseChunkData(chunk.data as ArrayBuffer, (chunkObj: Chunk) => {
-					options.onChunk?.(chunkObj)
-				},
-				(err: UTSJSONObject) => {
-					console.error('parseChunkData error', err)
-					options.onError?.(err)
-					rejectFn(err)
-				},
-				() => {
-					console.log('流式数据结束')
-					options.onDone?.()
-				})
 			})
 		}
-
+		checkThreadInMain('getToken')
+		this.uniGetDispatcher("io", () => {
+			checkThreadInMain('requestBailian')
+			requestTask = uni.request({
+				url: config.baseURL!,
+				method: 'POST',
+				dataType: 'text',
+				data: {
+					messages: options.messages,
+					stream: options.stream ?? true,
+					model: this.llm.model
+				},
+				enableChunked: options.stream ?? true,
+				header: {
+					'Authorization': `Bearer ${tmpToken}`,
+					'Content-Type': 'application/json'
+				},
+				success: (res : RequestSuccess<any>) => {
+					if (options.stream == false) {
+						// console.error('非流式数据----',res.data,typeof res.data)
+						const strData = typeof res.data == 'string' ? res.data : JSON.stringify(res.data)
+						const chunkObj : Chunk = (JSON.parse<Chunk>(strData) ?? {}) as Chunk
+						options.onSuccess?.(chunkObj)
+					} else {
+						if (res.data instanceof UTSJSONObject) {
+							// 部分情况下（内容包含违禁词时），流式响应未返回数据，就立即结束请求。此时错误信息会放在 data 中
+							const error = res.data.getJSON('error')
+							if (error != null) {
+								// console.log('error', error)
+								options.onError?.({
+									errCode: error.getString('code', 'unknown'),
+									errMsg: error.getString('message', '未知错误')
+								} as UTSJSONObject)
+								return
+							}
+						}
+						resolveFn({} as UTSJSONObject)
+					}
+				},
+				fail: (err : RequestFail) => {
+					console.error('request fail', err)
+					rejectFn({
+						errCode: err.errCode,
+						errMsg: err.errMsg
+					} as UTSJSONObject)
+				},
+				complete: () => {
+					requestTask = null
+				}
+			})
+			if (options.stream == true) {
+				requestTask?.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
+					checkThreadInMain('requestBailian onChunkReceived')
+					// console.log('onChunkReceived-----------------------------------', chunk)
+					parseChunkData(chunk.data as ArrayBuffer, (chunkObj : Chunk) => {
+						options.onChunk?.(chunkObj)
+					},
+					(err : UTSJSONObject) => {
+						err.errCode = err.code ?? ''
+						err.errMsg = err.message ?? '未知错误'
+						// console.error('parseChunkData error', err)
+						options.onError?.(err)
+						rejectFn(err)
+					},
+					() => {
+						console.log('流式数据结束')
+						options.onDone?.({} as UTSJSONObject)
+					})
+				})
+			}
+		})
 		return new Promise<UTSJSONObject>((resolve, reject) => {
-			resolveFn = (data: UTSJSONObject) => { resolve(data as UTSJSONObject) }
-			rejectFn = (data: UTSJSONObject) => { reject(data as UTSJSONObject) }
+			resolveFn = (data : UTSJSONObject) => { resolve(data as UTSJSONObject) }
+			rejectFn = (data : UTSJSONObject) => { reject(data as UTSJSONObject) }
 		})
 	}
 }
@@ -425,6 +671,7 @@ window.uniAi = uniAi
 
 // 解析流式数据
 function parseChunkData(chunkData: ArrayBuffer, callback: (chunkObj: Chunk) => void, errorCallback: (err: UTSJSONObject) => void, doneCallback: () => void) {
+	checkThreadInMain('parseChunkData')
 	const chunkText: string = new TextDecoder().decode(chunkData)
 	// console.error('chunkText======', chunkText)
 	const lines: string[] = chunkText.trim().split('\n\n')
@@ -449,13 +696,13 @@ function parseChunkData(chunkData: ArrayBuffer, callback: (chunkObj: Chunk) => v
 				callback(chunk ?? {} as Chunk);
 			} else if (key == '{"error"') {
 				// console.error('parseChunkData error', {key,value})
-				let errorObj: UTSJSONObject = {}
+				let info: UTSJSONObject = {}
 				try {
-					errorObj = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
+					info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
 				} catch (e) {
 					console.error('JSON.parse error', e, 'value:', value)
 				}
-				errorCallback(errorObj)
+				errorCallback(info.error! as UTSJSONObject)
 				doneCallback()
 			} else {
 				callback({} as Chunk);

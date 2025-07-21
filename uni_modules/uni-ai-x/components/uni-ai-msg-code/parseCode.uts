@@ -57,8 +57,8 @@ export type ParseCodeRes = {
 	error: string | null
 }
 
-export async function parseCode(codeSource: string,language: string): Promise<ParseCodeRes>{
-	try {
+function initUniCodeHighlighter(): Promise<void> {
+	return new Promise((resolve, reject) => {
 		if (uniCodeHighlighter == null) {
 			// #ifndef APP-ANDROID || APP-HARMONY
 			// 根据 grammarList 生成tmls
@@ -97,51 +97,67 @@ export async function parseCode(codeSource: string,language: string): Promise<Pa
 			// console.log('tmlsList',tmlsList)
 			const tmls = getTmlFile(tmlsList)
 			// #endif
-			uniCodeHighlighter = await createHighLighter({ languages: tmls } as HighLighterOptions) as CreateHighLighterRes
+			createHighLighter({ languages: tmls } as HighLighterOptions).then((res: CreateHighLighterRes) => {
+				uniCodeHighlighter = res
+				resolve()
+			})
 			// console.log(tmls)
+		} else {
+			resolve()
 		}
-	
-		// 判断这个language是否在支持的列表中
-		if (!grammarList.includes(language)) {
-			// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
-			return {
+	})
+}
+
+export function parseCode(codeSource: string,language: string): Promise<ParseCodeRes>{
+	return new Promise((resolve) => {
+		try {
+			// 判断这个language是否在支持的列表中
+			if (!grammarList.includes(language)) {
+				// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
+				const res: ParseCodeRes = {
+					tokens: [],
+					language: language,
+					error: '不支持解析的语言类型'
+				}
+				resolve(res)
+				return
+			}
+			initUniCodeHighlighter().then(() => {
+				// TODO: 第三个参数暂时传 0 即可，但下一个版本的 uni-highlight，需要将上一次解析返回的 state 传入 用于提升性能
+				uniCodeHighlighter!.tokenizeLine(language, codeSource, 0).then((iLineToken: ILineTokens | null) => {
+					// console.log('代码解析耗时 ============', Date.now() - start)
+					const tokens = [] as Array<IToken>
+					iLineToken?.tokens.forEach((tk) => {
+						tokens.push({
+							text: codeSource.substring(tk.startIndex, tk.endIndex),
+							className: tk.scopes[tk.scopes.length - 1].split(".")[0]
+						})
+					})
+					// tokens.push({
+					// 	text: "\n",
+					// 	className: "eol"
+					// });
+					// console.log('tokens',tokens)
+					const res: ParseCodeRes = {
+						tokens: tokens,
+						language: language,
+						error: null
+					}
+					resolve(res)
+				})
+			})
+		} catch (error) {
+			const res: ParseCodeRes = {
 				tokens: [],
 				language: language,
-				error: '不支持解析的语言类型'
+				// #ifdef WEB
+				error: (error as any).message
+				// #endif
+				// #ifndef WEB
+				error: error.message
+				// #endif
 			}
+			resolve(res)
 		}
-		// console.log('language',language)
-		// const start = Date.now()
-		// TODO: 第三个参数暂时传 0 即可，但下一个版本的 uni-highlight，需要将上一次解析返回的 state 传入 用于提升性能
-		const iLineToken : ILineTokens | null = await uniCodeHighlighter!.tokenizeLine(language, codeSource, 0)
-		// console.log('代码解析耗时 ============', Date.now() - start)
-		const tokens = [] as Array<IToken>
-		iLineToken?.tokens.forEach((tk) => {
-			tokens.push({
-				text: codeSource.substring(tk.startIndex, tk.endIndex),
-				className: tk.scopes[tk.scopes.length - 1].split(".")[0]
-			})
-		})
-		// tokens.push({
-		// 	text: "\n",
-		// 	className: "eol"
-		// });
-		// console.log('tokens',tokens)
-		return {
-			tokens: tokens,
-			language: language,
-			error: null
-		}
-	} catch (error) {
-		return {
-			tokens: [],
-			language: language,
-			// #ifdef WEB
-			error: (error as any).message
-			// #endif
-			// #ifndef WEB
-			error: error.message
-			// #endif
-		}
-	}
+	})
 }

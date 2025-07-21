@@ -1,23 +1,38 @@
 <template>
-	<view class="msg-types-item-root" :class="{'ui-theme-dark': uiTheme == 'dark'}">
+	<view class="msg-root" :class="{'ui-theme-dark': uiTheme == 'dark'}">
+		<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
 		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
 		<template v-else>
 			<view class="think-content" v-if="msg.thinkContent != null">
-				<view class="header">
+				<view class="header" @click="changeThinkContent">
 					<text class="title">深度思考 &nbsp;</text>
-					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888" @click="hideThinkContent = !hideThinkContent"></uni-icons>
+					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
 				</view>
 				<view class="text-box" :class="{hideThinkContent}">
 					<text class="text" :decode="true">{{msg.thinkContent}}</text>
 				</view>
 			</view>
-			<uni-marked-el v-for="(node, index) in msg.markdownTokenList" :key="index" :token="node"/>
+			<template v-for="item in msg.markdownElList">
+				<template v-for="(datas, itemIndex) in item.datasList">
+					<uni-ai-msg-table class="table-box" v-if="item.type == 'table'" v-for="(data, index) in datas" :key="itemIndex + '-' + index" :table-node="data" />
+					<uni-ai-msg-code class="code-box" v-else-if="item.type == 'code'" v-for="(data, index) in datas" :key="item.uniqueId + index" :codeTokens="data.codeTokens ?? []" :codeText="data.text" :language="data.lang" />
+					<view v-else-if="item.type == 'hr'" v-for="(data, index) in datas" :key="item.uniqueId + index" class="hr-box"></view>
+					<text v-else :decode="true" class="text" :class="item.type! +  '-box' + (item.type! == 'list' ? ' list-content' : '')">
+						<text v-for="(data, index) in datas" :key="item.uniqueId + index"
+							:class="data.class ?? ''" 
+							@click="toLink(data.href)"
+							:decode="true"
+						>{{data.text}}</text>
+					</text>
+				</template>
+		   </template>
+		   <template v-if="isLastAiMsg && msg.body == ''">
+				<text v-if="state == 'stop'" class="stop-text">回答被终止</text>
+				<text v-if="state == 'none'" class="need-try">错误：未回复</text>
+				<uni-rotate-icon v-if="state == 'processing'" class="loging-icon" />
+			</template>
 		</template>
-		<template v-if="isLastAiMsg && msg.body == ''">
-			<text v-if="state == 'stop'" class="stop-text">回答被终止</text>
-			<text v-if="state == 'none'" class="need-try">错误：未回复</text>
-			<uni-rotate-icon v-if="state == 'processing'" class="loging-icon" />
-		</template>
+		<msg-tool-bar v-if="!isLastAiMsg || state == 'stop' || (state != 'processing' && msg.rendered)" :msg="msg" />
 	</view>
 </template>
 
@@ -26,13 +41,16 @@
 	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
 	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
 	const marked = useMarked();
-	type TaskListItem = () => Promise<void>
 	import testMarkdownText from './testMarkdownText.uts';
+	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	// import testMarkdownNode from './testMarkdownNode.uts';
 
 	export default {
 		name: 'msg-uni-ai',
-		components: {},
+		emits: ['changeThinkContent'],
+		components: {
+			msgToolBar
+		},
 		props: {
 			msg: {
 				type: Object as PropType<MsgItem>,
@@ -72,293 +90,99 @@
 					if (msgBody.length == 0) {
 						this.readyParseMdIndex = 0
 						this.parseMdIndex = 0
-						this.msg.markdownTokenList = []
 						this.parseLock = false
 					}
 					if (this.state == 'processing') {
-						this.runTask()
+						// this.runTask()
 					} else {
 						// console.log('this.msg.body', this.msg.body)
-						// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
 					}
 
 					// 测试代码 模拟解析固定的md
 					// const testMd = testMarkdownText
 					// const TokensList = marked.lexer(testMd,null) as TokensList
 					// console.log('TokensList----------', TokensList)
-					// this.msg.markdownTokenList = TokensList.tokens as MarkdownToken[]
 				},
 				// immediate: true
 			},
 			state: {
 				handler(state: string) {
 					if (state == 'completed' || state == 'stop') {
-						console.log('this.msg.body', this.msg.body)
-						console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
+						// console.log('this.msg.body', this.msg.body)
 					}
-				},
+				}
 			}
 		},
 		mounted(){
 			// this.testRun()
 			// console.log('this.msg.body', this.msg.body)
-			// console.log('this.msg.markdownTokenList', this.msg.markdownTokenList)
-			// console.log('this.msg.markdownTokenList', JSON.stringify(this.msg.markdownTokenList))
 		},
 		methods: {
-			runTask(){
-				if (this.parseLock != false) return
-				this.parseLock = true
-				// 新增的 markdown 文本
-				const newMd = this.msg.body.slice(this.readyParseMdIndex)
-				// 更新准备解析的 markdown 文本 = 新增的 markdown 文本的\n 之前的部分
-				this.readyParseMdIndex +=  (newMd.includes('\n') ? newMd.split('\n')[0] + '\n' : newMd).length
-				// 拿到本次解析的文本
-				let markdownText = this.msg.body.slice(this.parseMdIndex, this.readyParseMdIndex)
-				// console.error('markdownText', markdownText)
-				this.markdownParse(markdownText).finally(()=>{
-					// console.error('this.markdownParse().finally', this.parseMdIndex , this.msg.body.length)
-					this.parseLock = false
-					if (this.readyParseMdIndex < this.msg.body.length && this.parseMdIndex < this.msg.body.length) {
-						setTimeout(() => {
-							// console.log('未满')
-							this.runTask()
-						}, 300)
-					}
-				})
-			},
-			testRun(){
-				// 模拟ai 流式回答消息
-				uniAi.currentChat!.state = 'processing'
-				this.msg.body = ''
-				this.msg.markdownTokenList = []
-				// 10个字为一批往 this.msg.body 上追加
-				let i = 0
-				let timer: number = 0
-				timer = setInterval(() => {
-					if (i >= testMarkdownText.length) {
-						clearInterval(timer)
-					} else {
-						const batchSize = 30
-						const endIndex = Math.min(i + batchSize, testMarkdownText.length)
-						this.msg.body += testMarkdownText.slice(i, endIndex)
-						i = endIndex
-					}
-				}, 100)
-			},
-			// 根据不同类型，判断是否闭合
-			isClose(type: string, markdownText: string): boolean {
-				// 需要双换行闭合的类型
-				const doubleNewlineTypes = ['list', 'table', 'code', 'blockquote']
-				// 需要单换行闭合的类型
-				const singleNewlineTypes = ['paragraph', 'heading', 'hr',  'def', 'space']
-				// 不需要换行闭合的类型
-				const noNewlineTypes = ['text', 'strong', 'em', 'del', 'link', 'image', 'codespan']
-				if (doubleNewlineTypes.includes(type)) {
-					return markdownText.includes('\n\n')
-				} else if (singleNewlineTypes.includes(type)) {
-					return markdownText.includes('\n')
-				} else if (noNewlineTypes.includes(type)) {
-					return markdownText.includes('\n') == false
-				} else {
-					// console.error('未找到闭合函数', type, markdownText)
-					return false
+			toLink(url: string | null) {
+				if (url != null && url!.length > 0) {
+					console.error('url', url)
+					uni.navigateTo({
+						"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
+						fail:e=>{
+							console.error(e);
+						}
+					})
 				}
 			},
-			async parseCode(markdownText: string): Promise<string>{
-				// 如果 lastToken 是代码块，并且以 ``` 开头 (无序列表不完整时可能会被解析成代码块)，则不继续解析 markdown
-				const codeToken: MarkdownToken | null = this.msg.markdownTokenList.filter(token => token.isClose != true).find(token => token.type == 'code')
-				if (codeToken != null && markdownText.split('\n').length > 1 && markdownText.startsWith('```')) {
-					
-					// 按行分割第 1 行是 ``` + lang，第 2 行起是代码内容
-					const codeTokenArr = markdownText.split('\n')
-					// console.error('codeTokenArr', codeTokenArr)
-					const lang = codeTokenArr[0].slice(3)
-					// 去掉首行和末行的 ``` + 换行符
-					let codeText = codeTokenArr.slice(1).join('\n')
-					// console.error('this.msg.body', this.msg.body)
-					// console.error('markdownText', markdownText)
-					// console.error('codeText', codeText)
-
-					// 找到```+换行符的索引
-					const codeEndIndex = codeText.indexOf('```\n')
-					if (codeEndIndex != -1) {
-						codeText = codeText.slice(0, codeEndIndex)
-					}
-					// console.error('codeText', codeText)
-					codeToken.text = codeText
-
-					if (lang != 'markdown') {
-						// 当前已经解析的代码行数
-						const codeTokneLength = codeToken.codeTokens?.length ?? 0
-						// 1次只解析1行代码。按行分割代码
-						const codeTextArr = codeText.split('\n')
-						// 拿到本次要解析的代码
-						let lineCodeText: string | null = null;
-						// 拿到上一次解析过的那行代码所在位置的新代码
-						const lastLineCodeNewText: string = codeTextArr[codeTokneLength == 0 ? 0 : codeTokneLength - 1]
-						// 判断上一次解析过的那行代码是否更新了
-						const lastLineCodeTextIsUpdate = this.lastParseLineCodeText != lastLineCodeNewText
-						if (lastLineCodeTextIsUpdate) {
-							// 如果更新了，设为本次要解析的代码
-							lineCodeText = lastLineCodeNewText
-						} else if (codeTokneLength < codeTextArr.length) {
-							lineCodeText = codeTextArr[codeTokneLength]
-						}
-						// 保存本次要解析的代码
-						this.lastParseLineCodeText = lineCodeText ?? ''
-						// console.log('lineCodeText', lineCodeText)
-						// 3. 解析代码
-						if (lineCodeText != null) {
-							const parseCodeRes = await parseCode(lineCodeText,lang)
-							const lineCodeToken: IToken[] = parseCodeRes.tokens
-							if (parseCodeRes.error != null) {
-								console.warn('解析代码失败 lang',lang,parseCodeRes.error, codeText, lang)
-							} else {
-								if (codeToken.codeTokens == null) {
-									codeToken.codeTokens = [lineCodeToken] as IToken[][]
-								} else if (lastLineCodeTextIsUpdate) {
-									codeToken.codeTokens[codeTokneLength - 1] = lineCodeToken
-								}
-								else {
-									codeToken.codeTokens.push(lineCodeToken)
-								}
-							}
-						}
-					}
-					
-					if (codeEndIndex == -1) {
-						// console.error('代码还没结束')
-						return ''
-					}
-					// 闭合代码块
-					codeToken.isClose = true
-					// 更新 this.msg.markdownTokenList 的最后一个元素
-					const length = this.msg.markdownTokenList.length
-					// console.error('闭合代码块', codeToken)
-					this.msg.markdownTokenList[length - 1] = codeToken
-					// 更新代码块的索引
-					this.parseMdIndex += markdownText.lastIndexOf('```') + 3
-					return ''
-				}
-				return markdownText
-			},
-			async markdownParse(markdownText: string){
-				// console.log('markdownText111========>',markdownText)
-				markdownText = await this.parseCode(markdownText)
-				if (markdownText.length == 0) {
-					// console.error('空了，不继续执行',markdownText)
-					return
-				}
-				let newTokenList: MarkdownToken[];
-				try {
-					newTokenList = (marked.lexer(markdownText,null) as TokensList).tokens as MarkdownToken[]
-				} catch (error) {
-					/*
-					 拦截部分场景下 marked 解析器出错的情况。
-					 已知问题：
-					 	1. Android 端，链接的 markdown 不完整时，会报错。但不影响整个流式解析逻辑。
-					*/
-					console.warn('markdownParse error',markdownText,error)
-					return
-				}
-				if (newTokenList.length == 0) {
-					return
-				}
-				
-				// 新增的元素是否闭合
-				let fntIsClose = this.isClose(newTokenList[0]!.type ?? '', markdownText)
-				newTokenList[0]!.isClose = fntIsClose
-				// #ifdef APP-HARMONY
-				// TODO：临时方案解决鸿蒙平台的解析错误的 bug。如果是 paragraph 类型，且可能是代码块的开头，即包含 ```+语言名称 + 换行符，例如 ```javascript\n
-				if (newTokenList[0]!.type == 'paragraph' && /```[a-zA-Z]+\n/.test(newTokenList[0]!.raw!)) {
-					newTokenList[0]!.type = 'code'
-					fntIsClose = false
-					newTokenList[0]!.isClose = fntIsClose
-				}
-				// #endif
-
-				// 解析结果为闭合的，则直接添加到 msg.markdownTokenList 中，否则添加到临时列表中
-				// 找到第一个未闭合的项的索引
-				const unCloseTokenIndex = this.msg.markdownTokenList.findIndex(token => token.isClose == false || token.isClose == null)
-				// console.log('unCloseTokenIndex', unCloseTokenIndex)
-				let parseMdIndexDiff:number = 0
-				if (unCloseTokenIndex != -1) {
-					// 一一对应更新，如果更新后，新元素的类型和旧元素的类型不一致，则删除旧元素，并添加新元素。如果数量更多，需要新增
-					for (let i = 0; i < newTokenList.length; i++) {
-						if (unCloseTokenIndex + i < this.msg.markdownTokenList.length) {
-							this.msg.markdownTokenList[unCloseTokenIndex + i] = newTokenList[i]!
-						} else {
-							this.msg.markdownTokenList.push(newTokenList[i]!)
-						}
-
-						if (fntIsClose) {
-							parseMdIndexDiff += newTokenList[i]!.raw!.length
-						}
-					}
-				} else {
-					if (fntIsClose) {
-						parseMdIndexDiff += newTokenList[0]!.raw!.length
-					}
-					this.msg.markdownTokenList.push(newTokenList[0]!)
-				}
-				if (fntIsClose) {
-					// console.log('newTokenList[0]', newTokenList[0])
-					// 游标向右移动
-					this.parseMdIndex += parseMdIndexDiff
-					// 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
-					const mdTLLength = this.msg.markdownTokenList.length
-					if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
-						// 最后2项闭合的 + 所有未闭合的
-						const newMdText = this.msg.markdownTokenList[mdTLLength - 2]!.raw! + this.msg.markdownTokenList[mdTLLength - 1]!.raw!
-						// console.log('newMdText', newMdText)
-						const newTokenList2 = (marked.lexer(newMdText,null) as TokensList).tokens as MarkdownToken[]
-						if (newTokenList2.length == 1 && newTokenList2[0]!.type != newTokenList[0].type){
-							this.msg.markdownTokenList[mdTLLength - 2] = newTokenList2[0]!
-							this.msg.markdownTokenList.splice(mdTLLength - 1, 1)
-						}	
-					}
-					// 所有项都设置为闭合
-					for (let unCloseTokenIndex = 0; unCloseTokenIndex < this.msg.markdownTokenList.length; unCloseTokenIndex++) {
-						this.msg.markdownTokenList[unCloseTokenIndex]!.isClose = true
-					}
-				}
+			changeThinkContent() {
+				this.hideThinkContent = !this.hideThinkContent
+				this.$emit('changeThinkContent', this.hideThinkContent)
 			}
 		}
 	}
 </script>
 
 <style lang="scss">
-	.msg-types-item-root {
+	.msg-root {
 		flex-direction: row;
 		flex-wrap: wrap;
-		flex: 1;
 		background-color: #fff;
-		border-radius: 8px;
 		// #ifdef WEB
 		user-select: text;
 		// #endif
-
+		padding: 0 45px;
+		.avatar {
+			position: absolute;
+			top: 0;
+			left: 10px;
+			width: 25px;
+			height: 25px;
+			padding: 3px;
+			border-radius: 50px;
+			border: 1px solid #EEE;
+		}
+		/* #ifdef H5 */
+		@media screen and (min-device-width:960px){
+			.avatar {
+				margin-right: 10px;
+			}
+		}
+		/* #endif */
 		.think-content {
-			padding: 5px;
-			background: #f5f5f5;
-			border-left: 4px solid #ddd;
-			width: 100%;
-			margin: 5px 0;
 			.header {
 				flex-direction: row;
+				// #ifdef H5
+				cursor: pointer;
+				// #endif
 				.title {
-					font-size: 14px;
 					color: #888;
 				}
 			}
 			.text-box {
+				margin-top: 10px;
+				border-left: 3px solid #efefef;
+				padding-left: 10px;
 				&.hideThinkContent {
+					margin-top: 0;
 					height: 0;
 				}
 				.text {
 					text-align: left;
-					font-size: 14px;
 					color: #999;
 				}
 			}
@@ -369,29 +193,32 @@
 			font-size: 14px;
 			line-height: 26px;
 		}
-		
+				
 		.loging-icon {
-			padding-top: 8px;
+			margin-top: 10px;
+			width: 16px;
+			height: 16px;
 		}
-		
 		.stop-text {
+			color: #AAA;
 			font-size: 14px;
-			text-align: center;
 			padding: 10px 0;
 		}
-
 		.need-try {
 			color: #ff4d4f;
 			font-size: 14px;
-			text-align: center;
 			padding: 10px;
+		}
+		.error-msg,.stop-text,.need-try {
+			text-align: left;
+			width: 100%;
 		}
 	}
 	// 暗黑模式
 	.ui-theme-dark {
 		padding: 5px;
 		background-color: #29292d;
-		.msg-types-item-root {
+		.msg-root {
 			.paragraph .text{
 				color: #fff !important;
 			}
@@ -402,6 +229,201 @@
 				}
 			}
 			
+		}
+	}
+
+
+	// 元素的样式
+	@font-face {
+		// #ifdef WEB
+		font-display: swap;
+		// #endif
+		font-family: uniAiIconFontFamily;
+		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
+	}
+	.uni-ai-icon {
+		font-family: uniAiIconFontFamily;
+	}
+	
+	.text {
+		color: #333;
+		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
+		white-space: normal;
+		/* #ifndef APP */
+		word-break: break-all;
+		max-width: 100%;
+		/* #endif */
+	}
+	.strong {
+		font-weight: bold;
+	}
+	
+	.em {
+		font-style: italic;
+	}
+	
+	.del {
+		text-decoration-line: line-through;
+		color: #999;
+	}
+
+	.space {
+		height: 10px;
+	}
+	.link {
+		color: #0066cc!important;
+		// #ifdef WEB
+		cursor: pointer;
+		&:hover {
+			opacity: 0.8;
+		}
+		// #endif
+	}
+	// .image {
+	// 	max-width: 60%;
+	// }
+
+	.paragraph-box {
+		.text {
+			font-size: 18px;
+			// 自动换行
+			white-space: normal;
+			/* #ifndef APP */
+			max-width: 100%;
+			word-break: break-all;
+			/* #endif */
+		}
+	}
+	
+	.blockquote-box {
+		padding: 5px;
+		background: #f5f5f5;
+		border-left: 4px solid #ddd;
+	}
+	.heading-box {
+		.text {
+			font-weight: 700;
+		}
+		.depth-1 {
+			font-size: 30px;
+			line-height: 36px;
+		}
+
+		.depth-2 {
+			font-size: 26px;
+			line-height: 34px;
+		}
+
+		.depth-3 {
+			font-size: 22px;
+			line-height: 32px;
+		}
+
+		.depth-4 {
+			font-size: 20px;
+			line-height: 30px;
+		}
+
+		.depth-5 {
+			font-size: 18px;
+			line-height: 28px;
+		}
+
+		.depth-6 {
+			font-size: 16px;
+			color: #999;
+			line-height: 24px;
+		}
+	}
+
+	.hr {
+		height: 1px;
+		background: #ddd;
+		margin: 10px 0;
+	}
+
+	.list-box {
+		padding-left: 5px;
+		.list-content {
+			width: 100%;
+		}
+		.text {
+			line-height: 28px;
+		}
+		.list-item-content-box {
+			flex: 1;
+			.list {
+				margin-top: 0;
+			}
+		}
+		.list-item-br {
+			width: 100%;
+		}
+		.list-item-index {
+			width: 20px;
+			&.unordered {
+				font-size: 14px;
+				color: #000;
+			}
+			&.task {
+				font-size: 14px;
+				color: #666;
+			}
+		}
+	}
+
+	.hr-box {
+		background-color: #ddd;
+		height: 1px;
+	}
+
+	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
+	.heading-box, .list-box, .loging-icon, .think-content 
+	{
+		width: 100%;
+		margin: 5px 0 13px 5px;
+	}
+	.paragraph-box {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+
+	.space-box {
+		height: 15px;
+	}
+
+	.codespan {
+		color: #666;
+		background-color: #f5f5f5;
+		padding: 2px 4px;
+		border-radius: 5px;
+		font-size: 14px;
+	}
+
+	.ui-theme-dark {
+		background-color: #25282c;
+		.text {
+			color: #fff !important;
+		}
+		.strong {
+			color: #fff !important;
+		}
+		.em {
+			color: #fff !important;
+		}
+		.del {
+			color: #999 !important;
+		}
+		.link {
+			color: #0066cc !important;
+		}
+		.heading {
+			color: #fff !important;
+		}
+		.list {
+			.list-item-index {
+				color: #fff !important;
+			}
 		}
 	}
 </style>

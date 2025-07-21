@@ -67,6 +67,11 @@ export type Chunk = {
 	DONE?: boolean,
 }
 
+export type markdownElItem = {
+	uniqueId: string,
+	type: string,
+	datasList: MarkdownToken[][]
+}
 // 消息
 export type MsgItem = {
 	_id: string
@@ -79,8 +84,9 @@ export type MsgItem = {
 	about_msg_id?: string
 	// 所属对话id
 	chat_id: string,
-	markdownTokenList: MarkdownToken[]
+	markdownElList: markdownElItem[]
 	error_msg?: string
+	rendered: boolean
 }
 export type BaseMsgItem = {
 	body: string

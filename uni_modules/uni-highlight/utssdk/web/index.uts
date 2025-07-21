@@ -29,7 +29,7 @@ async function loadOnigWasmFile(): Promise<ArrayBuffer> {
 		  method: 'GET',
 		  responseType: 'arraybuffer',
 		  success: (res) => {
-			console.log(res)
+			// console.log(res)
 			resolve(res.data as ArrayBuffer);
 		  },
 		  fail: (err) => {

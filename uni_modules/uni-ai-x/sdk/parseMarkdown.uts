@@ -1,0 +1,303 @@
+import {useMarked, TokensList, NodesToken as MarkdownToken} from '@/uni_modules/kux-marked';
+import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
+const marked = useMarked()
+type UpdateCallBack = (markdownTokenList: MarkdownToken[]) => void
+
+export default class ParseMarkdown {
+    updateCallBack: UpdateCallBack
+    parseLock: boolean
+    readyParseMdIndex: number
+    nextTaskTimer: number
+    oldMsgBodyLength: number
+    parseMdIndex: number
+    lastParseLineCodeText: string
+    markdownTokenList: MarkdownToken[] = []
+    constructor(updateCallBack: UpdateCallBack) {
+        this.updateCallBack = updateCallBack
+        this.parseLock = false
+        this.readyParseMdIndex = 0
+        this.parseMdIndex = 0
+        this.lastParseLineCodeText = ''
+        this.oldMsgBodyLength = 0
+        this.nextTaskTimer = 0
+        // console.log('ParseMarkdown constructor')
+    }
+    doUpdateCallBack(){
+        this.updateCallBack(this.markdownTokenList)
+    }
+    runTask(msgBody: string){
+        // 输出当前运行在哪个线程
+        // console.log('parseMarkdown.runTask Thread.currentThread().name', Thread.currentThread().name)				
+        if (msgBody.length < this.oldMsgBodyLength) {
+            // console.log('Error msgBody.length < oldMsgBodyLength', msgBody.length, this.oldMsgBodyLength)
+            return
+        }
+        this.oldMsgBodyLength = msgBody.length
+        // console.log('runTask', this.oldMsgBodyLength)
+        // 清除延迟任务
+        if (this.nextTaskTimer != 0) {
+            clearTimeout(this.nextTaskTimer)
+            this.nextTaskTimer = 0
+        }
+        if (this.parseLock) {
+            // console.log('parseLock', msgBody)
+            // 被锁住了，延迟执行
+            this.nextTaskTimer = setTimeout(() => {
+                this.runTask(msgBody)
+            }, 300)
+            return
+        }
+        this.parseLock = true
+        // 新增的 markdown 文本
+        const newMd = msgBody.slice(this.readyParseMdIndex)
+        // 更新准备解析的 markdown 文本 = 新增的 markdown 文本的\n 之前的部分
+        this.readyParseMdIndex +=  (newMd.includes('\n') ? newMd.split('\n')[0] + '\n' : newMd).length
+        // 拿到本次解析的文本
+        let markdownText = msgBody.slice(this.parseMdIndex, this.readyParseMdIndex)
+        // console.error('111markdownText', markdownText)
+        this.parseCodeTask(markdownText).then((newMarkdownText: string) => {
+            // console.log('222newMarkdownText', newMarkdownText)
+            this.parseMarkdownTask(newMarkdownText)
+            this.parseLock = false
+            if (this.readyParseMdIndex < msgBody.length && this.parseMdIndex < msgBody.length) {
+                // console.log('未满')
+                if (this.nextTaskTimer == 0) {
+                    // console.log('设置延迟任务')
+                    this.nextTaskTimer = setTimeout(() => {
+                        this.runTask(msgBody)
+                    }, 300)
+                }
+            }
+        })
+    }
+    // 根据不同类型，判断是否闭合
+    isClose(type: string, markdownText: string): boolean {
+        // 需要双换行闭合的类型
+        const doubleNewlineTypes = ['list', 'table', 'code', 'blockquote']
+        // 需要单换行闭合的类型
+        const singleNewlineTypes = ['paragraph', 'heading', 'hr',  'def', 'space']
+        // 不需要换行闭合的类型
+        const noNewlineTypes = ['text', 'strong', 'em', 'del', 'link', 'image', 'codespan']
+        if (doubleNewlineTypes.includes(type)) {
+            return markdownText.includes('\n\n')
+        } else if (singleNewlineTypes.includes(type)) {
+            return markdownText.includes('\n')
+        } else if (noNewlineTypes.includes(type)) {
+            return markdownText.includes('\n') == false
+        } else {
+            // console.error('未找到闭合函数', type, markdownText)
+            return false
+        }
+    }
+    parseCodeTask(markdownText: string): Promise<string>{
+        return new Promise((resolve) => {
+            // 如果 lastToken 是代码块，并且以 ``` 开头 (无序列表不完整时可能会被解析成代码块)，则不继续解析 markdown
+            // 从 this.markdownTokenList 中找到第一个未闭合的 codeToken，性能要好
+            const codeTokenIndex: number = this.markdownTokenList.findIndex((token: MarkdownToken) => token.type == 'code' && token.isClose == false)
+            if (codeTokenIndex == -1) {
+                return resolve(markdownText)
+            }
+            const codeToken: MarkdownToken | null = this.markdownTokenList[codeTokenIndex]
+            if (codeToken != null && markdownText.split('\n').length > 1 && markdownText.startsWith('```')) {
+                // 更新代码块的 raw 属性
+                codeToken.raw = markdownText
+                // console.log('markdownText', markdownText)
+                // 按行分割第 1 行是 ``` + lang，第 2 行起是代码内容
+                const codeTokenArr = markdownText.split('\n')
+                // console.error('codeTokenArr', codeTokenArr)
+                const lang = codeTokenArr[0].slice(3)
+                codeToken.lang = lang
+                // console.log('lang', lang, codeToken.lang)
+                // 去掉首行和末行的 ``` + 换行符
+                let codeText = codeTokenArr.slice(1).join('\n')
+
+                // 找到```+换行符的索引
+                const codeEndIndex = codeText.indexOf('```\n')
+                if (codeEndIndex != -1) {
+                    codeText = codeText.slice(0, codeEndIndex)
+                }
+                // console.error('codeEndIndex', codeEndIndex, codeText)
+                
+                const lastLineText = codeTokenArr.slice(-1)[0]
+                // console.log('lastLineText', lastLineText)
+                if ('```'.includes(lastLineText) && lastLineText != '') {
+                    codeText = codeText.slice(0, -1 * lastLineText.length)
+                }
+                codeToken.text = codeText.trim()
+
+
+                // console.log('codeToken.codeTokens.length',codeToken.codeTokens!.length)
+                // 当前已经解析的代码行数
+                const codeTokneLength = codeToken.codeTokens?.length ?? 0
+                // 1次只解析1行代码。按行分割代码
+                const codeTextArr = codeText.split('\n')
+                // 拿到本次要解析的代码
+                let lineCodeText: string | null = null;
+                // 拿到上一次解析过的那行代码所在位置的新代码
+                const lastLineCodeNewText: string = codeTextArr[codeTokneLength == 0 ? 0 : codeTokneLength - 1]
+                // 判断上一次解析过的那行代码是否更新了
+                const lastLineCodeTextIsUpdate = this.lastParseLineCodeText != lastLineCodeNewText
+                // console.log('lastLineCodeTextIsUpdate', lastLineCodeTextIsUpdate)
+                if (lastLineCodeTextIsUpdate) {
+                    // 如果更新了，设为本次要解析的代码
+                    lineCodeText = lastLineCodeNewText
+                } else if (codeTokneLength < codeTextArr.length) {
+                    // 如果不变说明，应当解析下一行代码
+                    lineCodeText = codeTextArr[codeTokneLength]
+                }
+                let parseComplete = codeTokneLength == codeTextArr.length
+                // console.log('parseComplete codeToken.codeTokens', codeToken.codeTokens)
+                // 保存本次要解析的代码
+                this.lastParseLineCodeText = lineCodeText ?? ''
+                // 3. 解析代码
+                if (lineCodeText != null) {
+                    parseCode(lineCodeText,lang).then((parseCodeRes: ParseCodeRes) => {
+                        const lineCodeToken: IToken[] = parseCodeRes.tokens
+                        if (parseCodeRes.error != null) {
+                            console.warn(`暂不支持${lang}语言的代码解析，源代码：`, codeText)
+                            parseComplete = true
+                            markdownText = this.afterParseCodeTask(markdownText, codeEndIndex, codeToken, codeTokenIndex, parseComplete)
+                            resolve(markdownText)
+                            return
+                        } else {
+                            if (codeToken.codeTokens == null) {
+                                codeToken.codeTokens = [lineCodeToken] as IToken[][]
+                            } else if (lastLineCodeTextIsUpdate) {
+                                codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
+                                codeToken.codeTokens[codeTokneLength - 1] = lineCodeToken
+                                // console.log('更新代码块', codeToken.codeTokens[codeTokneLength - 1])
+                            } else {
+                                codeToken.codeTokens.push(lineCodeToken)
+                            }
+                        }
+                        // console.log('codeToken.codeTokens.length', codeToken.codeTokens?.length)
+                        markdownText = this.afterParseCodeTask(markdownText, codeEndIndex, codeToken, codeTokenIndex, parseComplete)
+                        // console.log('markdownText', markdownText)
+                        // #ifdef APP-HARMONY
+                        nextTick(() => {
+                            // console.log('延迟完成代码解析')
+                            resolve(markdownText)
+                        })
+                        // #endif
+                        // #ifndef APP-HARMONY
+                        resolve(markdownText)
+                        // #endif
+                    }).catch((error) => {
+                        console.warn('代码高亮解析器返回的错误信息：',error)
+                        resolve(markdownText)
+                    })
+                    return // 等待异步解析完成
+                }
+                markdownText = this.afterParseCodeTask(markdownText, codeEndIndex, codeToken, codeTokenIndex, parseComplete)
+                // console.log('markdownText', markdownText)
+            }
+            return resolve(markdownText)
+        })
+    }
+    afterParseCodeTask(markdownText: string, codeEndIndex: number, codeToken: MarkdownToken, codeTokenIndex: number, parseComplete: boolean): string {
+        if (codeEndIndex == -1 || parseComplete == false) {
+            codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
+            this.doUpdateCallBack()
+            // console.error('代码还没结束', markdownText, codeEndIndex, parseComplete)
+            setTimeout(() => {
+                this.runTask(markdownText)
+            }, 100)
+            return ''
+        }
+        // 闭合代码块
+        codeToken.isClose = true
+        codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
+        this.doUpdateCallBack()
+        // 更新代码块的索引
+        this.parseMdIndex += markdownText.lastIndexOf('```') + 3
+        markdownText = markdownText.slice(this.parseMdIndex)
+        // console.log('CompleteParseCodeTask', markdownText)
+        return markdownText
+    }
+    getUniqueId(index: number): string {
+        const timestamp: string = Date.now().toString()
+        const idx: string = index.toString()
+        const randomSuffix: string = Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+        return `${timestamp}_${idx}_${randomSuffix}`
+    }
+    markedLexer(markdownText: string): MarkdownToken[] {
+        const newTokenList: MarkdownToken[] = (marked.lexer(markdownText,null) as TokensList).tokens as MarkdownToken[]
+        newTokenList.forEach((item: MarkdownToken, index: number) => {
+            // 时间戳 + 序号 + 随机的 5 位尾数
+            item.uniqueId = this.getUniqueId(index)
+        })
+        return newTokenList
+    }
+    parseMarkdownTask(markdownText: string){
+        // console.log('parseMarkdownTask markdownText========>',markdownText)
+        if (markdownText.length == 0) return // 空了，不继续执行
+        const newTokenList: MarkdownToken[] = this.markedLexer(markdownText)
+        if (newTokenList.length == 0) return
+        // 新增的元素是否闭合
+        let fntIsClose = this.isClose(newTokenList[0]!.type ?? '', markdownText)
+        newTokenList[0]!.isClose = fntIsClose
+        // #ifdef APP-HARMONY
+        // TODO：临时方案解决鸿蒙平台的解析错误的 bug。如果是 paragraph 类型，且可能是代码块的开头，即包含 ```+语言名称 + 换行符，例如 ```javascript\n
+        if (newTokenList[0]!.type == 'paragraph' && /```[a-zA-Z]+\n/.test(newTokenList[0]!.raw!)) {
+            newTokenList[0]!.type = 'code'
+            fntIsClose = false
+            newTokenList[0]!.isClose = fntIsClose
+        }
+        // #endif
+
+        // 解析结果为闭合的，则直接添加到 markdownTokenList 中，否则添加到临时列表中
+        // 找到第一个未闭合的项的索引
+        const unCloseTokenIndex = this.markdownTokenList.findIndex(token => token.isClose == false || token.isClose == null)
+        // console.log('unCloseTokenIndex', unCloseTokenIndex)
+        let parseMdIndexDiff: number = 0
+        if (unCloseTokenIndex != -1) {
+            // 一一对应更新，如果更新后，新元素的类型和旧元素的类型不一致，则删除旧元素，并添加新元素。如果数量更多，需要新增
+            for (let i = 0; i < newTokenList.length; i++) {
+                const currentIndex: number = i
+                if (unCloseTokenIndex + currentIndex < this.markdownTokenList.length) {
+                    const oldTokenIsCode = this.markdownTokenList[unCloseTokenIndex + currentIndex]!.type == 'code'
+                    if (!oldTokenIsCode) {
+                        this.markdownTokenList[unCloseTokenIndex + currentIndex] = newTokenList[currentIndex]!
+                    }
+                } else {
+                    this.markdownTokenList.push(newTokenList[currentIndex]!)
+                }
+                this.doUpdateCallBack()
+
+                if (fntIsClose) {
+                    parseMdIndexDiff += newTokenList[i]!.raw!.length
+                }
+            }
+        } else {
+            if (fntIsClose) {
+                parseMdIndexDiff += newTokenList[0]!.raw!.length
+            }
+            this.markdownTokenList.push(newTokenList[0]!)
+            this.doUpdateCallBack()
+        }
+        if (fntIsClose) {
+            // console.log('newTokenList[0]', newTokenList[0])
+            // 游标向右移动
+            this.parseMdIndex += parseMdIndexDiff
+            // 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
+            const mdTLLength = this.markdownTokenList.length
+            if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
+                // 最后2项闭合的 + 所有未闭合的
+                const newMdText = this.markdownTokenList[mdTLLength - 2]!.raw! + this.markdownTokenList[mdTLLength - 1]!.raw!
+                // console.log('newMdText', newMdText)
+                const newTokenList2 = this.markedLexer(newMdText)
+                if (newTokenList2.length == 1 && newTokenList2[0]!.type != newTokenList[0].type){
+                    this.markdownTokenList[mdTLLength - 2] = newTokenList2[0]!
+                    this.markdownTokenList.splice(mdTLLength - 1, 1)
+                    this.doUpdateCallBack()
+                }	
+            }
+            // 所有项都设置为闭合
+            for (let unCloseTokenIndex = 0; unCloseTokenIndex < this.markdownTokenList.length; unCloseTokenIndex++) {
+                const currentIndex: number = unCloseTokenIndex
+                this.markdownTokenList[currentIndex]!.isClose = true
+                this.doUpdateCallBack()
+            }
+        }
+    }
+}

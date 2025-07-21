@@ -12,7 +12,7 @@
 			"path" : "uni_modules/uni-ai-x/pages/common/webview/webview",
 			"style" : 
 			{
-				"navigationBarTitleText": "网页浏览"
+				"navigationStyle" : "custom"
 			}
 		},
 		{

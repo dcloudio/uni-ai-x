@@ -1,97 +1,59 @@
-export default`\`\`\`javascript
-var a = document.getElementById('app')
-console.log(a)
-console.log(b)
-console.log(c)
-function test(){
-	console.log(d)
+export default`
+以下是各类简版Markdown渲染效果展示：
+### 1-6 级标题
+# 一级标题  
+## 二级标题  
+### 三级标题  
+#### 四级标题  
+##### 五级标题  
+###### 六级标题
+
+### 列表
+#### 无序列表
+- 项目一  
+- 项目二  
+  - 子项目  
+
+#### 有序列表
+1. 第一项  
+2. 第二项  
+   1. 子项  
+
+#### 任务列表
+- [x] 完成任务  
+- [ ] 待办任务  
+
+### JS代码实例
+\`\`\`javascript
+function greet(name) {
+ alert(\`Hello, \${name}!\`);
 }
-test()
+greet("World");
 \`\`\`
 
-\`\`\`php
-print_r($data);
-\`\`\`
-> 引用
+### 表格
+| 姓名   | 年龄 | 职业     |
+|--------|------|----------|
+| Alice  | 25   | 工程师   |
+| Bob    | 30   | 设计师   |
+
+### 链接与引用
+[Markdown官方文档](https://www.markdownguide.org)  
+
+> 这是一个单行引用示例。  
+
+> 这是一个多行引用示例。  
+> 从前有个人叫小明，他很喜欢吃苹果。有一天，他去苹果园里摘苹果，发现苹果树上有很多苹果，他很开心。
+> 他摘了一个苹果，发现苹果很甜，他很开心。
+> 他摘了第二个苹果，发现苹果很酸，他很开心。
+
+### 文字样式
+- **加粗文本**  
+- *斜体文本*  
+- ~~删除线文本~~  
+- ***加粗且斜体***  
+
+### 分割线
+---
+（注：实际渲染效果需在支持Markdown的编辑器或平台中查看。）
 `
-// # 表格 
-
-// | 表头1 | 表头2 | 表头3 |
-// |-------|-------|-------|
-// | 单元格1 | 单元格2 | 单元格3 |
-// | 单元格4 | 单元格5 | 单元格6 |
-
-// ## 无序列表
-
-// - 无序列表1 
-// * 无序列表2	
-// 	* 无序列表2-1
-// 	* 无序列表2-2
-
-// ## 任务列表
-// - [ ] 任务列表-未完成任务
-// - [x] 任务列表-已完成任务
-
-// # 标题1
-// ## 标题2
-// ### 标题3
-// #### 标题4
-// ##### 标题5
-// ###### 标题6
-
-// # 列表
-// ## 有序列表
-// 1. 有序列表1
-// 	1. 有序列表1-1
-// 	2. 有序列表1-2
-// 2. 有序列表2
-// 	1. 有序列表2-1
-
-// ## 引用列表
-// > 引用1
-// > 引用2
-
-// # 文字样式语法
-// **加粗**  *倾斜* ~~删除线~~
-
-// 链接：[链接文字](http://dcloud.io)
-
-// # 分割线
-// -------------
-// *************
-
-// # 代码区
-// \`\`\`javascript
-// 	var a = document.getElementById('app')
-// \`\`\`
-// `
-
-
-// // 防抖函数
-// function debounce(func: Function, wait: number): Function {
-//     let timeout: number | null = null;
-//     return function(...args: any[]) {
-//         if (timeout) clearTimeout(timeout);
-//         timeout = setTimeout(() => func.apply(this, args), wait);
-//     };
-// }
-
-// // 节流函数
-// function throttle(func: Function, limit: number): Function {
-//     let inThrottle: boolean = false;
-//     return function(...args: any[]) {
-//         if (!inThrottle) {
-//             func.apply(this, args);
-//             inThrottle = true;
-//             setTimeout(() => inThrottle = false, limit);
-//         }
-//     };
-// }
-
-// // 使用示例
-// const debouncedAlert = debounce((message: string) => alert(message), 300);
-// const throttledAlert = throttle((message: string) => alert(message), 1000);
-
-// // 测试
-// debouncedAlert('防抖测试');
-// throttledAlert('节流测试');
