@@ -11,7 +11,7 @@
 		</view>
 		<scroll-view class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true">{{codeText}}</text>
-			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index">
+			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index" :style="{width: maxLineWidth}">
 				<text v-for="token in tokens" class="code" :class="token.className">{{token.text}}</text>
 			</text>
 		</scroll-view>
@@ -53,13 +53,25 @@ export default {
 			runTime: 0,
 			// 当前语言是否支持高亮显示
 			supportHighlight: true,
-			tokensLines:[] as IToken[][]
+			tokensLines:[] as IToken[][],
+			maxLineWidth: '' as string
 		}
 	},
 	watch: {
 		codeTokens:{
 			handler(codeTokens: IToken[][]) {
 				this.tokensLines = codeTokens
+				// #ifndef APP-ANDROID || WEB
+				// 找到最宽的一行
+				const maxLineWidth = this.tokensLines.reduce((max, line) => {
+					const lineWidth = line.reduce((max, token) => {
+						return Math.max(max, token.text.length)
+					}, 0)
+					return Math.max(max, lineWidth)
+				}, 0)
+				console.log('maxLineWidth', maxLineWidth)
+				this.maxLineWidth = `${maxLineWidth * 25}px`
+				// #endif
 			},
 			immediate: true,
 			deep: true
@@ -166,11 +178,9 @@ export default {
 			.comment { color: #999; } // 注释使用灰色
 			.meta { color: #d16969; } // 元信息使用红色
 			.storage { color: #569cd6; } // 存储类型使用蓝色
-			.eol {
-				/* #ifndef APP */
-				white-space: pre;
-				/* #endif */
-			}
+			/* #ifndef APP */
+			.source, .eol {white-space: pre;}
+			/* #endif */
 			.entity { color: #4ec9b0; } // 实体使用青色
 			.support { color: #4ec9b0; } // 支持类使用青色
 			.constant { color: #b5cea8; } // 常量使用浅绿色
