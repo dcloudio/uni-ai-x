@@ -30,56 +30,44 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import uniAi from '../../sdk';
 	import {Provider} from '@/uni_modules/uni-ai-x/types.uts';
 	import {llmModelMap, providerNameList} from '../../config';
-	export default {
-		name: 'aiModel',
-		computed: {
-			uiTheme(): string {
-				// return uniImX.ext.getString('uiTheme','light')
-				return 'light'
-			},
-			currentModel(): string {
-				return uniAi.llm.model
-			},
-			llmProvider(): string {
-				return uniAi.llm.provider
-			},
-			llmModel(): string {
-				return uniAi.llm.model
-			},
-			// llmModelMap(): Map<string, Provider> {
-			// 	return llmModelMap
-			// }
-		},
-		data() {
-			return {
-				llmModelMap: llmModelMap as Map<string, Provider>,
-				providerNameList : providerNameList as string[],
-			};
-		},
-		mounted() {
-			// console.log('mounted');
-			// this.open();
-		},
-		methods: {
-			radioChange(provider: string, llmModel: string) {
-				// console.log('provider',provider)
-				// console.log('llmModel',llmModel)
-				uniAi.llm.provider = provider
-				uniAi.llm.model = llmModel
-				setTimeout(()=>this.close(),100)
-			},
-			open() {
-			  // console.log('callback',callback);
-			  (this.$refs['popup'] as ComponentPublicInstance).$callMethod("open");
-			},
-			close() {
-			  (this.$refs['popup'] as ComponentPublicInstance).$callMethod("close");
-			}
-		}
+	
+	const popupRef = ref<ComponentPublicInstance | null>(null)
+	
+	const llmModelMapData = llmModelMap as Map<string, Provider>
+	const providerNameListData = providerNameList as string[]
+	
+	const uiTheme = computed<string>(() => {
+		return 'light'
+	})
+	
+	const currentModel = computed<string>(() => {
+		return uniAi.llm.model
+	})
+	
+	const llmProvider = computed<string>(() => {
+		return uniAi.llm.provider
+	})
+	
+	const llmModel = computed<string>(() => {
+		return uniAi.llm.model
+	})
+	
+	const radioChange = (provider: string, llmModel: string) => {
+		uniAi.llm.provider = provider
+		uniAi.llm.model = llmModel
+		setTimeout(()=>close(),100)
+	}
+	
+	const open = () => {
+		(popupRef.value as ComponentPublicInstance).$callMethod("open");
+	}
+	
+	const close = () => {
+		(popupRef.value as ComponentPublicInstance).$callMethod("close");
 	}
 </script>
 

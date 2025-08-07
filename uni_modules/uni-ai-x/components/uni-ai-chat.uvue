@@ -52,251 +52,225 @@
 	</view>
 </template>
 
-<script lang="uts">
+<script lang="uts" setup>
 	import {uniAi, MsgItem, markdownElItem} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
 	
-	export default {
-		emits: ['change-menu', 'close-menu'],
-		components: {
-			addChatBtn,
-			addChat,
-			inputToolBar
-		},
-		props: {
-			showMenu: {
-				type: Boolean,
-				default: false
-			},
-			translateX: {
-				type: Number,
-				default: -260
+	type UniAiChatProps = {
+		showMenu?: boolean
+		translateX?: number
+	}
+	
+	const props = withDefaults(defineProps<UniAiChatProps>(), {
+		showMenu: false,
+		translateX: -260
+	})
+	
+	const emit = defineEmits<{
+		'change-menu': []
+		'close-menu': []
+	}>()
+	
+	const keyboardHeight = ref<number>(0)
+	const scrollIntoView = ref<string>('')
+	const scrollInBottom = ref<boolean>(true)
+	const scrollWithAnimation = ref<boolean>(false)
+	const autoToLastMsg = ref<boolean>(false)
+	const scrollTouch = ref<boolean>(false)
+	const scrolling = ref<boolean>(false)
+	const scrollingT = ref<number>(0)
+	const mouseScroll = ref<boolean>(false)
+	const needSetLockAutoToLastMsg = ref<boolean>(true)
+	
+	const state = computed<string>(() => {
+		return uniAi.currentChat?.state ?? 'none'
+	})
+	
+	const uiTheme = computed<string>(() => {
+		return uniAi.setting.theme
+	})
+	
+	const msgList = computed<MsgItem[]>(() => {
+		return uniAi.currentChat?.msgList ?? []
+	})
+	
+	const chatInputContent = ref<string>(uniAi.currentChat?.inputContent ?? '')
+	
+	watch(chatInputContent, (newValue: string) => {
+		if (uniAi.currentChat != null) {
+			uniAi.currentChat!.inputContent = newValue
+		}
+	})
+	
+	watch((): string | null => {
+		return uniAi.currentChat?.inputContent ?? null
+	}, (newValue: string | null) => {
+		if (newValue != null) {
+			chatInputContent.value = newValue
+		}
+	})
+	
+	const lastMsg = computed<MsgItem | null>(() => {
+		return uniAi.lastAiMsg
+	})
+	
+	const chatActiveId = computed<string>(() => {
+		return uniAi.chat.activeId
+	})
+	
+	const chatTitle = computed<string>(() => {
+		const title = uniAi.currentChat?.title ?? ''
+		if (title.length > 0) {
+			return title.length > 10 ? title.slice(0, 10) + '...' : title
+		}
+		return '新对话'
+	})
+	function scrollToLastMsg(userClick: boolean, actualDelay: number = 100){
+		autoToLastMsg.value = true
+		scrollIntoView.value = ""
+		scrollWithAnimation.value = userClick
+		setTimeout(() => {
+			scrollIntoView.value = "last-msg"
+			scrollInBottom.value = true
+		}, actualDelay)
+	}
+	
+	const setIsInScrollBottom = () => {
+		setTimeout(() => {
+			const scrollList = uni.getElementById('msg-list')
+			const diff: number = scrollList!.scrollHeight - scrollList!.scrollTop - scrollList!.offsetHeight
+			scrollInBottom.value = diff < 30
+			if (scrollTouch.value || mouseScroll.value) {
+				autoToLastMsg.value = !(diff > 3)
 			}
-		},
-		data() {
-			return {
-				keyboardHeight: 0,
-				scrollIntoView: '',
-				scrollInBottom: true,
-				scrollWithAnimation: false,
-				autoToLastMsg: false,
-				// 是否被按住滚动
-				scrollTouch: false,
-				// 是否正在滚动
-				scrolling: false,
-				scrollingT: 0 as number,
-				// 是否鼠标滚轮滚动
-				mouseScroll: false,
-				needSetLockAutoToLastMsg: true
-			}
-		},
-		computed: {
-			state(): string {
-				return uniAi.currentChat?.state ?? 'none'
-			},
-			uiTheme(): string {
-				return uniAi.setting.theme
-			},
-			msgList(): MsgItem[] {
-				return uniAi.currentChat?.msgList ?? []
-			},
-			chatInputContent: {
-				get(): string {
-					return uniAi.currentChat?.inputContent ?? ''
-				},
-				set(value: string) {
-					uniAi.currentChat!.inputContent = value
-				}
-			},
-			lastMsg(): MsgItem | null {
-				return uniAi.lastAiMsg
-			},
-			chatActiveId(): string {
-				return uniAi.chat.activeId
-			},
-			chatTitle(): string {
-				const title = uniAi.currentChat?.title ?? ''
-				if (title.length > 0) {
-					// 如果标题长度大于10，则截取前10个字符，并添加省略号
-					return title.length > 10 ? title.slice(0, 10) + '...' : title
-				}
-				return '新对话'
-			}
-		},
-		watch: {
-			scrollInBottom: {
-				handler() {
-					uniAi.canRender = !this.scrollTouch && !this.scrolling
-				},
-				immediate: true
-			},
-			scrolling: {
-				handler() {
-					uniAi.canRender = !this.scrollTouch && !this.scrolling
-				},
-				immediate: true
-			},
-			// scrollTouch: {
-			// 	handler() {
-			// 		uniAi.canRender = this.scrollInBottom && !this.scrollTouch
-			// 	},
-			// 	immediate: true
-			// },
-			chatActiveId: {
-				handler(newVal: string) {
-					this.scrollToLastMsg(false)
-					setTimeout(() => {
-						if (this.lastMsg != null) this.lastMsg.rendered = true
-					}, 100)
-				},
-				deep: true,
-				immediate: true
-			},
-			lastMsg: {
-				// 消息内容变化
-				async handler() {
-					// 设置是否在滚动条底部（控制显示点击滚动到最底部的按钮，和开启新对话的按钮）
-					this.setIsInScrollBottom()
-					this.lockAutoToLastMsg()
-					// 滚动条被按住滚动、被锁定，则不自动滚动到最底部
-					if (!this.scrollTouch && this.autoToLastMsg) {
-						// 如果最后一条消息变化，则滚动到最底部
-						await nextTick()
-						this.scrollToLastMsg(false)
-					}
-				},
-				deep: true
-			}
-		},
-		mounted() {
-			uniAi.onBeforeRequestAi(() => {
-				// console.log('onBeforeRequestAi')
-				this.autoToLastMsg = true
-				this.needSetLockAutoToLastMsg = true
-				this.scrollToLastMsg(false)
-			})
-			// 监听鼠标滚轮滚动
-			// #ifdef H5
-			window.addEventListener('wheel', (e: WheelEvent) => {
-				this.mouseScroll = true
-				let clear: number = 0
-				clear = setTimeout(() => {
-					this.mouseScroll = false
-					clearTimeout(clear)
-				}, 1000)
-			})
-			// #endif
-			setTimeout(() => {
-				// uniAi.currentChat!.inputContent = "展示各类简版的Mar1kdown渲染效果（不需要代码块包裹），包括：1-6 级标题、列表（含：有序、无序、任务列表）、表格、JS代码实例，链接、引用、文字样式语法（加粗、斜体、删除线）、分割线"
-			}, 1000)
-		},
-		methods: {
-			changeThinkContent(hideThinkContent: boolean) {
-				this.setIsInScrollBottom()
-			},
-			lockAutoToLastMsg() {
-				if (!this.needSetLockAutoToLastMsg) return
-				const lastMsgEl: UniElement | null = uni.getElementById('msg-item-' + this.lastMsg?._id)
-				const scrollList: UniElement | null = uni.getElementById('msg-list')
-				if (lastMsgEl == null || scrollList == null) return 
-				// 最后一个消息高度大于滚动列表的高度
-				if (this.msgList.length < 3 || scrollList.offsetHeight < lastMsgEl.offsetHeight) {
-					this.autoToLastMsg = false
-					this.needSetLockAutoToLastMsg = false
-				}
-			},
-			onlongTapMsg(item: MsgItem) {
-				if (this.scrolling) {
-					// 防止滚动误触长按事件
-					return
-				}
-				// console.log('onlongTapMsg',item)
-				// 判断是用户消息还是ai消息
-				// 弹出菜单
-				const itemList = ['复制'] as string[]
-				const isAiMsg = item.from_uid == 'uni-ai'
-				itemList.push(isAiMsg ? '选择' : '修改')
-				uni.showActionSheet({
-					itemList,
-					success: (res: ShowActionSheetSuccess) => {
-						// console.log('res',res)
-						if (res.tapIndex == 0) {
-							uni.setClipboardData({
-								data: item.body,
-								success: () => {
-									setTimeout(()=>{
-										uni.showToast({
-											title: '复制成功',
-											icon: 'success'
-										})
-									},300)
-								}
-							})
-						} else if (res.tapIndex == 1) {
-							if (isAiMsg) {
-								console.log('选择')
-								uni.navigateTo({
-									url: '/uni_modules/uni-ai-x/pages/select-text/select-text?msgId=' + item._id,
-									fail(err){
-										console.error('err', err)
-									}
-								})
-							} else {
-								console.log('修改')
-								this.chatInputContent = item.body
-							}
-						}
-					},
-					fail(err){
-						// console.error('err------', err)
-					}
-				})
-			},
-			onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent){
-				this.keyboardHeight = res.detail.height
-			},
-			changeMenu() {
-				this.$emit('change-menu')
-			},
-			closeMenu() {
-				this.$emit('close-menu')
-			},
-			setIsInScrollBottom() {
-				setTimeout(() => {
-					// 滚动条距离底部的值
-					const scrollList = uni.getElementById('msg-list')
-					const diff: number = scrollList!.scrollHeight - scrollList!.scrollTop - scrollList!.offsetHeight
-					this.scrollInBottom = diff < 30
-					// 根据人为滚动，锁定是否自动滚动到最底部。前提：手按住滚动条，或者鼠标滚轮滚动
-					if (this.scrollTouch || this.mouseScroll) {
-						this.autoToLastMsg = !(diff > 3)
-					}
-				}, 100)
-			},
-			onScroll(e: UniScrollEvent) {
-				this.setIsInScrollBottom()
-				// 设置滚动状态
-				this.scrolling = true
-				if (this.scrollingT != 0) {
-					clearTimeout(this.scrollingT)
-				}
-				this.scrollingT = setTimeout(() => {
-					this.scrolling = false
-				}, 500)
-			},
-			scrollToLastMsg(userClick: boolean = true, delay: number = 100) {
-				this.autoToLastMsg = true
-				this.scrollIntoView = ""
-				this.scrollWithAnimation = userClick
-				setTimeout(() => {
-					this.scrollIntoView = "last-msg"
-					this.scrollInBottom = true
-				}, delay)
-			}
+		}, 100)
+	}
+	
+	watch(scrollInBottom, () => {
+		uniAi.canRender = !scrollTouch.value && !scrolling.value
+	}, { immediate: true })
+	
+	watch(scrolling, () => {
+		uniAi.canRender = !scrollTouch.value && !scrolling.value
+	}, { immediate: true })
+	
+	watch(chatActiveId, (newVal: string) => {
+		scrollToLastMsg(false, 100)
+		setTimeout(() => {
+			if (lastMsg.value != null) lastMsg.value.rendered = true
+		}, 100)
+	}, { deep: true, immediate: true })
+	
+	const lockAutoToLastMsg = () => {
+		if (!needSetLockAutoToLastMsg.value) return
+		const lastMsgEl: UniElement | null = uni.getElementById('msg-item-' + lastMsg.value?._id)
+		const scrollList: UniElement | null = uni.getElementById('msg-list')
+		if (lastMsgEl == null || scrollList == null) return 
+		if (msgList.value.length < 3 || scrollList.offsetHeight < lastMsgEl.offsetHeight) {
+			autoToLastMsg.value = false
+			needSetLockAutoToLastMsg.value = false
 		}
 	}
+	
+	watch(lastMsg, async () => {
+		setIsInScrollBottom()
+		lockAutoToLastMsg()
+		if (!scrollTouch.value && autoToLastMsg.value) {
+			await nextTick()
+			scrollToLastMsg(false, 100)
+		}
+	}, { deep: true })
+	
+	const changeThinkContent = (hideThinkContent: boolean) => {
+		setIsInScrollBottom()
+	}
+	
+	const onlongTapMsg = (item: MsgItem) => {
+		if (scrolling.value) {
+			return
+		}
+		const itemList = ['复制'] as string[]
+		const isAiMsg = item.from_uid == 'uni-ai'
+		itemList.push(isAiMsg ? '选择' : '修改')
+		uni.showActionSheet({
+			itemList,
+			success: (res: ShowActionSheetSuccess) => {
+				if (res.tapIndex == 0) {
+					uni.setClipboardData({
+						data: item.body,
+						success: () => {
+							setTimeout(()=>{
+								uni.showToast({
+									title: '复制成功',
+									icon: 'success'
+								})
+							},300)
+						}
+					})
+				} else if (res.tapIndex == 1) {
+					if (isAiMsg) {
+						console.log('选择')
+						uni.navigateTo({
+							url: '/uni_modules/uni-ai-x/pages/select-text/select-text?msgId=' + item._id,
+							fail(err){
+								console.error('err', err)
+							}
+						})
+					} else {
+						console.log('修改')
+						chatInputContent.value = item.body
+					}
+				}
+			},
+			fail(err){
+			}
+		})
+	}
+	
+	const onKeyboardheightchange = (res: UniInputKeyboardHeightChangeEvent) => {
+		keyboardHeight.value = res.detail.height
+	}
+	
+	const changeMenu = () => {
+		emit('change-menu')
+	}
+	
+	const closeMenu = () => {
+		emit('close-menu')
+	}
+	
+	const onScroll = (e: UniScrollEvent) => {
+		setIsInScrollBottom()
+		scrolling.value = true
+		if (scrollingT.value != 0) {
+			clearTimeout(scrollingT.value)
+		}
+		scrollingT.value = setTimeout(() => {
+			scrolling.value = false
+		}, 500)
+	}
+	
+	onMounted(() => {
+		uniAi.onBeforeRequestAi(() => {
+			autoToLastMsg.value = true
+			needSetLockAutoToLastMsg.value = true
+			scrollToLastMsg(false, 100)
+		})
+		// #ifdef H5
+		window.addEventListener('wheel', (e: WheelEvent) => {
+			mouseScroll.value = true
+			let clear: number = 0
+			clear = setTimeout(() => {
+				mouseScroll.value = false
+				clearTimeout(clear)
+			}, 1000)
+		})
+		// #endif
+		setTimeout(() => {
+		}, 1000)
+	})
 </script>
 
 <style lang="scss">

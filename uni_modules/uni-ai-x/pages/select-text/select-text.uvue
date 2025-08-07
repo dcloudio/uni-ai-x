@@ -7,42 +7,41 @@
 	</scroll-view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
-	export default {
-		props: {
-			msgId: {
-				type: String,
-				default: ''
-			}
-		},
-		data() {
-			return {
-				text: "加载中...",
-				richTextHeight: 1000,
-				richTextElement: null as UniElement | null
-			}
-		},
-		mounted() {
-			const msg = uniAi.currentChat?.msgList.find((item: MsgItem) => item._id == this.msgId)
-			const text = msg?.body ?? '没有数据'
-			this.text = "<span>" + text + "</span>"
-			// #ifdef APP-ANDROID
-			// setTimeout(() => {
-			// 	// TODO：临时方案搞一个空的绕过不渲染的bug
-			// 	this.text = "<span>搞一个空的绕过不渲染的bug</span>"
-			// },0)
-			// #endif
-			
-			// setTimeout(() => {
-			// 	this.richTextElement = uni.getElementById('richtext') as UniElement
-			// 	this.richTextElement!.getBoundingClientRectAsync()!.then((elRect: DOMRect) => {
-			// 		console.error('elRect', elRect)
-			// 		this.richTextHeight = elRect.height + 100 // +100 防止算错高的 bug 导致看不到界面
-			// 	})
-			// },1000)
-		}
+	import { ref, onMounted } from 'vue'
+	
+	type SelectTextProps = {
+		msgId?: string
 	}
+	
+	const props = withDefaults(defineProps<SelectTextProps>(), {
+		msgId: ''
+	})
+	
+	const text = ref<string>("加载中...")
+	const richTextHeight = ref<number>(1000)
+	const richTextElement = ref<UniElement | null>(null)
+	
+	onMounted(() => {
+		const msg = uniAi.currentChat?.msgList.find((item: MsgItem) => item._id == props.msgId)
+		const textContent = msg?.body ?? '没有数据'
+		text.value = "<span>" + textContent + "</span>"
+		// #ifdef APP-ANDROID
+		// setTimeout(() => {
+		// 	// TODO：临时方案搞一个空的绕过不渲染的bug
+		// 	this.text = "<span>搞一个空的绕过不渲染的bug</span>"
+		// },0)
+		// #endif
+			
+		// setTimeout(() => {
+		// 	this.richTextElement = uni.getElementById('richtext') as UniElement
+		// 	this.richTextElement!.getBoundingClientRectAsync()!.then((elRect: DOMRect) => {
+		// 		console.error('elRect', elRect)
+		// 		this.richTextHeight = elRect.height + 100 // +100 防止算错高的 bug 导致看不到界面
+		// 	})
+		// },1000)
+	})
 </script>
 
 <style lang="scss">

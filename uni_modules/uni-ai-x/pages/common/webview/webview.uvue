@@ -14,53 +14,48 @@
 	<web-view class="web-view" v-if="url.length != 0" @load="webviewLoad" @error="webviewError" :src="url" id="webview"></web-view>
 </template>
 
-<script>
-	export default {
-		onLoad(param) {
-			const url = param["url"] as string;
-			this.title = (param["title"] ?? url) as string;
-			// console.log('url', url);
-			if (url.substring(0, 4) != 'http') {
-				uni.showModal({
-					title: "错误",
-					content: '不是一个有效的网站链接,' + '"' + url + '"',
-					showCancel: false,
-					confirmText: "知道了",
-					complete: () => {
-						uni.navigateBack()
-					}
-				});
-				this.title = "页面路径错误"
-			} else {
-				this.url = url;
-			}
-			if (this.title.length != 0) {
-				uni.setNavigationBarTitle({ title: this.title });
-			}
-		},
-		data() {
-			return {
-				url: "",
-				title: ""
-			};
-		},
-		methods: {
-			webviewLoad(event: UniWebViewLoadEvent) {
-				// console.log('webviewLoad', event);
-			},
-			webviewError(event: UniWebViewErrorEvent) {
-				console.log('webviewError', event);
-			},
-			back() {
-				uni.navigateBack()
-			},
-			// #ifdef APP
-			refresh() {
-				uni.createWebviewContext('webview', this)?.reload()
-			}
-			// #endif
+<script lang="uts" setup>
+	const url = ref<string>("")
+	const title = ref<string>("")
+	
+	onLoad((param) => {
+		const urlParam = param["url"] as string;
+		title.value = (param["title"] ?? urlParam) as string;
+		if (urlParam.substring(0, 4) != 'http') {
+			uni.showModal({
+				title: "错误",
+				content: '不是一个有效的网站链接,' + '"' + urlParam + '"',
+				showCancel: false,
+				confirmText: "知道了",
+				complete: () => {
+					uni.navigateBack()
+				}
+			});
+			title.value = "页面路径错误"
+		} else {
+			url.value = urlParam;
 		}
+		if (title.value.length != 0) {
+			uni.setNavigationBarTitle({ title: title.value });
+		}
+	})
+	
+	const webviewLoad = (event: UniWebViewLoadEvent) => {
 	}
+	
+	const webviewError = (event: UniWebViewErrorEvent) => {
+		console.log('webviewError', event);
+	}
+	
+	const back = () => {
+		uni.navigateBack()
+	}
+	
+	// #ifdef APP
+	const refresh = () => {
+		uni.createWebviewContext('webview')?.reload()
+	}
+	// #endif
 </script>
 <style lang="scss">
 	.nav-bar {

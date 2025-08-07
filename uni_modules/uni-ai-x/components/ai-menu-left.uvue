@@ -4,21 +4,12 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import uniImX from '@/uni_modules/uni-im-x/sdk';
-	export default {
-		name: 'aiMenuLeft',
-		data() {
-			return {
-				
-			};
-		},
-		methods: {
-			showMenu() {
-				// 显示菜单
-				uniImX.ext.showMenu = !uniImX.ext.getBoolean('showMenu',false)
-			}
-		}
+	
+	const showMenu = () => {
+		// 显示菜单
+		uniImX.ext.showMenu = !uniImX.ext.getBoolean('showMenu',false)
 	}
 </script>
 

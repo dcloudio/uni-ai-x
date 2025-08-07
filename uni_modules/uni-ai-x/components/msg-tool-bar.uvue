@@ -9,99 +9,81 @@
 	<!-- </view> -->
 </template>
 
-<script>
+<script lang="uts" setup>
 	import {uniAi, MsgItem, BaseMsgItem} from '@/uni_modules/uni-ai-x/sdk';
-	export default {
-		name: 'msgToolBar',
-		props: {
-			msg: {
-				type: Object as PropType<MsgItem>,
-				required: true,
-				default: {},
-			}
-		},
-		data() {
-			return {}
-		},
-		computed: {
-			aiState(): string {
-				return uniAi.currentChat!.state
-			},
-			isLastAiMsg(): boolean {
-				return this.msg._id == uniAi.lastAiMsg?._id
-			},
-			copyIcon(): string {
-				return this.uicon('e60c')
-			},
-			loopIcon(): string {
-				return this.uicon('e633')
-			}
-		},
-		methods: {
-			// 复制按钮
-			copy() {
-				if (typeof this.msg.body != 'string') {
-					uni.showToast({
-						title: '消息内容不是字符串',
-						icon: 'none',
-					})
-					return
-				}
-				uni.setClipboardData({
-					data: this.msg.body as string,
-					success: () => {
-						uni.showToast({
-							title: '复制成功',
-							icon: 'success',
-						})
-					}
-				})
-				console.error('当前会话是ai',this.msg.body)
-				// 如果最后一条消息是ai发的(即不是当前用户发的)
-			},
-			// 重新回答按钮
-			async loop() {
-				if (uniAi.currentChat!.state == 'processing') {
-					uniAi.currentChat!.state = 'stop'
-					// 终止请求
-					uniAi.abortRequest()
-				}
-				// 计算 nextTick的耗时
-				// const start = Date.now()
-				await nextTick()
-				// const end = Date.now()
-				// console.error('nextTick的耗时', end - start)
-				// 删除原来的答案
-				this.msg.body = ''
-				this.msg.rendered = false
-				this.msg.error_msg = null
-				this.msg.thinkContent = null
-				this.msg.markdownElList = []
-				uniAi.answerQuestion(this.msg)
-			},
-			// 删除按钮
-			deleteMsg() {
-				uniAi.deleteMsg(this.msg._id)
-			},
-			uicon(code: string) {
-				// #ifdef APP
-				// 将字符串分割成 Unicode 编码的字符
-				let codes = code.split('%u');
-				// 遍历字符数组
-				let chars = codes.map(code => {
-					// 转换为十六进制
-					let hexCode = parseInt(code, 16);
-					// 将 UTF-16 编码转换为字符
-					return String.fromCharCode(hexCode);
-				});
-				// 将字符数组转换成字符串
-				return chars.join('');
-				// #endif
-				// #ifndef APP
-				return unescape(`%u${code}`) as string
-				// #endif
-			}
+	
+	const props = defineProps<{
+		msg: MsgItem
+	}>()
+	
+	const msg = computed<MsgItem>(() => props.msg as MsgItem)
+	
+	const uicon = (code: string) => {
+		// #ifdef APP
+		let codes = code.split('%u');
+		let chars = codes.map(code => {
+			let hexCode = parseInt(code, 16);
+			return String.fromCharCode(hexCode);
+		});
+		return chars.join('');
+		// #endif
+		// #ifndef APP
+		return unescape(`%u${code}`) as string
+		// #endif
+	}
+	
+	const aiState = computed<string>(() => {
+		return uniAi.currentChat!.state
+	})
+	
+	const isLastAiMsg = computed<boolean>(() => {
+		return msg.value._id == uniAi.lastAiMsg?._id
+	})
+	
+	const copyIcon = computed<string>(() => {
+		return uicon('e60c')
+	})
+	
+	const loopIcon = computed<string>(() => {
+		return uicon('e633')
+	})
+	
+	const copy = () => {
+		if (typeof msg.value.body != 'string') {
+			uni.showToast({
+				title: '消息内容不是字符串',
+				icon: 'none',
+			})
+			return
 		}
+		uni.setClipboardData({
+			data: msg.value.body as string,
+			success: () => {
+				uni.showToast({
+					title: '复制成功',
+					icon: 'success',
+				})
+			}
+		})
+		console.error('当前会话是ai',msg.value.body)
+	}
+	
+	const loop = async () => {
+		if (uniAi.currentChat!.state == 'processing') {
+			uniAi.currentChat!.state = 'stop'
+			uniAi.abortRequest()
+		}
+		await nextTick()
+		msg.value.body = ''
+		msg.value.rendered = false
+		msg.value.error_msg = null
+		msg.value.thinkContent = null
+		msg.value.markdownElList = []
+		uniAi.answerQuestion(msg.value)
+	}
+	
+	const deleteMsg = () => {
+		uniAi.deleteMsg(msg.value._id)
 	}
 </script>
 

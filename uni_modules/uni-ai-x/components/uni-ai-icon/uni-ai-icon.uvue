@@ -2,7 +2,7 @@
 	<text :decode="true" :style="{ color: color, 'font-size': iconSize }" @click="_onClick" class="uni-ai-icon">{{unicode}}</text>
 </template>
 
-<script>
+<script lang="uts" setup>
 	// #ifdef APP
 	function decodeUnicode(code: string): string {
 	  // 将字符串分割成 Unicode 编码的字符
@@ -22,47 +22,38 @@
 		const reg = /^[0-9]*$/g
 		return (typeof val === 'number' ||　reg.test(val) )? val + 'px' : val;
 	}
-	export default {
-		emits:['click'],
-		data() {
-			return {
-				
-			}
-		},
-		props: {
-			code: {
-				type: String,
-				default(){
-					return ''
-				}
-			},
-			color: {
-				type: String,
-				default: '#333333'
-			},
-			size: {
-				type: String,
-				default: '16'
-			},
-		},
-		computed:{
-			unicode(): string {
-				// #ifdef APP
-				return decodeUnicode(this.code as string)
-				// #endif
-				// #ifndef APP
-				return unescape(`%u${this.code}`) as string
-				// #endif
-			},
-			iconSize(): string {
-				return getVal(this.size as string)
-			}
-		},
-		methods:{
-			_onClick(e: UniEvent){
-				this.$emit('click',e as UniEvent)
-			}
-		}
+	
+	type UniAiIconProps = {
+		code?: string
+		color?: string
+		size?: string
+	}
+	
+	const props = withDefaults(defineProps<UniAiIconProps>(), {
+		code: '',
+		color: '#333333',
+		size: '16'
+	})
+	
+	const emit = defineEmits<{
+		'click': [e: UniEvent]
+	}>()
+	
+	const unicode = computed<string>(() => {
+		// #ifdef APP
+		return decodeUnicode(props.code)
+		// #endif
+		// #ifndef APP
+		return unescape(`%u${props.code}`) as string
+		// #endif
+	})
+	
+	const iconSize = computed<string>(() => {
+		return getVal(props.size)
+	})
+	
+	const _onClick = (e: UniEvent) => {
+		emit('click', e)
 	}
 </script>
 

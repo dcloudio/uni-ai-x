@@ -16,128 +16,124 @@
         </view>
     </view>
 </template>
-<script>
+<script lang="uts" setup>
 import uniAi from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, providerNameList, type LLMModel} from '../config';
-export default {
-    name: 'inputToolBar',
-    computed: {
-        aiState() : string {
-            return uniAi.currentChat?.state ?? 'done';
-        },
-        inputContent: {
-            get() : string {
-                return uniAi.currentChat?.inputContent ?? '';
-            },
-            set(value: string) {
-                uniAi.currentChat!.inputContent = value;
-            }
-        },
-        llmModel(): string {
-            return uniAi.llm.model
-        },
-        currentLLMModel(): LLMModel {
-            const provider = uniAi.llm.provider
-            const model = uniAi.llm.model
-            const currentLLMModel = llmModelMap.get(provider)?.models.find(m => m.name == model) as LLMModel;
-            // console.error('currentLLMModel',currentLLMModel);
-            return currentLLMModel
-        },
-        // 是否启用联网搜索
-        webSearch(): boolean {
-            return uniAi.llm.webSearch as boolean;
-        },
-        canWebSearch(): boolean {
-            const canWebSearch = this.currentLLMModel.webSearch ?? false;
-            if (!canWebSearch) {
-                // console.warn('当前模型不支持联网搜索，立即关闭联网搜索');
-                uniAi.llm.webSearch = false;
-            }
-            return canWebSearch
-        },
-        canThinking(): boolean {
-            return this.currentLLMModel.thinking ?? false;
+
+const canWebSearchLLmList: string[] = [];
+const canThinkingLLmList: string[] = [];
+let hasDeepseekR1Model = false;
+llmModelMap.forEach((provider,providerName) => {
+    provider.models.forEach(model => {
+        if (model.webSearch == true) {
+            canWebSearchLLmList.push(providerName + ' - ' + model.name);
         }
-    },
-    data() {
-        const canWebSearchLLmList: string[] = [];
-        const canThinkingLLmList: string[] = [];
-        let hasDeepseekR1Model = false;
-        llmModelMap.forEach((provider,providerName) => {
-            provider.models.forEach(model => {
-                if (model.webSearch == true) {
-                    canWebSearchLLmList.push(providerName + ' - ' + model.name);
-                }
-                if (model.thinking == true) {
-                    canThinkingLLmList.push(providerName + ' - ' + model.name);
-                }
-                if (model.name == 'deepseek-r1') {
-                    hasDeepseekR1Model = true;
-                }
-            });
-        });
-        return {
-            canThinkingLLmList,
-            canWebSearchLLmList,
-            pushClientId: '',
-            hasDeepseekR1Model
+        if (model.thinking == true) {
+            canThinkingLLmList.push(providerName + ' - ' + model.name);
         }
-    },
-    mounted() {
-        // #ifdef WEB
-        // 监听回车且没有按下 ctrl 、shift 、alt 、meta 键，且不是输入法时，发送消息
-        document.addEventListener('keydown', async (e) => {
-            if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !e.isComposing) {
-                e.preventDefault()
-                if (this.aiState == 'processing') {
-                    await this.stop()
-                }
-                this.send()
-            }
-        })
-        // #endif
-    },
-    methods: {
-        async stop() {
-            uniAi.currentChat!.state = 'stop';
-            uniAi.abortRequest()
-            // 给一个停止的等待时间
-            await nextTick()
-        },
-        async send() {
-            // console.log('send-----------------')
-            if (this.inputContent.length == 0) {
-                return;
-            }
-            uniAi.sendMsg(this.inputContent)
-            this.inputContent = '';
-        },
-        setThinking(){
-            // 切换深度思考模型
-            if (!this.hasDeepseekR1Model) {
-                uni.showToast({
-                    title: '请在 config.json 中配置 deepseek-r1 模型',
-                    duration: 3000,
-                    icon: 'none'
-                });
-            } else {
-                uniAi.llm.model = this.canThinking ? "deepseek-v3" : "deepseek-r1"
-            }
-        },
-        setWebSearch(){
-            if (this.canWebSearch) {
-                uniAi.llm.webSearch = !this.webSearch;
-            } else {
-                const title: string = this.canWebSearchLLmList.length > 0 ? `仅${this.canWebSearchLLmList.join('、')}模型支持联网搜索` : '当前模型不支持联网搜索';
-                uni.showToast({
-                    title,
-                    duration: 3000,
-                    icon: 'none'
-                });
-            }
+        if (model.name == 'deepseek-r1') {
+            hasDeepseekR1Model = true;
         }
+    });
+});
+
+const aiState = computed<string>(() => {
+    return uniAi.currentChat?.state ?? 'done';
+});
+
+const inputContent = ref<string>(uniAi.currentChat?.inputContent ?? '')
+
+watch(inputContent, (newValue: string) => {
+    if (uniAi.currentChat != null) {
+        uniAi.currentChat!.inputContent = newValue
     }
-}
+})
+
+watch((): string => {
+    return uniAi.currentChat?.inputContent ?? ''
+}, (newValue: string) => {
+    inputContent.value = newValue
+})
+
+const llmModel = computed<string>(() => {
+    return uniAi.llm.model
+});
+
+const currentLLMModel = computed<LLMModel>(() => {
+    const provider = uniAi.llm.provider
+    const model = uniAi.llm.model
+    const currentLLMModel = llmModelMap.get(provider)?.models.find(m => m.name == model) as LLMModel;
+    return currentLLMModel
+});
+
+const webSearch = computed<boolean>(() => {
+    return uniAi.llm.webSearch as boolean;
+});
+
+const canWebSearch = computed<boolean>(() => {
+    const canWebSearch = currentLLMModel.value.webSearch ?? false;
+    if (!canWebSearch) {
+        uniAi.llm.webSearch = false;
+    }
+    return canWebSearch
+});
+
+const canThinking = computed<boolean>(() => {
+    return currentLLMModel.value.thinking ?? false;
+});
+
+const stop = async () => {
+    uniAi.currentChat!.state = 'stop';
+    uniAi.abortRequest()
+    await nextTick()
+};
+
+const send = async () => {
+    if (inputContent.value.length == 0) {
+        return;
+    }
+    uniAi.sendMsg(inputContent.value)
+    inputContent.value = '';
+};
+
+const setThinking = () => {
+    if (!hasDeepseekR1Model) {
+        uni.showToast({
+            title: '请在 config.json 中配置 deepseek-r1 模型',
+            duration: 3000,
+            icon: 'none'
+        });
+    } else {
+        uniAi.llm.model = canThinking.value ? "deepseek-v3" : "deepseek-r1"
+    }
+};
+
+const setWebSearch = () => {
+    if (canWebSearch.value) {
+        uniAi.llm.webSearch = !webSearch.value;
+    } else {
+        const title: string = canWebSearchLLmList.length > 0 ? `仅${canWebSearchLLmList.join('、')}模型支持联网搜索` : '当前模型不支持联网搜索';
+        uni.showToast({
+            title,
+            duration: 3000,
+            icon: 'none'
+        });
+    }
+};
+
+onMounted(() => {
+    // #ifdef WEB
+    document.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !e.isComposing) {
+            e.preventDefault()
+            if (aiState.value == 'processing') {
+                await stop()
+            }
+            send()
+        }
+    })
+    // #endif
+});
 </script>
 <style lang="scss">
 .input-tool-bar {

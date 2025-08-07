@@ -4,23 +4,13 @@
 	</view>
 </template>
 
-<script>
-	export default {
-		data() {
-			return {
-				title: 'Hello'
-			}
-		},
-		onLoad() {
-
-		},
-		methods: {
-			openUniAI() {
-				uni.navigateTo({
-					url: '/uni_modules/uni-ai-x/pages/index/index'
-				})
-			}
-		}
+<script lang="uts" setup>
+	const title = ref<string>('Hello')
+	
+	const openUniAI = () => {
+		uni.navigateTo({
+			url: '/uni_modules/uni-ai-x/pages/index/index'
+		})
 	}
 </script>
 

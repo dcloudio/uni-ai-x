@@ -5,24 +5,18 @@
 		}"
 	></view>
 </template>
-<script>
-	export default {
-		data() {
-			return {
-				times: 0
-			}
-		},
-		mounted() {
-			setTimeout(() => {
-				this.updateRotate()
-			}, 300)
-		},
-		methods: {
-			updateRotate() {
-				this.times ++
-			}
-		}
+<script lang="uts" setup>
+	const times = ref<number>(0)
+	
+	const updateRotate = () => {
+		times.value++
 	}
+	
+	onMounted(() => {
+		setTimeout(() => {
+			updateRotate()
+		}, 300)
+	})
 </script>
 <style lang="scss">
 	.rotate-icon {

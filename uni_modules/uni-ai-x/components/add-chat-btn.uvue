@@ -6,21 +6,13 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import addChat from './add-chat.uvue'
 	import uniAi from '@/uni_modules/uni-ai-x/sdk';
-	export default {
-		name: 'addChatBtn',
-		components: {addChat},
-		computed: {
-			msgListLength() : number {
-				return uniAi.currentChat?.msgList.length ?? 0
-			}
-		},
-		data() {
-			return {};
-		}
-	}
+	
+	const msgListLength = computed<number>(() => {
+		return uniAi.currentChat?.msgList.length ?? 0
+	})
 </script>
 
 <style lang="scss">

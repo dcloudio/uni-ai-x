@@ -4,17 +4,8 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import addChat from './add-chat.uvue'
-	export default {
-		name: 'aiMenuRight',
-		components: {addChat},
-		data() {
-			return {
-				
-			};
-		}
-	}
 </script>
 
 <style lang="scss">

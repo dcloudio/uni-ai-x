@@ -21,84 +21,88 @@
 			</view>
 			<view class="btn-group">
 				<uni-icons class="setting-icon" @click="toSetting" type="gear-filled" size="20" :color="uiTheme == 'light' ? '#666' : '#FFF'"></uni-icons>
-				<uni-ai-x-setting class="setting-container" ref="uni-ai-x-setting"></uni-ai-x-setting>
+				<uni-ai-x-setting class="setting-container" ref="uniAiXSettingRef"></uni-ai-x-setting>
 			</view>
 		</view>
 	</view>
 </template>
 
-<script lang="uts">
+<script lang="uts" setup>
 	import {uniAi, ChatItem, Userinfo} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import {userCenterPage} from '@/uni_modules/uni-ai-x/config.uts'
-	export default {
-		emits: ['close-menu'],
-		components: {
-			addChatBtn
-		},
-		computed: {
-			uiTheme(): string {
-				return uniAi.setting.theme
-			},
-			currentUser(): Userinfo {
-				return uniAi.currentUser
-			},
-			activeChatId(): string {
-				return uniAi.chat.activeId
-			},
-			chatDatas(): ChatItem[] {
-				// 按更新时间排序
-				return uniAi.chat.datas.sort((a, b) => b.update_time - a.update_time)
-			}
-		},
-		methods: {
-			toUCenter() {
-				uni.navigateTo({
-					url: userCenterPage,
-					fail: (err) => {
-						console.error('navigateTo', err, '跳转失败：1. 检查在uni_modules/uni-ai-x/config.uts中配置的用户中心路径 2. 此页面是否已在pages.json中注册')
-						uni.showModal({
-							title: '跳转失败',
-							content: '请检查在 uni_modules/uni-ai-x/config.uts 中配置的用户中心路径是否正确，并确认此页面是否已在pages.json中注册',
-							showCancel: false
-						})
-					}
-				})
-			},
-			closeMenu() {
-				this.$emit('close-menu')
-			},
-			setActiveChat(chat: ChatItem) {
-				uniAi.chat.activeId = chat.id
-				this.closeMenu()
-			},
-			longpress(chat: ChatItem) {
+	
+	const emit = defineEmits<{
+		'close-menu': []
+	}>()
+	
+	const uiTheme = computed<string>(() => {
+		return uniAi.setting.theme
+	})
+	
+	const currentUser = computed<Userinfo>(() => {
+		return uniAi.currentUser
+	})
+	
+	const activeChatId = computed<string>(() => {
+		return uniAi.chat.activeId
+	})
+	
+	const chatDatas = computed<ChatItem[]>(() => {
+		// 按更新时间排序
+		return uniAi.chat.datas.sort((a, b) => b.update_time - a.update_time)
+	})
+	
+	const toUCenter = () => {
+		uni.navigateTo({
+			url: userCenterPage,
+			fail: (err) => {
+				console.error('navigateTo', err, '跳转失败：1. 检查在uni_modules/uni-ai-x/config.uts中配置的用户中心路径 2. 此页面是否已在pages.json中注册')
 				uni.showModal({
-					title: '删除对话',
-					content: '是否删除该对话？',
-					success: (res) => {
-						if (res.confirm) {
-							// 拿到要删除对话索引
-							if (uniAi.chat.datas.length == 1) {
-								uniAi.addChat()
-								this.setActiveChat(uniAi.chat.datas[0])
-							} else if (uniAi.chat.activeId == chat.id) {
-								// 如果删除的是当前激活的对话，则激活其他对话
-								const otherChat = uniAi.chat.datas.find((item) => item.id != chat.id)!
-								uniAi.chat.activeId = otherChat.id
-							}
-							setTimeout(() => {
-								const index = uniAi.chat.datas.findIndex((item) => item.id == chat.id)
-								uniAi.chat.datas.splice(index, 1)
-							}, 0);
-						}
-					}
+					title: '跳转失败',
+					content: '请检查在 uni_modules/uni-ai-x/config.uts 中配置的用户中心路径是否正确，并确认此页面是否已在pages.json中注册',
+					showCancel: false
 				})
-			},
-			toSetting() {
-				(this.$refs['uni-ai-x-setting'] as ComponentPublicInstance).$callMethod('open')
 			}
-		}
+		})
+	}
+	
+	const closeMenu = () => {
+		emit('close-menu')
+	}
+	
+	const setActiveChat = (chat: ChatItem) => {
+		uniAi.chat.activeId = chat.id
+		closeMenu()
+	}
+	
+	const longpress = (chat: ChatItem) => {
+		uni.showModal({
+			title: '删除对话',
+			content: '是否删除该对话？',
+			success: (res) => {
+				if (res.confirm) {
+					// 拿到要删除对话索引
+					if (uniAi.chat.datas.length == 1) {
+						uniAi.addChat()
+						setActiveChat(uniAi.chat.datas[0])
+					} else if (uniAi.chat.activeId == chat.id) {
+						// 如果删除的是当前激活的对话，则激活其他对话
+						const otherChat = uniAi.chat.datas.find((item) => item.id != chat.id)!
+						uniAi.chat.activeId = otherChat.id
+					}
+					setTimeout(() => {
+						const index = uniAi.chat.datas.findIndex((item) => item.id == chat.id)
+						uniAi.chat.datas.splice(index, 1)
+					}, 0);
+				}
+			}
+		})
+	}
+	
+	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null);
+	const toSetting = () => {
+		uniAiXSettingRef.value?.$callMethod('open')
 	}
 </script>
 

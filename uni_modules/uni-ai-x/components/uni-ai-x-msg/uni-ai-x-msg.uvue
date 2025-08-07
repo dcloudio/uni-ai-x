@@ -36,104 +36,78 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
 	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
 	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
 	const marked = useMarked();
 	import testMarkdownText from './testMarkdownText.uts';
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
-	// import testMarkdownNode from './testMarkdownNode.uts';
-
-	export default {
-		name: 'msg-uni-ai',
-		emits: ['changeThinkContent'],
-		components: {
-			msgToolBar
-		},
-		props: {
-			msg: {
-				type: Object as PropType<MsgItem>,
-				required: true,
-				default: {},
-			}
-		},
-		data() {
-			return {
-				// 耗时
-				runTime: 0,
-				parseLock: false,
-				lastParseLineCodeText: '',
-				// 是否隐藏深度思考
-				hideThinkContent: false,
-				// 准备解析的 markdown 文本索引
-				readyParseMdIndex: 0,
-				// 已解析的 markdown 文本索引
-				parseMdIndex: 0
-			}
-		},
-		computed: {
-			// 是否是自己发送的消息
-			state(): string {
-				return uniAi.currentChat!.state
-			},
-			isLastAiMsg(): boolean {
-				return uniAi.lastAiMsg?._id == this.msg._id
-			},
-			uiTheme(): string {
-				return uniAi.setting.theme
-			}
-		},
-		watch: {
-			'msg.body': {
-				async handler(msgBody: string) {
-					if (msgBody.length == 0) {
-						this.readyParseMdIndex = 0
-						this.parseMdIndex = 0
-						this.parseLock = false
-					}
-					if (this.state == 'processing') {
-						// this.runTask()
-					} else {
-						// console.log('this.msg.body', this.msg.body)
-					}
-
-					// 测试代码 模拟解析固定的md
-					// const testMd = testMarkdownText
-					// const TokensList = marked.lexer(testMd,null) as TokensList
-					// console.log('TokensList----------', TokensList)
-				},
-				// immediate: true
-			},
-			state: {
-				handler(state: string) {
-					if (state == 'completed' || state == 'stop') {
-						// console.log('this.msg.body', this.msg.body)
-					}
-				}
-			}
-		},
-		mounted(){
-			// this.testRun()
-			// console.log('this.msg.body', this.msg.body)
-		},
-		methods: {
-			toLink(url: string | null) {
-				if (url != null && url!.length > 0) {
-					console.error('url', url)
-					uni.navigateTo({
-						"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
-						fail:e=>{
-							console.error(e);
-						}
-					})
-				}
-			},
-			changeThinkContent() {
-				this.hideThinkContent = !this.hideThinkContent
-				this.$emit('changeThinkContent', this.hideThinkContent)
-			}
+	
+	type UniAiXMsgProps = {
+		msg: MsgItem
+	}
+	
+	const props = defineProps<UniAiXMsgProps>()
+	
+	const msg = ref<MsgItem>(props.msg as MsgItem)
+	
+	const emit = defineEmits<{
+		'changeThinkContent': [hideThinkContent: boolean]
+	}>()
+	
+	const runTime = ref<number>(0)
+	const parseLock = ref<boolean>(false)
+	const lastParseLineCodeText = ref<string>('')
+	const hideThinkContent = ref<boolean>(false)
+	const readyParseMdIndex = ref<number>(0)
+	const parseMdIndex = ref<number>(0)
+	
+	const state = computed<string>(() => {
+		return uniAi.currentChat!.state
+	})
+	
+	const isLastAiMsg = computed<boolean>(() => {
+		return uniAi.lastAiMsg?._id == msg.value._id
+	})
+	
+	const uiTheme = computed<string>(() => {
+		return uniAi.setting.theme
+	})
+	
+	watch((): string => {
+		return msg.value.body
+	}, async (msgBody: string) => {
+		if (msgBody.length == 0) {
+			readyParseMdIndex.value = 0
+			parseMdIndex.value = 0
+			parseLock.value = false
 		}
+		if (state.value == 'processing') {
+		} else {
+		}
+	})
+	
+	watch(state, (state: string) => {
+		if (state == 'completed' || state == 'stop') {
+		}
+	})
+	
+	const toLink = (url: string | null) => {
+		if (url != null && url!.length > 0) {
+			console.error('url', url)
+			uni.navigateTo({
+				"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
+				fail:e=>{
+					console.error(e);
+				}
+			})
+		}
+	}
+	
+	const changeThinkContent = () => {
+		hideThinkContent.value = !hideThinkContent.value
+		emit('changeThinkContent', hideThinkContent.value)
 	}
 </script>
 

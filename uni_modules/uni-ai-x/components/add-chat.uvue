@@ -5,40 +5,32 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import uniAi from '../sdk';
-	export default {
-		name: 'addChat',
-		props: {
-			size: {
-				type: String,
-				default: '20' 
-			},
-		},
-		data() {
-			return {
-				
-			};
-		},
-		computed: {
-			canAddChat(): boolean {
-				return (uniAi.currentChat?.msgList.length ?? 0) != 0
-			}
-		},
-		methods: {
-			addChat() {
-				if (!this.canAddChat) {
-					uni.showToast({
-						title: '当前已在新对话中',
-						icon: 'none',
-						duration: 2000
-					})
-				} else {
-					// 添加新对话
-					uniAi.addChat();
-				}
-			}
-		},
+	
+	type AddChatProps = {
+		size?: string
+	}
+	
+	const props = withDefaults(defineProps<AddChatProps>(), {
+		size: '20'
+	})
+	
+	const canAddChat = computed<boolean>(() => {
+		return (uniAi.currentChat?.msgList.length ?? 0) != 0
+	})
+	
+	const addChat = () => {
+		if (!canAddChat.value) {
+			uni.showToast({
+				title: '当前已在新对话中',
+				icon: 'none',
+				duration: 2000
+			})
+		} else {
+			// 添加新对话
+			uniAi.addChat();
+		}
 	}
 </script>
 

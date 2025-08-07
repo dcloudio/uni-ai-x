@@ -1,6 +1,6 @@
 <template>
 	<view class="uni-im-setting" :class="{'ui-theme-dark': uiTheme == 'dark'}">
-		<uni-popup ref="popup">
+		<uni-popup ref="popupRef">
 			<view class="popup-content">
 				<text class="title">系统设置</text>
 				<!-- 设置主题 -->
@@ -26,87 +26,92 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 	import uniAi from '@/uni_modules/uni-ai-x/sdk';
 	import {Theme, Provider} from '@/uni_modules/uni-ai-x/types.uts';
 	
 	import {llmModelMap, providerNameList} from '@/uni_modules/uni-ai-x/config';
+	
 	type UiThemeModeOptions = Map<Theme,string>
-	export default {
-		data() {
-			return {
-				uiThemeModeOptions: new Map<Theme,string>([
-					// ['auto', '跟随系统'],
-					['dark', '深色'],
-					['light', '浅色']
-				]) as UiThemeModeOptions,
-				llmModelMap: llmModelMap as Map<string, Provider>,
-				providerNameList : providerNameList as string[]
-			}
-		},
-		computed: {
-			uiTheme(): Theme {
-				return uniAi.setting.theme
-			},
-			uiThemeMode(): Theme {
-				return uniAi.setting.theme
-			},
-			currentThemeText(): string {
-				return this.uiThemeModeOptions.get(this.uiThemeMode) ?? '跟随系统'
-			},
-			currentModel(): string {
-				return uniAi.llm.model
-			},
-		},
-		mounted() {
-			// this.open()
-		},
-		methods: {
-			popupRef(): ComponentPublicInstance {
-				return this.$refs['popup'] as ComponentPublicInstance
-			},
-			open() {
-				this.popupRef().$callMethod('open');
-			},
-			close() {
-				this.popupRef().$callMethod('close');
-			},
-			changeTheme() {
-				const textList:string[] = [], keyList:Theme[] = []
-				this.uiThemeModeOptions.forEach((value, key) => {
-					textList.push(value)
-					keyList.push(key)
-				})
-				uni.showActionSheet({
-					title: "设置主题",
-					itemList: textList,
-					success: (res: ShowActionSheetSuccess) => {
-						console.log('设置主题', res.tapIndex, keyList[res.tapIndex])
-						uniAi.setting.theme = keyList[res.tapIndex]
-						this.close()
-					}
-				})
-			},
-			changeModel() {
-				const textList:string[] = [], keyList:string[] = []
-				this.providerNameList.forEach((value, key) => {
-					this.llmModelMap.get(value)?.models.forEach((model) => {
-						textList.push(model.name)
-						keyList.push(model.name)
-					})
-				})
-				uni.showActionSheet({
-					title: "设置大语言模型",
-					itemList: textList,
-					success: (res: ShowActionSheetSuccess) => {
-						console.log('设置大语言模型', res.tapIndex, keyList[res.tapIndex])
-						uniAi.llm.model = keyList[res.tapIndex]
-						this.close()
-					}
-				})
-			}
-		}
+	
+	const popupRef = ref<ComponentPublicInstance | null>(null)
+	
+	const uiThemeModeOptions = new Map<Theme,string>([
+		['dark', '深色'],
+		['light', '浅色']
+	]) as UiThemeModeOptions
+	
+	const llmModelMapData = llmModelMap as Map<string, Provider>
+	const providerNameListData = providerNameList as string[]
+	
+	const uiTheme = computed<Theme>(() => {
+		return uniAi.setting.theme
+	})
+	
+	const uiThemeMode = computed<Theme>(() => {
+		return uniAi.setting.theme
+	})
+	
+	const currentThemeText = computed<string>(() => {
+		return uiThemeModeOptions.get(uiThemeMode.value) ?? '跟随系统'
+	})
+	
+	const currentModel = computed<string>(() => {
+		return uniAi.llm.model
+	})
+	
+	const popupRefMethod = (): ComponentPublicInstance => {
+		return popupRef.value as ComponentPublicInstance
 	}
+	
+	const open = () => {
+		popupRefMethod().$callMethod('open');
+	}
+	
+	const close = () => {
+		popupRefMethod().$callMethod('close');
+	}
+	
+	const changeTheme = () => {
+		const textList:string[] = [], keyList:Theme[] = []
+		uiThemeModeOptions.forEach((value, key) => {
+			textList.push(value)
+			keyList.push(key)
+		})
+		uni.showActionSheet({
+			title: "设置主题",
+			itemList: textList,
+			success: (res: ShowActionSheetSuccess) => {
+				console.log('设置主题', res.tapIndex, keyList[res.tapIndex])
+				uniAi.setting.theme = keyList[res.tapIndex]
+				close()
+			}
+		})
+	}
+	
+	const changeModel = () => {
+		const textList:string[] = [], keyList:string[] = []
+		providerNameListData.forEach((value, key) => {
+			llmModelMapData.get(value)?.models.forEach((model) => {
+				textList.push(model.name)
+				keyList.push(model.name)
+			})
+		})
+		uni.showActionSheet({
+			title: "设置大语言模型",
+			itemList: textList,
+			success: (res: ShowActionSheetSuccess) => {
+				console.log('设置大语言模型', res.tapIndex, keyList[res.tapIndex])
+				uniAi.llm.model = keyList[res.tapIndex]
+				close()
+			}
+		})
+	}
+	
+	defineExpose({
+		open,
+		close
+	})
 </script>
 
 <style lang="scss">

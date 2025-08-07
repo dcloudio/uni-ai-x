@@ -18,14 +18,17 @@
 	</view>
 </template>
 
-<script>
+<script lang="uts" setup>
 import { IToken, parseCode } from './parseCode.uts'
-export default {
-	name: 'msg-code',
-	props: {
-		codeText: {
-			type: String,
-			default: `
+
+type UniAiMsgCodeProps = {
+	codeText?: string
+	codeTokens?: IToken[][]
+	language?: string
+}
+
+const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
+	codeText: `
 	import App from './App.uvue'
 	// 注释：这是注释的内容
 	import { createSSRApp } from 'vue'
@@ -35,72 +38,51 @@ export default {
 			app
 		}
 	}
-`
+`,
+	codeTokens: () => [] as IToken[][],
+	language: 'javascript'
+})
+
+const tokens = ref<Array<IToken>>([])
+const runTime = ref<number>(0)
+const supportHighlight = ref<boolean>(true)
+const tokensLines = ref<IToken[][]>([])
+const maxLineWidth = ref<string>('')
+
+watch((): IToken[][] => props.codeTokens, (codeTokens: IToken[][]) => {
+	tokensLines.value = codeTokens
+	// #ifndef APP-ANDROID || WEB
+	const maxLineWidthValue = tokensLines.value.reduce((max, line) => {
+		const lineWidth = line.reduce((max, token) => {
+			return Math.max(max, token.text.length)
+		}, 0)
+		return Math.max(max, lineWidth)
+	}, 0)
+	console.log('maxLineWidth', maxLineWidthValue)
+	maxLineWidth.value = `${maxLineWidthValue * 25}px`
+	// #endif
+}, { immediate: true, deep: true })
+
+const scrollViewHeight = computed<string>(() => {
+	return `${props.codeText.split('\n').length * 20 + 12}px`
+})
+
+const copyCode = () => {
+	uni.setClipboardData({
+		data: props.codeText,
+		success: () => {
+			uni.showToast({
+				title: '代码已复制到剪贴板',
+				icon: 'success'
+			})
 		},
-		codeTokens:  {
-			type: Array as PropType<IToken[][]>,
-			required: false,
-			default: [] as IToken[][],
-		},
-		language: {
-			type: String,
-			default: 'javascript',
-		},
-	},
-	data() {
-		return {
-			tokens:[] as Array<IToken>,
-			runTime: 0,
-			// 当前语言是否支持高亮显示
-			supportHighlight: true,
-			tokensLines:[] as IToken[][],
-			maxLineWidth: '' as string
-		}
-	},
-	watch: {
-		codeTokens:{
-			handler(codeTokens: IToken[][]) {
-				this.tokensLines = codeTokens
-				// #ifndef APP-ANDROID || WEB
-				// 找到最宽的一行
-				const maxLineWidth = this.tokensLines.reduce((max, line) => {
-					const lineWidth = line.reduce((max, token) => {
-						return Math.max(max, token.text.length)
-					}, 0)
-					return Math.max(max, lineWidth)
-				}, 0)
-				console.log('maxLineWidth', maxLineWidth)
-				this.maxLineWidth = `${maxLineWidth * 25}px`
-				// #endif
-			},
-			immediate: true,
-			deep: true
-		}
-	},
-	computed: {
-		scrollViewHeight(): string {
-			return `${this.codeText.split('\n').length * 20 + 12}px`
-		}
-	},
-	methods: {
-		copyCode() {
-			uni.setClipboardData({
-				data: this.codeText,
-				success: () => {
-					uni.showToast({
-						title: '代码已复制到剪贴板',
-						icon: 'success'
-					})
-				},
-				fail: () => {
-					uni.showToast({
-						title: '复制失败',
-						icon: 'none'
-					})
-				}
+		fail: () => {
+			uni.showToast({
+				title: '复制失败',
+				icon: 'none'
 			})
 		}
-	}
+	})
 }
 </script>
 

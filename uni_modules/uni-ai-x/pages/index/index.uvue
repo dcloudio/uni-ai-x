@@ -5,76 +5,73 @@
 	</view>
 </template>
 
-<script lang="uts">
+<script lang="uts" setup>
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
-	export default {
-		components: {uniAiMenu, uniAiChat},
-		data() {
-			return {
-				startX: 0,
-				translateX: -260,
-				isDragging: false,
-				isMoveing: false,
-				showMenu: false
-			}
-		},
-		computed: {
-			uiTheme(): string {
-				return 'light'
-			}
-		},
-		mounted() {
-			// #ifdef WEB
-			window.addEventListener('resize', () => {
-				this.setMenu(window.innerWidth > 960)
-			})
-			// #endif
-		},
-		methods: {
-			setMenu(show: boolean) {
-				this.showMenu = show
-				this.translateX = show ? 0 : -260
-			},
-			changeMenu() {
-				this.setMenu(!this.showMenu)
-			},
-			touchStart(event: TouchEvent) {
-				this.startX = event.touches[0].pageX
-				// this.isDragging = true
-			},
-			touchMove(event: TouchEvent) {
-				if (!this.isDragging) return
-				this.isMoveing = true
-				
-				const currentX = event.touches[0].pageX
-				const diffX = currentX - this.startX
-				
-				let newTranslateX = this.showMenu ? diffX : -260 + diffX
-				
-				if (newTranslateX > 0) newTranslateX = 0
-				if (newTranslateX < -260) newTranslateX = -260
-				
-				this.translateX = newTranslateX
-			},
-			touchEnd() {
-				setTimeout(()=>{
-					this.isMoveing = false
-				},0)
-				if (!this.isDragging) return
-				this.isDragging = false
-				if (this.translateX > -130) {
-					this.setMenu(true)
-				} else {
-					this.setMenu(false)
-				}
-			},
-			closeMenu() {
-				if (this.isMoveing) return
-				this.setMenu(false)
-			}
+	
+	const startX = ref<number>(0)
+	const translateX = ref<number>(-260)
+	const isDragging = ref<boolean>(false)
+	const isMoveing = ref<boolean>(false)
+	const showMenu = ref<boolean>(false)
+	
+	const uiTheme = computed<string>(() => {
+		return 'light'
+	})
+	
+	const setMenu = (show: boolean) => {
+		showMenu.value = show
+		translateX.value = show ? 0 : -260
+	}
+	
+	const changeMenu = () => {
+		setMenu(!showMenu.value)
+	}
+	
+	const touchStart = (event: TouchEvent) => {
+		startX.value = event.touches[0].pageX
+	}
+	
+	const touchMove = (event: TouchEvent) => {
+		if (!isDragging.value) return
+		isMoveing.value = true
+		
+		const currentX = event.touches[0].pageX
+		const diffX = currentX - startX.value
+		
+		let newTranslateX = showMenu.value ? diffX : -260 + diffX
+		
+		if (newTranslateX > 0) newTranslateX = 0
+		if (newTranslateX < -260) newTranslateX = -260
+		
+		translateX.value = newTranslateX
+	}
+	
+	const touchEnd = () => {
+		setTimeout(()=>{
+			isMoveing.value = false
+		},0)
+		if (!isDragging.value) return
+		isDragging.value = false
+		if (translateX.value > -130) {
+			setMenu(true)
+		} else {
+			setMenu(false)
 		}
 	}
+	
+	const closeMenu = () => {
+		if (isMoveing.value) return
+		setMenu(false)
+	}
+	
+	onMounted(() => {
+		// #ifdef WEB
+		window.addEventListener('resize', () => {
+			setMenu(window.innerWidth > 960)
+		})
+		// #endif
+	})
 </script>
 
 <style lang="scss">
