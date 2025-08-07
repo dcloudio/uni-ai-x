@@ -5,7 +5,7 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compatibleSdkVersion": "5.0.2(14)",
+        "compatibleSdkVersion": "5.0.5(17)",
         "compatibleSdkVersionStage": "beta6",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
@@ -18,7 +18,7 @@
       {
         "name": "release",
         "signingConfig": "release",
-        "compatibleSdkVersion": "5.0.2(14)",
+        "compatibleSdkVersion": "5.0.5(17)",
         "compatibleSdkVersionStage": "beta6",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
