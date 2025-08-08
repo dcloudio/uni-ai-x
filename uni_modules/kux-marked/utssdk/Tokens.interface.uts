@@ -284,6 +284,7 @@ export type TokensList = {
 	links: Links;
 };
 export type IToken = {
+	uniqueId?: string | null;
 	text : string,
 	className : string
 }

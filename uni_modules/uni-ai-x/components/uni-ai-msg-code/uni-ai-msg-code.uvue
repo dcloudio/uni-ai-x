@@ -12,7 +12,7 @@
 		<scroll-view class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true">{{codeText}}</text>
 			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index" :style="{width: maxLineWidth}">
-				<text v-for="token in tokens" class="code" :class="token.className">{{token.text}}</text>
+				<text v-for="token in tokens" :key="token.uniqueId" class="code" :class="token.className">{{token.text}}</text>
 			</text>
 		</scroll-view>
 	</view>

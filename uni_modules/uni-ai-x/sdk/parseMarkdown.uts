@@ -134,16 +134,19 @@ export default class ParseMarkdown {
                 // 拿到本次要解析的代码
                 let lineCodeText: string | null = null;
                 // 拿到上一次解析过的那行代码所在位置的新代码
-                const lastLineCodeNewText: string = codeTextArr[codeTokneLength == 0 ? 0 : codeTokneLength - 1]
+                const lastLineCodeIndex = codeTokneLength == 0 ? 0 : codeTokneLength - 1
+                const lastLineCodeNewText: string = codeTextArr[lastLineCodeIndex]
                 // 判断上一次解析过的那行代码是否更新了
                 const lastLineCodeTextIsUpdate = this.lastParseLineCodeText != lastLineCodeNewText
                 // console.log('lastLineCodeTextIsUpdate', lastLineCodeTextIsUpdate)
+                let currentLineCodeIndex = lastLineCodeIndex
                 if (lastLineCodeTextIsUpdate) {
                     // 如果更新了，设为本次要解析的代码
                     lineCodeText = lastLineCodeNewText
                 } else if (codeTokneLength < codeTextArr.length) {
                     // 如果不变说明，应当解析下一行代码
-                    lineCodeText = codeTextArr[codeTokneLength]
+                    currentLineCodeIndex += 1
+                    lineCodeText = codeTextArr[currentLineCodeIndex]
                 }
                 let parseComplete = codeTokneLength == codeTextArr.length
                 // console.log('parseComplete codeToken.codeTokens', codeToken.codeTokens)
@@ -160,10 +163,15 @@ export default class ParseMarkdown {
                             resolve(markdownText)
                             return
                         } else {
+                            if (codeToken.uniqueId == null) {
+                                codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
+                            }
+                            lineCodeToken.forEach((item: IToken, index: number) => {
+                                item.uniqueId = codeToken.uniqueId + '_r_' + currentLineCodeIndex + '_c_' + index.toString() //+ item.text
+                            })
                             if (codeToken.codeTokens == null) {
                                 codeToken.codeTokens = [lineCodeToken] as IToken[][]
                             } else if (lastLineCodeTextIsUpdate) {
-                                codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
                                 codeToken.codeTokens[codeTokneLength - 1] = lineCodeToken
                                 // console.log('更新代码块', codeToken.codeTokens[codeTokneLength - 1])
                             } else {
@@ -196,7 +204,6 @@ export default class ParseMarkdown {
     }
     afterParseCodeTask(markdownText: string, codeEndIndex: number, codeToken: MarkdownToken, codeTokenIndex: number, parseComplete: boolean): string {
         if (codeEndIndex == -1 || parseComplete == false) {
-            codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
             this.doUpdateCallBack()
             // console.error('代码还没结束', markdownText, codeEndIndex, parseComplete)
             setTimeout(() => {
@@ -206,7 +213,6 @@ export default class ParseMarkdown {
         }
         // 闭合代码块
         codeToken.isClose = true
-        codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
         this.doUpdateCallBack()
         // 更新代码块的索引
         this.parseMdIndex += markdownText.lastIndexOf('```') + 3
