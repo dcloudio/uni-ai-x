@@ -67,7 +67,8 @@
 	},
 	"web": {
 		"router": {
-			"mode": ""
+			"mode": "",
+			"base": "./"
 		}
 	},
 	"app-harmony": {

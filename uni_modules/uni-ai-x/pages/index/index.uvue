@@ -1,8 +1,13 @@
 <template>
-	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">	
+	<!-- #ifdef APP-HARMONY -->
+	<web-view class="web-view" src="/uni_modules/uni-ai-x/static/app-harmony/html/index.html" id="web-view"></web-view>
+	<!-- #endif -->
+	<!-- #ifndef APP-HARMONY -->
+	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 	</view>
+	<!-- #endif -->
 </template>
 
 <script lang="uts" setup>
@@ -75,6 +80,10 @@
 </script>
 
 <style lang="scss">
+.web-view {
+	width: 100%;
+	flex: 1;
+}
 .uni-ai-page {
 	position: fixed;
 	// #ifdef H5
