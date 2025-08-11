@@ -1,6 +1,6 @@
 <template>
 	<view class="add-chat" @click="addChat">
-		<uni-ai-icon class="icon" code="e907" :color="canAddChat ? '#000':'#ddd'" :size="size"></uni-ai-icon>
+		<uni-ai-icon class="icon" code="e907" :color="canAddChat ? 'var(--text-primary)':'var(--text-disabled)'" :size="size"></uni-ai-icon>
 		<slot></slot>
 	</view>
 </template>

@@ -10,13 +10,13 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, BaseMsgItem} from '@/uni_modules/uni-ai-x/sdk';
+	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
 	
 	const props = defineProps<{
 		msg: MsgItem
 	}>()
 	
-	const msg = computed<MsgItem>(() => props.msg as MsgItem)
+	const msg = props.msg as MsgItem;
 	
 	const uicon = (code: string) => {
 		// #ifdef APP
@@ -37,7 +37,7 @@
 	})
 	
 	const isLastAiMsg = computed<boolean>(() => {
-		return msg.value._id == uniAi.lastAiMsg?._id
+		return msg._id == uniAi.lastAiMsg?._id
 	})
 	
 	const copyIcon = computed<string>(() => {
@@ -49,7 +49,7 @@
 	})
 	
 	const copy = () => {
-		if (typeof msg.value.body != 'string') {
+		if (typeof msg.body != 'string') {
 			uni.showToast({
 				title: '消息内容不是字符串',
 				icon: 'none',
@@ -57,7 +57,7 @@
 			return
 		}
 		uni.setClipboardData({
-			data: msg.value.body as string,
+			data: msg.body as string,
 			success: () => {
 				uni.showToast({
 					title: '复制成功',
@@ -65,7 +65,7 @@
 				})
 			}
 		})
-		console.error('当前会话是ai',msg.value.body)
+		console.error('当前会话是ai',msg.body)
 	}
 	
 	const loop = async () => {
@@ -74,17 +74,13 @@
 			uniAi.abortRequest()
 		}
 		await nextTick()
-		msg.value.body = ''
-		msg.value.rendered = false
-		msg.value.error_msg = null
-		msg.value.thinkContent = null
-		msg.value.markdownElList = []
-		uniAi.answerQuestion(msg.value)
+		uniAi.resetMsg(msg)
+		uniAi.answerQuestion(msg)
 	}
 	
-	const deleteMsg = () => {
-		uniAi.deleteMsg(msg.value._id)
-	}
+	// const deleteMsg = () => {
+	// 	uniAi.deleteMsg(msg._id)
+	// }
 </script>
 
 <style lang="scss">
@@ -111,6 +107,8 @@
 		text-align: center;
 		margin-top: 5px;
 		margin-right: 15px;
+		color: var(--text-tertiary);
+		transition: color 0.2s ease;
 		&.copy {
 			font-family: uniAiIconFontFamily;
 		}
@@ -120,6 +118,7 @@
 		// #ifdef WEB
 		cursor: pointer;
 		&:hover {
+			color: var(--text-secondary);
 			filter: brightness(0.8);
 		}
 		// #endif

@@ -1,8 +1,6 @@
 <template>
-	<view class="msg-root" :class="{'ui-theme-dark': uiTheme == 'dark'}">
-		<view class="avatar-box">
-			<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
-		</view>
+	<view class="msg-root" :class="[`ui-theme-${uiTheme}`]">
+		<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
 		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
 		<template v-else>
 			<view class="think-content" v-if="msg.thinkContent != null">
@@ -14,10 +12,11 @@
 					<text class="text" :decode="true">{{msg.thinkContent}}</text>
 				</view>
 			</view>
-			<template v-for="item in msg.markdownElList">
-				<template v-for="(datas, itemIndex) in item.datasList">
-					<uni-ai-msg-table class="table-box" v-if="item.type == 'table'" v-for="(data, index) in datas" :key="itemIndex + '-' + index" :table-node="data" />
-					<uni-ai-msg-code class="code-box" v-else-if="item.type == 'code'" v-for="(data, index) in datas" :key="item.uniqueId + index" :codeTokens="data.codeTokens ?? []" :codeText="data.text" :language="data.lang" />
+			<template v-for="(item, index) in msg.markdownElList" :key="index">
+				<template v-for="(datas, index2) in item.datasList" :key="index2">
+					<uni-ai-msg-table class="table-box" v-if="item.type == 'table'" v-for="(data, index) in datas" :key="index" :table-node="data" />
+					<uni-ai-msg-code class="code-box" v-else-if="item.type == 'code'" v-for="(data, index) in datas" :key="item.uniqueId + index" :codeTokens="data.codeTokens ?? []"  :codeText="data.text" :language="data.lang" :href="data.href" />
+					<katex-el v-else-if="item.type == 'math'" v-for="(data, index) in datas" :key="item.uniqueId + index" :html="data.html" :href="data.href"/>
 					<view v-else-if="item.type == 'hr'" v-for="(data, index) in datas" :key="item.uniqueId + index" class="hr-box"></view>
 					<text v-else :decode="true" class="text" :class="item.type! +  '-box' + (item.type! == 'list' ? ' list-content' : '')">
 						<text v-for="(data, index) in datas" :key="item.uniqueId + index"
@@ -39,7 +38,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
+	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
 	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 	const marked = useMarked();
@@ -70,10 +69,6 @@
 	
 	const isLastAiMsg = computed<boolean>(() => {
 		return uniAi.lastAiMsg?._id == msg.value._id
-	})
-	
-	const uiTheme = computed<string>(() => {
-		return uniAi.setting.theme
 	})
 	
 	watch((): string => {
@@ -113,49 +108,46 @@
 </script>
 
 <style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 	.msg-root {
 		flex-direction: row;
 		flex-wrap: wrap;
-		background-color: #fff;
+		background-color: var(--bg-primary);
 		// #ifdef WEB
 		user-select: text;
 		// #endif
-		padding: 5px 10px 0 52px;
+		padding: 0 45px;
 		min-height: 45px;
-		.avatar-box {
+		.avatar {
 			position: absolute;
 			top: 0;
 			left: 10px;
-			width: 32px;
-			height: 32px;
+			width: 25px;
+			height: 25px;
+			padding: 3px;
 			border-radius: 50px;
-			border: 1px solid #cff0d5;
-			padding: 4px;
-			.avatar {
-				width: 20px;
-				height: 20px;
-			}
-			/* #ifdef H5 */
-			@media screen and (min-device-width:960px){
-				.avatar {
-					margin-right: 10px;
-				}
-			}
-			/* #endif */
+			border: 1px solid var(--border-secondary);
 		}
+		/* #ifdef H5 */
+		@media screen and (min-device-width:960px){
+			.avatar {
+				margin-right: 10px;
+			}
+		}
+		/* #endif */
 		.think-content {
 			.header {
 				flex-direction: row;
 				// #ifdef H5
 				cursor: pointer;
 				// #endif
-				.title {
-					color: #888;
-				}
+							.title {
+				color: var(--text-tertiary);
+			}
 			}
 			.text-box {
 				margin-top: 10px;
-				border-left: 3px solid #efefef;
+				border-left: 3px solid var(--bg-tertiary);
 				padding-left: 10px;
 				&.hideThinkContent {
 					margin-top: 0;
@@ -163,13 +155,13 @@
 				}
 				.text {
 					text-align: left;
-					color: #999;
+					color: var(--text-tertiary);
 				}
 			}
 		}
 
 		.error-msg {
-			color: #ff4d4f;
+			color: var(--error);
 			font-size: 14px;
 			line-height: 26px;
 		}
@@ -180,12 +172,12 @@
 			height: 16px;
 		}
 		.stop-text {
-			color: #AAA;
+			color: var(--text-disabled);
 			font-size: 14px;
 			padding: 10px 0;
 		}
 		.need-try {
-			color: #ff4d4f;
+			color: var(--error);
 			font-size: 14px;
 			padding: 10px;
 		}
@@ -194,30 +186,8 @@
 			width: 100%;
 		}
 	}
-	// 暗黑模式
-	.ui-theme-dark {
-		padding: 5px;
-		background-color: #29292d;
-		.msg-root {
-			.paragraph .text{
-				color: #fff !important;
-			}
-			.blockquote {
-				background-color: #3c3c3c !important;
-				.text {
-					color: #fff !important;
-				}
-			}
-			
-		}
-	}
 
-	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
-	.heading-box, .list-box, .loging-icon, .think-content 
-	{
-		width: 100%;
-		margin-top: 5px;
-	}
+
 
 	// 元素的样式
 	@font-face {
@@ -232,7 +202,7 @@
 	}
 	
 	.text {
-		color: #404040;
+		color: var(--text-primary);
 		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
 		white-space: normal;
 		/* #ifndef APP */
@@ -250,14 +220,14 @@
 	
 	.del {
 		text-decoration-line: line-through;
-		color: #999;
+		color: var(--text-tertiary);
 	}
 
 	.space {
 		height: 10px;
 	}
 	.link {
-		color: #0066cc!important;
+		color: var(--accent-primary)!important;
 		// #ifdef WEB
 		cursor: pointer;
 		&:hover {
@@ -271,8 +241,7 @@
 
 	.paragraph-box {
 		.text {
-			font-size: 16px;
-			line-height: 28px;
+			font-size: 18px;
 			// 自动换行
 			white-space: normal;
 			/* #ifndef APP */
@@ -284,55 +253,48 @@
 	
 	.blockquote-box {
 		padding: 5px;
-		background: #f5f5f5;
-		border-left: 4px solid #ddd;
+		background: var(--bg-secondary);
+		border-left: 4px solid var(--border-primary);
 	}
 	.heading-box {
-		margin-bottom: 14px;
 		.text {
-			// #ifdef APP
 			font-weight: 700;
-			// #endif
-			// #ifndef APP
-			font-weight: 500;
-			// #endif
 		}
-
 		.depth-1 {
-			font-size: 28px;
-			line-height: 42px;
+			font-size: 30px;
+			line-height: 36px;
 		}
 
 		.depth-2 {
-			font-size: 22px;
+			font-size: 26px;
 			line-height: 34px;
 		}
 
 		.depth-3 {
+			font-size: 22px;
+			line-height: 32px;
+		}
+
+		.depth-4 {
+			font-size: 20px;
+			line-height: 30px;
+		}
+
+		.depth-5 {
 			font-size: 18px;
 			line-height: 28px;
 		}
 
-		.depth-4 {
-			font-size: 16px;
-			line-height: 28px;
-		}
-
-		.depth-5 {
-			font-size: 16px;
-			line-height: 28px;
-		}
-
 		.depth-6 {
-			font-size: 14px;
-			color: #999;
+			font-size: 16px;
+			color: var(--text-tertiary);
 			line-height: 24px;
 		}
 	}
 
 	.hr {
 		height: 1px;
-		background: #ddd;
+		background: var(--border-primary);
 		margin: 10px 0;
 	}
 
@@ -355,21 +317,25 @@
 		}
 		.list-item-index {
 			width: 20px;
-			color: #8b8b8b;
+			font-size: 14px;
+			color: var(--text-secondary);
 			&.unordered {
-				font-size: 22px;
-			}
-			&.task {
-				font-size: 14px;
+				color: var(--text-primary);
 			}
 		}
 	}
 
 	.hr-box {
-		background-color: #ddd;
+		background-color: var(--border-primary);
 		height: 1px;
 	}
 
+	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
+	.heading-box, .list-box, .loging-icon, .think-content 
+	{
+		width: 100%;
+		margin: 5px 0;
+	}
 	.paragraph-box {
 		margin-top: 0;
 		margin-bottom: 0;
@@ -380,37 +346,12 @@
 	}
 
 	.codespan {
-		color: #666;
-		background-color: #f5f5f5;
+		color: var(--text-secondary);
+		background-color: var(--bg-secondary);
 		padding: 2px 4px;
 		border-radius: 5px;
 		font-size: 14px;
 	}
 
-	.ui-theme-dark {
-		background-color: #25282c;
-		.text {
-			color: #fff !important;
-		}
-		.strong {
-			color: #fff !important;
-		}
-		.em {
-			color: #fff !important;
-		}
-		.del {
-			color: #999 !important;
-		}
-		.link {
-			color: #0066cc !important;
-		}
-		.heading {
-			color: #fff !important;
-		}
-		.list {
-			.list-item-index {
-				color: #fff !important;
-			}
-		}
-	}
+
 </style>

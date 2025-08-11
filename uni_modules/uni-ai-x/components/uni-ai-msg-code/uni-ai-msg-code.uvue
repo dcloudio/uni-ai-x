@@ -1,17 +1,37 @@
 <template>
-	<view class="msg-types-item-root uni-code-msg">
+	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`, {mermaid: language == 'mermaid'}]">
 		<view class="code-header">
-			<text class="language">{{language}}</text>
-			<!-- <text v-if="supportHighlight" class="run-time">代码解析耗时：{{runTime}}ms</text> -->
-			<text v-if="!supportHighlight" class="not-support-tip">注意：当前语言不支持高亮显示</text>
-			<view class="copy-btn" @click="copyCode">
-				<uni-ai-icon class="copy" code="e60c" size="12" color="#999"/>
-				<text class="copy-text">复制代码</text>
+			<!-- 选择显示的图表，还是代码的切换 -->
+			<view class="mermaid-switch" v-if="language == 'mermaid'">
+				<text class="item" :class="{active: showMermaidImage}" @click="showMermaidImage = true">图表</text>
+				<text class="item" :class="{active: !showMermaidImage}" @click="showMermaidImage = false">代码</text>
 			</view>
+			<template v-if="!showMermaidImage">
+				<text class="language">{{language}}</text>
+				<view class="copy-btn" @click="copyCode">
+					<uni-ai-icon class="copy" code="e60c" size="12" color="var(--text-primary)"/>
+					<text class="copy-text">复制代码</text>
+				</view>
+			</template>
 		</view>
-		<scroll-view class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true" :style="{width: maxLineWidth}">{{codeText}}</text>
-			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index" :style="{width: maxLineWidth}">
+		<view v-if="language == 'mermaid' && showMermaidImage" class="mermaid-image-box">
+			<!-- #ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN -->
+				<!-- #ifdef MP-WEIXIN -->
+				<text class="not-support-tip">小程序端不支持图表渲染</text>
+				<!-- #endif -->
+				<!-- #ifndef MP-WEIXIN -->
+				<text class="not-support-tip">当前 HBuilderX 版本低于 4.81，暂不支持图表渲染</text>
+				<!-- #endif -->
+			<!-- #endif -->
+			<template v-for="(mermaidInfo, i) in mermaidInfos" :key="i">
+				<image @click="previewMermaidImage" class="mermaid-image" mode="aspectFit" 
+					v-if="mermaidInfo.renderd" :src="mermaidInfo.href" :style="{opacity: mermaidInfo.show ? 1 : 0}"
+				/>
+			</template>
+		</view>
+		<scroll-view v-else class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
+			<text v-if="props.codeTokens.length == 0" class="origin-code" :selectable="true" :style="{width: maxLineWidth}">{{codeText}}</text>
+			<text v-else class="line" :selectable="true" v-for="(tokens,index) in props.codeTokens" :key="index" :style="{width: maxLineWidth}">
 				<text v-for="token in tokens" :key="token.uniqueId" class="code" :class="token.className">{{token.text}}</text>
 			</text>
 		</scroll-view>
@@ -20,11 +40,13 @@
 
 <script lang="uts" setup>
 import { IToken } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
+import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 
 type UniAiMsgCodeProps = {
 	codeText?: string
 	codeTokens?: IToken[][]
 	language?: string
+	href?: string
 }
 
 const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
@@ -40,19 +62,50 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	}
 `,
 	codeTokens: () => [] as IToken[][],
-	language: 'javascript'
+	language: 'javascript',
+	href: null
 })
 
+type Mermaid = {
+	href: string
+	show: boolean
+	renderd: boolean
+}
+const mermaidInfos = reactive<Mermaid[]>([])
+watch((): string | null => props.href, (href: string | null) => {
+	if (href == null) return
+	const index = mermaidInfos.length
+	const mermaid: Mermaid = {
+		href,
+		renderd: true,
+		show: index == 0 ? true : false
+	}
+	mermaidInfos.push(mermaid)
+	if (index != 0) {
+		setTimeout(() => {
+			mermaidInfos[index].show = true
+			mermaidInfos[index - 1].renderd = false
+		}, 300)
+	}
+}, {immediate: true})
+
 const tokens = ref<Array<IToken>>([])
-const runTime = ref<number>(0)
-const supportHighlight = ref<boolean>(true)
 const tokensLines = ref<IToken[][]>([])
 const maxLineWidth = ref<string>('')
+const showMermaidImage = ref<boolean>(false)
 
+watch((): string => props.language, (language: string) => {
+	showMermaidImage.value = language == 'mermaid'
+	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
+	showMermaidImage.value = false
+	//#endif
+}, {immediate: true})
+
+//#ifdef uniVersion < 4.81
 let lastDiffLineIndex = 0
 let lastMaxLineSize = 0
 watch((): string => props.codeText, (codeText: string) => {
-	let isAndroidOrWeb: boolean;
+	let isAndroidOrWeb: boolean = false
 	// #ifdef APP-ANDROID || WEB
 	isAndroidOrWeb = true
 	// #endif
@@ -62,7 +115,7 @@ watch((): string => props.codeText, (codeText: string) => {
 			const lineSize = codeTextLines[i].length
 			if (maxLineWidth.value == '' || lastMaxLineSize < lineSize) {
 				lastMaxLineSize = lineSize
-				maxLineWidth.value = `${lastMaxLineSize * 10}px`
+				maxLineWidth.value = `${lastMaxLineSize * 16}px`
 			} else {
 				// console.log(lineSize,'小于', lastMaxLineSize)
 			}
@@ -71,10 +124,12 @@ watch((): string => props.codeText, (codeText: string) => {
 	}
 	tokensLines.value = props.codeTokens
 }, {immediate: true})
+// #endif
+// #ifdef uniVersion >= 4.81 || MP-WEIXIN
+maxLineWidth.value = 'auto'
+// #endif
 
-const scrollViewHeight = computed<string>(() => {
-	return `${props.codeText.split('\n').length * 20 + 16}px`
-})
+const scrollViewHeight = computed<string>(() => `${props.codeText.split('\n').length * 22 + 16}px`)
 
 const copyCode = () => {
 	uni.setClipboardData({
@@ -93,40 +148,102 @@ const copyCode = () => {
 		}
 	})
 }
+
+const previewMermaidImage = () => {
+	if (props.href != null) {
+		uni.previewImage({
+			urls: [props.href]
+		})
+	}
+}
 </script>
 
 <style lang="scss" scoped>
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 @font-face {
 	// #ifdef WEB
 	font-display: swap;
 	// #endif
 	font-family: CodeFontFamily;
+	// #ifndef MP-WEIXIN
 	src: url('/uni_modules/uni-ai-x/static/font/FiraCode-Regular.ttf') format('truetype');
+	// #endif
 }
-.msg-types-item-root {
+// 浅色主题类
+.ui-theme-light {
+  /* 代码高亮颜色 - 浅色主题 */
+  --code-keyword: #1a237e;
+  --code-string: #b71c1c;
+  --code-comment: #757575;
+  --code-meta: #ad1457;
+  --code-storage: #1976d2;
+  --code-entity: #00897b;
+  --code-support: #00897b;
+  --code-constant: #388e3c;
+  --code-variable: #1565c0;
+  --code-punctuation: #333;
+  --code-function: #fbc02d;
+}
+
+// 深色主题类
+.ui-theme-dark {
+  /* 代码高亮颜色 - 深色主题 */
+  --code-keyword: #4fc1ff;
+  --code-string: #ff8a80;
+  --code-comment: #81c784;
+  --code-meta: #e1bee7;
+  --code-storage: #4fc1ff;
+  --code-entity: #80deea;
+  --code-support: #80deea;
+  --code-constant: #81d4fa;
+  --code-variable: #b3e5fc;
+  --code-punctuation: #f5f5f5;
+  --code-function: #fff59d;
+}
+.uni-code-msg-root {
+	width: 100%;
 	margin-bottom: 5px;
-	background-color: #1e1e1e !important; // 更深沉的背景色，适合深色主题
+	background-color: var(--bg-secondary); 
 	border-radius: 6px;
+	border: 1px solid var(--border-color);
 	.code-header {
 		width: 100%;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		padding: 2px 10px;
-		background-color: #252526; // 稍微浅一点的头部背景色
-		
+		padding: 4px 10px;
+		background-color: var(--bg-tertiary);
+		.mermaid-switch {
+			flex-direction: row;
+			border-radius: 6px;
+			padding: 2px 0;
+			background-color: var(--border-color);
+			.item {
+				padding: 4px 10px;
+				margin: 0 1px;
+				border-radius: 6px;
+				font-size: 12px;
+				color: var(--text-secondary);
+				// #ifdef WEB
+				cursor: pointer;
+				&:hover {
+					background-color: var(--bg-tertiary);
+				}
+				// #endif
+				&.active {
+					background-color: var(--bg-primary);
+					color: var(--text-primary);
+				}
+			}
+		}
 		.language {
 			font-size: 12px;
-			color: #999; // 更亮的蓝色，突出显示
+			color: var(--text-primary);
 		}
 		
 		.run-time {
 			font-size: 12px;
-			color: #6a9955; // 更亮的绿色，易于识别
-		}
-		.not-support-tip {
-			font-size: 12px;
-			color: #e6a23c; // 警告文本使用暖黄色，提高可见性但不刺眼
+			color: var(--success-color);
 		}
 		
 		.copy-btn {
@@ -137,67 +254,80 @@ const copyCode = () => {
 			// #ifdef WEB
 			cursor: pointer;
 			&:hover {
-				background-color: #37373d; // 悬停时的背景色
+				background-color: var(--bg-tertiary);
 			}
 			// #endif
 			.copy-text {
 				font-size: 10px;
-				color: #999;
+				color: var(--text-primary);
 				margin-left: 2px;
 			}
 		}
 	}
+	.mermaid-image-box {
+		height: 400px;
+		background-color: #FFF;
+		align-items: center;
+		.not-support-tip {
+			font-size: 12px;
+			color: var(--warning-color);
+			margin-top: 10px;
+		}
+		.mermaid-image {
+			position: absolute;
+			top: 0;
+			height: 100%;
+		}
+	}
 	.code-scroll-view {
-		padding: 6px 10px;
+		padding: 8px 0;
 		height: auto;
 		width: 100%;
 		// 高度变化的过渡动画
 		transition: height 0.2s linear;
+		.line, .origin-code {
+			padding: 0 15px;
+		}
 		.line {
-			height: 20px;
+			height: 22px;
 			white-space: nowrap;
 			align-self: flex-start;
 			.code {
 				white-space: nowrap;
 				font-family: CodeFontFamily;
 				font-size: 14px;
-				color: #d4d4d4; // 默认代码文本颜色
+				color: var(--text-primary);
 			}
-			// 代码高亮颜色，适合深色主题
-			.keyword { color: #569cd6; } // 关键字使用蓝色
-			.string { color: #ce9178; } // 字符串使用橙色
-			.comment { color: #999; } // 注释使用灰色
-			.meta { color: #d16969; } // 元信息使用红色
-			.storage { color: #569cd6; } // 存储类型使用蓝色
-			/* #ifndef APP */
+			// 代码高亮颜色，使用主题变量
+			.keyword { color: var(--code-keyword); }
+			.string { color: var(--code-string); }
+			.comment { color: var(--code-comment); }
+			.meta { color: var(--code-meta); }
+			.storage { color: var(--code-storage); }
+			// #ifdef uniVersion >= 4.81 || MP-WEIXIN
 			.source, .eol {white-space: pre;}
-			/* #endif */
-			.entity { color: #4ec9b0; } // 实体使用青色
-			.support { color: #4ec9b0; } // 支持类使用青色
-			.constant { color: #b5cea8; } // 常量使用浅绿色
-			.variable { color: #9cdcfe; } // 变量使用浅蓝色
-			.punctuation { color: #d4d4d4; } // 标点符号使用默认文本颜色
-			.function { color: #dcdcaa; } // 函数使用黄色
-		}
-
-		.text {
-			color: #d4d4d4; // 更亮的文本颜色，提高可读性
-			white-space: normal;
-			/* #ifndef APP */
-			word-break: break-all;
-			/* #endif */
-		}
-		
-		.origin-code {
-			line-height: 20px;
-			font-size: 14px;
-			font-family: CodeFontFamily;
-			// #ifndef APP
-			white-space: pre;
-			overflow: visible;
 			// #endif
+			.entity { color: var(--code-entity); }
+			.support { color: var(--code-support); }
+			.constant { color: var(--code-constant); }
+			.variable { color: var(--code-variable); }
+			.punctuation { color: var(--code-punctuation); }
+			.function { color: var(--code-function); }
+		}
+		.origin-code {
+			color: var(--text-primary);
+			height: 100%;
+			font-size: 14px;
+			// #ifdef uniVersion >= 4.81 || MP-WEIXIN
+			white-space: pre!important;
+			// #endif
+			align-self: flex-start;
+			line-height: 22px;
+			font-family: CodeFontFamily;
+			overflow: visible;
 		}
 	}
 }
-// /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/extensions/theme-defaults/themes/light_vs.json
+
+
 </style>

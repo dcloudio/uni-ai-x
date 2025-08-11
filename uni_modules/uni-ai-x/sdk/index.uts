@@ -1,12 +1,16 @@
-import { reactive, watch } from 'vue';
+import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chunk,Chat, Provider, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem } from '@/uni_modules/uni-ai-x/types.uts';
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo, markdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
+import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+import { StorageManager, AiChat } from './storage-manager.uts'
 let requestAiWorker: RequestAiWorker | null = null
 type BeforeRequestAiFn = () => void
 type MessageHandlerMapFn = () => void
 class UniAi {
+	// 存储管理器
+	private storageManager: StorageManager = new StorageManager()
 	canRenderVue: boolean = true
 	get canRender(): boolean {
 		return this.canRenderVue
@@ -26,29 +30,46 @@ class UniAi {
 		// UI 主题
 		theme: 'light',
 		// 语言
-		language: 'zh-CN'
+		language: 'zh-CN',
+		// 大模型
+		llm: {
+			// 当前提供商
+			provider: defaultLLM.provider,
+			// 当前模型
+			model: defaultLLM.model,
+			// 是否开启联网搜索
+			webSearch: false
+		}
 	})
 	// 大模型
-	llm: Llm = reactive<Llm>({
-		// 当前提供商
-		provider: defaultLLM.provider,
-		// 当前模型
-		model: defaultLLM.model,
-		// 是否开启联网搜索
-		webSearch: false
-	})
+	get llm(): Llm {
+		return this.setting.llm
+	}
+	set llm(value: Llm) {
+		this.setting.llm = value
+	}
+
 	chat: Chat = reactive<Chat>({
 		datas: reactive<ChatItem[]>([]) as ChatItem[],
 		activeId: ''
 	})
+	/*
+	chat太大，分为3个部分，方便与 storage 完美映射，实现数据同步
+	1. uni-ai-chat 会话列表
+	2. uni-ai-chat-msg-ids 会话对应的消息 id 列表，key 为：uni-ai-chat-msg-ids_chatId_${chatId}
+	3. uni-ai-chat-msg-list 消息列表，key 为：消息 id，value 为：消息内容，key 为：uni-ai-chat-msg-list_msgId_${msgId}
+	 */
+	
 	// 当前对话
 	get currentChat(): ChatItem | null {
 		return this.chat.datas.find((item) => item.id == this.chat.activeId) as ChatItem | null
 	}
+	
 	getLocalMsgId(): string {
 		// 生成一个 local_ 开头的随机字符串
-		return 'local_' + (this.currentUser._id ?? 'tmp_user') + "_"  + Date.now().toString(16) + "_" + Math.floor(Math.random() * 100000)
+		return (this.currentUser._id ?? 'tmp') + "_" + (Date.now()).toString(16) + "_" + Math.floor(Math.random() * 10000).toString(16)
 	}
+	
 	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
 	uniGetDispatcher(taskName: string, fn: () => void) {
 		// #ifdef APP-ANDROID
@@ -60,10 +81,11 @@ class UniAi {
 		fn()
 		// #endif
 	}
-	addChat() {
+	
+	addChat(checkEmpty: boolean = true) {
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
 		const lastItem = this.chat.datas.length == 0 ? null : this.chat.datas[0] as ChatItem | null;
-		if (lastItem?.msgList.length != 0) {
+		if (!checkEmpty || lastItem?.msgList.length != 0) {
 			const newChat: ChatItem = {
 				id: this.getLocalMsgId(),
 				title: "新对话",
@@ -72,13 +94,32 @@ class UniAi {
 				msgList: reactive<MsgItem[]>([]),
 				inputContent: ''
 			};
-			this.chat.datas.unshift(newChat);
+			this.chat.datas.push(newChat);
+			this.saveChatList2Storage()
 		}
 		// 选中新创建的会话
 		nextTick(() => {
 			this.chat.activeId = this.chat.datas[0].id
 		})
 	}
+	
+	deleteChat(chatId: string): void {
+		// 如果只有一个，删之前需要先创建一个并设置为选中，否则会照成无选中会话导致崩溃
+		if (uniAi.chat.datas.length == 1) {
+			uniAi.addChat(false)
+			this.chat.activeId = uniAi.chat.datas[0].id
+		} else if (uniAi.chat.activeId == chatId) {
+			// 如果删除的是当前激活的对话，则激活其他对话
+			const otherChat = uniAi.chat.datas.find((item) => item.id != chatId)!
+			uniAi.chat.activeId = otherChat.id
+		}
+		nextTick(() => {
+			const index = uniAi.chat.datas.findIndex((item) => item.id == chatId)
+			uniAi.chat.datas.splice(index, 1)
+			this.storageManager.deleteChat(chatId)
+		})
+	}
+		
 	get lastAiMsg(): MsgItem | null {
 		// 获取Ai的最后一条消息(因为 msg 是倒叙的，所以取第一条)
 		if (this.currentChat != null) {
@@ -88,47 +129,10 @@ class UniAi {
 			return null;
 		}
 	}
+	
 	constructor() {
-		// 从 storage 中获取数据
-		uni.getStorage({
-			key: 'uni-ai-chatList',
-			success: (res) => {
-				if (res.data != null){
-					// #ifdef WEB
-					res.data = res.data as ChatItem[]
-					// #endif
-					// #ifndef WEB
-					const data = JSON.parse<ChatItem[]>(JSON.stringify(res.data)) as ChatItem[] | null
-					res.data = data == null ? [] : data as ChatItem[]
-					// #endif
-				} else {
-					this.addChat()
-					res.data = [] as ChatItem[]
-				}
-
-				// console.error('res.data 获取成功', res.data)
-				this.chat.datas.push(...(res.data as ChatItem[]))
-
-				// console.error('uni-ai-chatList 获取成功', this.chat.datas)
-				const chatList = this.chat.datas as ChatItem[]
-				// 收 chat 的 state 设置为 none
-				chatList.forEach((item) => {
-					item.state = 'none'
-				})
-				// 默认选中第一个会话
-				if (chatList.length == 0) {
-					this.addChat()
-				}
-				this.chat.activeId = chatList[0].id
-				// console.log('uni-ai-chatList 获取成功', this.chat.datas)
-			},
-			fail: (err: UniError) => {
-				// console.error('uni-ai-chatList 获取失败', err.errMsg)
-				this.addChat()
-				// 默认选中第一个会话
-				this.chat.activeId = this.chat.datas[0].id
-			}
-		})
+		// 从新的存储结构中获取数据
+		this.loadDataFromNewStorage()
 		
 		// 获取 setting
 		uni.getStorage({
@@ -136,55 +140,148 @@ class UniAi {
 			success: (res) => {
 				if (res.data != null) {
 					const setting = JSON.parse<Setting>(JSON.stringify(res.data)) as Setting
-					this.setting = reactive<Setting>(setting)
+					// TODO: 如果直接对this.setting赋值会导致响应式丢失
+					this.setting.theme = setting.theme
+					this.setting.language = setting.language
+					this.setting.llm = setting.llm
 				}
 			},
 			fail: (err) => {
 				// console.error('uni-ai-setting 获取失败', err)
 			}
 		})
-
-		// 在 IO 线程执行存储操作
-		let saveStorageTimer: number | null = null
-		watch((): ChatItem[] => this.chat.datas as ChatItem[], (newVal: ChatItem[] | null) => {
-			if (newVal != null) {
-				// console.error('chatList 发生变化', newVal)
-				// 防止短时间内重复触发存储
-				if (saveStorageTimer != null) {
-					// console.error('防止短时间内重复触发存储')
-					clearTimeout(saveStorageTimer as number)
+		
+		// 监听设置变化，自动保存设置
+		watch((): Setting => this.setting, () => {
+			// 通知代理web设置变化
+			proxyWeb.callMethod({
+				action: 'setSetting',
+				data: this.setting
+			}, (res) => {
+				console.log('setSetting', res)
+			})
+			// 自动保存设置到本地
+			uni.setStorage({
+				key: 'uni-ai-setting',
+				data: this.setting,
+				success: () => {
+					// console.log('uni-ai-setting 存储成功', this.setting)
+				},
+				fail: (err) => {
+					console.error('uni-ai-setting 存储失败', err)
 				}
-				saveStorageTimer = setTimeout(() => {
-					// 存储到 storage 中
-					uni.setStorage({
-						key: 'uni-ai-chatList',
-						data: newVal,
-						success: () => {
-							// console.log('uni-ai-chatList 存储成功', newVal)
-						},
-						fail: (err) => {
-							console.error('uni-ai-chatList 存储失败', err)
-						}
-					})
-				}, 1000)
-			}
-		}, { deep: true })
-
-		watch((): Setting => this.setting, (newVal: Setting | null) => {
-			if (newVal != null) {
-				uni.setStorage({
-					key: 'uni-ai-setting',
-					data: newVal,
-					success: () => {
-						// console.log('uni-ai-setting 存储成功', newVal)
-					},
-					fail: (err) => {
-						console.error('uni-ai-setting 存储失败', err)
-					}
-				})
-			}
-		}, { deep: true })
+			})
+		}, { deep: true, immediate: true })
 	}
+	/**
+	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
+	 */
+	sM2STimer: number = 0
+	updateMsg2Storage(msg: MsgItem) {
+		if (this.sM2STimer != 0) {
+			clearTimeout(this.sM2STimer)
+			this.sM2STimer = 0
+		}
+		this.sM2STimer = setTimeout(() => {
+			this.storageManager.updateMessage(msg)
+		}, 1000)
+	}
+	saveChatList2Storage() {
+		const chatList: ChatItem[] = this.chat.datas
+		if (chatList.length > 0) {
+			const aiChats: AiChat[] = chatList.map((chat: ChatItem) => {
+				const aiChat: AiChat = {
+					id: chat.id,
+					title: chat.title,
+					update_time: chat.update_time
+				}
+				return aiChat
+			})
+			this.storageManager.saveChatList(aiChats)
+		}
+	}
+	// 更新会话标题 和 会话更新时间 时，自动保存会话列表到 storage
+	updateChatUpdateTime(chatId: string) {
+		const chat = this.chat.datas.find(chat => chat.id == chatId)
+		if (chat != null) {
+			chat.update_time = Date.now()
+		} else {
+			throw new Error('updateChatUpdateTime 对话不存在' + chatId)
+		}
+		this.saveChatList2Storage()
+	}
+	updateChatTitle(chatId: string, title: string) {
+		const chat = this.chat.datas.find(chat => chat.id == chatId)
+		if (chat != null) {
+			chat.title = title
+		} else {
+			console.error('updateChatTitle 对话不存在', chatId)
+			throw new Error('updateChatTitle 对话不存在')
+		}
+		this.saveChatList2Storage()
+	}
+	
+	/**
+	 * 从新的存储结构中加载数据
+	 */
+	private loadDataFromNewStorage(): void {
+		try {
+			// 获取会话列表
+			const aiChats = this.storageManager.getChatList()
+			
+			if (aiChats.length == 0) {
+				// 如果没有会话，创建一个新会话
+				this.addChat()
+				return
+			}
+			
+			// 转换为ChatItem格式并加载消息
+			for (let i = 0; i < aiChats.length; i++) {
+				const aiChat = aiChats[i]
+				const chatItem: ChatItem = {
+					id: aiChat.id,
+					title: aiChat.title,
+					state: 'none',
+					update_time: aiChat.update_time,
+					msgList: reactive<MsgItem[]>([]),
+					inputContent: ''
+				}
+				
+				// 加载会话的消息
+				const messages = this.storageManager.getChatMessages(aiChat.id)
+				for (let j = 0; j < messages.length; j++) {
+					const aiMsg = messages[j]
+					const msgItem: MsgItem = {
+						_id: aiMsg._id,
+						chat_id: aiMsg.chat_id,
+						about_msg_id: aiMsg.about_msg_id,
+						body: aiMsg.body,
+						from_uid: aiMsg.from_uid,
+						create_time: aiMsg.create_time,
+						state: aiMsg.state,
+						markdownElList: aiMsg.markdownElList,
+						error_msg: aiMsg.error_msg,
+						rendered: aiMsg.rendered,
+						thinkContent: aiMsg.thinkContent
+					}
+					chatItem.msgList.push(msgItem)
+				}
+				
+				this.chat.datas.push(chatItem)
+			}
+			
+			// 默认选中第一个会话
+			if (this.chat.datas.length > 0) {
+				this.chat.activeId = this.chat.datas[0].id
+			}
+			
+		} catch (error) {
+			console.error('从新存储结构加载数据失败:', error)
+			// 如果失败，创建一个新会话
+			this.addChat()
+		}
+	}
+	
 	addMsg(msg: BaseMsgItem): MsgItem {
 		// 添加一条消息
 		const msgList = this.currentChat!.msgList
@@ -200,16 +297,18 @@ class UniAi {
 			rendered: false
 		}
 		msgList.push(newMsg)
+		this.storageManager.addMessage(newMsg)
 		if (msg.from_uid != 'uni-ai') {
 			// 把用户提的问题 内容的前 20 个字符作为标题，去掉换行符
 			const title = msg.body.substring(0, 20).replace(/\n/g, '')
 			this.currentChat!.title = title
 		}
 		// 更新会话的更新时间
-		this.currentChat!.update_time = Date.now()
+		this.updateChatUpdateTime(this.currentChat!.id)
 		// 返回响应式的 msg
 		return msgList[msgList.length - 1]
 	}
+	
 	deleteMsg(msgId: string) {
 		// 查出消息索引
 		const msgList = this.currentChat!.msgList
@@ -221,12 +320,14 @@ class UniAi {
 			throw new Error('需要删除的消息未找到')
 		}
 	}
+	
 	abortRequest() {
 		// 终止请求
 		requestAiWorker?.postMessage({
 			type: 'abortRequest'
 		} as UTSJSONObject)
 	}
+	
 	async sendMsg(inputContent: string = ''): Promise<void> {
 		// 发送消息
 		if (inputContent == '') {
@@ -255,14 +356,26 @@ class UniAi {
 		const aiMsgItem: MsgItem = this.addMsg(baseAiMsgItem)
 		return this.answerQuestion(aiMsgItem)
 	}
+	resetMsg(msg: MsgItem) {
+		msg.body = ''
+		msg.rendered = false
+		msg.error_msg = null
+		msg.thinkContent = null
+		msg.markdownElList = []
+		this.updateMsg2Storage(msg)
+	}
+	
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
-		this.currentChat!.update_time = Date.now()
+		// 重新回答问题了，之前的回调需要清除
+		proxyWeb.callbackMap.clear()
+		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
 		const requestAiOptions: RequestAiOptions = {
 			type: 'requestAi',
-			messages
+			messages,
+			llm: this.llm as Llm
 		}
 		requestAiWorker = new RequestAiWorker()
 		requestAiWorker?.postMessage(requestAiOptions)
@@ -310,12 +423,15 @@ class UniAi {
 				}],
 				['setCurrentChatState', () => {
 					this.currentChat!.state = data as string
+					if (data == 'stop') {
+						aiMsgItem.rendered = true
+					}
 				}],
 				['setRendered', () => {
 					aiMsgItem.rendered = data as boolean
 				}],
 				['setChatTitle', () => {
-					this.currentChat!.title = data as string
+					this.updateChatTitle(aiMsgItem.chat_id, data as string)
 				}]
 			])
 			const handler = messageHandlerMap.get(message.type)
@@ -324,8 +440,12 @@ class UniAi {
 			} else {
 				console.error('other answerQuestion message', message)
 			}
+			if (message.type != 'setChatTitle'){
+				this.updateMsg2Storage(aiMsgItem)
+			}
 		})
 	}
+	
 	// 拿到消息列表，用于发给 AI 
 	getMsgToAi(chatItem: ChatItem): RequestAiCoMessage[] {
 		const messages: RequestAiCoMessage[] = [];
@@ -337,6 +457,8 @@ class UniAi {
 		})
 		return messages
 	}
+	
+	// 监听请求 AI 前的回调
 	beforeRequestAiFns: BeforeRequestAiFn[] = []
 	onBeforeRequestAi(fn: BeforeRequestAiFn) {
 		this.beforeRequestAiFns.push(fn)
@@ -346,34 +468,14 @@ class UniAi {
 			fn()
 		})
 	}
-	// 让阿里百联总结更新
-	async updateChatTitle(currentChat: ChatItem, messages: RequestAiCoMessage[]): Promise<void> {
-		messages.push({
-			role: 'user',
-			content: '请总结一下这段对话的内容，不包含本对话，用于更新会话的标题。注意：可以直接使用的不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
-		})
-		console.error('requestBailian is undefined')
-		// await this.requestBailian({
-		// 	messages,
-		// 	stream: false,
-		// 	onError: (err: UTSJSONObject) => {
-		// 		console.error('updateChatTitle error', err)
-		// 	},
-		// 	onSuccess: (chunkObj: Chunk) => {
-		// 		// console.log('updateChatTitle success', chunkObj, typeof chunkObj)
-		// 		const newTitle = chunkObj.choices?.[0]?.message?.content
-		// 		this.uniGetDispatcher("main", () => {
-		// 			currentChat.title = newTitle ?? '更新失败'
-		// 			// console.log('updateChatTitle success', 'newTitle', newTitle, chunkObj)
-		// 		})
-		// 	}
-		// })
-	}
 }
 
 const uniAi = new UniAi()
 export { uniAi }
 export default uniAi
+
+// 抛出主题
+export const uiTheme = computed<string>(() => uniAi.setting.theme)
 
 // #ifdef WEB
 // 方便在控制台观察

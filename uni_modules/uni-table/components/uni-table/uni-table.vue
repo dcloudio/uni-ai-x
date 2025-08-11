@@ -5,7 +5,7 @@
 				<uni-tr>
 					<template v-for="(column ,index) in columns" :key="index">
 						<uni-th :width="column['width'] !=null?column['width']:120" :align="column['width'] != null?column['align']:'center'">
-							<text style="font-weight: bold;">{{column['title']}}</text>
+							<text class="uni-table-text" style="font-weight: bold;">{{column['title']}}</text>
 						</uni-th>
 					</template>
 				</uni-tr>

@@ -1,29 +1,31 @@
 <template>
 	<!-- #ifdef APP-HARMONY -->
-	<!-- 鸿蒙端使用webview的方式加载，需要将web发行资源包放到`/uni_modules/uni-ai-x/static/app-harmony/html/`文件夹下，或将其部署到服务端并改写下方`web-view src`的值 -->
-	<web-view class="web-view" src="/uni_modules/uni-ai-x/static/app-harmony/html/index.html" id="web-view"></web-view>
+		<!-- 鸿蒙端使用webview的方式加载，需要将web发行资源包放到`/uni_modules/uni-ai-x/static/app-harmony/html/`文件夹下，或将其部署到服务端并改写下方`web-view src`的值 -->
+		<web-view class="web-view" src="/uni_modules/uni-ai-x/static/app-harmony/html/index.html" id="web-view"></web-view>
 	<!-- #endif -->
 	<!-- #ifndef APP-HARMONY -->
-	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu,'ui-theme-dark': uiTheme == 'dark'}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
-		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
-		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
-	</view>
+		<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu, [`ui-theme-${uiTheme}`]: true}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
+			<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
+			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+		</view>
+		<!-- #ifndef MP-WEIXIN -->
+		<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
+		<!-- #endif -->
 	<!-- #endif -->
 </template>
 
 <script lang="uts" setup>
+// #ifndef APP-HARMONY
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
+	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	
 	const startX = ref<number>(0)
 	const translateX = ref<number>(-260)
 	const isDragging = ref<boolean>(false)
 	const isMoveing = ref<boolean>(false)
 	const showMenu = ref<boolean>(false)
-	
-	const uiTheme = computed<string>(() => {
-		return 'light'
-	})
 	
 	const setMenu = (show: boolean) => {
 		showMenu.value = show
@@ -70,17 +72,31 @@
 		if (isMoveing.value) return
 		setMenu(false)
 	}
+
+	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
+		// console.log('proxyWebMsg', e)
+		proxyWeb.onWebMsg(e)
+	}
 	
 	onMounted(() => {
 		// #ifdef WEB
 		window.addEventListener('resize', () => {
 			setMenu(window.innerWidth > 960)
 		})
+		const proxyWebContext = document.getElementById('proxy-web')
+		// #endif
+		// #ifndef WEB || MP-WEIXIN
+		const proxyWebContext = uni.createWebviewContext('proxy-web')
+		// #endif
+		// #ifndef MP-WEIXIN
+		proxyWeb.init(proxyWebContext!)
 		// #endif
 	})
+// #endif
 </script>
 
 <style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 .web-view {
 	width: 100%;
 	flex: 1;
@@ -93,10 +109,21 @@
 	transform: translateX(-260px);
 	height: 100%;
 	flex-direction: row;
-	background-color: #FFF;
+	background-color: var(--bg-primary);
 	transition: transform 0.3s;
 	&.showMenu {
 		transform: translateX(0) !important;
+	}
+	::v-deep .uni-ai-msg-table {
+		.uni-table {
+			background-color: var(--uni-table-bg-color) !important;
+		}
+		.uni-table-th, .uni-table-td, .table--border {
+			border: 1px solid var(--uni-table-border-color) !important;
+		}
+		.uni-table-text {
+			color: var(--uni-table-color) !important;
+		}
 	}
 }
 
@@ -110,4 +137,14 @@
 	}
 }
 /* #endif */
+.proxy-web {
+	position: fixed;
+	// bottom: 100px;
+	top: -1100px;
+	right: 0;
+	width: 100%;
+	height: 400px;
+	border: 1px solid red;
+	z-index: 100;
+}
 </style>

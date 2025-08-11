@@ -292,6 +292,7 @@ export type NodesToken = {
 	type?: string | null;
 	raw?: string | null;
 	text?: string | null;
+	html?: string | null;
 	tokens?: NodesToken[] | null;
 	checked?: boolean | null;
 	codeBlockStyle?: 'indented' | null;

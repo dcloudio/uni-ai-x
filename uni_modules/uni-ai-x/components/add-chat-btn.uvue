@@ -22,12 +22,13 @@
 	padding: 5px 10px;
 	margin: 5px auto;
 	margin-top: 0;
-	border: 1px solid #efefef;
+	border: 1px solid var(--border-secondary);
 	border-radius: 30px;
-	background-color: #fff;
+	background-color: var(--bg-primary);
 	.text {
 		font-size: 14px;
 		margin-left: 2px;
+		color: var(--text-secondary);
 	}
 	/* #ifdef WEB */
 	cursor: pointer;

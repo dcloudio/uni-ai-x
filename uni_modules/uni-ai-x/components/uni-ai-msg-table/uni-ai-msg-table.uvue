@@ -1,10 +1,11 @@
 <template>
-	<view style="margin-bottom: 10px;">
-		<uni-table :stripe="false" :columns="columns" :data="data"></uni-table>
+	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
+		<uni-table :stripe="false" :columns="columns" :data="tableData"></uni-table>
 	</view>
 </template>
 
 <script lang="uts" setup>
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk';
 	import {NodesToken as MarkdownToken, TableCell} from '@/uni_modules/kux-marked'
 	
 	type UniAiMsgTableProps = {
@@ -14,7 +15,7 @@
 	const props = defineProps<UniAiMsgTableProps>()
 	
 	const columns = ref<UTSJSONObject[]>([])
-	const data = ref<UTSJSONObject[]>([])
+	const tableData = reactive<UTSJSONObject[]>([])
 	const updateTimer = ref<number>(0)
 	
 	const nodeToTableInfo = (node: MarkdownToken): UTSJSONObject => {
@@ -65,18 +66,34 @@
 		}
 		// 对比差异，只添加新的行避免闪烁
 		const newData: UTSJSONObject[] = newTableInfo.data as UTSJSONObject[]
-		const oldDataLength = data.value.length
+		const oldDataLength = tableData.length
 		// 只添加新增的行
-		if (oldDataLength < newData.length) {
+		if (oldDataLength < newData.length){
 			const newDataSlice = newData.slice(oldDataLength)
 			newDataSlice.forEach((item: UTSJSONObject) => {
-				data.value.push(item)
+				tableData.push(item)
 			})
+		} else if (oldDataLength == newData.length && oldDataLength > 0) {
+			// 相等的时候更新最后一项
+			tableData[oldDataLength - 1] = newData[oldDataLength - 1]
 		}
-		return
+		
 	}, { deep: true, immediate: true })
 </script>
 
 <style lang="scss">
-
+.ui-theme-light {
+	--uni-table-bg-color: #fff;
+	--uni-table-border-color: #ebeef5;
+	--uni-table-color: #333;
+}
+.ui-theme-dark {
+	--uni-table-bg-color: #25282c;
+	--uni-table-border-color: #333;
+	--uni-table-color: #fff;
+}
+.uni-ai-msg-table {
+	width: 100%;
+	margin-bottom: 10px;
+}
 </style>

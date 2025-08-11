@@ -96,7 +96,8 @@ class TreeToList {
                 if (item.ordered) {
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        text: item.orderedIndex + 1 + '. ',
+                        // text: item.orderedIndex + 1 + '. ',
+                        text: item.raw?.slice(0, item.raw!.indexOf('.')) + '. ',
                         class: 'list-item-index'
                     }
                     list.push(newItem)

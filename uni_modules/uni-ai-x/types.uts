@@ -18,7 +18,7 @@ export type DefaultLLM = {
 	model: string
 }
 
-export type BailianTokenInfo = {
+export type LLmTokenInfo = {
 	token: string,
 	expireTime: number
 }
@@ -130,4 +130,6 @@ export type Setting = {
 	theme: Theme
 	// 语言
 	language: "zh-CN" | "en-US"
+	// 大模型
+	llm: Llm
 }

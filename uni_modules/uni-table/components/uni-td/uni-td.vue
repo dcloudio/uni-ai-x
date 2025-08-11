@@ -1,6 +1,8 @@
 <template>
 	<view class="uni-table-td" :class="{'td-table--border':isBorder}" :style="{width:customWidth + 'px','justify-content':customAlign}">
-		<slot></slot> 
+		<text class="uni-table-text">
+			<slot></slot> 
+		</text>
 	</view>
 </template>
 

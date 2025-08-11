@@ -1,8 +1,8 @@
 <template>
-    <view class="input-tool-bar">
-        <view class="btn" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}" @click="setThinking">
-            <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !canThinking ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !canThinking}">深度思考 (R1)</text>
+    <view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
+        <view class="btn" :class="{active: currentLLMModel.thinking ?? false}" @click="setThinking">
+            <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666'"></uni-ai-icon>
+            <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !hasDeepseekR1Model}">深度思考 (R1)</text>
         </view>
         <view class="btn" :class="{disable: !canWebSearch, active: webSearch}" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
@@ -17,12 +17,12 @@
     </view>
 </template>
 <script lang="uts" setup>
-import uniAi from '@/uni_modules/uni-ai-x/sdk';
+import uniAi, { uiTheme, MsgItem } from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, providerNameList, type LLMModel} from '../config';
 
 const canWebSearchLLmList: string[] = [];
 const canThinkingLLmList: string[] = [];
-let hasDeepseekR1Model = false;
+let hasDeepseekR1Model = ref<boolean>(false);
 llmModelMap.forEach((provider,providerName) => {
     provider.models.forEach(model => {
         if (model.webSearch == true) {
@@ -32,13 +32,19 @@ llmModelMap.forEach((provider,providerName) => {
             canThinkingLLmList.push(providerName + ' - ' + model.name);
         }
         if (model.name == 'deepseek-r1') {
-            hasDeepseekR1Model = true;
+            hasDeepseekR1Model.value = true;
         }
     });
 });
 
+
 const aiState = computed<string>(() => {
-    return uniAi.currentChat?.state ?? 'done';
+    let state = uniAi.currentChat?.state ?? 'none';
+    if (state != 'processing' && uniAi.lastAiMsg?.rendered == false) {
+        state = 'processing'
+    }
+    return state
+
 });
 
 const inputContent = ref<string>(uniAi.currentChat?.inputContent ?? '')
@@ -78,10 +84,6 @@ const canWebSearch = computed<boolean>(() => {
     return canWebSearch
 });
 
-const canThinking = computed<boolean>(() => {
-    return currentLLMModel.value.thinking ?? false;
-});
-
 const stop = async () => {
     uniAi.currentChat!.state = 'stop';
     uniAi.abortRequest()
@@ -96,8 +98,11 @@ const send = async () => {
     inputContent.value = '';
 };
 
+const canThinking = computed<boolean>(() => {
+    return currentLLMModel.value.thinking ?? false;
+});
 const setThinking = () => {
-    if (!hasDeepseekR1Model) {
+    if (!hasDeepseekR1Model.value) {
         uni.showToast({
             title: '请在 config.json 中配置 deepseek-r1 模型',
             duration: 3000,
@@ -124,7 +129,7 @@ const setWebSearch = () => {
 onMounted(() => {
     // #ifdef WEB
     document.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !e.isComposing) {
+        if (e.key == 'Enter' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !e.isComposing) {
             e.preventDefault()
             if (aiState.value == 'processing') {
                 await stop()
@@ -136,6 +141,16 @@ onMounted(() => {
 });
 </script>
 <style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+.ui-theme-light {
+    --input-btn-active-bg: #dbeafe;
+    --input-btn-bg: #f3f4f6;
+}
+.ui-theme-dark {
+    --input-btn-active-bg: #3d434b;
+    --input-btn-bg: #3d434b;
+}
+
 .input-tool-bar {
     flex-direction: row;
     justify-content: space-between;
@@ -144,49 +159,53 @@ onMounted(() => {
         flex-direction: row;
         align-items: center;
         padding: 0 10px;
-        background-color: #efefef;
         border-radius: 30px;
         margin-right: 5px;
-        // #ifdef H5
-        cursor: pointer;
-        // #endif
+        background-color: var(--input-btn-bg);
         &.active {
-            background-color: #e4efff;
+            background-color: var(--input-btn-active-bg);
         }
-        &.disable {
-            background-color: #efefef;
+        // #ifdef WEB
+        cursor: pointer;
+        &:hover {
+            background-color: var(--bg-tertiary);
         }
+        // #endif
         .text {
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
             margin-left: 3px;
         }
         .active.text {
-            color: #3c76e4;
+            color: var(--accent-primary);
         }
         .disable.text {
-                color: #aaa;
+            color: var(--text-disabled);
         }
     }
     .stop, .send {
         margin-left: auto;
-        background-color: #9cc3fe;
+        background-color: var(--accent-secondary);
         width: 30px;
         height: 30px;
         justify-content: center;
         align-items: center;
         border-radius: 100px;
+         // #ifndef APP
+         transition: all 0.2s ease;
+        // #endif
+        // #ifdef WEB
+        cursor: pointer;
+        &:hover {
+            background-color: var(--accent-primary);
+        }
+        &:active {
+            box-shadow: 0 1px 4px var(--shadow);
+        }
+        // #endif
         &.active {
-            background-color: #3c76e4;
+            background-color: var(--accent-primary);
         }
     }
-}
-.ui-theme-dark {
-	.input-tool-bar {
-		background-color: transparent;
-		.btn {
-			background-color: #4b4b4b;
-		}
-	}
 }
 </style>

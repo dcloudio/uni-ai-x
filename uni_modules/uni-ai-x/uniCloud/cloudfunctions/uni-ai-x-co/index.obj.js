@@ -72,10 +72,16 @@ module.exports = {
 		}
 		return result
 	},
-	async getBailianTmpToken(){
+	async getTmpToken({provider} = {}){
+		if (!provider) {
+			return {
+				errCode: "uni-ai-x-co-getTmpToken-params-error",
+				errMsg: "参数错误，缺少provider"
+			}
+		}
 		const llmManager = uniCloud.ai.getLLMManager({
-			provider: 'aliyun-bailian',
-			apiKey: config.apiKey.bailian
+			provider,
+			apiKey: provider == 'aliyun-bailian' ? config.apiKey.bailian : null
 		})
 		try {
 			const res = await llmManager.getTempToken()
@@ -89,9 +95,8 @@ module.exports = {
 			}
 		} catch (error) {
 			return {
-				errCode: "uni-ai-x-co-getBailianTmpToken-error",
-				errMsg: error.message,
-				data: null
+				errCode: "uni-ai-x-co-getTmpToken-error",
+				errMsg: error.message
 			}
 		}
 	}
