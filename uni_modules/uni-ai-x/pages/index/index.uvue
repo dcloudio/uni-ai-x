@@ -1,5 +1,6 @@
 <template>
 	<!-- #ifdef APP-HARMONY -->
+	<!-- 鸿蒙端使用webview的方式加载，需要将web发行资源包放到`/uni_modules/uni-ai-x/static/app-harmony/html/`文件夹下，或将其部署到服务端并改写下方`web-view src`的值 -->
 	<web-view class="web-view" src="/uni_modules/uni-ai-x/static/app-harmony/html/index.html" id="web-view"></web-view>
 	<!-- #endif -->
 	<!-- #ifndef APP-HARMONY -->
