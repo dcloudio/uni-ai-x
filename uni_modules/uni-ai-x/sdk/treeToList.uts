@@ -158,14 +158,7 @@ class TreeToList {
             }
         }
         // console.log('tokenListArr', type, tokenListArr)
-        // 计算耗时
-        const start = Date.now()
-        const _tokenListArr = JSON.parse<MarkdownToken[][]>(JSON.stringify(tokenListArr)) as MarkdownToken[][]
-        const end = Date.now()
-				if (end - start > 3) {
-					// console.log('copy tokenListArr 耗时', end - start)
-				}
-        return _tokenListArr
+        return tokenListArr
     }
 }
 

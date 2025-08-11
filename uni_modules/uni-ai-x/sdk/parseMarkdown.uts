@@ -23,7 +23,11 @@ export default class ParseMarkdown {
         // console.log('ParseMarkdown constructor')
     }
     doUpdateCallBack(){
-        this.updateCallBack(this.markdownTokenList)
+        // 计算拷贝耗时
+        // const startTime = Date.now()
+        const copyMarkdownTokenList = JSON.parse<MarkdownToken[]>(JSON.stringify(this.markdownTokenList)) as MarkdownToken[]
+        // console.log('拷贝耗时', Date.now() - startTime)
+        this.updateCallBack(copyMarkdownTokenList)
     }
     runTask(msgBody: string){
         // 输出当前运行在哪个线程
@@ -163,9 +167,6 @@ export default class ParseMarkdown {
                             resolve(markdownText)
                             return
                         } else {
-                            if (codeToken.uniqueId == null) {
-                                codeToken.uniqueId = this.getUniqueId(codeTokenIndex)
-                            }
                             lineCodeToken.forEach((item: IToken, index: number) => {
                                 item.uniqueId = codeToken.uniqueId + '_r_' + currentLineCodeIndex + '_c_' + index.toString() //+ item.text
                             })

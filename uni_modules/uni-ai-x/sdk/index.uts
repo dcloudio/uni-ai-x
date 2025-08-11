@@ -341,7 +341,11 @@ class UniAi {
 							checkDiffEndFn()
 							return
 						}
-						if (oldMarkdownTokenList[index].uniqueId != newMarkdownTokenList[index].uniqueId) {
+						if (
+							oldMarkdownTokenList[index].uniqueId != newMarkdownTokenList[index].uniqueId ||
+							oldMarkdownTokenList[index]?.codeTokens?.length != newMarkdownTokenList[index]?.codeTokens?.length ||
+							oldMarkdownTokenList[index]?.tokens?.length != newMarkdownTokenList[index]?.tokens?.length
+						) {
 							checkDiffCount++
 							// console.log('检查到不一样的', checkDiffCount)
 							oldMarkdownTokenList[index] = newMarkdownTokenList[index]
