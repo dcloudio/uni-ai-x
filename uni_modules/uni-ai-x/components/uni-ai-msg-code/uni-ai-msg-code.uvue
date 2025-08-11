@@ -10,7 +10,7 @@
 			</view>
 		</view>
 		<scroll-view class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true">{{codeText}}</text>
+			<text v-if="tokensLines.length == 0" class="text origin-code" :selectable="true" :style="{width: maxLineWidth}">{{codeText}}</text>
 			<text v-else class="line" :selectable="true" v-for="(tokens,index) in tokensLines" :key="index" :style="{width: maxLineWidth}">
 				<text v-for="token in tokens" :key="token.uniqueId" class="code" :class="token.className">{{token.text}}</text>
 			</text>
@@ -19,7 +19,7 @@
 </template>
 
 <script lang="uts" setup>
-import { IToken, parseCode } from './parseCode.uts'
+import { IToken } from './parseCode.uts'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
@@ -49,19 +49,24 @@ const supportHighlight = ref<boolean>(true)
 const tokensLines = ref<IToken[][]>([])
 const maxLineWidth = ref<string>('')
 
-watch((): IToken[][] => props.codeTokens, (codeTokens: IToken[][]) => {
-	tokensLines.value = codeTokens
+let lastDiffLineIndex = 0
+let lastMaxLineSize = 0
+watch((): string => props.codeText, (codeText: string) => {
 	// #ifndef APP-ANDROID || WEB
-	const maxLineWidthValue = tokensLines.value.reduce((max, line) => {
-		const lineWidth = line.reduce((max, token) => {
-			return Math.max(max, token.text.length)
-		}, 0)
-		return Math.max(max, lineWidth)
-	}, 0)
-	console.log('maxLineWidth', maxLineWidthValue)
-	maxLineWidth.value = `${maxLineWidthValue * 25}px`
+	const codeTextLines = codeText.split('\n')
+	for (let i = lastDiffLineIndex; i < codeTextLines.length; i++) {
+		const lineSize = codeTextLines[i].length
+		if (maxLineWidth.value == '' || lastMaxLineSize < lineSize) {
+			lastMaxLineSize = lineSize
+			maxLineWidth.value = `${lastMaxLineSize * 10}px`
+		} else {
+			// console.log(lineSize,'小于', lastMaxLineSize)
+		}
+	}
+	lastDiffLineIndex = codeTextLines.length - 1
 	// #endif
-}, { immediate: true, deep: true })
+	tokensLines.value = props.codeTokens
+}, {immediate: true})
 
 const scrollViewHeight = computed<string>(() => {
 	return `${props.codeText.split('\n').length * 20 + 12}px`
