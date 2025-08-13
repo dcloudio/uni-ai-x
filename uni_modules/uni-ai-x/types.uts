@@ -40,7 +40,7 @@ export type Chat = {
 export type ChatItem = {
 	id: string,
 	title: string,
-	state: "none" | "processing" | "completed" | "stop"
+	state: string,
 	inputContent: string,
 	msgList: MsgItem[],
 	update_time: number

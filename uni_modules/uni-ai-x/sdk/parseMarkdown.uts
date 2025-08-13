@@ -1,5 +1,5 @@
 import {useMarked, TokensList, NodesToken as MarkdownToken} from '@/uni_modules/kux-marked';
-import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
+import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 const marked = useMarked()
 type UpdateCallBack = (markdownTokenList: MarkdownToken[]) => void
 
@@ -29,11 +29,13 @@ export default class ParseMarkdown {
         // console.log('拷贝耗时', Date.now() - startTime)
         this.updateCallBack(copyMarkdownTokenList)
     }
-    runTask(msgBody: string){
+    runTask(msgBody: string, isDelay: boolean = false){
         // 输出当前运行在哪个线程
         // console.log('parseMarkdown.runTask Thread.currentThread().name', Thread.currentThread().name)				
+        // console.log('parseMarkdown.runTask msgBody', msgBody, isDelay)				
         if (msgBody.length < this.oldMsgBodyLength) {
             // console.log('Error msgBody.length < oldMsgBodyLength', msgBody.length, this.oldMsgBodyLength)
+            // console.log('Error msgBody', msgBody)
             return
         }
         this.oldMsgBodyLength = msgBody.length
@@ -64,13 +66,11 @@ export default class ParseMarkdown {
             this.parseMarkdownTask(newMarkdownText)
             this.parseLock = false
             if (this.readyParseMdIndex < msgBody.length && this.parseMdIndex < msgBody.length) {
-                // console.log('未满')
-                if (this.nextTaskTimer == 0) {
-                    // console.log('设置延迟任务')
-                    this.nextTaskTimer = setTimeout(() => {
-                        this.runTask(msgBody)
-                    }, 300)
-                }
+                // console.log('未满', msgBody, this.nextTaskTimer)
+                // console.log('设置延迟任务')
+                this.nextTaskTimer = setTimeout(() => {
+                    this.runTask(msgBody, true)
+                }, 300)
             }
         })
     }
@@ -161,7 +161,7 @@ export default class ParseMarkdown {
                     parseCode(lineCodeText,lang).then((parseCodeRes: ParseCodeRes) => {
                         const lineCodeToken: IToken[] = parseCodeRes.tokens
                         if (parseCodeRes.error != null) {
-                            console.warn(`暂不支持${lang}语言的代码解析，源代码：`, codeText)
+                            console.warn(`暂不支持${lang}语言的代码高亮解析，源代码：`, codeText)
                             parseComplete = true
                             markdownText = this.afterParseCodeTask(markdownText, codeEndIndex, codeToken, codeTokenIndex, parseComplete)
                             resolve(markdownText)
@@ -209,7 +209,7 @@ export default class ParseMarkdown {
             // console.error('代码还没结束', markdownText, codeEndIndex, parseComplete)
             setTimeout(() => {
                 this.runTask(markdownText)
-            }, 100)
+            }, 300)
             return ''
         }
         // 闭合代码块
@@ -237,10 +237,16 @@ export default class ParseMarkdown {
     }
     parseMarkdownTask(markdownText: string){
         // console.log('parseMarkdownTask markdownText========>',markdownText)
-        if (markdownText.length == 0) return // 空了，不继续执行
+        if (markdownText.length == 0) {
+            // console.log('markdownText.length == 0')
+            return // 空了，不继续执行
+        }
         const newTokenList: MarkdownToken[] = this.markedLexer(markdownText)
-        if (newTokenList.length == 0) return
-        // 新增的元素是否闭合
+        if (newTokenList.length == 0) {
+            // console.log('newTokenList.length == 0')
+            return
+        }
+        // 第一个新增的元素是否闭合
         let fntIsClose = this.isClose(newTokenList[0]!.type ?? '', markdownText)
         newTokenList[0]!.isClose = fntIsClose
         // #ifdef APP-HARMONY
@@ -251,41 +257,37 @@ export default class ParseMarkdown {
             newTokenList[0]!.isClose = fntIsClose
         }
         // #endif
+        // console.log('parseMarkdownTask newTokenList', JSON.parse(JSON.stringify(newTokenList)))
 
         // 解析结果为闭合的，则直接添加到 markdownTokenList 中，否则添加到临时列表中
         // 找到第一个未闭合的项的索引
         const unCloseTokenIndex = this.markdownTokenList.findIndex(token => token.isClose == false || token.isClose == null)
         // console.log('unCloseTokenIndex', unCloseTokenIndex)
-        let parseMdIndexDiff: number = 0
+        // 更新的 markdown 文本长度差值
+        let mdDiffIndex: number = 0
         if (unCloseTokenIndex != -1) {
-            // 一一对应更新，如果更新后，新元素的类型和旧元素的类型不一致，则删除旧元素，并添加新元素。如果数量更多，需要新增
+            // 更新未闭合的旧元素。如果数量更多，需要新增
             for (let i = 0; i < newTokenList.length; i++) {
-                const currentIndex: number = i
-                if (unCloseTokenIndex + currentIndex < this.markdownTokenList.length) {
-                    const oldTokenIsCode = this.markdownTokenList[unCloseTokenIndex + currentIndex]!.type == 'code'
-                    if (!oldTokenIsCode) {
-                        this.markdownTokenList[unCloseTokenIndex + currentIndex] = newTokenList[currentIndex]!
-                    }
+                const index = unCloseTokenIndex + i
+                if (index < this.markdownTokenList.length) {
+                    this.markdownTokenList[index] = newTokenList[i]!
                 } else {
-                    this.markdownTokenList.push(newTokenList[currentIndex]!)
+                    this.markdownTokenList.push(newTokenList[i]!)
                 }
-                this.doUpdateCallBack()
-
                 if (fntIsClose) {
-                    parseMdIndexDiff += newTokenList[i]!.raw!.length
+                    mdDiffIndex += newTokenList[i]!.raw!.length
                 }
             }
         } else {
             if (fntIsClose) {
-                parseMdIndexDiff += newTokenList[0]!.raw!.length
+                mdDiffIndex += newTokenList[0]!.raw!.length
             }
             this.markdownTokenList.push(newTokenList[0]!)
-            this.doUpdateCallBack()
         }
         if (fntIsClose) {
             // console.log('newTokenList[0]', newTokenList[0])
             // 游标向右移动
-            this.parseMdIndex += parseMdIndexDiff
+            this.parseMdIndex += mdDiffIndex
             // 尝试合并后两项，如果合并成功，则删除后两项，并添加合并后的元素
             const mdTLLength = this.markdownTokenList.length
             if (mdTLLength > 1 && newTokenList[0].type == 'paragraph') {
@@ -296,15 +298,17 @@ export default class ParseMarkdown {
                 if (newTokenList2.length == 1 && newTokenList2[0]!.type != newTokenList[0].type){
                     this.markdownTokenList[mdTLLength - 2] = newTokenList2[0]!
                     this.markdownTokenList.splice(mdTLLength - 1, 1)
-                    this.doUpdateCallBack()
-                }	
+                    // console.log('合并后', JSON.parse(JSON.stringify(this.markdownTokenList)))
+                } else {
+                    // console.log('合并失败')
+                }
             }
             // 所有项都设置为闭合
             for (let unCloseTokenIndex = 0; unCloseTokenIndex < this.markdownTokenList.length; unCloseTokenIndex++) {
                 const currentIndex: number = unCloseTokenIndex
                 this.markdownTokenList[currentIndex]!.isClose = true
-                this.doUpdateCallBack()
             }
         }
+        this.doUpdateCallBack()
     }
 }

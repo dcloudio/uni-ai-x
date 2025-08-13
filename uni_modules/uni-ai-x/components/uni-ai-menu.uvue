@@ -91,10 +91,10 @@
 						const otherChat = uniAi.chat.datas.find((item) => item.id != chat.id)!
 						uniAi.chat.activeId = otherChat.id
 					}
-					setTimeout(() => {
+					nextTick(() => {
 						const index = uniAi.chat.datas.findIndex((item) => item.id == chat.id)
 						uniAi.chat.datas.splice(index, 1)
-					}, 0);
+					});
 				}
 			}
 		})

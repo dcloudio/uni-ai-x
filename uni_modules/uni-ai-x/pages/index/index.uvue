@@ -54,9 +54,9 @@
 	}
 	
 	const touchEnd = () => {
-		setTimeout(()=>{
+		nextTick(()=>{
 			isMoveing.value = false
-		},0)
+		})
 		if (!isDragging.value) return
 		isDragging.value = false
 		if (translateX.value > -130) {

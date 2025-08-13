@@ -39,9 +39,8 @@
 <script lang="uts" setup>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
 	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
-	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/parseCode.uts'
+	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 	const marked = useMarked();
-	import testMarkdownText from './testMarkdownText.uts';
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	
 	type UniAiXMsgProps = {
@@ -120,6 +119,7 @@
 		user-select: text;
 		// #endif
 		padding: 0 45px;
+		min-height: 45px;
 		.avatar {
 			position: absolute;
 			top: 0;
@@ -355,7 +355,7 @@
 	.heading-box, .list-box, .loging-icon, .think-content 
 	{
 		width: 100%;
-		margin: 5px 0 13px 5px;
+		margin: 5px 0;
 	}
 	.paragraph-box {
 		margin-top: 0;

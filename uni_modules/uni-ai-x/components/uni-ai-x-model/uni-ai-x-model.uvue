@@ -59,7 +59,7 @@
 	const radioChange = (provider: string, llmModel: string) => {
 		uniAi.llm.provider = provider
 		uniAi.llm.model = llmModel
-		setTimeout(()=>close(),100)
+		nextTick(()=>{close()})
 	}
 	
 	const open = () => {

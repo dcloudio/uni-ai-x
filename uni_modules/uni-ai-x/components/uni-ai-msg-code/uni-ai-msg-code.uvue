@@ -19,7 +19,7 @@
 </template>
 
 <script lang="uts" setup>
-import { IToken } from './parseCode.uts'
+import { IToken } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
@@ -52,24 +52,28 @@ const maxLineWidth = ref<string>('')
 let lastDiffLineIndex = 0
 let lastMaxLineSize = 0
 watch((): string => props.codeText, (codeText: string) => {
-	// #ifndef APP-ANDROID || WEB
-	const codeTextLines = codeText.split('\n')
-	for (let i = lastDiffLineIndex; i < codeTextLines.length; i++) {
-		const lineSize = codeTextLines[i].length
-		if (maxLineWidth.value == '' || lastMaxLineSize < lineSize) {
-			lastMaxLineSize = lineSize
-			maxLineWidth.value = `${lastMaxLineSize * 10}px`
-		} else {
-			// console.log(lineSize,'小于', lastMaxLineSize)
-		}
-	}
-	lastDiffLineIndex = codeTextLines.length - 1
+	let isAndroidOrWeb = false
+	// #ifdef APP-ANDROID || WEB
+	isAndroidOrWeb = true
 	// #endif
+	if (!isAndroidOrWeb || (props.codeTokens.length == 0 && codeText.length > 0)) {
+		const codeTextLines = codeText.split('\n')
+		for (let i = lastDiffLineIndex; i < codeTextLines.length; i++) {
+			const lineSize = codeTextLines[i].length
+			if (maxLineWidth.value == '' || lastMaxLineSize < lineSize) {
+				lastMaxLineSize = lineSize
+				maxLineWidth.value = `${lastMaxLineSize * 10}px`
+			} else {
+				// console.log(lineSize,'小于', lastMaxLineSize)
+			}
+		}
+		lastDiffLineIndex = codeTextLines.length - 1
+	}
 	tokensLines.value = props.codeTokens
 }, {immediate: true})
 
 const scrollViewHeight = computed<string>(() => {
-	return `${props.codeText.split('\n').length * 20 + 12}px`
+	return `${props.codeText.split('\n').length * 20 + 16}px`
 })
 
 const copyCode = () => {
@@ -188,6 +192,10 @@ const copyCode = () => {
 			line-height: 20px;
 			font-size: 14px;
 			font-family: CodeFontFamily;
+			// #ifndef APP
+			white-space: pre;
+			overflow: visible;
+			// #endif
 		}
 	}
 }
