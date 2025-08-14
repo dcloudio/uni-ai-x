@@ -1,6 +1,8 @@
 <template>
 	<view class="msg-root" :class="{'ui-theme-dark': uiTheme == 'dark'}">
-		<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+		<view class="avatar-box">
+			<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+		</view>
 		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
 		<template v-else>
 			<view class="think-content" v-if="msg.thinkContent != null">
@@ -118,25 +120,29 @@
 		// #ifdef WEB
 		user-select: text;
 		// #endif
-		padding: 0 45px;
+		padding: 5px 10px 0 52px;
 		min-height: 45px;
-		.avatar {
+		.avatar-box {
 			position: absolute;
 			top: 0;
 			left: 10px;
-			width: 25px;
-			height: 25px;
-			padding: 3px;
+			width: 32px;
+			height: 32px;
 			border-radius: 50px;
-			border: 1px solid #EEE;
-		}
-		/* #ifdef H5 */
-		@media screen and (min-device-width:960px){
+			border: 1px solid #cff0d5;
+			padding: 4px;
 			.avatar {
-				margin-right: 10px;
+				width: 20px;
+				height: 20px;
 			}
+			/* #ifdef H5 */
+			@media screen and (min-device-width:960px){
+				.avatar {
+					margin-right: 10px;
+				}
+			}
+			/* #endif */
 		}
-		/* #endif */
 		.think-content {
 			.header {
 				flex-direction: row;
@@ -265,7 +271,8 @@
 
 	.paragraph-box {
 		.text {
-			font-size: 18px;
+			font-size: 16px;
+			line-height: 28px;
 			// 自动换行
 			white-space: normal;
 			/* #ifndef APP */
