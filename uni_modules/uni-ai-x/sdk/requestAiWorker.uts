@@ -387,7 +387,7 @@ class RequestAiWorker {
 		options.onTaskCreate?.(requestTask)
 		if (options.stream == true) {
 			// @ts-ignore
-			requestTask?.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
+			requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
 				// console.log('onChunkReceived-----------------------------------', chunk)
 				parseChunkData(chunk.data as ArrayBuffer, (chunkObj : Chunk) => {
 					options.onChunk?.(chunkObj)

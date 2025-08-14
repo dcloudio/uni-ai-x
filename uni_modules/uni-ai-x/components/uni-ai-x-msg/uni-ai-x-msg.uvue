@@ -283,7 +283,12 @@
 	.heading-box {
 		margin-bottom: 14px;
 		.text {
+			// #ifdef APP
+			font-weight: 700;
+			// #endif
+			// #ifndef APP
 			font-weight: 500;
+			// #endif
 		}
 
 		.depth-1 {

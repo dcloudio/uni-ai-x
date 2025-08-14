@@ -105,7 +105,7 @@
 	})
 	
 	watch((): string | null => {
-		return uniAi.currentChat?.inputContent ?? null
+		return uniAi.currentChat?.inputContent
 	}, (newValue: string | null) => {
 		if (newValue != null) {
 			chatInputContent.value = newValue

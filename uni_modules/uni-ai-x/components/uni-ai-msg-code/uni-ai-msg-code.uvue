@@ -52,7 +52,7 @@ const maxLineWidth = ref<string>('')
 let lastDiffLineIndex = 0
 let lastMaxLineSize = 0
 watch((): string => props.codeText, (codeText: string) => {
-	let isAndroidOrWeb = false
+	let isAndroidOrWeb: boolean;
 	// #ifdef APP-ANDROID || WEB
 	isAndroidOrWeb = true
 	// #endif
