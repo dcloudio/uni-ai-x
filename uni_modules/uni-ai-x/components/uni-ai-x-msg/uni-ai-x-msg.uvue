@@ -206,6 +206,12 @@
 		}
 	}
 
+	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
+	.heading-box, .list-box, .loging-icon, .think-content 
+	{
+		width: 100%;
+		margin-top: 5px;
+	}
 
 	// 元素的样式
 	@font-face {
@@ -220,7 +226,7 @@
 	}
 	
 	.text {
-		color: #333;
+		color: #404040;
 		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
 		white-space: normal;
 		/* #ifndef APP */
@@ -275,36 +281,38 @@
 		border-left: 4px solid #ddd;
 	}
 	.heading-box {
+		margin-bottom: 14px;
 		.text {
-			font-weight: 700;
+			font-weight: 500;
 		}
+
 		.depth-1 {
-			font-size: 30px;
-			line-height: 36px;
+			font-size: 28px;
+			line-height: 42px;
 		}
 
 		.depth-2 {
-			font-size: 26px;
+			font-size: 22px;
 			line-height: 34px;
 		}
 
 		.depth-3 {
-			font-size: 22px;
-			line-height: 32px;
-		}
-
-		.depth-4 {
-			font-size: 20px;
-			line-height: 30px;
-		}
-
-		.depth-5 {
 			font-size: 18px;
 			line-height: 28px;
 		}
 
-		.depth-6 {
+		.depth-4 {
 			font-size: 16px;
+			line-height: 28px;
+		}
+
+		.depth-5 {
+			font-size: 16px;
+			line-height: 28px;
+		}
+
+		.depth-6 {
+			font-size: 14px;
 			color: #999;
 			line-height: 24px;
 		}
@@ -335,13 +343,12 @@
 		}
 		.list-item-index {
 			width: 20px;
+			color: #8b8b8b;
 			&.unordered {
-				font-size: 14px;
-				color: #000;
+				font-size: 22px;
 			}
 			&.task {
 				font-size: 14px;
-				color: #666;
 			}
 		}
 	}
@@ -351,12 +358,6 @@
 		height: 1px;
 	}
 
-	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
-	.heading-box, .list-box, .loging-icon, .think-content 
-	{
-		width: 100%;
-		margin: 5px 0;
-	}
 	.paragraph-box {
 		margin-top: 0;
 		margin-bottom: 0;
