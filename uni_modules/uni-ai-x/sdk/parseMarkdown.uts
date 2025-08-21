@@ -150,7 +150,7 @@ export default class ParseMarkdown {
                 } else if (codeTokneLength < codeTextArr.length) {
                     // 如果不变说明，应当解析下一行代码
                     currentLineCodeIndex += 1
-                    lineCodeText = codeTextArr[currentLineCodeIndex]
+                    lineCodeText = currentLineCodeIndex > (codeTextArr.length - 1) ? '' : codeTextArr[currentLineCodeIndex]
                 }
                 let parseComplete = codeTokneLength == codeTextArr.length
                 // console.log('parseComplete codeToken.codeTokens', codeToken.codeTokens)
