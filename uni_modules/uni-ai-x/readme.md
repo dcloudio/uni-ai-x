@@ -1,10 +1,12 @@
-> 新增于HBuilderX 4.72+  
 # 简介
+
+> 新增于HBuilderX 4.72+  
 
 `uni-ai x`，是一个开源的、全平台的、原生的、云端一体的ai聊天套件。
 
 能够连接ai大模型，真流式接收和输出内容，原生渲染markdown。  
-基于跨平台原生开发框架 [uni-app x](https://doc.dcloud.net.cn/uni-app-x/) 可以被编译为不同平台的编程语言，如： 
+基于跨平台原生开发框架 [uni-app x](https://doc.dcloud.net.cn/uni-app-x/) 可以被编译为不同平台的编程语言，如：
+
 | 平台						| 编译语言		|
 |------					|----------	|
 | web平台/小程序	| JavaScript|
