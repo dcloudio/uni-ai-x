@@ -190,7 +190,7 @@ class RequestAiWorker {
 		const content = chunkObj.choices?.[0]?.delta?.content
 		// console.log('content', content)
 		const reasoningContent = chunkObj.choices?.[0]?.delta?.reasoning_content
-		if (content != null) {
+		if (content != null && content.length > 0) {
 			this.msgBody += content
 			this.emitOnMessage({
 				type: "setMsgBody",
