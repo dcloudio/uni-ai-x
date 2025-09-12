@@ -200,7 +200,7 @@ class RequestAiWorker {
 			this.thinkContent += reasoningContent
 			this.emitOnMessage({
 				type: "setThinkContent",
-				data: this.thinkContent
+				data: this.thinkContent.trim()
 			})
 		} else {
 			// console.error('content == null')
