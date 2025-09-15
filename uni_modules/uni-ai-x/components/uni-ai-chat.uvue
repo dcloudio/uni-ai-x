@@ -144,10 +144,6 @@
 		})
 	}
 	
-	watchEffect(() => {
-		uniAi.canRender = !scrollTouch.value && !scrolling.value
-	})
-	
 	watch(chatActiveId, () => {
 		scrollToLastMsg(false)
 		nextTick(() => {
@@ -225,12 +221,30 @@
 	const onKeyboardheightchange = (res: UniInputKeyboardHeightChangeEvent) => {
 		keyboardHeight.value = res.detail.height
 	}
+
+	const menuIsChangeIng = ref<boolean>(false)
+	let menuIsChangeIngT = 0
+	function setMenuIsChangeIng() {
+		if (menuIsChangeIngT != 0) {
+			clearTimeout(menuIsChangeIngT)
+		}
+		menuIsChangeIng.value = true
+		menuIsChangeIngT = setTimeout(() => {
+			menuIsChangeIng.value = false
+		}, 1000)
+	}
+
+	watchEffect(() => {
+		uniAi.canRender = !scrollTouch.value && !scrolling.value && !menuIsChangeIng.value
+	})
 	
 	const changeMenu = () => {
+		setMenuIsChangeIng()
 		emit('change-menu')
 	}
 	
 	const closeMenu = () => {
+		setMenuIsChangeIng()
 		emit('close-menu')
 	}
 	
