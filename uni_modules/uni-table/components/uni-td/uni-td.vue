@@ -52,7 +52,7 @@
 
 	.uni-table-td {
 		display: flex;
-		flex-direction: row;
+		flex-direction: column;
 		align-items: center;
 		padding: 8px 10px;
 		border: none;
@@ -63,5 +63,8 @@
 
 	.td-table--border {
 		border-left: 1px $border-color solid;
+	}
+	.uni-table-text {
+		word-break: break-all;
 	}
 </style>
