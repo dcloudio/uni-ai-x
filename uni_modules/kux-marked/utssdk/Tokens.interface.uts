@@ -243,9 +243,10 @@ export type Table = {
 
 export type TableCell = {
 	text : string;
+	width?: number;
 	tokens : NodesToken[];
 	header : boolean;
-	align : 'center' | 'left' | 'right' | null;
+	align?: 'center' | 'left' | 'right';
 }
 
 export type TableRow = {

@@ -1,4 +1,4 @@
-import {useMarked, TokensList, NodesToken as MarkdownToken} from '@/uni_modules/kux-marked';
+import {useMarked, TokensList, NodesToken as MarkdownToken, TableCell} from '@/uni_modules/kux-marked';
 import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 const marked = useMarked()
@@ -180,6 +180,13 @@ export default class ParseMarkdown {
             })
         })
     }
+    measureTextWidth(text: string, fontSize: number){
+		const layout = new UniTextLayout();
+		layout.setText(text);
+		layout.setFontSize(fontSize + 'px');
+		const measureSize = layout.measure({} as UniLayoutConstraintSize);
+		return measureSize.width + 16 // 加上padding
+	}
     markedLexer(markdownText: string): MarkdownToken[] {
         const newTokenList: MarkdownToken[] = (marked.lexer(markdownText,null) as TokensList).tokens as MarkdownToken[]
         newTokenList.forEach((item: MarkdownToken, index: number) => {
@@ -187,7 +194,19 @@ export default class ParseMarkdown {
             item.uniqueId = this.getUniqueId(index)
             // 为多项的时候，除倒数第1项，其他项一定为闭合的
             item.isClose = true
-
+            //#ifdef APP-ANDROID
+            // 如果类型是 table，则设置宽度
+            if (item.type == 'table') {
+                item.rows?.forEach((rows: TableCell[]) => {
+                    rows.forEach((cell: TableCell) => {
+                        cell.width = this.measureTextWidth(cell.text.replace(/\*/g, ''), 14)
+                    })
+                })
+                item.header?.forEach((cell: TableCell) => {
+                    cell.width = this.measureTextWidth(cell.text.replace(/\*/g, ''), 16)
+                })
+            }
+            //#endif
             // #ifdef APP-HARMONY
             // TODO：临时方案解决鸿蒙平台的解析错误的 bug。如果是 paragraph 类型，且可能是代码块的开头，即包含 ```+语言名称 + 换行符，例如 ```javascript\n
             if (item.type == 'paragraph' && /```[a-zA-Z]+\n/.test(item.raw!)) {

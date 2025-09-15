@@ -1,19 +1,28 @@
 <template>
+	<!-- #ifdef APP-ANDROID -->
+	<table-android :tableNode="props.tableNode"></table-android>
+	<!-- #endif -->
+	<!-- #ifndef APP-ANDROID -->
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
 		<uni-table :stripe="false" :columns="columns" :data="tableData"></uni-table>
 	</view>
+	<!-- #endif -->
 </template>
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk';
 	import {NodesToken as MarkdownToken, TableCell} from '@/uni_modules/kux-marked'
+	//#ifdef APP-ANDROID
+	// 导入table-android组件
+	import tableAndroid from './table-android'
+	//#endif
 	
 	type UniAiMsgTableProps = {
 		tableNode: MarkdownToken
 	}
 	
 	const props = defineProps<UniAiMsgTableProps>()
-	
+	//#ifndef APP-ANDROID
 	const columns = ref<UTSJSONObject[]>([])
 	const tableData = reactive<UTSJSONObject[]>([])
 	const updateTimer = ref<number>(0)
@@ -79,6 +88,7 @@
 		}
 		
 	}, { deep: true, immediate: true })
+	//#endif
 </script>
 
 <style lang="scss">
