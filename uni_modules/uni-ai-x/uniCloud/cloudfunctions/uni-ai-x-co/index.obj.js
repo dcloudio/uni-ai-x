@@ -8,10 +8,10 @@ const userscollection = db.collection('uni-id-users')
 // 引入uni-id-common模块
 const uniIdCommon = require('uni-id-common')
 module.exports = {
-	// _before: async function () { // 通用预处理器	
+	_before: async function () { // 通用预处理器	
 	// 	/*先校验token（用户身份令牌）是否有效，并获得用户的_id*/
 	// 	// 获取客户端信息
-	// 	this.clientInfo = this.getClientInfo()
+		this.clientInfo = this.getClientInfo()
 	// 	// console.log(this.clientInfo);
 	// 	// 定义uni-id公共模块对象
 	// 	this.uniIdCommon = uniIdCommon.createInstance({
@@ -51,7 +51,7 @@ module.exports = {
 	// 		}
 			
 	// 	}
-	// },
+	},
 	async _after(error, result) {
 		// 如果有错误
 		if (error) {
@@ -81,7 +81,8 @@ module.exports = {
 		}
 		const llmManager = uniCloud.ai.getLLMManager({
 			provider,
-			apiKey: provider == 'aliyun-bailian' ? config.apiKey.bailian : null
+			apiKey: provider == 'aliyun-bailian' ? config.apiKey.bailian : null,
+			appId: this.clientInfo.appId
 		})
 		try {
 			const res = await llmManager.getTempToken()
