@@ -14,7 +14,9 @@
 			{
 				"navigationStyle" : "custom"
 			}
-		},
+		}
+		// #ifndef APP-HARMONY
+		,
 		{
 			"path" : "uni_modules/uni-ai-x/pages/select-text/select-text",
 			"style" : 
@@ -22,6 +24,7 @@
 				"navigationBarTitleText" : "选择文本"
 			}
 		}
+		// #endif 
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
