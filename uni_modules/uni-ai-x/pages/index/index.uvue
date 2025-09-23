@@ -20,6 +20,35 @@
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts';
+
+	import { md2json, initCmark, MarkdownToken} from '@/uni_modules/uni-cmark'
+	let markdownText = `| 姓名 | 年龄 | 职业 |
+|------|------|------|
+| 王五 | 20 | 程序员 |
+`
+	const init = async ()=> {
+		try {
+			// // 先初始化 WebAssembly 模块
+			await initCmark()
+			// console.log('WebAssembly 模块初始化完成')
+			// const start = Date.now()
+			// // 然后调用同步的 md2json
+			const json = md2json(markdownText)
+			// console.log('md2json 调用完成，结果:', json.data)
+			// console.log('md2json 调用time:', Date.now() - start)
+			// markdown += ` 王五 |`
+			// console.log('markdown', markdown)
+			// const json2 = md2json(markdown)
+			// console.log('md2json 调用完成，结果:', json2)
+		} catch (error) {
+			console.error('解析失败:', error)
+		}
+	}
+	setTimeout(()=>{
+		init()
+	},0)
+	
 	
 	const startX = ref<number>(0)
 	const translateX = ref<number>(-260)

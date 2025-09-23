@@ -1,5 +1,12 @@
 {
 	"pages": [
+		// {
+		// 	"path" : "pages/test-cmark/test-cmark",
+		// 	"style" : 
+		// 	{
+		// 		"navigationBarTitleText" : "uni-cmark 测试"
+		// 	}
+		// },
 		{
 			"path" : "uni_modules/uni-ai-x/pages/index/index",
 			"style" : 

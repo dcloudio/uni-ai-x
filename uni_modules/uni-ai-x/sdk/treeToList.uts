@@ -1,8 +1,8 @@
-import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
+import {MarkdownToken} from '@/uni_modules/uni-cmark'
 class TreeToList {
     br = "\n" as string
     // 哪些类型不需要处理
-    noProcessTypes = ['code', 'table', 'hr'] as string[]
+    noProcessTypes = ['code_block', 'table'] as string[]
     uicon(code: string) {
         // #ifdef APP
         // 将字符串分割成 Unicode 编码的字符
@@ -33,9 +33,9 @@ class TreeToList {
             item.start = parent.start ?? 1
             item.depth = parent.depth ?? 0
             item.deepIndex = (parent.deepIndex ?? 0) + 1
-            item.ordered = parent.ordered ?? false
+            item.ordered = parent.ordered ?? 0
             if (item.href == null) item.href = parent.href ?? ''
-            if (item.checked == null) item.checked = parent.checked ?? false
+            if (item.checked == 0) item.checked = parent.checked ?? 0
             if (item.uniqueId == null) item.uniqueId = parent.uniqueId + "_" + index
             if (parent.type == 'list'){
                 item.orderedIndex = index
@@ -44,27 +44,27 @@ class TreeToList {
             }
     
             // 设置 class 默认值为 type
-            item.class = item.type
+            item.className = item.type
             // 继承父节点的 class
-            if (parent.class != null) {
-                parent.class.split(' ').forEach((classItem: string) => {
-                    if (item.class == null) {
-                        item.class = classItem
-                    } else if (!item.class.includes(classItem)) {
-                        item.class = item.class + ' ' + classItem
+            if (parent.className != null) {
+                parent.className.split(' ').forEach((classItem: string) => {
+                    if (item.className == null) {
+                        item.className = classItem
+                    } else if (!item.className.includes(classItem)) {
+                        item.className = item.className + ' ' + classItem
                     }
                 })
             }
             // 设置深度
             if (item.depth > 0) {
-                item.class = (item.class == null ? '' : item.class + ' ') + 'depth-' + item.depth
+                item.className = (item.className == null ? '' : item.className + ' ') + 'depth-' + item.depth
             }
             
-            if (item.type == 'list_item') {
+            if (parent.type == 'list'){
                 // 插入换行
                 const newItem: MarkdownToken = {
                     type: 'text',
-                    class: 'list-item-br',
+                    className: 'list-item-br',
                     text: "\n"
                 }
                 list.push(newItem)
@@ -77,28 +77,27 @@ class TreeToList {
                     }			
                     list.push(newItem)
                 }
-                if (item.task == true) {
+                if (item.type == 'tasklist') {
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        text: (item.checked == true ? this.uicon('e607') : this.uicon('e608') )+ ' ',
-                        class: 'uni-ai-icon list-item-index task' + (item.checked == true ? ' checked' : '')
+                        text: (item.checked == 1 ? this.uicon('e607') : this.uicon('e608') )+ ' ',
+                        className: 'uni-ai-icon list-item-index task' + (item.checked == 1 ? ' checked' : '')
                     }			
                     list.push(newItem)
-                } else if (item.ordered == false) {
+                } else if (item.ordered == 1) {
                     const newItem: MarkdownToken = {
                         type: 'text',
                         text: this.uicon("ec1e"),
-                        class: 'uni-ai-icon list-item-index unordered'
+                        className: 'uni-ai-icon list-item-index unordered'
                     }
                     list.push(newItem)
                 }
                 // 插入索引
-                if (item.ordered) {
+                if (item.ordered == 1) {
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        // text: item.orderedIndex + 1 + '. ',
-                        text: item.raw?.slice(0, item.raw!.indexOf('.')) + '. ',
-                        class: 'list-item-index'
+                        text: item.orderedIndex + 1 + '. ',
+                        className: 'list-item-index'
                     }
                     list.push(newItem)
                 }
@@ -121,7 +120,7 @@ class TreeToList {
                 // 如果上级是链接
                 // if (parent.type == 'link') {
                 // 	item.inLink = true
-                // 	item.class += ' link'
+                // 	item.className += ' link'
                 // 	item.linkHref = parent.href
                 // }
                 list.push(item)
@@ -146,15 +145,15 @@ class TreeToList {
             // 当前项和前一项的类型不一致，则将当前元素添加到新的数组中
             if (
                 (item.type != prevItemType || (item.type == null && prevItemType == null))
-                && !(prevItemType == 'codespan' && item.type == 'text')
-                && !(prevItemType == 'text' && item.type == 'codespan')
+                && !(prevItemType == 'code' && item.type == 'text')
+                && !(prevItemType == 'text' && item.type == 'code')
             ) {
                 tokenListArr.push([])
             }
             const lastItem = tokenListArr[tokenListArr.length - 1]!
             // console.log('lastItem', lastItem, item, item.type, prevItemType)
             // 每一项的第一项不能是换行
-            if (lastItem.length != 0 || item.class != 'list-item-br') {
+            if (lastItem.length != 0 || item.className != 'list-item-br') {
                 lastItem.push(item)
             }
         }

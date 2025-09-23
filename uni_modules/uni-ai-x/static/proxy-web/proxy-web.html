@@ -189,12 +189,30 @@
                 strict: 'ignore' // 是否严格模式
             });
             const imageDataURL = parentIsWeb ? null : await this.html2Base64(resultHtml, 3, true);
+            const param = {
+              imageDataURL,
+              width: null,
+              height: null,
+              resultHtml: parentIsWeb ? resultHtml : ''
+            }
+            // 非 web 平台，则返回图片的宽高
+            if (!parentIsWeb) {
+              const tmpImg = document.createElement('img');
+              tmpImg.src = imageDataURL;
+              document.body.appendChild(tmpImg);
+              await new Promise(resolve => {
+                tmpImg.addEventListener('load', () => {
+                  resolve();
+                });
+              });
+              param.width = tmpImg.offsetWidth;
+              param.height = tmpImg.offsetHeight;
+              // console.log('katexRender width', param.width, 'height', param.height)
+              document.body.removeChild(tmpImg);
+            }
             this.postMessage({
               action: "katexRender_callback_" + requestId,
-              param: {
-                imageDataURL,
-                resultHtml: parentIsWeb ? resultHtml : ''
-              }
+              param
             });
           }
         }

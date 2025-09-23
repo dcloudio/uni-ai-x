@@ -3,17 +3,27 @@
         <!-- #ifdef WEB -->
         <view class="katex" v-if="html != null && html.length > 0" v-html="html"></view>
         <!-- #endif -->
-        <image v-if="href != null && href.length > 0" :src="href" class="katex-image" mode="widthFix" />
+        <image v-if="href != null && href.length > 0" :src="href" class="katex-image" mode="heightFix"
+            :style="{'height': katexHeight}" 
+        />
     </view>
 </template>
 
 <script lang="uts" setup>
     import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
-    
     const props = defineProps<{
         html?: string
         href?: string
+        width?: number
+        height?: number
     }>()
+    const katexHeight = computed(() => {
+        if (props.height == null || props.width == null) return 'auto'
+        // 比例
+        const ratio = props.height / props.width
+        // 减去 90 的边距，90 = 45 * 2
+        return uni.rpx2px(ratio * 750) - (90 * ratio) + 'px'
+    })
 </script>
 
 <style lang="scss">

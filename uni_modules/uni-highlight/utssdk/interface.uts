@@ -5,7 +5,7 @@
 export class IToken {
   readonly startIndex: number;
   readonly endIndex: number;
-  readonly scopes: string[];
+  readonly scopes?: string[];
 
   constructor(startIndex: number, endIndex: number, scopes: string[]) {
     this.startIndex = startIndex;
@@ -36,10 +36,12 @@ export type HighLighterOptions = {
 }
 
 
-export type CreateHighLighter = (options: HighLighterOptions) => CreateHighLighterRes
+export type HighLighter = (options: HighLighterOptions) => CreateHighLighterRes
 
 
 export type CreateHighLighterRes = {
 	tokenizeFullText(langId: string, fullCodeText:string): Promise<ILineTokens[]>
 	tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | null>
 }
+
+

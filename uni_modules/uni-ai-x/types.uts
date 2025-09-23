@@ -1,4 +1,4 @@
-import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
+import {MarkdownToken} from '@/uni_modules/uni-cmark'
 
 export type LLMModel = {
 	name: string,

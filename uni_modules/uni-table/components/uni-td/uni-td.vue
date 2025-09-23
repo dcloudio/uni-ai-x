@@ -64,7 +64,9 @@
 	.td-table--border {
 		border-left: 1px $border-color solid;
 	}
+	// #ifndef APP
 	.uni-table-text {
 		word-break: break-all;
 	}
+	// #endif
 </style>

@@ -5,13 +5,15 @@
 			:scroll-x="true"
 			direction="horizontal"
 			:show-scrollbar="isHorizontalScroll"
-			:style="{ width: tableWrapperWidth + 'px' }"
+			:style="{width: tableWrapperWidth + 'px'}"
 		>
-			<view v-for="(row, rowIndex) in tableTexts" :key="rowIndex" class="table-row">
-				<text v-for="(cell, cellIndex) in row" :key="cellIndex" 
-					:class="rowIndex == 0 ? 'header-text' : 'cell-text'"
-					:style="{width: columnWidths.length > 0 ? columnWidths[cellIndex] + 'px' : '100px'}"
-				>{{ cell }}</text>
+			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="table-row">
+				<template v-for="(cell, cellIndex) in row.tokens">
+					<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
+						:class="rowIndex == 0 ? 'header-text' : 'cell-text'"
+						:style="{width: columnWidths[cellIndex] + 'px'}"
+					>{{ cellItem.text }}</text>
+				</template>
 			</view>
 		</scroll-view>
 	</view>
@@ -19,61 +21,29 @@
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk';
-	import {NodesToken as MarkdownToken, TableCell} from '@/uni_modules/kux-marked'
+	import { MarkdownToken} from '@/uni_modules/uni-cmark'
 	const props = defineProps<{tableNode: MarkdownToken}>()
 	
-	// 把表头和数据行合并为统一的行数据
-	const tableCells = computed((): TableCell[][] => {
-		const tableNode = props.tableNode as MarkdownToken
-		return [
-			tableNode.header!,
-			...tableNode.rows!
-		]
-	})
-
-	// 定义表格文本内容，文字要去掉*号
-	const tableTexts = computed(() => tableCells.value.map(row => row.map(cell => cell.text.replace(/\*/g, ''))))
 	
-	
-
 	const columnWidths = ref<number[]>([])
-	watch(tableCells, () => {
+	// 表格数据
+	const tableData = ref<MarkdownToken[]>([])
+	// 计算表格总宽度（像素值）
+	const tableWidth = ref<number>(0)
+	watch((): MarkdownToken => props.tableNode as MarkdownToken, (tableNode: MarkdownToken) => {
+		tableData.value = tableNode.tokens ?? []
+		// 拿到所有表格宽度
 		const _columnWidths: number[] = []
 		// 总列数
-		const columnCount = tableCells.value[0].length
+		const columnCount = tableData.value[0].tokens?.length ?? 0
 		for (let i = 0; i < columnCount; i++) {
-			const _columnWidth: number = tableCells.value.map((tableCell):number =>tableCell[i].width!).reduce((max, width) => Math.max(max, width),0)
-			_columnWidths.push(Math.min(_columnWidth, 300))
+			const _columnWidth: number = tableData.value.map((row):number =>row.tokens?.[i].width ?? 0).reduce((max, width) => Math.max(max, width),0)
+			_columnWidths.push(Math.min(_columnWidth + 16, 300))
 		}
 		columnWidths.value = _columnWidths
-	},{immediate: true
-	})
+		tableWidth.value = columnWidths.value.reduce((sum, width) => sum + width, 0)
+	},{immediate: true})
 	
-	// watch(tableTexts, () => {
-	// 	// UTSAndroid.getDispatcher("io").async((_) => {
-	// 		const _columnWidths: number[] = []
-	// 		const columnCount = tableCells.value[0].length
-	// 		for (let i = 0; i < columnCount; i++) {
-	// 			const maxWidth = tableCells.value.map(row => row[i]!.width).reduce((max, width) => Math.max(max, width), 0)
-	// 			console.log('maxWidth', maxWidth)
-	// 			/**
-	// 			 * const maxWidth = tableTexts.value.map(row => measureTextWidth(row[i], 14))
-	// 								.reduce((max, width) => Math.max(max, width), 0)
-	// 			_columnWidths.push(Math.min(maxWidth, 300))
-	// 			 */
-	// 			_columnWidths.push(Math.min(maxWidth, 300))
-	// 		}
-	// 		// console.log('columnWidths', _columnWidths)
-	// 		UTSAndroid.getDispatcher("main").async((_) => {
-	// 			columnWidths.value = _columnWidths
-	// 		})
-	// 	// })
-	// },{immediate: true})
-	// 计算表格总宽度（像素值）
-	const tableWidthPx = computed(() => {
-		return columnWidths.value.reduce((sum, width) => sum + width, 0)
-	})
-
 	const maxTableWidth = ref(0)
 	function setMaxTableWidth() {
 		uni.createSelectorQuery().select('.uni-ai-msg-table').boundingClientRect().exec((ret) => {
@@ -95,11 +65,11 @@
 	})
 	// 是否需要横向滚动
 	const isHorizontalScroll = computed(() => {
-		return tableWidthPx.value > maxTableWidth.value
+		return tableWidth.value > maxTableWidth.value
 	})
-	// table-box 的宽度，如果tableWidthPx大于屏幕宽度，则设置为屏幕宽度，否则设置为tableWidthPx
+	// table-box 的宽度，如果tableWidth大于屏幕宽度，则设置为屏幕宽度，否则设置为tableWidth
 	const tableWrapperWidth = computed(() => {
-		return isHorizontalScroll.value ? maxTableWidth.value : tableWidthPx.value
+		return isHorizontalScroll.value ? maxTableWidth.value : tableWidth.value
 	})
 </script>
 

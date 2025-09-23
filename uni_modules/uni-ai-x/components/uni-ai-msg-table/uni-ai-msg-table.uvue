@@ -11,7 +11,7 @@
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk';
-	import {NodesToken as MarkdownToken, TableCell} from '@/uni_modules/kux-marked'
+	import { MarkdownToken} from '@/uni_modules/uni-cmark'
 	//#ifdef APP-ANDROID
 	// 导入table-android组件
 	import tableAndroid from './table-android'
@@ -29,22 +29,22 @@
 	
 	const nodeToTableInfo = (node: MarkdownToken): UTSJSONObject => {
 		const tableColumns: UTSJSONObject[] = []
-		node.header?.forEach((cell: TableCell) => {
+		node.tokens?.[0].tokens?.forEach((cell: MarkdownToken) => {
 			tableColumns.push({
-				dataKey: cell.text,
+				dataKey: cell.tokens![0].text,
 				// 内容中的 * 要去除，暂不实现表格内的样式
-				title: cell.text.replace(/\*/g, ''),
+				title: cell.tokens![0].text,
 				align: cell.align ?? 'center'
 			})
 		})
 		const tableData: UTSJSONObject[] = []
-		node.rows?.forEach((row: TableCell[]) => {
+		node.tokens?.slice(1).forEach((row: MarkdownToken) => {
 			const rowData: UTSJSONObject = {}
 			let hasValidData = false
 			
-			row.forEach((cell: TableCell, index: number) => {
-				// 内容中的 * 要去除，暂不实现表格内的样式
-				let text = cell.text.replace(/\*/g, '')
+			row.tokens?.forEach((cell: MarkdownToken, index: number) => {
+				if (cell.tokens == null) return
+				let text = cell.tokens[0].text
 				if (text != '') {
 					rowData[tableColumns![index]!.dataKey!] = text
 					hasValidData = true

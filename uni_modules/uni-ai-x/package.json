@@ -13,7 +13,7 @@
   "engines": {
     "HBuilderX": "^3.1.0",
     "uni-app": "",
-    "uni-app-x": "^4.75"
+    "uni-app-x": "^4.81"
   },
   "dcloudext": {
     "type": "unicloud-template-page",
@@ -40,10 +40,7 @@
   },
   "uni_modules": {
     "dependencies": [
-    	"kux-marked",
-    	"uni-highlight",
-    	"uni-id-pages-x",
-    	"uni-table"
+    	"uni-highlight"
     ],
     "encrypt": [],
     "platforms": {

@@ -13,18 +13,17 @@
 				</view>
 			</view>
 			<template v-for="(item, index) in msg.markdownElList" :key="index">
-				<template v-for="(datas, index2) in item.datasList" :key="index2">
-					<uni-ai-msg-table class="table-box" v-if="item.type == 'table'" v-for="(data, index) in datas" :key="index" :table-node="data" />
-					<uni-ai-msg-code class="code-box" v-else-if="item.type == 'code'" v-for="(data, index) in datas" :key="item.uniqueId + index" :codeTokens="data.codeTokens ?? []"  :codeText="data.text" :language="data.lang" :href="data.href" />
-					<katex-el v-else-if="item.type == 'math'" v-for="(data, index) in datas" :key="item.uniqueId + index" :html="data.html" :href="data.href"/>
-					<view v-else-if="item.type == 'hr'" v-for="(data, index) in datas" :key="item.uniqueId + index" class="hr-box"></view>
-					<text v-else :decode="true" class="text" :class="item.type! +  '-box' + (item.type! == 'list' ? ' list-content' : '')">
-						<text v-for="(data, index) in datas" :key="item.uniqueId + index"
-							:class="data.class ?? ''" 
-							@click="toLink(data.href)"
-							:decode="true"
-						>{{data.text}}</text>
-					</text>
+				<view v-if="item.type == 'block_quote'" class="block_quote_box">
+					<uni-ai-text-md v-for="(blockQuote, i) in item.datasList" :key="i" :datas="blockQuote" :itemType="item.type"/>
+				</view>
+				<template v-else v-for="(datas, i) in item.datasList" :key="i">
+					<template v-for="(data, k) in datas" :key="k" v-if="['table', 'code_block', 'math', 'thematic_break', 'block_quote'].includes(item.type)">
+						<uni-ai-msg-table class="table-box" v-if="item.type == 'table'" :table-node="data" />
+						<uni-ai-msg-code class="code-box" v-else-if="item.type == 'code_block'" :codeTokens="data.codeTokens ?? []"  :codeText="data.text" :language="data.lang" :href="data.href" />
+						<katex-el v-else-if="item.type == 'math'" :html="data.html" :href="data.href" :width="data.width" :height="data.height" />
+						<view v-else-if="item.type == 'thematic_break'" class="hr-box"></view>
+					</template>
+					<uni-ai-text-md v-else :datas="datas" :itemType="item.type" :key="item.uniqueId"/>
 				</template>
 		   </template>
 		   <template v-if="isLastAiMsg && msg.body == ''">
@@ -39,9 +38,8 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
-	import {useMarked, TokensList, NodesToken as MarkdownToken, Link} from '@/uni_modules/kux-marked';
-	import {IToken, parseCode, ParseCodeRes} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
-	const marked = useMarked();
+	import { MarkdownToken} from '@/uni_modules/uni-cmark';
+	import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	
 	type UniAiXMsgProps = {
@@ -88,18 +86,6 @@
 		if (state == 'completed' || state == 'stop') {
 		}
 	})
-	
-	const toLink = (url: string | null) => {
-		if (url != null && url!.length > 0) {
-			console.error('url', url)
-			uni.navigateTo({
-				"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
-				fail:e=>{
-					console.error(e);
-				}
-			})
-		}
-	}
 	
 	const changeThinkContent = () => {
 		hideThinkContent.value = !hideThinkContent.value
@@ -187,171 +173,24 @@
 		}
 	}
 
-
-
-	// 元素的样式
-	@font-face {
-		// #ifdef WEB
-		font-display: swap;
-		// #endif
-		font-family: uniAiIconFontFamily;
-		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
-	}
-	.uni-ai-icon {
-		font-family: uniAiIconFontFamily;
-	}
-	
-	.text {
-		color: var(--text-primary);
-		// line-height: 1.5; // TODO：解决 text 嵌套会重叠文本的问题
-		white-space: normal;
-		/* #ifndef APP */
-		word-break: break-all;
-		max-width: 100%;
-		/* #endif */
-	}
-	.strong {
-		font-weight: bold;
-	}
-	
-	.em {
-		font-style: italic;
-	}
-	
-	.del {
-		text-decoration-line: line-through;
-		color: var(--text-tertiary);
+	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
+	.list-box, .loging-icon, .think-content 
+	{
+		width: 100%;
+		margin: 5px 0;
 	}
 
-	.space {
-		height: 10px;
-	}
-	.link {
-		color: var(--accent-primary)!important;
-		// #ifdef WEB
-		cursor: pointer;
-		&:hover {
-			opacity: 0.8;
-		}
-		// #endif
-	}
-	// .image {
-	// 	max-width: 60%;
-	// }
-
-	.paragraph-box {
-		.text {
-			font-size: 18px;
-			// 自动换行
-			white-space: normal;
-			/* #ifndef APP */
-			max-width: 100%;
-			word-break: break-all;
-			/* #endif */
-		}
-	}
-	
-	.blockquote-box {
-		padding: 5px;
-		background: var(--bg-secondary);
-		border-left: 4px solid var(--border-primary);
-	}
-	.heading-box {
-		.text {
-			font-weight: 700;
-		}
-		.depth-1 {
-			font-size: 30px;
-			line-height: 36px;
-		}
-
-		.depth-2 {
-			font-size: 26px;
-			line-height: 34px;
-		}
-
-		.depth-3 {
-			font-size: 22px;
-			line-height: 32px;
-		}
-
-		.depth-4 {
-			font-size: 20px;
-			line-height: 30px;
-		}
-
-		.depth-5 {
-			font-size: 18px;
-			line-height: 28px;
-		}
-
-		.depth-6 {
-			font-size: 16px;
-			color: var(--text-tertiary);
-			line-height: 24px;
-		}
-	}
-
-	.hr {
+	.hr-box {
 		height: 1px;
 		background: var(--border-primary);
 		margin: 10px 0;
 	}
 
-	.list-box {
-		padding-left: 5px;
-		.list-content {
-			width: 100%;
-		}
-		.text {
-			line-height: 28px;
-		}
-		.list-item-content-box {
-			flex: 1;
-			.list {
-				margin-top: 0;
-			}
-		}
-		.list-item-br {
-			width: 100%;
-		}
-		.list-item-index {
-			width: 20px;
-			font-size: 14px;
-			color: var(--text-secondary);
-			&.unordered {
-				color: var(--text-primary);
-			}
-		}
-	}
-
-	.hr-box {
-		background-color: var(--border-primary);
-		height: 1px;
-	}
-
-	.table-box, .code-box, .hr-box, .paragraph-box, .blockquote-box, 
-	.heading-box, .list-box, .loging-icon, .think-content 
-	{
+	.block_quote_box {
+		border-left: 4px solid var(--border-primary);
 		width: 100%;
-		margin: 5px 0;
+		padding: 5px;
+		background: var(--bg-secondary);
+		margin-bottom: 10px;
 	}
-	.paragraph-box {
-		margin-top: 0;
-		margin-bottom: 0;
-	}
-
-	.space-box {
-		height: 15px;
-	}
-
-	.codespan {
-		color: var(--text-secondary);
-		background-color: var(--bg-secondary);
-		padding: 2px 4px;
-		border-radius: 5px;
-		font-size: 14px;
-	}
-
-
 </style>

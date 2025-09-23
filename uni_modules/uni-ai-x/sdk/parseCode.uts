@@ -25,14 +25,14 @@ import xslGrammar from '@/uni_modules/uni-ai-x/static/grammar/xsl.tmLanguage.jso
 // #endif
 // Import all grammar files - end
 
-import { createHighLighter, HighLighterOptions, CreateHighLighterRes, ILineTokens } from "@/uni_modules/uni-highlight"
-import { IToken } from '@/uni_modules/kux-marked'
-export { IToken }
+import { CreateHighLighter, HighLighterOptions, ILineTokens } from "@/uni_modules/uni-highlight"
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+export { MarkdownToken }
 type TmlFile = {
 	scopeName : string,
 	path : string
 }
-let uniCodeHighlighter = null as CreateHighLighterRes | null
+let uniCodeHighlighter = null as CreateHighLighter | null
 function getTmlFile(filePaths: TmlFile[]) {
 	let fileManager = uni.getFileSystemManager()
 	let res = {}
@@ -52,7 +52,7 @@ function getTmlFile(filePaths: TmlFile[]) {
 }
 
 export type ParseCodeRes = {
-	tokens: IToken[],
+	tokens: MarkdownToken[],
 	language: string,
 	error: string | null
 }
@@ -97,10 +97,12 @@ function initUniCodeHighlighter(): Promise<void> {
 			// console.log('tmlsList',tmlsList)
 			const tmls = getTmlFile(tmlsList)
 			// #endif
-			createHighLighter({ languages: tmls } as HighLighterOptions).then((res: CreateHighLighterRes) => {
-				uniCodeHighlighter = res
-				resolve()
-			})
+			// createHighLighter({ languages: tmls } as HighLighterOptions).then((res: CreateHighLighterRes) => {
+			// 	uniCodeHighlighter = res
+			// 	resolve()
+			// })
+			uniCodeHighlighter = new CreateHighLighter({ languages: tmls } as HighLighterOptions)
+			resolve()
 			// console.log(tmls)
 		} else {
 			resolve()
@@ -108,7 +110,7 @@ function initUniCodeHighlighter(): Promise<void> {
 	})
 }
 
-export function parseCode(codeSource: string,language: string): Promise<ParseCodeRes>{
+export function parseLineCode(codeSource: string,language: string): Promise<ParseCodeRes>{
 	return new Promise((resolve) => {
 		try {
 			// 判断这个language是否在支持的列表中
@@ -126,12 +128,13 @@ export function parseCode(codeSource: string,language: string): Promise<ParseCod
 				// TODO: 第三个参数暂时传 0 即可，但下一个版本的 uni-highlight，需要将上一次解析返回的 state 传入 用于提升性能
 				uniCodeHighlighter!.tokenizeLine(language, codeSource, 0).then((iLineToken: ILineTokens | null) => {
 					// console.log('代码解析耗时 ============', Date.now() - start)
-					const tokens = [] as Array<IToken>
+					const tokens = [] as MarkdownToken[]
 					iLineToken?.tokens.forEach((tk) => {
-						tokens.push({
+						const token: MarkdownToken = {
 							text: codeSource.substring(tk.startIndex, tk.endIndex),
-							className: tk.scopes[tk.scopes.length - 1].split(".")[0]
-						})
+							className: tk.scopes![tk.scopes!.length - 1].split(".")[0]
+						}
+						tokens.push(token)
 					})
 					// tokens.push({
 					// 	text: "\n",

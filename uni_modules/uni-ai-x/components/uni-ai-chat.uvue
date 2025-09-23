@@ -28,18 +28,18 @@
 					<!-- 最后一项，用于快速滚动到最底部 -->
 					<view style="height: 35px;" id="last-msg"></view>
 				</scroll-view>
-				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}" class="add-chat-btn" />
+				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden', position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)'}"/>
 				<!-- 滚动到最底部 -->
 				<view :style="{visibility: scrollInBottom || scrolling ? 'hidden' : 'visible'}" class="scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="20" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
-			<view class="bottom">
+			<view class="bottom" @click="markQA">
 				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
 					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
-					@focus="scrollToLastMsg(true)" :auto-height="true" @click="markQA" :disabled="isDemo"
+					@focus="scrollToLastMsg(true)" :auto-height="true" :disabled="isDemo" 
 				></textarea>
-				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" />
+				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" @click.stop />
 				<!-- 开启键盘时，底部背景高度为键盘高度 -->
 				<view class="keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
 			</view>
@@ -135,6 +135,14 @@
 	
 	const isDemo = ref(testMarkdownText.length > 0)
 	
+	// #ifdef WEB
+	setTimeout(() => {
+		if (isDemo.value) {
+			document.querySelector('.chat-input textarea')?.setAttribute('style', 'pointer-events: none;')
+		}
+	}, 0);
+	// #endif
+	
 	function markQA() {
 		if (isDemo.value) {
 			chatInputContent.value = "给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面"
@@ -146,14 +154,18 @@
 	}
 	
 	const setIsInScrollBottom = () => {
+		// #ifndef MP-WEIXIN
 		nextTick(() => {
 			const scrollList = uni.getElementById('msg-list')
-			const diff: number = scrollList!.scrollHeight - scrollList!.scrollTop - scrollList!.offsetHeight
-			scrollInBottom.value = diff < 30
-			if (scrollTouch.value || mouseScroll) {
-				autoToLastMsg = !(diff > 3)
+			if (scrollList != null) {
+				const diff: number = scrollList.scrollHeight - scrollList.scrollTop - scrollList.offsetHeight
+				scrollInBottom.value = diff < 30
+				if (scrollTouch.value || mouseScroll) {
+					autoToLastMsg = !(diff > 3)
+				}
 			}
 		})
+		// #endif
 	}
 	
 	watch(chatActiveId, () => {
@@ -287,6 +299,13 @@
 			}, 1000)
 		})
 		// #endif
+
+		// #ifdef MP-WEIXIN
+		const observer = uni.createIntersectionObserver(getCurrentInstance().proxy,{});
+		observer.relativeTo('#msg-list').observe('#last-msg', (result: any) => {
+			scrollInBottom.value = result.intersectionRatio > 0
+		})
+		// #endif
 	})
 </script>
 
@@ -387,12 +406,6 @@
 						margin: 0 30px;
 					}
 				}
-			}
-			.add-chat-btn {
-				position: absolute;
-				bottom: 5px;
-				left: 50%;
-				transform: translateX(-50%);
 			}
 			.scroll-to-bottom {
 				position: absolute;

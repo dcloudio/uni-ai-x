@@ -1,10 +1,9 @@
 import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, markdownElItem, Llm } from '@/uni_modules/uni-ai-x/types.uts';
-import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
+import {MarkdownToken} from '@/uni_modules/uni-cmark'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
-
 
 export type OnMessageOptions = {
 	type: string,
@@ -15,7 +14,7 @@ export type OnMessageOptions = {
 	markdownElList?: markdownElItem[]
 }
 
-type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[]) => void;
+type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
 type BailianOptionsOnChunkFn = (chunkObj : Chunk) => void
 type BailianOptionsOnErrorFn = (err : UTSJSONObject) => void
 type BailianOptionsOnDoneFn = (data : UTSJSONObject) => void
@@ -54,8 +53,6 @@ function uniGetDispatcher(taskName : string, fn : () => void) {
 }
 // extends WorkerTaskImpl
 type OnMessageFn = (message : any) => void;
-// 用3个不特殊标记 \u200c\u200b\u200d 表示渲染结束
-const uniAiXRenderEndMark = '\u200c\u200b\u200d'
 class RequestAiWorker {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
@@ -66,7 +63,7 @@ class RequestAiWorker {
 	onMessageFnList : OnMessageFn[] = [];
 	canRender : boolean = true
 	currentChatState : string = ''
-	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[]) => { }
+	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	delayTaskTimer : number = 0;
 	lockBeforeUpdateMdElList : boolean = false
 	oldMarkdownTokenList : MarkdownToken[] = []
@@ -74,7 +71,7 @@ class RequestAiWorker {
 	constructor() {
 		this.onMessageFnList = []
 		
-		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[]) => {
+		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
 			// console.log('beforeUpdateMdElList', newMarkdownTokenList)
 			// 清除延迟任务
 			if (this.delayTaskTimer != 0) {
@@ -82,34 +79,19 @@ class RequestAiWorker {
 			}
 			if (!this.lockBeforeUpdateMdElList && this.canRender) {
 				this.lockBeforeUpdateMdElList = true
-				if (this.currentChatState == 'completed') {
-					const lastItem = newMarkdownTokenList[newMarkdownTokenList.length - 1]
-					if (lastItem.raw?.includes(uniAiXRenderEndMark) == true) {
-						this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
-						// console.log('setRendered true 渲染已全部完成')
-						if (lastItem.raw == uniAiXRenderEndMark) {
-							newMarkdownTokenList.pop()
-						}
-					}
-				}
-
 				const newLength = newMarkdownTokenList.length
 				const oldLength = this.oldMarkdownTokenList.length
 				// 倒着检查，如果发现有不一样的，就更新。直到检查到有相同项为止
 				let checkDiffCount : number = 0
-				let checkDiff : CheckDiffFn = () => { }
+				let checkDiff : CheckDiffFn = () => {}
 				checkDiff = (index : number, checkDiffEndFn : CheckDiffEndFn) => {
 					if (index < 0 || index >= newLength) {
 						checkDiffEndFn()
 						return
 					}
-					if (
-						this.oldMarkdownTokenList[index].uniqueId != newMarkdownTokenList[index].uniqueId ||
-						this.oldMarkdownTokenList[index].type != newMarkdownTokenList[index].type ||
-						this.oldMarkdownTokenList[index].text != newMarkdownTokenList[index].text ||
-						this.oldMarkdownTokenList[index].tokens?.length != newMarkdownTokenList[index].tokens?.length ||
-						this.oldMarkdownTokenList[index].codeTokens?.length != newMarkdownTokenList[index].codeTokens?.length
-					) {
+					const oldMdToken = this.oldMarkdownTokenList[index]
+					const newMdToken = newMarkdownTokenList[index]
+					if (oldMdToken.isClose == 0) {
 						checkDiffCount++
 						// console.log('检查到不一样的', checkDiffCount)
 						this.oldMarkdownTokenList[index] = newMarkdownTokenList[index]
@@ -155,20 +137,14 @@ class RequestAiWorker {
 					})
 					// #endif
 				})
-
-				// const newItemsElList = newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
-				// this.emitOnMessage({
-				// 	type: "setMarkdownElList",
-				// 	data: {
-				// 		action: 'set',
-				// 		markdownElList: newItemsElList
-				// 	}
-				// })
+				if (isParseDone) {
+					this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
+				}
 			} else {
 				// console.log('beforeUpdateMdElList 暂停渲染')
 				// 创建延迟任务
 				this.delayTaskTimer = setTimeout(() => {
-					this.beforeUpdateMdElList(newMarkdownTokenList)
+					this.beforeUpdateMdElList(newMarkdownTokenList, isParseDone)
 				}, 1000)
 			}
 		}
@@ -228,8 +204,7 @@ class RequestAiWorker {
 			timer = setInterval(() => {
 				if (i >= testMarkdownText.length) {
 					clearInterval(timer)
-					this.msgBody += uniAiXRenderEndMark
-					this.parseMarkdown?.runTask(this.msgBody)
+					this.parseMarkdown?.runTask(this.msgBody, true)
 					// 设置状态为完成
 					this.currentChatState = 'completed'
 					this.emitOnMessage({
@@ -237,7 +212,7 @@ class RequestAiWorker {
 						data: 'completed'
 					})
 				} else {
-					const batchSize = 3
+					const batchSize = 10
 					const endIndex = Math.min(i + batchSize, testMarkdownText.length)
 					const newText = testMarkdownText.slice(i, endIndex)
 					// console.log('aiMsgItem.body', aiMsgItem.body, newText)
@@ -251,7 +226,7 @@ class RequestAiWorker {
 					// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
 					this.parseMarkdown?.runTask(this.msgBody)
 				}
-			}, 50)
+			}, 100)
 			return
 		}
 		
@@ -306,9 +281,7 @@ class RequestAiWorker {
 				if (!this.msgBody.endsWith('\n')) {
 					this.msgBody += '\n'
 				}
-				// \n 后面加特殊标记，方便知道已经解析完成
-				this.msgBody += uniAiXRenderEndMark
-				this.parseMarkdown?.runTask(this.msgBody)
+				this.parseMarkdown?.runTask(this.msgBody, true)
 			}
 		}).finally(() => {
 			// console.log('requestAlServer finally')
@@ -449,6 +422,7 @@ class RequestAiWorker {
 		} else if (message instanceof UTSJSONObject) {
 			const type = message.getString('type')
 			if (type == 'abortRequest') {
+				this.parseMarkdown!.userAbort = true
 				this.userAbort = true
 				this.requestTask?.abort()
 				// TODO： 由于Android平台 和 本地数据测试模式，abort不走 fail 这里冗余一次setCurrentChatState stop 逻辑

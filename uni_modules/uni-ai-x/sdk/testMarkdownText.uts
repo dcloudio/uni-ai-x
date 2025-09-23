@@ -1,11 +1,29 @@
-export default `
-# 五级标题示例
+const testMarkdownText = `PMP的全称是 **Project Management Professional**（项目管理专业人士）。  
 
+它是美国项目管理协会（**PMI**, Project Management Institute）颁发的全球认可的项目管理专业认证，广泛应用于各行各业，是项目管理领域最具权威的资格认证之一。  
+
+### 补充信息：
+- **认证要求**：通常需要具备项目管理经验、教育背景，并通过PMP考试。  
+- **考试内容**：基于PMI发布的《项目管理知识体系指南》（**PMBOK® Guide**）。  
+- **适用领域**：适用于任何行业的项目管理工作，如IT、建筑、医疗、金融等。  
+
+如果有其他相关问题（如备考、认证流程等），欢迎进一步提问！
+
+# 一级标题示例
 ## 二级标题
 ### 三级标题
 #### 四级标题
 ##### 五级标题
 
+## 引用示例
+
+> 这是一个引用块.
+
+> 可以有多行内容 1
+> 这是多行的第 2 行内容
+> 这是多行的第 3 行内容
+
+> 也可以嵌套其他Markdown元素，比如：**加粗** 或 [链接](http://www.dcloud.io)。
 ---
 
 ## 有序列表示例
@@ -20,11 +38,11 @@ export default `
 
 ## 简单表格示例
 
-| 姓名 | 年龄 | 职业 |
-|------|------|------|
-| 张三 | 25  | 工程师 |
-| 李四 | 30  | 设计师 |
-| 王五 | 28  | 产品经理 |
+| 姓名 | 年龄 | 职业 | 姓名 | 年龄 | 职业 |
+|------|------|------|------|------|------|
+| 张三 | 25  | 工程师 | 张三 | 25  | 工程师 |
+| 李四 | 30  | 设计师 | 李四 | 30  | 设计师 |
+| 王五 | 28  | 产品经理 | 王五 | 28  | 产品经理 |
 
 ---
 
@@ -35,18 +53,29 @@ export default `
 ## 简单JS代码示例
 
 \`\`\`javascript
-// 计算两个数的和
-function addNumbers(a, b) {
-  return a + b;
+function greet(name) {
+  return \`Hello, \${name}!\`;
 }
-
 // 使用示例
-console.log(addNumbers(3, 5)); // 输出: 8
+alert(greet('World'));
 \`\`\`
 
 ---
 
-以下是一些常用的 LaTeX 公式示例，涵盖不同复杂度和类型，供测试渲染效果使用：\n---\n\n### 1. **基础公式**\n\\[ E = mc^2 \\]\n\\[ a^2 + b^2 = c^2 \\]\n\\[ x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\]\n\n---\n\n### 2. **积分与微分**\n\\[ \\frac{d}{dx} \\ln(x) = \\frac{1}{x} \\]\n\\[ \\int x^2 \\, dx = \\frac{x^3}{3} + C \\]\n\\[ \\iiint_V \\rho \\, dV = M \\]\n\n---\n\n### 3. **矩阵与行列式**\n\\[\n\\begin{bmatrix}\n1 & 2 & 3 \\\\\n4 & 5 & 6 \\\\\n7 & 8 & 9\n\\end{bmatrix}\n\\]\n\\[\n\\det \\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix} = ad - bc\n\\]\n\n---\n\n### 4. **极限与级数**\n\\[ \\lim_{x \\to 0} \\frac{\\sin x}{x} = 1 \\]\n\\[ \\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6} \\]\n\\[ \\prod_{k=1}^{n} k = n! \\]\n\n---\n\n### 5. **分段函数**\n\\[\nf(x) = \n\\begin{cases} \nx & \\text{if } x \\geq 0, \\\\\n-x & \\text{otherwise}.\n\\end{cases}\n\\]\n\n---\n\n### 6. **概率与统计**\n\\[ P(A|B) = \\frac{P(B|A)P(A)}{P(B)} \\]\n\\[ \\sigma^2 = \\frac{1}{N} \\sum_{i=1}^N (x_i - \\mu)^2 \\]\n\n---\n\n### 7. **量子力学相关**\n\\[ \\hat{H} \\psi = E \\psi \\]\n\\[ [\\hat{x}, \\hat{p}] = i\\hbar \\]\n\n---\n\n### 8. **复杂公式（长表达式）**\n\\[\ne^{i\\pi} + 1 = 0\n\\]\n\\[\n\\nabla \\cdot \\mathbf{E} = \\frac{\\rho}{\\varepsilon_0}\n\\]\n\\[\n\\mathcal{L} = -\\frac{1}{4} F_{\\mu\\nu} F^{\\mu\\nu} + \\bar{\\psi}(i\\gamma^\\mu D_\\mu - m)\\psi\n\\]\n\n---\n\n### 9. **带编号的公式（需 \`amsmath\` 包）**\n\\[\n\\tag{1}\n\\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx = \\sqrt{\\pi}\n\\]\n\n---\n\n### 10. **化学方程式（需 \`mhchem\` 包）**\n\\[\n\\ce{2H2 + O2 -> 2H2O}\n\\]\n\n---\n\n如果需要更多特定类型的公式或符号（如张量、黑体符号、希腊字母等），可以进一步补充！
+以下是一些常用的 LaTeX 公式示例，涵盖不同复杂度和类型，供测试渲染效果使用：\n---\n\n### 1. **基础公式**\n\\[ E = mc^2 \\]\n\\[ a^2 + b^2 = c^2 \\]\n\\[ x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\]\n\n---\n\n### 2. **积分与微分**\n\\[ \\frac{d}{dx} \\ln(x) = \\frac{1}{x} \\]\n\\[ \\int x^2 \\, dx = \\frac{x^3}{3} + C \\]\n\\[ \\iiint_V \\rho \\, dV = M \\]\n\n---\n\n### 3. **矩阵与行列式**\n\\[\n\\begin{bmatrix}\n1 & 2 & 3 \\\\\n4 & 5 & 6 \\\\\n7 & 8 & 9\n\\end{bmatrix}\n\\]\n\\[\n\\det \\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix} = ad - bc\n\\]\n\n---\n\n### 4. **极限与级数**\n\\[ \\lim_{x \\to 0} \\frac{\\sin x}{x} = 1 \\]\n\\[ \\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6} \\]\n\\[ \\prod_{k=1}^{n} k = n! \\]\n\n---\n\n### 5. **分段函数**\n\\[\nf(x) = \n\\begin{cases} \nx & \\text{if } x \\geq 0, \\\\\n-x & \\text{otherwise}.\n\\end{cases}\n\\]\n\n---\n\n### 6. **概率与统计**\n\\[ P(A|B) = \\frac{P(B|A)P(A)}{P(B)} \\]\n\\[ \\sigma^2 = \\frac{1}{N} \\sum_{i=1}^N (x_i - \\mu)^2 \\]\n\n---\n\n### 7. **量子力学相关**\n\\[ \\hat{H} \\psi = E \\psi \\]\n\\[ [\\hat{x}, \\hat{p}] = i\\hbar \\]\n\n---\n\n### 8. **复杂公式（长表达式）**\n\\[\ne^{i\\pi} + 1 = 0\n\\]\n\\[\n\\nabla \\cdot \\mathbf{E} = \\frac{\\rho}{\\varepsilon_0}\n\\]\n\\[\n\\mathcal{L} = -\\frac{1}{4} F_{\\mu\\nu} F^{\\mu\\nu} + \\bar{\\psi}(i\\gamma^\\mu D_\\mu - m)\\psi\n\\]\n\n---\n\n### 9. **带编号的公式（需 \`amsmath\` 包）**\n\\[\n\\tag{1}\n\\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx = \\sqrt{\\pi}\n\\]\n\n---\n\n### 10. **化学方程式（需 \`mhchem\` 包）**\n\\[\n\\ce{2H2 + O2 -> 2H2O}\n\\]\n
+
+
+行内公式：$E=mc^2$
+
+块级公式：
+$$
+\sum_{i=1}^n i = \\frac{n(n+1)}{2}
+$$
+
+常见公式：
+- 二次方程求根公式：$x = \\frac{-b \pm \sqrt{b^2-4ac}}{2a}$
+- 欧拉公式：$e^{i\pi} + 1 = 0$
+- 积分：$\int_a^b f(x)dx$
 
 ---
 
@@ -68,3 +97,4 @@ graph TD
     K --> L[假期结束：<br>假期余额更新];
 \`\`\`
 `
+export default ''//testMarkdownText
