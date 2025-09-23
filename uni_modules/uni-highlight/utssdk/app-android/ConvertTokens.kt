@@ -4,7 +4,6 @@ data class ktToken(val start: Int, val end: Int, val token: String)
 data class ConvertedToken(val start: Int, val end: Int, val token: String)
 
 fun mapByteOffsetsToCharOffsets(text: String, tokens: Array<ktToken>): Array<ktToken> {
-  
 
     val byteToChar = mutableMapOf<Int, Int>()
     var byteIndex = 0

@@ -4,14 +4,16 @@
             <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666'"></uni-ai-icon>
             <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !hasDeepseekR1Model}">深度思考 (R1)</text>
         </view>
-        <view class="btn" :class="{disable: !canWebSearch, active: webSearch}" @click="setWebSearch">
+        <view class="btn search" :class="{disable: !canWebSearch, active: webSearch}" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
             <text class="text" :class="{disable: !canWebSearch, active: webSearch}">联网搜索</text>
         </view>
+        <!-- 上传图片 -->
+        <uni-icons v-if="canParseImg" @click="uploadImage" class="upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
         <view v-if="aiState == 'processing'" class="stop active" @click="stop">
             <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
         </view>
-        <view v-else class="send" @click="send" :class="{active: inputContent.length > 0}">
+        <view v-else class="send" @click="send" :class="{active: inputContent.length > 0 && allUploaded}" :title="allUploaded ? '发送' : '请等待图片上传完成'">
             <uni-ai-icon code="e627" color="#FFF" size="20"></uni-ai-icon>
         </view>
     </view>
@@ -19,10 +21,11 @@
 <script lang="uts" setup>
 import uniAi, { uiTheme, MsgItem } from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, providerNameList, type LLMModel} from '../config';
-
+import { ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
 const canWebSearchLLmList: string[] = [];
 const canThinkingLLmList: string[] = [];
 let hasDeepseekR1Model = ref<boolean>(false);
+let hasDoubaoSeed16Model = ref<boolean>(false);
 llmModelMap.forEach((provider,providerName) => {
     provider.models.forEach(model => {
         if (model.webSearch == true) {
@@ -33,6 +36,9 @@ llmModelMap.forEach((provider,providerName) => {
         }
         if (model.name == 'deepseek-r1') {
             hasDeepseekR1Model.value = true;
+        }
+        if (model.name == 'doubao-seed-1.6') {
+            hasDoubaoSeed16Model.value = true;
         }
     });
 });
@@ -60,6 +66,10 @@ watch((): string => {
 }, (newValue: string) => {
     inputContent.value = newValue
 })
+
+const canParseImg = computed<boolean>(() => {
+    return true// currentLLMModel.value.canParseImg ?? false;
+});
 
 const llmModel = computed<string>(() => {
     return uniAi.llm.model
@@ -90,8 +100,20 @@ const stop = async () => {
     await nextTick()
 };
 
+const allUploaded = computed<boolean>(() => {
+    return uniAi.imgList.every(img => img.uploadPercent == 100);
+});
+
 const send = async () => {
     if (inputContent.value.length == 0) {
+        return;
+    }
+    if (!allUploaded.value) {
+        uni.showToast({
+            title: '请等待图片上传完成',
+            duration: 3000,
+            icon: 'none'
+        });
         return;
     }
     uniAi.sendMsg(inputContent.value)
@@ -126,6 +148,89 @@ const setWebSearch = () => {
     }
 };
 
+function uploadImage() {
+    // 判断当前大语言模型是否支持，如果不支持提示切换
+    if (currentLLMModel.value?.image != true) {
+        if (hasDoubaoSeed16Model.value) {
+            uni.showModal({
+                title: '提示',
+                content: '当前模型不支持图片理解，是否切换到 doubao-seed-1.6 模型？',
+                success: (res) => {
+                    if (res.confirm) {
+                        uniAi.llm.model = 'doubao-seed-1.6';
+                        uploadImage();
+                    }
+                }
+            });
+            return;
+        } else {
+            uni.showToast({
+                title: '请在 config.json 中配置支持图片理解的模型',
+                duration: 3000,
+                icon: 'none'
+            });
+            return;
+        }
+    }
+
+    if (uniAi.imgList.length >= 9) {
+        uni.showToast({
+            title: '最多上传9张图片',
+            duration: 3000,
+            icon: 'none'
+        });
+        return;
+    }
+	
+    uniCloud.chooseAndUploadFile({
+        sourceType: ['album','camera'],
+        count: 9 - uniAi.imgList.length,
+        sizeType: ['compressed'],
+        type: 'image',
+        onChooseFile(res: UniCloudChooseAndUploadFileResult) {
+            // console.log(res)
+            const imgList: ImgItem[] = res.tempFiles.map<ImgItem>((file: UniCloudChooseAndUploadFileItem): ImgItem=> {
+                return {
+                    path: file.path,
+                    name: file.name,
+                    size: '0B',
+                    type: 'image',
+                    uploadPercent: 0
+                }
+            });
+            uniAi.imgList.push(...imgList);
+        },
+        onUploadProgress(res: UniCloudChooseAndUploadFileProgressEvent) {
+            // 根据 tempFilePath 找到对应的 index
+            const index = uniAi.imgList.findIndex(img => img.path == res.tempFilePath);
+            if (index != -1) {
+                const currentImg = uniAi.imgList[index]!;
+                currentImg.size = res.total > 1024 ? Math.floor(res.total / 1024) + 'KB' : Math.floor(res.total / 1024) + 'B';
+                currentImg.uploadPercent = Math.floor(res.loaded / res.total * 100);
+            } else {
+                // console.error('上传图片进度设置失败，tempFilePath 不存在', res.tempFilePath, uniAi.imgList.length)
+            }
+        }
+    }).then((res: UniCloudChooseAndUploadFileResult) => {
+        // console.log('上传图片完成', res)
+        res.tempFiles.forEach((file: UniCloudChooseAndUploadFileItem) => {
+            // console.log(file)
+            const index = uniAi.imgList.findIndex(img => img.path == file.path);
+            if (index != -1) {
+                uniCloud.getTempFileURL({
+                    fileList: [file.url!],
+                }).then((res: UniCloudGetTempFileURLResult) => {
+                    // console.log(res.fileList[0].tempFileURL)
+                    uniAi.imgList[index]!.path = res.fileList[0].tempFileURL;
+                })
+            }
+        })
+    })
+		.catch((error)=>{
+			console.error('chooseAndUploadFile error', error)
+		})
+}
+
 onMounted(() => {
     // #ifdef WEB
     document.addEventListener('keydown', async (e) => {
@@ -153,12 +258,12 @@ onMounted(() => {
 
 .input-tool-bar {
     flex-direction: row;
-    justify-content: space-between;
+    align-items: center;
     padding:5px 0;
     .btn {
         flex-direction: row;
         align-items: center;
-        padding: 0 10px;
+        padding: 5px 10px;
         border-radius: 30px;
         margin-right: 5px;
         background-color: var(--input-btn-bg);
@@ -183,8 +288,10 @@ onMounted(() => {
             color: var(--text-disabled);
         }
     }
-    .stop, .send {
-        margin-left: auto;
+    .search {
+        margin-right: auto;
+    }
+   .stop, .send {
         background-color: var(--accent-secondary);
         width: 30px;
         height: 30px;
@@ -196,7 +303,7 @@ onMounted(() => {
         // #endif
         // #ifdef WEB
         cursor: pointer;
-        &:hover {
+        &.active:hover {
             background-color: var(--accent-primary);
         }
         &:active {
@@ -206,6 +313,15 @@ onMounted(() => {
         &.active {
             background-color: var(--accent-primary);
         }
+    }
+    .upload-image-btn {
+        margin-right: 15px;
+        // #ifdef WEB
+        cursor: pointer;
+        &:hover {
+            filter: brightness(0.8);
+        }
+        // #endif
     }
 }
 </style>

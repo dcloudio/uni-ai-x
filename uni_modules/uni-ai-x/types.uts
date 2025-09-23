@@ -1,9 +1,12 @@
-import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
+import {MarkdownToken} from '@/uni_modules/uni-cmark'
 
 export type LLMModel = {
 	name: string,
 	thinking?: boolean,
-	webSearch?: boolean
+	webSearch?: boolean,
+	image?: boolean,
+	video?: boolean,
+	audio?: boolean
 }
 
 export type Provider = {
@@ -67,7 +70,7 @@ export type Chunk = {
 	DONE?: boolean,
 }
 
-export type markdownElItem = {
+export type MarkdownElItem = {
 	uniqueId: string,
 	type: string,
 	datasList: MarkdownToken[][]
@@ -76,6 +79,7 @@ export type markdownElItem = {
 export type MsgItem = {
 	_id: string
 	body: string
+	img_url_list?: string[]
 	thinkContent?: string
 	from_uid: string
 	state: number
@@ -84,7 +88,7 @@ export type MsgItem = {
 	about_msg_id?: string
 	// 所属对话id
 	chat_id: string,
-	markdownElList: markdownElItem[]
+	markdownElList: MarkdownElItem[]
 	error_msg?: string
 	rendered: boolean
 }
@@ -92,6 +96,7 @@ export type BaseMsgItem = {
 	body: string
 	from_uid: string
 	about_msg_id?: string
+	img_url_list?: string[]
 }
 
 // 消息对象，含：消息列表、是否还有更多消息、是否正在加载更多消息、加载更多消息方法
@@ -102,12 +107,27 @@ export type Msg = {
 	loadMore: () => void
 }
 
+export type TextParse = {
+	type: 'text',
+	text: string
+}
+
+export type ImageUrl = {
+	url: string
+}
+export type ImgParse = {
+	type: 'image_url',
+	image_url: ImageUrl
+}
+
+// 多模态内容
+export type MultiModalContent = (TextParse | ImgParse)[]
 // 请求ai对话消息
 export type RequestAiCoMessage = {
 	// 来自谁：用户或ai
 	role : "user" | "assistant"
 	// 内容
-	content : string
+	content : string | MultiModalContent
 }
 
 // 用户
@@ -132,4 +152,13 @@ export type Setting = {
 	language: "zh-CN" | "en-US"
 	// 大模型
 	llm: Llm
+}
+
+// 图片
+export type ImgItem = {
+	path: string
+	name: string
+	size: string
+	type: string
+	uploadPercent: number
 }

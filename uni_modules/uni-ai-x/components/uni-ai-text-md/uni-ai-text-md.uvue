@@ -1,0 +1,142 @@
+<template>
+	<text :decode="true" class="text" :class="itemType +  '-box' + (itemType == 'list' ? ' list-content' : '')">
+		<text v-for="(data, index) in datas" :key="index"
+			:class="data.className ?? ''" 
+			@click="toLink(data.href)"
+			:decode="true"
+		>{{data.text}}</text>
+	</text>
+</template>
+
+<script setup>
+	import { MarkdownToken} from '@/uni_modules/uni-cmark';
+	type UniAiTextMdProps = {
+		datas: MarkdownToken[]
+		itemType: string
+	}
+
+	const props = defineProps({
+		datas: {
+			type: Array as PropType<MarkdownToken[]>,
+			required: true
+		},
+		itemType: {
+			type: String,
+			required: true
+		}
+	})
+	
+	const toLink = (url: string | null) => {
+		if (url != null && url!.length > 0) {
+			// console.error('url', url)
+			uni.navigateTo({
+				"url":"/uni_modules/uni-ai-x/pages/common/webview/webview?url="+url,
+				fail:e=>{
+					console.error(e);
+				}
+			})
+		}
+	}
+</script>
+
+<style lang="scss">
+	// 引用scss
+	@import './uni-ai-text-md.scss';
+	// 元素的样式
+	@font-face {
+		// #ifdef WEB
+		font-display: swap;
+		// #endif
+		font-family: uniAiIconFontFamily;
+		src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
+	}
+	.uni-ai-icon {
+		font-family: uniAiIconFontFamily;
+	}
+	// .image {
+	// 	max-width: 60%;
+	// }
+
+	.paragraph-box {
+		.text {
+			font-size: 18px;
+			// 自动换行
+			white-space: normal;
+			/* #ifndef APP */
+			max-width: 100%;
+			word-break: break-all;
+			/* #endif */
+		}
+	}
+	
+	.heading-box {
+		width: 100%;
+		margin: 5px 0;
+		.text {
+			font-weight: 700;
+		}
+		.depth-1 {
+			font-size: 30px;
+			line-height: 36px;
+		}
+
+		.depth-2 {
+			font-size: 26px;
+			line-height: 34px;
+		}
+
+		.depth-3 {
+			font-size: 22px;
+			line-height: 32px;
+		}
+
+		.depth-4 {
+			font-size: 20px;
+			line-height: 30px;
+		}
+
+		.depth-5 {
+			font-size: 18px;
+			line-height: 28px;
+		}
+
+		.depth-6 {
+			font-size: 16px;
+			color: var(--text-tertiary);
+			line-height: 24px;
+		}
+	}
+
+	.hr {
+		height: 1px;
+		background: var(--border-primary);
+		margin: 10px 0;
+	}
+
+	.list-box {
+		padding-left: 5px;
+		.list-content {
+			width: 100%;
+		}
+		.text {
+			line-height: 28px;
+		}
+		.list-item-content-box {
+			flex: 1;
+			.list {
+				margin-top: 0;
+			}
+		}
+		.list-item-br {
+			width: 100%;
+		}
+		.list-item-index {
+			width: 20px;
+			font-size: 14px;
+			color: var(--text-secondary);
+			&.unordered {
+				color: var(--text-primary);
+			}
+		}
+	}
+</style>

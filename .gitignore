@@ -17,3 +17,4 @@ logs
 /uni_modules/uni-ai-x/static/app-harmony/html/
 !*/.gitkeep
 platformConfig.json
+package.json

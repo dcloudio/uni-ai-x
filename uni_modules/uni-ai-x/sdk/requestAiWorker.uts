@@ -1,21 +1,20 @@
 import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
-import { Chunk, Provider, RequestAiCoMessage, markdownElItem, Llm } from '@/uni_modules/uni-ai-x/types.uts';
-import { NodesToken as MarkdownToken } from '@/uni_modules/kux-marked';
+import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm } from '@/uni_modules/uni-ai-x/types.uts';
+import {MarkdownToken} from '@/uni_modules/uni-cmark'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
-
-
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 export type OnMessageOptions = {
 	type: string,
 	data?: string | boolean | number 
 	action?: 'set' | 'update' | 'remove' | 'add',
 	index?: number,
 	size?: number,
-	markdownElList?: markdownElItem[]
+	markdownElList?: MarkdownElItem[]
 }
 
-type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[]) => void;
+type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
 type BailianOptionsOnChunkFn = (chunkObj : Chunk) => void
 type BailianOptionsOnErrorFn = (err : UTSJSONObject) => void
 type BailianOptionsOnDoneFn = (data : UTSJSONObject) => void
@@ -41,40 +40,28 @@ export type RequestAiOptions = {
 	llm: Llm
 }
 
-// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
-function uniGetDispatcher(taskName : string, fn : () => void) {
-	// #ifdef APP-ANDROID
-	UTSAndroid.getDispatcher(taskName).async((_) => {
-		fn()
-	})
-	// #endif
-	// #ifndef APP-ANDROID
-	fn()
-	// #endif
-}
 // extends WorkerTaskImpl
 type OnMessageFn = (message : any) => void;
-// 用3个不特殊标记 \u200c\u200b\u200d 表示渲染结束
-const uniAiXRenderEndMark = '\u200c\u200b\u200d'
 class RequestAiWorker {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
 	parseMarkdown : ParseMarkdown | null = null
 	// 解析后的 markdown 元素列表
-	markdownElList : markdownElItem[] = []
+	markdownElList : MarkdownElItem[] = []
 	onMessageFnList : OnMessageFn[] = [];
 	canRender : boolean = true
 	currentChatState : string = ''
-	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[]) => { }
+	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	delayTaskTimer : number = 0;
 	lockBeforeUpdateMdElList : boolean = false
 	oldMarkdownTokenList : MarkdownToken[] = []
 	userAbort : boolean = false
+	hasThinkContent : boolean = false
 	constructor() {
 		this.onMessageFnList = []
 		
-		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[]) => {
+		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
 			// console.log('beforeUpdateMdElList', newMarkdownTokenList)
 			// 清除延迟任务
 			if (this.delayTaskTimer != 0) {
@@ -82,34 +69,19 @@ class RequestAiWorker {
 			}
 			if (!this.lockBeforeUpdateMdElList && this.canRender) {
 				this.lockBeforeUpdateMdElList = true
-				if (this.currentChatState == 'completed') {
-					const lastItem = newMarkdownTokenList[newMarkdownTokenList.length - 1]
-					if (lastItem.raw?.includes(uniAiXRenderEndMark) == true) {
-						this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
-						// console.log('setRendered true 渲染已全部完成')
-						if (lastItem.raw == uniAiXRenderEndMark) {
-							newMarkdownTokenList.pop()
-						}
-					}
-				}
-
 				const newLength = newMarkdownTokenList.length
 				const oldLength = this.oldMarkdownTokenList.length
 				// 倒着检查，如果发现有不一样的，就更新。直到检查到有相同项为止
 				let checkDiffCount : number = 0
-				let checkDiff : CheckDiffFn = () => { }
+				let checkDiff : CheckDiffFn = () => {}
 				checkDiff = (index : number, checkDiffEndFn : CheckDiffEndFn) => {
 					if (index < 0 || index >= newLength) {
 						checkDiffEndFn()
 						return
 					}
-					if (
-						this.oldMarkdownTokenList[index].uniqueId != newMarkdownTokenList[index].uniqueId ||
-						this.oldMarkdownTokenList[index].type != newMarkdownTokenList[index].type ||
-						this.oldMarkdownTokenList[index].text != newMarkdownTokenList[index].text ||
-						this.oldMarkdownTokenList[index].tokens?.length != newMarkdownTokenList[index].tokens?.length ||
-						this.oldMarkdownTokenList[index].codeTokens?.length != newMarkdownTokenList[index].codeTokens?.length
-					) {
+					const oldMdToken = this.oldMarkdownTokenList[index]
+					const newMdToken = newMarkdownTokenList[index]
+					if (oldMdToken.isClose == 0) {
 						checkDiffCount++
 						// console.log('检查到不一样的', checkDiffCount)
 						this.oldMarkdownTokenList[index] = newMarkdownTokenList[index]
@@ -155,20 +127,14 @@ class RequestAiWorker {
 					})
 					// #endif
 				})
-
-				// const newItemsElList = newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
-				// this.emitOnMessage({
-				// 	type: "setMarkdownElList",
-				// 	data: {
-				// 		action: 'set',
-				// 		markdownElList: newItemsElList
-				// 	}
-				// })
+				if (isParseDone) {
+					this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
+				}
 			} else {
 				// console.log('beforeUpdateMdElList 暂停渲染')
 				// 创建延迟任务
 				this.delayTaskTimer = setTimeout(() => {
-					this.beforeUpdateMdElList(newMarkdownTokenList)
+					this.beforeUpdateMdElList(newMarkdownTokenList, isParseDone)
 				}, 1000)
 			}
 		}
@@ -177,7 +143,7 @@ class RequestAiWorker {
 	//实现入口函数
 	entry() { }
 	// 转换
-	token2el(token : MarkdownToken) : markdownElItem {
+	token2el(token : MarkdownToken) : MarkdownElItem {
 		return {
 			uniqueId: token.uniqueId!,
 			type: token.type!,
@@ -186,10 +152,25 @@ class RequestAiWorker {
 	}
 	// 子线程请求AI
 	onChunkFn(chunkObj : Chunk) {
+		let reasoningContent: null | string = null
 		// console.log('onChunk', chunkObj)
-		const content = chunkObj.choices?.[0]?.delta?.content
-		// console.log('content', content)
-		const reasoningContent = chunkObj.choices?.[0]?.delta?.reasoning_content
+		let content = chunkObj.choices?.[0]?.delta?.content
+		// 特殊模型，例如豆包，深度思考内容在 content 的<think>标签中，需要单独处理
+		if (this.msgBody == '' && content == "<think>") {
+			this.hasThinkContent = true
+			content = ''
+		}
+		if (this.hasThinkContent){
+			if (content != '</think>') {
+				reasoningContent = content
+			} else {
+				this.hasThinkContent = false
+			}
+			content = ''
+		}
+		// end - 处理 think 标签
+		
+		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		if (content != null && content.length > 0) {
 			this.msgBody += content
 			this.emitOnMessage({
@@ -226,10 +207,10 @@ class RequestAiWorker {
 			let i = 0
 			let timer: number = 0
 			timer = setInterval(() => {
-				if (i >= testMarkdownText.length) {
+				if (this.userAbort || i >= testMarkdownText.length) {
 					clearInterval(timer)
-					this.msgBody += uniAiXRenderEndMark
-					this.parseMarkdown?.runTask(this.msgBody)
+					this.parseMarkdown!.runTask(this.msgBody)
+					this.parseMarkdown!.msgReceiveDone = true
 					// 设置状态为完成
 					this.currentChatState = 'completed'
 					this.emitOnMessage({
@@ -237,7 +218,7 @@ class RequestAiWorker {
 						data: 'completed'
 					})
 				} else {
-					const batchSize = 3
+					const batchSize = 10
 					const endIndex = Math.min(i + batchSize, testMarkdownText.length)
 					const newText = testMarkdownText.slice(i, endIndex)
 					// console.log('aiMsgItem.body', aiMsgItem.body, newText)
@@ -251,7 +232,7 @@ class RequestAiWorker {
 					// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
 					this.parseMarkdown?.runTask(this.msgBody)
 				}
-			}, 50)
+			}, 100)
 			return
 		}
 		
@@ -306,9 +287,8 @@ class RequestAiWorker {
 				if (!this.msgBody.endsWith('\n')) {
 					this.msgBody += '\n'
 				}
-				// \n 后面加特殊标记，方便知道已经解析完成
-				this.msgBody += uniAiXRenderEndMark
-				this.parseMarkdown?.runTask(this.msgBody)
+				this.parseMarkdown!.runTask(this.msgBody)
+				this.parseMarkdown!.msgReceiveDone = true
 			}
 		}).finally(() => {
 			// console.log('requestAlServer finally')
@@ -442,13 +422,14 @@ class RequestAiWorker {
 			// 拷贝主线程的数据，然后给子线程使用
 			const messageCopy : RequestAiOptions | UTSJSONObject = JSON.parse<RequestAiOptions>(JSON.stringify(message))!
 			if (messageCopy instanceof RequestAiOptions) {
-				uniGetDispatcher("io", () => {
+				utils.uniGetDispatcher("io", () => {
 					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm);
 				});
 			}
 		} else if (message instanceof UTSJSONObject) {
 			const type = message.getString('type')
 			if (type == 'abortRequest') {
+				this.parseMarkdown!.userAbort = true
 				this.userAbort = true
 				this.requestTask?.abort()
 				// TODO： 由于Android平台 和 本地数据测试模式，abort不走 fail 这里冗余一次setCurrentChatState stop 逻辑
@@ -476,7 +457,7 @@ class RequestAiWorker {
 		// console.log('emitOnMessage 拷贝耗时', Date.now() - startTime)
 		this.onMessageFnList.forEach(fn => {
 			// 在主线程执行回调函数
-			uniGetDispatcher("main", () => {
+			utils.uniGetDispatcher("main", () => {
 				fn(messageCopy);
 			});
 		});
@@ -490,41 +471,43 @@ export default RequestAiWorker;
 
 // 解析流式数据
 function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
-	const chunkText : string = new TextDecoder().decode(chunkData)
-	// console.error('chunkText======', chunkText)
-	const lines : string[] = chunkText.trim().split('\n\n')
-	// console.error('lines======', lines, lines.length)
-	lines.forEach((line : string) => {
-		line.split('\n').forEach((lineItem : string) => {
-			const keyValue : string[] = lineItem.split(':')
-			const key : string = keyValue[0]
-			const value : string = keyValue.slice(1).join(':')
-			if (key == 'data') {
-				if (value == " [DONE]") {
+	utils.uniGetDispatcher("io", () => {
+		const chunkText : string = new TextDecoder().decode(chunkData)
+		// console.error('chunkText======', chunkText)
+		const lines : string[] = chunkText.trim().split('\n\n')
+		// console.error('lines======', lines, lines.length)
+		lines.forEach((line : string) => {
+			line.split('\n').forEach((lineItem : string) => {
+				const keyValue : string[] = lineItem.split(':')
+				const key : string = keyValue[0]
+				const value : string = keyValue.slice(1).join(':')
+				if (key == 'data') {
+					if (value == " [DONE]") {
+						doneCallback()
+						return
+					}
+					let chunk : Chunk | null = null
+					try {
+						chunk = JSON.parse<Chunk>(value) as Chunk
+					} catch (e) {
+						console.error('JSON.parse error', e, 'value:', value)
+					}
+					// console.log('chunk',chunk)
+					callback(chunk ?? {} as Chunk);
+				} else if (key == '{"error"') {
+					// console.error('parseChunkData error', {key,value})
+					let info : UTSJSONObject = {}
+					try {
+						info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
+					} catch (e) {
+						console.error('JSON.parse error', e, 'value:', value)
+					}
+					errorCallback(info.error! as UTSJSONObject)
 					doneCallback()
-					return
+				} else {
+					callback({} as Chunk);
 				}
-				let chunk : Chunk | null = null
-				try {
-					chunk = JSON.parse<Chunk>(value) as Chunk
-				} catch (e) {
-					console.error('JSON.parse error', e, 'value:', value)
-				}
-				// console.log('chunk',chunk)
-				callback(chunk ?? {} as Chunk);
-			} else if (key == '{"error"') {
-				// console.error('parseChunkData error', {key,value})
-				let info : UTSJSONObject = {}
-				try {
-					info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
-				} catch (e) {
-					console.error('JSON.parse error', e, 'value:', value)
-				}
-				errorCallback(info.error! as UTSJSONObject)
-				doneCallback()
-			} else {
-				callback({} as Chunk);
-			}
+			})
 		})
 	})
 }

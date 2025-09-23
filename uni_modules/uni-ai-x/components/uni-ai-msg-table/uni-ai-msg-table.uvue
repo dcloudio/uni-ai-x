@@ -1,109 +1,117 @@
 <template>
-	<!-- #ifdef APP-ANDROID -->
-	<table-android :tableNode="props.tableNode"></table-android>
-	<!-- #endif -->
-	<!-- #ifndef APP-ANDROID -->
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
-		<uni-table :stripe="false" :columns="columns" :data="tableData"></uni-table>
+		<scroll-view class="table-box" :scroll-x="true" direction="horizontal" :show-scrollbar="isHorizontalScroll"
+			:style="{width: tableWrapperWidth + 'px'}">
+			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="table-row">
+				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">
+					<text class="cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': tableAligns[cellIndex]}">
+						<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
+							:class="(rowIndex == 0 ? 'header-text' : 'cell-text') + ' ' + cellItem.type"
+							>{{ cellItem.text }}</text>
+					</text>
+				</template>
+			</view>
+		</scroll-view>
 	</view>
-	<!-- #endif -->
 </template>
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk';
-	import {NodesToken as MarkdownToken, TableCell} from '@/uni_modules/kux-marked'
-	//#ifdef APP-ANDROID
-	// 导入table-android组件
-	import tableAndroid from './table-android'
-	//#endif
+	import { MarkdownToken, Align } from '@/uni_modules/uni-cmark'
+	const props = defineProps<{ tableNode : MarkdownToken }>()
 	
-	type UniAiMsgTableProps = {
-		tableNode: MarkdownToken
-	}
-	
-	const props = defineProps<UniAiMsgTableProps>()
-	//#ifndef APP-ANDROID
-	const columns = ref<UTSJSONObject[]>([])
-	const tableData = reactive<UTSJSONObject[]>([])
-	const updateTimer = ref<number>(0)
-	
-	const nodeToTableInfo = (node: MarkdownToken): UTSJSONObject => {
-		const tableColumns: UTSJSONObject[] = []
-		node.header?.forEach((cell: TableCell) => {
-			tableColumns.push({
-				dataKey: cell.text,
-				// 内容中的 * 要去除，暂不实现表格内的样式
-				title: cell.text.replace(/\*/g, ''),
-				align: cell.align ?? 'center'
-			})
-		})
-		const tableData: UTSJSONObject[] = []
-		node.rows?.forEach((row: TableCell[]) => {
-			const rowData: UTSJSONObject = {}
-			let hasValidData = false
-			
-			row.forEach((cell: TableCell, index: number) => {
-				// 内容中的 * 要去除，暂不实现表格内的样式
-				let text = cell.text.replace(/\*/g, '')
-				if (text != '') {
-					rowData[tableColumns![index]!.dataKey!] = text
-					hasValidData = true
-				} else {
-					// 空单元格设置为空字符串，而不是跳过
-					rowData[tableColumns![index]!.dataKey!] = ''
-				}
-			})
-			
-			// 只有当行中有有效数据时才添加到表格中
-			if (hasValidData) {
-				tableData.push(rowData)
-			}
-		})
-		return {
-			columns: tableColumns,
-			data: tableData
+	const tableAligns = computed(() : Align[] => {
+		return (props.tableNode as MarkdownToken)?.align ?? ['left', 'left', 'left']
+	})
+
+	const columnWidths = ref<number[]>([])
+	// 表格数据
+	const tableData = ref<MarkdownToken[]>([])
+	// 计算表格总宽度（像素值）
+	const tableWidth = ref<number>(0)
+	watch(() : MarkdownToken => props.tableNode as MarkdownToken, (tableNode : MarkdownToken) => {
+		tableData.value = tableNode.tokens ?? []
+		// 拿到所有表格宽度
+		const _columnWidths : number[] = []
+		// 总列数
+		const columnCount = tableData.value[0].tokens?.length ?? 0
+		for (let i = 0; i < columnCount; i++) {
+			const _columnWidth : number = tableData.value.map((row) : number => row.tokens?.[i].width ?? 0).reduce((max, width) => Math.max(max, width), 0)
+			_columnWidths.push(Math.min(_columnWidth + 16, 300))
 		}
-	}
-	
-	watch((): MarkdownToken => {
-		return props.tableNode as MarkdownToken
-	}, (tableNode: MarkdownToken) => {
-		const newTableInfo:UTSJSONObject = nodeToTableInfo(tableNode)
-		// 表头只初始化一次
-		if (columns.value.length == 0) {
-			columns.value = newTableInfo.columns as UTSJSONObject[]
+		columnWidths.value = _columnWidths
+		tableWidth.value = columnWidths.value.reduce((sum, width) => sum + width, 0)
+	}, { immediate: true })
+
+	const maxTableWidth = ref(0)
+	onMounted(() => {
+		const proxy = getCurrentInstance()?.proxy
+		function setMaxTableWidth() {
+			uni.createSelectorQuery().in(proxy).select('.uni-ai-msg-table')
+				.boundingClientRect().exec((ret) => {
+					if (ret.length == 0) return
+					maxTableWidth.value = (ret[0] as NodeInfo).width!
+				})
 		}
-		// 对比差异，只添加新的行避免闪烁
-		const newData: UTSJSONObject[] = newTableInfo.data as UTSJSONObject[]
-		const oldDataLength = tableData.length
-		// 只添加新增的行
-		if (oldDataLength < newData.length){
-			const newDataSlice = newData.slice(oldDataLength)
-			newDataSlice.forEach((item: UTSJSONObject) => {
-				tableData.push(item)
-			})
-		} else if (oldDataLength == newData.length && oldDataLength > 0) {
-			// 相等的时候更新最后一项
-			tableData[oldDataLength - 1] = newData[oldDataLength - 1]
-		}
-		
-	}, { deep: true, immediate: true })
-	//#endif
+		// 设置表格最大宽度
+		setMaxTableWidth()
+		//#ifdef H5
+		window.addEventListener('resize', () => { setMaxTableWidth() })
+		//#endif
+	})
+	// 是否需要横向滚动
+	const isHorizontalScroll = computed(() => {
+		return tableWidth.value > maxTableWidth.value
+	})
+	// table-box 的宽度，如果tableWidth大于屏幕宽度，则设置为屏幕宽度，否则设置为tableWidth
+	const tableWrapperWidth = computed(() => {
+		return isHorizontalScroll.value ? maxTableWidth.value : tableWidth.value
+	})
 </script>
 
 <style lang="scss">
-.ui-theme-light {
-	--uni-table-bg-color: #fff;
-	--uni-table-border-color: #ebeef5;
-	--uni-table-color: #333;
-}
-.ui-theme-dark {
-	--uni-table-bg-color: #25282c;
-	--uni-table-border-color: #333;
-	--uni-table-color: #fff;
-}
-.uni-ai-msg-table {
-	width: 100%;
-	margin-bottom: 10px;
-}
+	// 引用scss
+	@import '@/uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md.scss';
+	.uni-ai-msg-table {
+		width: 100% !important;
+		margin-bottom: 10px;
+
+		.table-box {
+			width: 100% !important;
+			background-color: #ffffff;
+			margin: 16px 0;
+
+			.table-row {
+				flex-direction: row;
+				border-bottom: 1px solid #e0e0e0;
+				background-color: #ffffff;
+				align-self: flex-start;
+				justify-content: center;
+				align-items: center;
+				.cell {
+					// 通用文字样式
+					flex-shrink: 0;
+					padding: 12px 8px;
+					min-height: 48px;
+					line-height: 1.4;
+					height: 100%;
+					// 表头特殊样式
+					.header-text {
+						font-size: 14px;
+						font-weight: bold;
+						color: #333333;
+					}
+					// 数据特殊样式
+					.cell-text {
+						font-size: 13px;
+						color: #666666;
+						&.code {
+							padding: 1px 5px;
+							border-radius: 10px;
+						}
+					}
+				}
+			}
+		}
+	}
 </style>

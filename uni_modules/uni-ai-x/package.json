@@ -1,7 +1,7 @@
 {
   "id": "uni-ai-x",
   "displayName": "uni-ai x",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "一个开源的、全平台的、原生的、云端一体的ai聊天套件",
   "keywords": [
     "uni-ai-x",
@@ -13,7 +13,7 @@
   "engines": {
     "HBuilderX": "^3.1.0",
     "uni-app": "",
-    "uni-app-x": "^4.75"
+    "uni-app-x": "^4.81"
   },
   "dcloudext": {
     "type": "unicloud-template-page",
@@ -40,10 +40,7 @@
   },
   "uni_modules": {
     "dependencies": [
-    	"kux-marked",
-    	"uni-highlight",
-    	"uni-id-pages-x",
-    	"uni-table"
+    	"uni-highlight"
     ],
     "encrypt": [],
     "platforms": {

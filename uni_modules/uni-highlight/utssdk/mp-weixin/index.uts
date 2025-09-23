@@ -24,7 +24,7 @@ export type CreateHighLighterRes = {
 
 async function loadOnigWasmFile(): Promise<ArrayBuffer> {
 	let fileManager = uni.getFileSystemManager()
-	let content = fileManager.readFileSync('/uni_modules/uni-highlight/static/_onig.wasm')
+	let content = fileManager.readFileSync('/uni_modules/uni-highlight/static/mp-weixin/_onig.wasm')
 	return content
 	
 }
@@ -41,7 +41,7 @@ export async function createHighLighter(options: HighLighterOptions):Promise<Cre
 	
 	// let wasmFile = await loadOnigWasmFile()
 	
-	const vscodeOnigurumaLib = onig.loadWASM({path: '/uni_modules/uni-highlight/static/_onig.wasm'}).then(() => {
+	const vscodeOnigurumaLib = onig.loadWASM({path: '/uni_modules/uni-highlight/static/mp-weixin/_onig.wasm'}).then(() => {
 		return {
 			createOnigScanner(patterns) { return new onig.OnigScanner(patterns); },
 			createOnigString(s) { return new onig.OnigString(s); }
@@ -65,8 +65,6 @@ export async function createHighLighter(options: HighLighterOptions):Promise<Cre
 	return {
 		async tokenizeFullText(langId: string, fullCodeText:string): Promise<ILineTokens[]> {
 			let scopeName = langMap.get(langId)
-			console.log(111)
-			
 			if (!scopeName) return []
 			const grammar = await registry.loadGrammar(scopeName)
 			const text = fullCodeText.split(/\r\n|\r|\n/);
@@ -117,5 +115,18 @@ export async function createHighLighter(options: HighLighterOptions):Promise<Cre
 				state: lineTokens.ruleStack
 			}
 		}
+	}
+}
+
+export class CreateHighLighter {
+	uniCodeHighlighter: Promise<CreateHighLighterRes>
+	constructor(options : HighLighterOptions) {
+		this.uniCodeHighlighter = createHighLighter(options)
+	}
+	async tokenizeFullText(langId : string, fullCodeText : string) : Promise<ILineTokens[]>{
+		return (await this.uniCodeHighlighter).tokenizeFullText(langId, fullCodeText)
+	}
+	async tokenizeLine(langId : string, lineText : string, state : any) : Promise<ILineTokens | null> {
+		return (await this.uniCodeHighlighter).tokenizeLine(langId, lineText, state)
 	}
 }

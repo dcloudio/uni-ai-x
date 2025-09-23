@@ -36,6 +36,7 @@
 							<text class="text">{{llmMode.name}}</text>
 							<text class="tag" v-if="llmMode.thinking">思考</text>
 							<text class="tag" v-if="llmMode.webSearch">搜索</text>
+							<text class="tag" v-if="llmMode.image">图片理解</text>
 						</view>
 					</view>
 				</scroll-view>

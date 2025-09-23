@@ -39,7 +39,7 @@ const llmModelMap = new Map<string, Provider>([
 			models: [
 				{ name: 'deepseek-v3'},
 				{ name: 'deepseek-r1', thinking: true},
-				{ name: 'doubao-seed-1.6'},
+				{ name: 'doubao-seed-1.6', image: true},
 				{ name: 'gpt-oss-120b'}
 			],
 			description: '七牛云-专注云计算和大数据',

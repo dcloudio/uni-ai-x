@@ -1,8 +1,9 @@
 import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem } from '@/uni_modules/uni-ai-x/types.uts';
-export { MsgItem, ChatItem, BaseMsgItem, Userinfo, markdownElItem }
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
+export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
 import testMarkdownText from './testMarkdownText.uts';
@@ -26,6 +27,7 @@ class UniAi {
 			} as UTSJSONObject)
 		}
 	}
+	imgList: ImgItem[] = reactive<ImgItem[]>([]);
 	// 当前用户
 	currentUser: Userinfo = currentUser
 	setting: Setting = reactive<Setting>({
@@ -70,18 +72,6 @@ class UniAi {
 	getLocalMsgId(): string {
 		// 生成一个 local_ 开头的随机字符串
 		return (this.currentUser._id ?? 'tmp') + "_" + (Date.now()).toString(16) + "_" + Math.floor(Math.random() * 10000).toString(16)
-	}
-	
-	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
-	uniGetDispatcher(taskName: string, fn: () => void) {
-		// #ifdef APP-ANDROID
-		UTSAndroid.getDispatcher(taskName).async((_) => {
-			fn()
-		})
-		// #endif
-		// #ifndef APP-ANDROID
-		fn()
-		// #endif
 	}
 	
 	addChat(checkEmpty: boolean = true) {
@@ -251,23 +241,7 @@ class UniAi {
 				
 				// 加载会话的消息
 				const messages = this.storageManager.getChatMessages(aiChat.id)
-				for (let j = 0; j < messages.length; j++) {
-					const aiMsg = messages[j]
-					const msgItem: MsgItem = {
-						_id: aiMsg._id,
-						chat_id: aiMsg.chat_id,
-						about_msg_id: aiMsg.about_msg_id,
-						body: aiMsg.body,
-						from_uid: aiMsg.from_uid,
-						create_time: aiMsg.create_time,
-						state: aiMsg.state,
-						markdownElList: aiMsg.markdownElList,
-						error_msg: aiMsg.error_msg,
-						rendered: aiMsg.rendered,
-						thinkContent: aiMsg.thinkContent
-					}
-					chatItem.msgList.push(msgItem)
-				}
+				chatItem.msgList.push(...messages)
 				
 				this.chat.datas.push(chatItem)
 			}
@@ -288,16 +262,14 @@ class UniAi {
 		// 添加一条消息
 		const msgList = this.currentChat!.msgList
 		const newMsg: MsgItem = {
+			...msg,
 			chat_id: this.currentChat!.id,
 			_id: this.getLocalMsgId(),
-			about_msg_id: msg.about_msg_id,
-			body: msg.body,
-			from_uid: msg.from_uid,
 			create_time: Date.now(),
 			state: 0,
-			markdownElList: [] as markdownElItem[],
+			markdownElList: [] as MarkdownElItem[],
 			rendered: false
-		}
+		} as MsgItem
 		msgList.push(newMsg)
 		this.storageManager.addMessage(newMsg)
 		if (msg.from_uid != 'uni-ai') {
@@ -346,8 +318,12 @@ class UniAi {
 			body: inputContent,
 			from_uid: this.currentUser._id ?? 'tmp_user_'
 		}
+		// 如果有图片
+		if (this.imgList.length > 0) {
+			baseUserMsg.img_url_list = this.imgList.map((item:ImgItem):string => item.path)
+			this.imgList.length = 0
+		}
 		const userMsg: MsgItem = this.addMsg(baseUserMsg)
-		// console.log('before-send-msg', userMsg)
 
 		// 生成一条空的 ai 回复的内容
 		let baseAiMsgItem: BaseMsgItem = {
@@ -395,13 +371,39 @@ class UniAi {
 						console.log('setMarkdownElList 当前对话已停止，忽略消息')
 						return
 					}
+					// const start = Date.now()
 					const action = message.action
 					const markdownElList = message.markdownElList
 					if (action == 'set' && markdownElList != null) {
 						aiMsgItem.markdownElList = markdownElList!
 					} else if (action == 'update') {
 						if (message.index! < aiMsgItem.markdownElList.length) {
-							aiMsgItem.markdownElList[message.index!] = message.markdownElList![0]
+							const markdownEl = message.markdownElList![0]
+							// console.log('markdownEl', markdownEl)
+							if (markdownEl.type == 'list'){
+								const oldList = aiMsgItem.markdownElList[message.index!].datasList[0]
+								const newList = markdownEl.datasList[0]
+								const oldLen = oldList.length, newLen = newList.length
+								// 如果新的还没旧的长，则直接删除丢失的项
+								if (newLen < oldLen) {
+									oldList.splice(newLen, oldLen - newLen)
+									// console.warn('删除', newLen, oldLen)
+								} else {
+									// 先找到旧数据中，对于新的数据中第一个不相同的索引（倒序避免扫整个列表）
+									let noDiffIndex = oldLen
+									for (let i = oldLen - 1; i >= 0; i--) {
+										// 如果新的和旧的第一个不相同的索引
+										if (oldList[i].text == newList[i].text) {
+											noDiffIndex = i
+											break
+										}
+									}
+									// 用新List将oldList原地更新为与newList一致（更高效且易于维护）
+									oldList.splice(noDiffIndex, oldList.length - noDiffIndex, ...newList.slice(noDiffIndex))
+								}
+							} else {
+								aiMsgItem.markdownElList[message.index!] = markdownEl
+							}
 						} else {
 							console.error('setMarkdownElList 索引越界', message.index!, aiMsgItem.markdownElList.length)
 						}
@@ -410,6 +412,7 @@ class UniAi {
 					} else if (action == 'add') {
 						aiMsgItem.markdownElList.push(...markdownElList!)
 					}
+					// console.warn("setMarkdownElList 耗时", Date.now() - start)
 				}],
 				['setThinkContent', () => {
 					aiMsgItem.thinkContent = data as string
@@ -452,9 +455,24 @@ class UniAi {
 	getMsgToAi(chatItem: ChatItem): RequestAiCoMessage[] {
 		const messages: RequestAiCoMessage[] = [];
 		chatItem.msgList.forEach((item) => {
+			let content: string | MultiModalContent = item.body
+			if (item.from_uid != 'uni-ai' && (item.img_url_list?.length ?? 0) > 0) {
+				content = item.img_url_list!.map((url: string): ImgParse => {
+					return {
+						type: 'image_url',
+						image_url: {
+							url: url
+						}
+					}
+				})
+				content.push({
+					type: 'text',
+					text: item.body
+				})
+			}
 			messages.push({
 				role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
-				content: item.body as string
+				content
 			})
 		})
 		return messages

@@ -39,7 +39,7 @@
 </template>
 
 <script lang="uts" setup>
-import { IToken } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
+import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 
 type UniAiMsgCodeProps = {
@@ -62,7 +62,7 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	}
 `,
 	codeTokens: () => [] as IToken[][],
-	language: 'javascript',
+	language: 'text',
 	href: null
 })
 
@@ -129,7 +129,7 @@ watch((): string => props.codeText, (codeText: string) => {
 maxLineWidth.value = 'auto'
 // #endif
 
-const scrollViewHeight = computed<string>(() => `${props.codeText.split('\n').length * 22 + 16}px`)
+const scrollViewHeight = computed<string>(() => `${props.codeText.split('\n').length * 22 + (props.codeTokens.length == 0 ? 16 : 0)}px`)
 
 const copyCode = () => {
 	uni.setClipboardData({
