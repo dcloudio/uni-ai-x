@@ -5,6 +5,8 @@ export { MsgItem, ChatItem, BaseMsgItem, Userinfo, markdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
+import testMarkdownText from './testMarkdownText.uts';
+export {testMarkdownText}
 let requestAiWorker: RequestAiWorker | null = null
 type BeforeRequestAiFn = () => void
 type MessageHandlerMapFn = () => void
