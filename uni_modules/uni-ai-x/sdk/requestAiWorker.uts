@@ -251,7 +251,7 @@ class RequestAiWorker {
 					// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
 					this.parseMarkdown?.runTask(this.msgBody)
 				}
-			}, 10)
+			}, 50)
 			return
 		}
 		

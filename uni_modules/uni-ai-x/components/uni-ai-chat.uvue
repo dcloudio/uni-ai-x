@@ -34,12 +34,12 @@
 					<uni-icons type="down" size="20" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
-			<view class="bottom">
+			<view class="bottom" @click="markQA">
 				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
 					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
-					@focus="scrollToLastMsg(true)" :auto-height="true"
+					@focus="scrollToLastMsg(true)" :auto-height="true" :disabled="isDemo"
 				></textarea>
-				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" />
+				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" @click.stop />
 				<!-- 开启键盘时，底部背景高度为键盘高度 -->
 				<view class="keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
 			</view>
@@ -53,7 +53,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, markdownElItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
+	import {uniAi, MsgItem, markdownElItem, uiTheme, testMarkdownText} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
@@ -131,6 +131,18 @@
 			scrollIntoView.value = "last-msg"
 			scrollInBottom.value = true
 		})
+	}
+	
+	const isDemo = ref(testMarkdownText.length > 0)
+	
+	function markQA() {
+		if (isDemo.value) {
+			chatInputContent.value = "给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面"
+			uni.showModal({
+				content: '已生成演示专用问题，且无法修改。\n 请点击右下角的发送按钮体验效果',
+				showCancel: false
+			});
+		}
 	}
 	
 	const setIsInScrollBottom = () => {
