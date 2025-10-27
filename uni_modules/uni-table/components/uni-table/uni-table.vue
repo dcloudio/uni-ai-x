@@ -195,7 +195,12 @@
 					this.list = [...newData]
 					return
 				}
-
+				// 相等的时候更新最后一项
+				if (newData.length > 0 && newData.length == this.list.length) {
+					this.list.pop()
+					this.list.push(newData[newData.length - 1])
+					return
+				}
 				// 计算差异并只添加新增的数据
 				const diffItems = this.getDiffItems(newData, this.list)
 				if (diffItems.length > 0) {

@@ -73,20 +73,8 @@
 		if (columns.value.length == 0) {
 			columns.value = newTableInfo.columns as UTSJSONObject[]
 		}
-		// 对比差异，只添加新的行避免闪烁
-		const newData: UTSJSONObject[] = newTableInfo.data as UTSJSONObject[]
-		const oldDataLength = tableData.length
-		// 只添加新增的行
-		if (oldDataLength < newData.length){
-			const newDataSlice = newData.slice(oldDataLength)
-			newDataSlice.forEach((item: UTSJSONObject) => {
-				tableData.push(item)
-			})
-		} else if (oldDataLength == newData.length && oldDataLength > 0) {
-			// 相等的时候更新最后一项
-			tableData[oldDataLength - 1] = newData[oldDataLength - 1]
-		}
-		
+		tableData.length = 0
+		tableData.push(...newTableInfo.data as UTSJSONObject[])
 	}, { deep: true, immediate: true })
 	//#endif
 </script>
