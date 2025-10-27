@@ -170,13 +170,17 @@ export default class ParseMarkdown {
 			// console.log('lineCodeText', lineCodeText)
 			// 代码一行一行解析
 			const parseCodeRes = await parseLineCode(lineCodeText, codeToken.lang ?? 'text')
-			const lineCodeToken: MarkdownToken[] = parseCodeRes.tokens
-			// console.log('lineCodeText------------', lineCodeText)
-			// console.log('lineCodeToken------------', lineCodeToken)
-			if (codeToken.codeTokens == null) {
-				codeToken.codeTokens = [lineCodeToken] as MarkdownToken[][]
+			if (parseCodeRes.error == null) {
+				const lineCodeToken: MarkdownToken[] = parseCodeRes.tokens
+				// console.log('lineCodeText------------', lineCodeText)
+				// console.log('lineCodeToken------------', lineCodeToken)
+				if (codeToken.codeTokens == null) {
+					codeToken.codeTokens = [lineCodeToken] as MarkdownToken[][]
+				} else {
+					codeToken.codeTokens.push(lineCodeToken)
+				}
 			} else {
-				codeToken.codeTokens.push(lineCodeToken)
+				console.log('parseCodeRes.error: ', parseCodeRes.error)
 			}
 		}
 	}

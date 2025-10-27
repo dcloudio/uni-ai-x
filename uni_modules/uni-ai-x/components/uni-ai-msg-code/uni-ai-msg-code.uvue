@@ -62,7 +62,7 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	}
 `,
 	codeTokens: () => [] as IToken[][],
-	language: 'javascript',
+	language: 'text',
 	href: null
 })
 
