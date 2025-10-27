@@ -14,6 +14,8 @@ export default class ParseMarkdown {
 	startLineIndex : number = 0
 	endLineIndex : number = 1
 	userAbort: boolean  = false
+	// 消息接受完成
+	msgReceiveDone: boolean = false
 	constructor(updateCallBack : UpdateCallBack) {
 		this.updateCallBack = updateCallBack
 		this.parseLock = false
@@ -35,7 +37,7 @@ export default class ParseMarkdown {
 		window.markdownTokenList = copyMarkdownTokenList
 		// #endif
 	}
-	async runTask(msgBody : string, isParseDone: boolean = false) {
+	async runTask(msgBody : string) {
 		// 输出当前运行在哪个线程
 		// console.log('parseMarkdown.runTask Thread.currentThread().name', Thread.currentThread().name)				
 		// console.log('parseMarkdown.runTask msgBody', msgBody)				
@@ -55,7 +57,7 @@ export default class ParseMarkdown {
 			// console.log('parseLock', msgBody)
 			// 被锁住了，延迟执行
 			this.nextTaskTimer = setTimeout(() => {
-				this.runTask(msgBody, isParseDone)
+				this.runTask(msgBody)
 			}, 300)
 			return
 		}
@@ -96,9 +98,10 @@ export default class ParseMarkdown {
 		} else {
 			this.markdownTokenList.push(...newJsonList)
 		}
+		const isParseDone = this.msgReceiveDone && msgBodyLines.length == this.endLineIndex
 		if (!isParseDone && !this.userAbort) {
 			setTimeout(() => {
-				this.runTask(msgBody, isParseDone)
+				this.runTask(msgBody)
 			}, 100)
 		}
 		// console.log('markdownText', markdownText)

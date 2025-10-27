@@ -204,7 +204,8 @@ class RequestAiWorker {
 			timer = setInterval(() => {
 				if (i >= testMarkdownText.length) {
 					clearInterval(timer)
-					this.parseMarkdown?.runTask(this.msgBody, true)
+					this.parseMarkdown!.runTask(this.msgBody)
+					this.parseMarkdown!.msgReceiveDone = true
 					// 设置状态为完成
 					this.currentChatState = 'completed'
 					this.emitOnMessage({
@@ -281,7 +282,8 @@ class RequestAiWorker {
 				if (!this.msgBody.endsWith('\n')) {
 					this.msgBody += '\n'
 				}
-				this.parseMarkdown?.runTask(this.msgBody, true)
+				this.parseMarkdown!.runTask(this.msgBody)
+				this.parseMarkdown!.msgReceiveDone = true
 			}
 		}).finally(() => {
 			// console.log('requestAlServer finally')
