@@ -1,15 +1,4 @@
-const testMarkdownText = `PMP的全称是 **Project Management Professional**（项目管理专业人士）。  
-
-它是美国项目管理协会（**PMI**, Project Management Institute）颁发的全球认可的项目管理专业认证，广泛应用于各行各业，是项目管理领域最具权威的资格认证之一。  
-
-### 补充信息：
-- **认证要求**：通常需要具备项目管理经验、教育背景，并通过PMP考试。  
-- **考试内容**：基于PMI发布的《项目管理知识体系指南》（**PMBOK® Guide**）。  
-- **适用领域**：适用于任何行业的项目管理工作，如IT、建筑、医疗、金融等。  
-
-如果有其他相关问题（如备考、认证流程等），欢迎进一步提问！
-
-# 一级标题示例
+const testMarkdownText = `# 一级标题示例
 ## 二级标题
 ### 三级标题
 #### 四级标题
@@ -69,11 +58,11 @@ alert(greet('World'));
 
 块级公式：
 $$
-\sum_{i=1}^n i = \\frac{n(n+1)}{2}
+sum_{i=1}^n i = frac{n(n+1)}{2}
 $$
 
 常见公式：
-- 二次方程求根公式：$x = \\frac{-b \pm \sqrt{b^2-4ac}}{2a}$
+- 二次方程求根公式：$x = frac{-b pm sqrt{b^2-4ac}}{2a}$
 - 欧拉公式：$e^{i\pi} + 1 = 0$
 - 积分：$\int_a^b f(x)dx$
 
@@ -97,4 +86,4 @@ graph TD
     K --> L[假期结束：<br>假期余额更新];
 \`\`\`
 `
-export default ''//testMarkdownText
+export default '' //testMarkdownText
