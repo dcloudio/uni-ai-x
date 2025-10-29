@@ -3,6 +3,15 @@ import { parseLineCode} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 type UpdateCallBack = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void
 
+// 数学公式标记的映射
+const mathMarkMap = new Map<string, string>([
+    ['$', '$'],
+    ['$$', '$$'],
+    ['\\[', '\\]'],
+    ['\\(', '\\)'],
+    ['\\begin{', '\\end{']
+])
+
 export default class ParseMarkdown {
 	updateCallBack : UpdateCallBack
 	parseLock : boolean
@@ -16,6 +25,10 @@ export default class ParseMarkdown {
 	userAbort: boolean  = false
 	// 消息接受完成
 	msgReceiveDone: boolean = false
+	// 找到的最后一个数学公式结尾索引
+	lastMathEndIndex : number = 0
+	// 与msgBody的区别在于：数学公式部分被二次加工
+	myMarkdownText : string = ''
 	constructor(updateCallBack : UpdateCallBack) {
 		this.updateCallBack = updateCallBack
 		this.parseLock = false
@@ -46,7 +59,6 @@ export default class ParseMarkdown {
 			// console.log('Error msgBody', msgBody)
 			return
 		}
-		this.oldMsgBodyLength = msgBody.length
 		// console.log('runTask', this.oldMsgBodyLength)
 		// 清除延迟任务
 		if (this.nextTaskTimer != 0) {
@@ -62,15 +74,39 @@ export default class ParseMarkdown {
 			return
 		}
 		this.parseLock = true
-		const newMsgBody = this.formatMath(msgBody)
-		// console.log('--------------', newMsgBody)
+		
+		// 增量获得msgBody的内容，增量处理数学公式
+		this.myMarkdownText = this.myMarkdownText + msgBody.slice(this.oldMsgBodyLength);
+		this.oldMsgBodyLength = msgBody.length
+		const withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
+		// 找数学公式，如果发现数学公式的开头就先等待结尾，直到找到数学公式的结尾。把符合LaTeX规范的文本，包成代码格式，规范：$$...$$ 或者 $...$ 或者 \[...\] 或者 \(...\) 或者 \begin{...}（包括带*的环境）；
+		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/;
+		const mathStartIndex = withFindMathText.search(mathStartPattern)
+		if (mathStartIndex != -1) {
+			// 获取开头标记
+			const startToken: string = withFindMathText.match(mathStartPattern)![0]!
+			// console.error('发现数学公式开头', startToken, mathStartIndex)
+			// 定义结尾标记
+			const endToken: string = mathMarkMap.get(startToken) ?? '';
+			// 如果结尾标记不在mathMarkMap中，则抛出错误
+			if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
+			// 找到结尾索引
+			const mathEndIndex = withFindMathText.indexOf(endToken)
+			if (mathEndIndex != -1) {
+				const mathText = withFindMathText.slice(startToken.length + mathStartIndex, mathEndIndex)
+				const mathCodeText = "\n```math\n" + mathText + "\n```\n"
+				this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex) + 
+								withFindMathText.slice(0, mathStartIndex) + mathCodeText +
+								withFindMathText.slice(mathEndIndex + endToken.length)
+				this.lastMathEndIndex += mathStartIndex + mathCodeText.length - 1
+			} else {
+				this.parseLock = false
+				return
+			}
+		}
 
-		const msgBodyLines = newMsgBody.split('\n')
+		const msgBodyLines = this.myMarkdownText.split('\n')
 		let markdownText = msgBodyLines.slice(this.startLineIndex, this.endLineIndex).join('\n')
-		// // 把数学公式转为代码模式，即包裹在 ```math\n 和 ``` 之间
-		// const mathStartPattern = /\\\[([\s\S]*?)\\]/g;
-		// // 正则替换
-		// markdownText = markdownText.replace(mathStartPattern, '\n```math\n$1\n```\n')
 		// const start = Date.now()
 		let newJsonList = await this.md2jsonTask(markdownText)
 		// console.error('md2jsonTask 耗时', Date.now() - start)
@@ -131,7 +167,7 @@ export default class ParseMarkdown {
 				if (item.text == null) {
 					item.text = ''
 				} else {
-					const lang = item.lang!
+					const lang = item.lang ?? 'text'
 					if (lang == 'math') {
 						const latexEl: MarkdownToken | null = await this.parseMath(item)
 						if (latexEl != null) {
