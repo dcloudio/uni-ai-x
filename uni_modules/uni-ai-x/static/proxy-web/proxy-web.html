@@ -188,6 +188,7 @@
                 trust: true, // 允许一些不安全的命令
                 strict: 'ignore' // 是否严格模式
             });
+            // parentIsWeb = false 时，才需要转换为图片
             const imageDataURL = parentIsWeb ? null : await this.html2Base64(resultHtml, 3, true);
             const param = {
               imageDataURL,
