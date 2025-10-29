@@ -1,6 +1,6 @@
 import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem } from '@/uni_modules/uni-ai-x/types.uts';
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo, markdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
@@ -26,6 +26,7 @@ class UniAi {
 			} as UTSJSONObject)
 		}
 	}
+	imgList: ImgItem[] = reactive<ImgItem[]>([]);
 	// 当前用户
 	currentUser: Userinfo = currentUser
 	setting: Setting = reactive<Setting>({
@@ -251,23 +252,7 @@ class UniAi {
 				
 				// 加载会话的消息
 				const messages = this.storageManager.getChatMessages(aiChat.id)
-				for (let j = 0; j < messages.length; j++) {
-					const aiMsg = messages[j]
-					const msgItem: MsgItem = {
-						_id: aiMsg._id,
-						chat_id: aiMsg.chat_id,
-						about_msg_id: aiMsg.about_msg_id,
-						body: aiMsg.body,
-						from_uid: aiMsg.from_uid,
-						create_time: aiMsg.create_time,
-						state: aiMsg.state,
-						markdownElList: aiMsg.markdownElList,
-						error_msg: aiMsg.error_msg,
-						rendered: aiMsg.rendered,
-						thinkContent: aiMsg.thinkContent
-					}
-					chatItem.msgList.push(msgItem)
-				}
+				chatItem.msgList.push(...messages)
 				
 				this.chat.datas.push(chatItem)
 			}
@@ -288,16 +273,14 @@ class UniAi {
 		// 添加一条消息
 		const msgList = this.currentChat!.msgList
 		const newMsg: MsgItem = {
+			...msg,
 			chat_id: this.currentChat!.id,
 			_id: this.getLocalMsgId(),
-			about_msg_id: msg.about_msg_id,
-			body: msg.body,
-			from_uid: msg.from_uid,
 			create_time: Date.now(),
 			state: 0,
 			markdownElList: [] as markdownElItem[],
 			rendered: false
-		}
+		} as MsgItem
 		msgList.push(newMsg)
 		this.storageManager.addMessage(newMsg)
 		if (msg.from_uid != 'uni-ai') {
@@ -346,8 +329,12 @@ class UniAi {
 			body: inputContent,
 			from_uid: this.currentUser._id ?? 'tmp_user_'
 		}
+		// 如果有图片
+		if (this.imgList.length > 0) {
+			baseUserMsg.img_url_list = this.imgList.map((item:ImgItem):string => item.path)
+			this.imgList.length = 0
+		}
 		const userMsg: MsgItem = this.addMsg(baseUserMsg)
-		// console.log('before-send-msg', userMsg)
 
 		// 生成一条空的 ai 回复的内容
 		let baseAiMsgItem: BaseMsgItem = {
@@ -452,9 +439,24 @@ class UniAi {
 	getMsgToAi(chatItem: ChatItem): RequestAiCoMessage[] {
 		const messages: RequestAiCoMessage[] = [];
 		chatItem.msgList.forEach((item) => {
+			let content: string | MultiModalContent = item.body
+			if (item.from_uid != 'uni-ai' && (item.img_url_list?.length ?? 0) > 0) {
+				content = item.img_url_list!.map((url: string): ImgParse => {
+					return {
+						type: 'image_url',
+						image_url: {
+							url: url
+						}
+					}
+				})
+				content.push({
+					type: 'text',
+					text: item.body
+				})
+			}
 			messages.push({
 				role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
-				content: item.body as string
+				content
 			})
 		})
 		return messages

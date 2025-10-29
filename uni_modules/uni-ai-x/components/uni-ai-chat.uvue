@@ -18,7 +18,12 @@
 				>
 					<template v-for="item in msgList" :key="item._id">
 						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @longpress="onlongTapMsg(item)" @changeThinkContent="changeThinkContent" :id="'msg-item-' + item._id"></uni-ai-x-msg>
-						<text v-else class="user-msg" @longpress="onlongTapMsg(item)">{{item.body}}</text>
+						<view class="user-msg" v-else>
+							<text class="text" @longpress="onlongTapMsg(item)">{{item.body}}</text>
+							<view class="img-group" v-if="item.img_url_list != null">
+								<image class="img" v-for="(img, index) in item.img_url_list" @click="previewImage(item.img_url_list!, index)" :key="index" :src="img" mode="aspectFill"></image>
+							</view>
+						</view>
 					</template>
 					<view class="welcome-msg-box" v-if="msgList.length == 0">
 						<image class="logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
@@ -31,10 +36,26 @@
 				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden', position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)'}"/>
 				<!-- 滚动到最底部 -->
 				<view :style="{visibility: scrollInBottom || scrolling ? 'hidden' : 'visible'}" class="scroll-to-bottom" @click="scrollToLastMsg(true)">
-					<uni-icons type="down" size="20" color="var(--text-secondary)"></uni-icons>
+					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
 			<view class="bottom" @click="markQA">
+				<scroll-view class="img-group" direction="horizontal">
+					<view class="item" v-for="(img, index) in uniAi.imgList" :key="img.path">
+						<image class="img" :src="img.path" mode="aspectFill"></image>
+						<view class="info">
+							<text class="name">{{img.name}}</text>
+							<text class="uploadPercent" v-if="img.uploadPercent < 100">上传中：{{img.uploadPercent}}%</text>
+							<template v-else>
+								<text class="type">{{img.type}}</text>
+								<text class="size">{{img.size}}</text>
+							</template>
+						</view>
+						<view class="close-btn">
+							<uni-icons type="closeempty" size="8" color="#FFF" @click="removeImg(index)"></uni-icons>
+						</view>
+					</view>
+				</scroll-view>
 				<textarea class="chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
 					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 					@focus="scrollToLastMsg(true)" :auto-height="true" :disabled="isDemo" 
@@ -282,6 +303,17 @@
 			scrolling.value = false
 		}, 500)
 	}
+
+	function removeImg(index: number) {
+		uniAi.imgList.splice(index, 1)
+	}
+
+	function previewImage(urls: string[], index: number) {
+		uni.previewImage({
+			urls,
+			current: index
+		})
+	}
 	
 	onMounted(() => {
 		uniAi.onBeforeRequestAi(() => {
@@ -365,22 +397,34 @@
 			.msg-list {
 				flex: 1;
 				.user-msg {
-					font-size: 16px;
-					margin-left: auto;
-					margin-right: 10px;
-					margin-bottom: 10px;
-					max-width: 600rpx;
-					padding: 12px;
-					border-radius: 15px 15px 0 15px;
-					background-color: var(--user-msg-bg);
-					color: var(--text-primary);
-					/* #ifdef WEB */
-					// 可以滑选 用于复制
-					cursor: text;
-					user-select: text;
-					white-space: pre-wrap;
-					word-break: break-all;
-					/* #endif */;
+					align-items: flex-end;
+					padding: 10px;
+					.text {
+						font-size: 16px;
+						max-width: 600rpx;
+						padding: 12px;
+						border-radius: 15px 15px 0 15px;
+						background-color: var(--user-msg-bg);
+						color: var(--text-primary);
+						/* #ifdef WEB */
+						// 可以滑选 用于复制
+						cursor: text;
+						user-select: text;
+						white-space: pre-wrap;
+						word-break: break-all;
+						/* #endif */;
+					}
+					.img-group {
+						flex-direction: row;
+						flex-wrap: wrap;
+						margin: 5px;
+						.img {
+							width: 20px;
+							height: 20px;
+							margin: 5px;
+							border-radius: 3px;
+						}
+					}
 				}
 				.welcome-msg-box {
 					margin: auto 20px;
@@ -423,6 +467,72 @@
 				border: 1px solid var(--border-secondary);
 				// #endif
 				z-index: 10;
+			}
+		}
+		.img-group {
+			flex-direction: row;
+			align-items: center;
+			justify-content: flex-start;
+			flex-wrap: wrap;
+			overflow: visible;
+			margin: -15px -15px 0 -15px;
+			padding: 5px;
+			padding-top: 0;
+			.item {
+				margin-top: 5px;
+				margin-right: 10px;
+				border: 1px solid var(--border-secondary);
+				border-radius: 10px;
+				padding: 5px;
+				position: relative;
+				overflow: visible;
+				flex-direction: row;
+				align-items: center;
+				.img {
+					width: 25px;
+					height: 25px;
+					border-radius: 10px;
+				}
+				.info {
+					padding-left: 5px;
+					width: 100px;
+					flex-direction: row;
+					flex-wrap: wrap;
+					.name, .size, .type, .uploadPercent {
+						// 不换行
+						white-space: nowrap;
+						overflow: hidden;
+						text-overflow: ellipsis;
+						font-size: 10px;
+						color: var(--text-secondary);
+					}
+					.name {
+						font-size: 12px;
+						color: var(--text-primary);
+						width: 100%;
+					}
+					.size, .uploadPercent {
+						margin-left: 5px;
+					}
+				}
+				.close-btn {
+					position: absolute;
+					top: -5px;
+					right: -5px;
+					background-color: #ff5555;
+					justify-content: center;
+					align-items: center;
+					border-radius: 100px;
+					width: 12px;
+					height: 12px;
+					z-index: 999;
+					/* #ifdef WEB */
+					cursor: pointer;
+					&:hover {
+						filter: brightness(0.9);
+					}
+					/* #endif */
+				}
 			}
 		}
 		.bottom {
