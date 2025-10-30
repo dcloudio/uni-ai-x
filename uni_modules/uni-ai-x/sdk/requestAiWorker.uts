@@ -184,7 +184,13 @@ class RequestAiWorker {
 
 		if (content != null) {
 			// console.log('onChunkFn runTask this.msgBody', this.msgBody)
-			this.parseMarkdown?.runTask(this.msgBody)
+			// 去掉开头空的<think>标签，目前会出现此问题的模型是豆包
+			const startTagStr = "<think></think>"
+			let msgBody = this.msgBody
+			if (msgBody.startsWith(startTagStr) || startTagStr.includes(msgBody)) {
+				msgBody = msgBody.slice(startTagStr.length)
+			}
+			this.parseMarkdown?.runTask(msgBody)
 		}
 	};
 	requestAi(messages : RequestAiCoMessage[], llm : Llm){
