@@ -10,20 +10,8 @@ function getScopeparserBridge(): ScopeparserBridge {
 	return scopeparserBridge!
 }
 
-export function md2json(markdownText: string): ParseMdRes{
-	// const start = Date.now()
-	const jsonString = getScopeparserBridge().md2json(markdownText) as string
-	// console.error('调 framework 的 耗时', Date.now() - start)
-	// console.log("md2json result jsonString:", jsonString)
-	// const start2 = Date.now()
-	const jsonObjectArr = JSON.parseArray<MarkdownToken>(jsonString)!
-	// console.error('parseArray 的 耗时', Date.now() - start2)
-	// console.log("md2json result jsonObjectArr:", jsonObjectArr)
-	const parseMdRes: ParseMdRes = {
-		data: jsonObjectArr,
-		errorMsg: ''
-	}
-	return parseMdRes
+export function md2json(markdownText: string): string {
+	return getScopeparserBridge().md2json(markdownText) as string
 }
 
 export async function initCmark() {} // iOS 端不需要初始化，空实现

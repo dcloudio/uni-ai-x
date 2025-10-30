@@ -146,8 +146,16 @@ export default class ParseMarkdown {
 	}
 	async md2jsonTask(markdownText : string) : Promise<MarkdownToken[]> {
 		// const start = Date.now()
+		// #ifdef APP-IOS
+		const jsonString = md2json(markdownText)
+		// const start2 = Date.now()
+		let newJsonList = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
+		// console.error('JSON.parseArray 耗时', Date.now() - start2)
+		// #endif
+		// #ifndef APP-IOS
 		const parseMdRes = md2json(markdownText) as ParseMdRes
 		let newJsonList = parseMdRes.data
+		// #endif
 		// console.error('md2json 耗时', Date.now() - start)
 		for (let i = 0; i < newJsonList.length; i++) {
 			const item = newJsonList[i]
