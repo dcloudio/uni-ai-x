@@ -188,7 +188,7 @@ function uploadImage() {
         sizeType: ['compressed'],
         type: 'image',
         onChooseFile(res: UniCloudChooseAndUploadFileResult) {
-            console.log(res)
+            // console.log(res)
             const imgList: ImgItem[] = res.tempFiles.map<ImgItem>((file: UniCloudChooseAndUploadFileItem): ImgItem=> {
                 return {
                     path: file.path,
@@ -212,9 +212,9 @@ function uploadImage() {
             }
         }
     }).then((res: UniCloudChooseAndUploadFileResult) => {
-        console.log('上传图片完成', res)
+        // console.log('上传图片完成', res)
         res.tempFiles.forEach((file: UniCloudChooseAndUploadFileItem) => {
-            console.log(file)
+            // console.log(file)
             const index = uniAi.imgList.findIndex(img => img.path == file.path);
             if (index != -1) {
                 uniCloud.getTempFileURL({
