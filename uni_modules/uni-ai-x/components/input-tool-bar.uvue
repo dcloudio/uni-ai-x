@@ -226,6 +226,9 @@ function uploadImage() {
             }
         })
     })
+		.catch((error)=>{
+			console.error('chooseAndUploadFile error', error)
+		})
 }
 
 onMounted(() => {
