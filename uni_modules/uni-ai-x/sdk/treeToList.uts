@@ -84,7 +84,7 @@ class TreeToList {
                         className: 'uni-ai-icon list-item-index task' + (item.checked == 1 ? ' checked' : '')
                     }			
                     list.push(newItem)
-                } else if (item.ordered == 1) {
+                } else if (item.ordered == 0) {
                     const newItem: MarkdownToken = {
                         type: 'text',
                         text: this.uicon("ec1e"),
