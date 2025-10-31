@@ -40,16 +40,18 @@
 				</view>
 			</view>
 			<view class="bottom" @click="markQA">
-				<scroll-view class="img-group" direction="horizontal">
+				<scroll-view class="img-group" direction="horizontal" v-show="uniAi.imgList.length > 0">
 					<view class="item" v-for="(img, index) in uniAi.imgList" :key="img.path">
-						<image class="img" :src="img.path" mode="aspectFill"></image>
-						<view class="info">
-							<text class="name">{{img.name}}</text>
-							<text class="uploadPercent" v-if="img.uploadPercent < 100">上传中：{{img.uploadPercent}}%</text>
-							<template v-else>
-								<text class="type">{{img.type}}</text>
-								<text class="size">{{img.size}}</text>
-							</template>
+						<view class="content">
+							<image class="img" :src="img.path" mode="aspectFill"></image>
+							<view class="info">
+								<text class="name">{{img.name}}</text>
+								<text class="uploadPercent" v-if="img.uploadPercent < 100">上传中：{{img.uploadPercent}}%</text>
+								<template v-else>
+									<text class="type">{{img.type}}</text>
+									<text class="size">{{img.size}}</text>
+								</template>
+							</view>
 						</view>
 						<view class="close-btn">
 							<uni-icons type="closeempty" size="8" color="#FFF" @click="removeImg(index)"></uni-icons>
@@ -469,72 +471,6 @@
 				z-index: 10;
 			}
 		}
-		.img-group {
-			flex-direction: row;
-			align-items: center;
-			justify-content: flex-start;
-			flex-wrap: wrap;
-			overflow: visible;
-			margin: -15px -15px 0 -15px;
-			padding: 5px;
-			padding-top: 0;
-			.item {
-				margin-top: 5px;
-				margin-right: 10px;
-				border: 1px solid var(--border-secondary);
-				border-radius: 10px;
-				padding: 5px;
-				position: relative;
-				overflow: visible;
-				flex-direction: row;
-				align-items: center;
-				.img {
-					width: 25px;
-					height: 25px;
-					border-radius: 10px;
-				}
-				.info {
-					padding-left: 5px;
-					width: 100px;
-					flex-direction: row;
-					flex-wrap: wrap;
-					.name, .size, .type, .uploadPercent {
-						// 不换行
-						white-space: nowrap;
-						overflow: hidden;
-						text-overflow: ellipsis;
-						font-size: 10px;
-						color: var(--text-secondary);
-					}
-					.name {
-						font-size: 12px;
-						color: var(--text-primary);
-						width: 100%;
-					}
-					.size, .uploadPercent {
-						margin-left: 5px;
-					}
-				}
-				.close-btn {
-					position: absolute;
-					top: -5px;
-					right: -5px;
-					background-color: #ff5555;
-					justify-content: center;
-					align-items: center;
-					border-radius: 100px;
-					width: 12px;
-					height: 12px;
-					z-index: 999;
-					/* #ifdef WEB */
-					cursor: pointer;
-					&:hover {
-						filter: brightness(0.9);
-					}
-					/* #endif */
-				}
-			}
-		}
 		.bottom {
 			flex-direction: column;
 			background-color: var(--bg-primary);
@@ -542,6 +478,73 @@
 			border-radius: 15px 15px 0 0;
 			border: 1px solid var(--border-secondary);
 			// box-shadow: 10px 10px 0 0 rgba(0,0,0,0.1);
+			.img-group {
+				flex-direction: row;
+				align-items: center;
+				justify-content: flex-start;
+				flex-wrap: wrap;
+				overflow: visible;
+				margin: -15px -15px 0 -15px;
+				padding: 5px;
+				padding-top: 0;
+				.item {
+					position: relative;
+					overflow: visible;
+					.content {
+						margin-top: 5px;
+						margin-right: 10px;
+						border: 1px solid var(--border-secondary);
+						border-radius: 10px;
+						padding: 5px;
+						flex-direction: row;
+						align-items: center;
+						.img {
+							width: 25px;
+							height: 25px;
+							border-radius: 10px;
+						}
+						.info {
+							padding-left: 5px;
+							width: 100px;
+							flex-direction: row;
+							flex-wrap: wrap;
+							.name, .size, .type, .uploadPercent {
+								// 不换行
+								white-space: nowrap;
+								overflow: hidden;
+								text-overflow: ellipsis;
+								font-size: 10px;
+								color: var(--text-secondary);
+							}
+							.name {
+								font-size: 12px;
+								color: var(--text-primary);
+								width: 100%;
+							}
+							.size, .uploadPercent {
+								margin-left: 5px;
+							}
+						}
+					}
+					.close-btn {
+						position: absolute;
+						top: 3px;
+						right: 5px;
+						background-color: #ff5555;
+						justify-content: center;
+						align-items: center;
+						border-radius: 100px;
+						width: 12px;
+						height: 12px;
+						/* #ifdef WEB */
+						cursor: pointer;
+						&:hover {
+							filter: brightness(0.9);
+						}
+						/* #endif */
+					}
+				}
+			}
 			.chat-input {
 				min-height: 50px;
 				max-height: 200px;
