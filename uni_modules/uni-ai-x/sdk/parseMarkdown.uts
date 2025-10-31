@@ -78,30 +78,39 @@ export default class ParseMarkdown {
 		// 增量获得msgBody的内容，增量处理数学公式
 		this.myMarkdownText = this.myMarkdownText + msgBody.slice(this.oldMsgBodyLength);
 		this.oldMsgBodyLength = msgBody.length
-		const withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
-		// 找数学公式，如果发现数学公式的开头就先等待结尾，直到找到数学公式的结尾。把符合LaTeX规范的文本，包成代码格式，规范：$$...$$ 或者 $...$ 或者 \[...\] 或者 \(...\) 或者 \begin{...}（包括带*的环境）；
-		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/;
-		const mathStartIndex = withFindMathText.search(mathStartPattern)
-		if (mathStartIndex != -1) {
-			// 获取开头标记
-			const startToken: string = withFindMathText.match(mathStartPattern)![0]!
-			// console.error('发现数学公式开头', startToken, mathStartIndex)
-			// 定义结尾标记
-			const endToken: string = mathMarkMap.get(startToken) ?? '';
-			// 如果结尾标记不在mathMarkMap中，则抛出错误
-			if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
-			// 找到结尾索引
-			const mathEndIndex = withFindMathText.indexOf(endToken)
-			if (mathEndIndex != -1) {
-				const mathText = withFindMathText.slice(startToken.length + mathStartIndex, mathEndIndex)
-				const mathCodeText = "\n```math\n" + mathText + "\n```\n"
-				this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex) + 
-								withFindMathText.slice(0, mathStartIndex) + mathCodeText +
-								withFindMathText.slice(mathEndIndex + endToken.length)
-				this.lastMathEndIndex += mathStartIndex + mathCodeText.length - 1
-			} else {
-				this.parseLock = false
-				return
+		let withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
+		// 为排除代码块内容，被误识别为数学公式，如果发现```的数量为奇数，则认为是代码块的开始，需要暂停识别数学公式，直到出现下一个```再继续
+		const codeTagIndex = withFindMathText.split('```').length - 1
+		if (codeTagIndex % 2 == 0) {
+			// 找到最后一个```的索引
+			const lastCodeTagIndex = withFindMathText.lastIndexOf('```') + 3
+			withFindMathText = withFindMathText.slice(lastCodeTagIndex)
+			// 找数学公式，如果发现数学公式的开头就先等待结尾，直到找到数学公式的结尾。把符合LaTeX规范的文本，包成代码格式，规范：$$...$$ 或者 $...$ 或者 \[...\] 或者 \(...\) 或者 \begin{...}（包括带*的环境）；
+			const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/;
+			const mathStartIndex = withFindMathText.search(mathStartPattern)
+			if (mathStartIndex != -1) {
+				// 获取开头标记
+				const startToken: string = withFindMathText.match(mathStartPattern)![0]!
+				// console.error('发现数学公式开头', startToken, mathStartIndex)
+				// 定义结尾标记
+				const endToken: string = mathMarkMap.get(startToken) ?? '';
+				// 如果结尾标记不在mathMarkMap中，则抛出错误
+				if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
+				// 找到结尾索引（排除开头标记，因为有的开头和结尾的标记是一样的）
+				const _index = withFindMathText.slice(mathStartIndex + startToken.length).indexOf(endToken)
+				const hasMathEndTag = _index != -1
+				if (hasMathEndTag) {
+					const mathEndIndex = _index + mathStartIndex + startToken.length
+					const mathText = withFindMathText.slice(startToken.length + mathStartIndex, mathEndIndex)
+					const mathCodeText = "\n```math\n" + mathText + "\n```\n"
+					this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex + lastCodeTagIndex) + 
+									withFindMathText.slice(0, mathStartIndex) + mathCodeText +
+									withFindMathText.slice(mathEndIndex + endToken.length)
+					this.lastMathEndIndex += lastCodeTagIndex + mathStartIndex + mathCodeText.length - 1
+				} else {
+					this.parseLock = false
+					return
+				}
 			}
 		}
 
