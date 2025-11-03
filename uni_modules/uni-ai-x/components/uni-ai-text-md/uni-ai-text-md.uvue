@@ -199,4 +199,15 @@
 		background: var(--border-primary);
 		margin: 10px 0;
 	}
+	
+	.strikethrough {
+		// 删除线
+		text-decoration-line: line-through;
+		color: var(--text-tertiary);
+	}
+	.bold_italic {
+		/* 加粗且斜体 */
+		font-weight: bold;
+		font-style: italic;
+	}
 </style>
