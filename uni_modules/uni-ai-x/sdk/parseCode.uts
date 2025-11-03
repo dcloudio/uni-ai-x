@@ -111,6 +111,7 @@ function initUniCodeHighlighter(): Promise<void> {
 }
 
 export function parseLineCode(codeSource: string,language: string): Promise<ParseCodeRes>{
+	if (language == 'js') language = "javascript"
 	return new Promise((resolve) => {
 		try {
 			// 判断这个language是否在支持的列表中
