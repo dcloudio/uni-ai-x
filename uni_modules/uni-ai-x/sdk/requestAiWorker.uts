@@ -68,6 +68,7 @@ class RequestAiWorker {
 	lockBeforeUpdateMdElList : boolean = false
 	oldMarkdownTokenList : MarkdownToken[] = []
 	userAbort : boolean = false
+	hasThinkContent : boolean = false
 	constructor() {
 		this.onMessageFnList = []
 		
@@ -162,10 +163,25 @@ class RequestAiWorker {
 	}
 	// 子线程请求AI
 	onChunkFn(chunkObj : Chunk) {
+		let reasoningContent: null | string = null
 		// console.log('onChunk', chunkObj)
-		const content = chunkObj.choices?.[0]?.delta?.content
-		// console.log('content', content)
-		const reasoningContent = chunkObj.choices?.[0]?.delta?.reasoning_content
+		let content = chunkObj.choices?.[0]?.delta?.content
+		// 特殊模型，例如豆包，深度思考内容在 content 的<think>标签中，需要单独处理
+		if (this.msgBody == '' && content == "<think>") {
+			this.hasThinkContent = true
+			content = ''
+		}
+		if (this.hasThinkContent){
+			if (content != '</think>') {
+				reasoningContent = content
+			} else {
+				this.hasThinkContent = false
+			}
+			content = ''
+		}
+		// end - 处理 think 标签
+		
+		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		if (content != null && content.length > 0) {
 			this.msgBody += content
 			this.emitOnMessage({
@@ -184,13 +200,7 @@ class RequestAiWorker {
 
 		if (content != null) {
 			// console.log('onChunkFn runTask this.msgBody', this.msgBody)
-			// 去掉开头空的<think>标签，目前会出现此问题的模型是豆包
-			const startTagStr = "<think></think>"
-			let msgBody = this.msgBody
-			if (msgBody.startsWith(startTagStr) || startTagStr.includes(msgBody)) {
-				msgBody = msgBody.slice(startTagStr.length)
-			}
-			this.parseMarkdown?.runTask(msgBody)
+			this.parseMarkdown?.runTask(this.msgBody)
 		}
 	};
 	requestAi(messages : RequestAiCoMessage[], llm : Llm){

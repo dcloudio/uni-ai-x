@@ -3,7 +3,7 @@
 		<image class="avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
 		<text v-if="msg.error_msg != null" class="error-msg">{{msg.error_msg}}</text>
 		<template v-else>
-			<view class="think-content" v-if="msg.thinkContent != null">
+			<view class="think-content" v-if="msg.thinkContent != null && msg.thinkContent!.length > 0">
 				<view class="header" @click="changeThinkContent">
 					<text class="title">深度思考 &nbsp;</text>
 					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
