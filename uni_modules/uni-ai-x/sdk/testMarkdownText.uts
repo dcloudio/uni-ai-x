@@ -1,59 +1,418 @@
-let testMarkdownText = `## 测试
-测试测试测试测试测试测试测试
+let testMarkdownText = `
+> 这是一个引用块
+> 可以有多行
+
+**粗体文本**
+*斜体文本*
+***粗斜体文本***
+~~删除线文本~~
+需要桭~~删除线文本~~硒鼓桭地板砖 \`标签宽（横向表单时有效）\` 桭*斜体文本*地板砖 桭**粗体文本**
+\`\`\`uts
+function hello(name: string): void {
+	var a = 'Hello, ' + name
+}
+// 用正则匹配闭合标签
+const closeTagMatch = remaining.match(/^<\/([a-zA-Z0-9\-_]+)>/);
+if (closeTagMatch != null && closeTagMatch.length > 0 && closeTagMatch[0] != null) {
+	// 顶层的闭合标签：消费掉但不创建节点
+	this.position += closeTagMatch[0]!.length!;
+	return null;
+}
+\`\`\`
+
+# 表单 xForm
+
+-------
+
+<strong>HTML 粗体</strong>
+
+<em>HTML 斜体</em>
+
+<code>HTML 代码</code>
+
+## 介绍
+
+从1.1.2开始允许xform可以嵌套view进行form-item布局了,但建议不要嵌套太深,影响性能.
+
+## 平台兼容
+
+| Harmony | H5 | andriod | IOS | 小程序 | UTS | UNIAPP-X SDK | version |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ☑️ | ☑️ | ☑️ | ☑️ | ☑️ | ☑️ | 4.76+ | 1.1.18 |
+
+这是行内公式 \\(E = mc^2\\)，这是块级公式：$$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$$
+
+## 文件路径
+
+## Props 属性
+
+| 名称 | 说明 | 类型 | 默认值 |
+| ------ | ---- | ---- | ---- |
+| labelWidth | \`标签宽（横向表单时有效）\`<br>\`不支持动态修改（uniappx 3.99不支持动态传递 inject）,可在子组件上动态修改\`<br> | \`string\` | \`"100"\` |
+| labelDirection | \`不支持动态修改（uniappx 3.99不支持动态传递 inject）,可在子组件上动态修改\`<br>\`vertical,horizontal\`<br> | \`labelDirType\` | \`"horizontal"\` |
+| labelFontColor | \`标签的文本颜色,不支持动态修改（uniappx 3.99不支持动态传递 inject）,可在子组件上动态修改\`<br> | \`string\` | \`"#333333"\` |
+
+## Events 事件
+
+| 名称 | 参数 | 说明 |
+| ------ | ---- | ---- |
+| submit | \`result: FORM_SUBMIT_RESULT\` | 按钮提交表单时触发。 |
+| update:modelValid | \`-\` | 校验事件，这个不是submit是用户在输入内容或者在校验阶段向外发出的事件<br>里面包含了实时的校验信息，用于绑定外部的按钮提供实时的可提交状态。<br>它对外输出，不能够双向绑定对内更改校验状态。 |
+
+
+## Slots 插槽
+
+| 名称 | 说明 | 数据 |
+| ------ | ---- | ---- |
+| default | \`插槽内只能放置x-form-item子节点组件\` | - |
+
+
+# 文章标题
+
+这是**重要内容**，这是*强调内容*。
+
+## 功能特性
+
+- 支持基本 Markdown 语法
+- 支持代码块和代码高亮
+- 支持数学公式
+- 输出为 HTML 格式
+
+## 代码
+
+\`\`\`uts
+function hello(name: string): void {
+	var a = 'Hello, ' + name
+}
+// 用正则匹配闭合标签
+const closeTagMatch = remaining.match(/^<\/([a-zA-Z0-9\-_]+)>/);
+if (closeTagMatch != null && closeTagMatch.length > 0 && closeTagMatch[0] != null) {
+	// 顶层的闭合标签：消费掉但不创建节点
+	this.position += closeTagMatch[0]!.length!;
+	return null;
+}
+\`\`\`
+
+\`\`\`html
+<uni-view data-v-361a5606="" class="xSheet" 
+style="background-color: rgb(255, 255, 255); 
+width: auto; height: auto; border-radius: 14px; border-width: 0px; 
+border-color: transparent; margin: 0px 14px 14px; padding: 14px; box-shadow: none; border-style: solid;">
+<!-- 输入内容 -->
+</uni-view>
+
+\`\`\`
+
+\`\`\`css
+.abc{
+		background-color:#fff;
+}
+\`\`\`
+
+访问[官网](https://example.com)了解更多。
+
+# 这是一级标题
+
+这是一个段落，包含**加粗文本**和*斜体文本*。
+
+## 这是二级标题
+
+- 无序列表项 1
+- 无序列表项 2
+- 无序列表项 3
+
+1. 有序列表项 1
+2. 有序列表项 2
 
 \`\`\`javascript
-function greet(name) {
-  return \`Hello, \${name}!\`;
-}
-
-alert(greet('World'));
+const hello = 'world';
 \`\`\`
 
----
-
-## 链接示例
-
-[百度搜索](https://www.baidu.com)
-
-[Google](https://www.google.com "谷歌主页")
+这是一个[链接](https://example.com)和一张![图片](https://xui.tmui.design/lp-18.jpg)。
 
 ---
 
-## 数学公式示例
+> 这是一个引用块
+> 可以有多行
 
-行内公式：$E=mc^2$
+~~删除线文本~~
 
-块级公式：
-$$
-\\sum_{i=1}^n i = \\frac{n(n+1)}{2}
-$$
+行内代码：\`const x = 1;\`
 
-常见公式：
-- 二次方程求根公式：$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$
-- 积分：$\\int_a^b f(x)dx$
-- 矩阵：$\\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix}$
+# Markdown 完整测试文档
 
----
+## 1. 标题测试
 
-## 流程图示例
+# 一级标题
+## 二级标题
+### 三级标题~~删除线文本~~
+#### 四级标题
+##### 五级标题
+###### 六级标题
 
-\`\`\`mermaid
-graph TD
-    A[开始] --> B{条件判断}
-    B -->|是| C[执行操作1]
-    B -->|否| D[执行操作2]
-    C --> E[结束]
-    D --> E
+## 2. 文本格式测试
+
+**粗体文本**
+*斜体文本*
+***粗斜体文本***
+~~删除线文本~~
+需要桭~~删除线文本~~硒鼓桭地板砖 桭*斜体文本*地板砖 桭**粗体文本**
+\`行内代码\`
+
+## 3. 列表测试
+
+### 无序列表
+- 第一项
+- 第二项
+	- 嵌套项 1
+	- 嵌套项 2
+	- 深层嵌套项
+- 第三项
+
+### 有序列表
+1. 第一项
+2. 第二项
+	 1. 嵌套项 1
+	 2. 嵌套项 2
+3. 第三项
+
+### 任务列表
+- [x] 已完成任务
+- [ ] 未完成任务
+- [x] 另一个已完成任务
+
+## 4. 引用块测试
+
+> 这是一个简单的引用块
+
+> 这是一个多行引用块
+> 包含多行内容
+> 每行都以 > 开头
+
+> 引用块可以包含**粗体**和*斜体*文本
+> 
+> 还可以包含代码：\`testFun('hello')\`
+
+## 5. 代码块测试
+
+### 缩进代码块
+	function hello() {
+		var a = 'Hello World!';
+		return true;
+	}
+
+### 围栏代码块
+
+
+\`\`\`html
+<!DOCTYPE html>
+<html>
+<head>
+	<title>测试页面</title>
+</head>
+<body>
+	<h1>Hello World</h1>
+</body>
+</html>
 \`\`\`
 
+## 6. 链接和图片测试
+
+### 链接
+[普通链接](https://www.example.com)
+
+[引用链接][ref1]
+[自动链接](https://www.google.com)
+
+[ref1]: https://www.example.com "引用链接标题"
+
+### 图片
+
+![引用图片](https://xui.tmui.design/lp-18.jpg)
+
+## 7. 表格测试
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| 数据1 | 数据2 | 数据3 |
+| **粗体** | *斜体* | \`代码\` |
+| [链接](https://example.com) | ![图片](https://xui.tmui.design/lp-18.jpg) | 普通文本 |
+
+| 左对齐 | 居中对齐 | 右对齐 |
+|:-------|:-------:|-------:|
+| 左 | 中 | 右 |
+| 内容 | 内容 | 内容 |
+
+## 8. 水平线测试
+
 ---
 
-## 分割线示例
-
-上面是分割线
 ***
-下面是分割线
+
+___
+
+## 9. 数学公式测试
+
+### 行内数学公式
+这是行内公式：$E = mc^2$，这是另一个公式：$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$
+
+LaTeX 格式行内公式：\\(E = mc^2\\) 和 \\(\\alpha + \\beta = \\gamma\\)
+
+### 块级数学公式
+$$E = mc^2$$
+
+$$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$$
+
+$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$
+
+LaTeX 格式块级公式：
+\\\\[\\frac{\\partial f}{\\partial x} = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}\\\\]
+
+## 10. HTML 标签测试
+
+<div style="color: red;">这是 HTML div</div>
+
+<p style="background-color: yellow;">这是 HTML 段落</p>
+
+<strong>HTML 粗体</strong>
+
+<em>HTML 斜体</em>
+
+<code>HTML 代码</code>
+
+## 11. 转义字符测试
+
+\\*这不是斜体\\*
+\\**这不是粗体\\**
+\\# 这不是标题
+\\[这不是链接\\]
+
+## 12. 换行测试
+
+这是第一行	
+这是第二行（两个空格 + 换行）
+
+这是第三行
+这是第四行（普通换行）
+
+## 13. 复杂嵌套测试
+
+### 列表中的引用
+1. 第一项
+	 > 这是列表项中的引用
+	 > 包含多行内容
+
+2. 第二项
+	 - 嵌套列表项
+	 - 另一个嵌套项
+	 > 嵌套列表中的引用
+
+### 引用中的列表
+> 这是引用块
+> 
+> 1. 引用中的有序列表
+> 2. 第二项
+> 
+> - 引用中的无序列表
+> - 第二项
+
+### 代码块中的内容
+\`\`\`
+> 这不是引用块
+- 这不是列表
+**这不是粗体**
+\`\`\`
+
+## 14. 特殊字符测试
+
+### 特殊符号
+© 版权符号
+® 注册商标
+™ 商标符号
+€ 欧元符号
+£ 英镑符号
+¥ 日元符号
+
+### Unicode 字符
+中文字符：你好世界
+日文字符：こんにちは
+韩文字符：안녕하세요
+阿拉伯数字：١٢٣٤٥
+希腊字母：α β γ δ ε
+
+## 15. 边界情况测试
+
+### 空内容
+#### 空标题
+
+空段落（上面和下面都是空行）
+
+### 只有空格
+	
+
+### 只有特殊字符
+####
+***
+---
+
+## 16. 混合内容测试
+
+这里有一个**粗体**文本，包含\`行内代码\`，还有一个[链接](https://example.com)。
+
+> 引用块包含：
+> - 列表项
+> - **粗体文本**
+> - \`代码\`
+> - $E = mc^2$ 公式
+
+> 这是引用块
+> 
+> 1. 引用中的有序列表
+> 2. 第二项
+> 
+> - 引用中的无序列表
+> - 第二项
+
+> 引用块包含：
+> 
+> 1. 列表项
+
+
+\`\`\`javascript
+// 代码注释
+function test() {
+	return "Hello " + "World";
+}
+\`\`\`
+
+| 表格 | 内容 |
+|------|------|
+| 单元格 | **粗体** + \`代码\` + [链接](https://example.com) |
+
+---
+
+## 测试结束
+
+这个文档包含了所有常见的 Markdown 语法，可以用来全面测试解析器的功能。
+
+**可以在任意位置导入并设置，立即生效，全局响应**\n**堙**
+
+| This header		| spans two | Header A |
+|-------------|------------|----------|
+| Cell A			| Cell B		 | Cell C	 |
+| Cell A			| Cell B		 | Cell C	 |
+| TMUI4.0	 | Cell B		 | 好棒	|
+
+## 数学公式
+$4x=x^2$ $C^a_b+\\sqrt{c}$ 
+$c = \\pm\\sqrt{a^2 + b^2}$
+$x=x^2$ $4x=x^2$
+
+$$
+C^a_b+\\sqrt{c}
+$$
+
 `
 
-testMarkdownText = '' // 清空测试文本，切换为非演示模式
+// testMarkdownText = '' // 清空测试文本，切换为非演示模式
 export default testMarkdownText
