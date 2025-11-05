@@ -40,16 +40,16 @@
 		tableWidth.value = columnWidths.value.reduce((sum, width) => sum + width, 0)
 	}, { immediate: true })
 
-	const proxy = getCurrentInstance()?.proxy
 	const maxTableWidth = ref(0)
-	function setMaxTableWidth() {
-		uni.createSelectorQuery().in(proxy).select('.uni-ai-msg-table')
-			.boundingClientRect().exec((ret) => {
-				if (ret.length == 0) return
-				maxTableWidth.value = (ret[0] as NodeInfo).width!
-			})
-	}
 	onMounted(() => {
+		const proxy = getCurrentInstance()?.proxy
+		function setMaxTableWidth() {
+			uni.createSelectorQuery().in(proxy).select('.uni-ai-msg-table')
+				.boundingClientRect().exec((ret) => {
+					if (ret.length == 0) return
+					maxTableWidth.value = (ret[0] as NodeInfo).width!
+				})
+		}
 		// 设置表格最大宽度
 		setMaxTableWidth()
 		//#ifdef H5
