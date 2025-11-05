@@ -1,0 +1,22 @@
+import { MarkdownToken } from '@/uni_modules/uni-cmark'
+class Utils {
+	async measureTextWidth(text: string, fontSize: number) : Promise<number> {
+		return new Promise((resolve) => {
+			// 空实现，在页面中覆盖本方法的实现
+			resolve(0)
+		})
+	}
+	getTokensText(tokens?: MarkdownToken[]){
+		if (tokens == null) return ''
+		let text = ''
+		tokens.forEach((token: MarkdownToken)=>{
+			if(token.text != null){
+				text += token.text
+			}else if(token.tokens != null && token.tokens.length > 0){
+				text += this.getTokensText(token.tokens)
+			}
+		})
+		return text
+	}
+}
+export default new Utils()

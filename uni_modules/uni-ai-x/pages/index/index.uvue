@@ -12,6 +12,13 @@
 		<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
 		<!-- #endif -->
 	<!-- #endif -->
+
+	<!-- 用于非 Android 端测量文字宽度的容器 -->
+	<!-- #ifndef APP-ANDROID -->
+	<view style="flex-direction: row;width: 1000%;height: 0;">
+		<text v-for="item in measureTextWidthInfos" :key="item.id" :id="item.id" :style="{fontSize: item.fontSize + 'px'}">{{item.text}}</text>
+	</view>
+	<!-- #endif -->
 </template>
 
 <script lang="uts" setup>
@@ -20,6 +27,7 @@
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 	import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts';
 
 	import { md2json, initCmark, MarkdownToken} from '@/uni_modules/uni-cmark'
@@ -106,6 +114,35 @@
 		// console.log('proxyWebMsg', e)
 		proxyWeb.onWebMsg(e)
 	}
+
+
+	// 测量文字宽度的方法
+	type MeasureTextWidthInfo = {
+		id: string,
+		text: string,
+		fontSize?: number
+	}
+
+	// #ifndef APP-ANDROID
+	const proxy = getCurrentInstance()?.proxy
+	const measureTextWidthInfos = ref<MeasureTextWidthInfo[]>([])
+	utils.measureTextWidth = async (text: string, fontSize?: number) => {
+		fontSize = fontSize ?? 16
+		// 创建一个文本节点
+		const id = `measure-text-width-${measureTextWidthInfos.value.length}`
+		measureTextWidthInfos.value.push({id, text, fontSize})
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				uni.createSelectorQuery().in(proxy).select(`#${id}`)
+					.boundingClientRect().exec((ret) => {
+						resolve(ret.length == 0 ? 0 : ret[0].width!)
+						// 删除节点
+						measureTextWidthInfos.value = measureTextWidthInfos.value.filter((item) => item.id != id)
+					})
+			},0)
+		})
+	}
+	// #endif
 	
 	onMounted(() => {
 		// #ifdef WEB
