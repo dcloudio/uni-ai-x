@@ -17,8 +17,10 @@ class CmarkGfmModule {
 	}
 	
 	// 初始化WASM模块
-	async init(wasmPath) {
+	async init(options) {
 		try {
+			// 获取WASM文件路径
+			const wasmPath = options.path || options;
 			// 使用微信小程序的WXWebAssembly API，直接传入文件路径
 			const wasmModule = await WXWebAssembly.instantiate(wasmPath, {
 				env: {
@@ -133,12 +135,12 @@ function loadWASM(options) {
 	
 	return new Promise(async (resolve, reject) => {
 		try {
-			// WASM文件路径
+			// WASM文件路径 - 使用绝对路径，参考 uni-highlight 的实现
 			const wasmPath = '/uni_modules/uni-cmark/static/mp-weixin/cmark-gfm-md2json.wasm';
 			
-			// 创建并初始化模块，直接传递文件路径
+			// 创建并初始化模块，传递包含 path 的对象
 			globalModule = new CmarkGfmModule();
-			await globalModule.init(wasmPath);
+			await globalModule.init({path: wasmPath});
 			
 			isInitialized = true;
 			isInitializing = false;
@@ -166,8 +168,8 @@ function md2json(markdown) {
 		globalModule.HEAPU8[markdownPtr + markdownBytes.length] = 0; // 空字符结束
 		
 		try {
-			// 调用C函数 - WASM 版本需要显式传递长度参数，避免 strlen 在 WASM 环境下计算错误
-			const resultPtr = globalModule.ccall('md2json', 'number', ['number', 'number'], [markdownPtr, markdownBytes.length]);
+			// 调用C函数 - md2json 函数只接受一个参数（markdownPtr）
+			const resultPtr = globalModule.ccall('md2json', 'number', ['number'], [markdownPtr]);
 			
 			if (resultPtr === 0) {
 				throw new Error('Failed to convert markdown to JSON');
