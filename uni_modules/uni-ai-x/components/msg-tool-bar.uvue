@@ -65,7 +65,7 @@
 				})
 			}
 		})
-		console.error('当前会话是ai',msg.body)
+		console.error('复制成功',msg.body)
 	}
 	
 	const loop = async () => {
