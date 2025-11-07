@@ -2,6 +2,7 @@ export type ParseMdRes = {
 	data: MarkdownToken[],
 	errorMsg: string
 }
+export type Align = 'center' | 'left' | 'right';
 export type MarkdownToken = {
 	type?: string;
 	raw?: string;
@@ -26,7 +27,7 @@ export type MarkdownToken = {
 	depth?: number;
 	start?: number | string;
 	items?: MarkdownToken[];
-	align?: 'center' | 'left' | 'right';
+	align?: Align[];
 	codeTokens?: MarkdownToken[][];
 	deepIndex?: number;
 	orderedIndex?: number;
