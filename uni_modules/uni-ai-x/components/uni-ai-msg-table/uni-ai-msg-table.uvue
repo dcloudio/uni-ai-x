@@ -4,7 +4,7 @@
 			:style="{width: tableWrapperWidth + 'px'}">
 			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="table-row">
 				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">
-					<text :style="{width: columnWidths[cellIndex] + 'px'}">
+					<text :style="{width: columnWidths[cellIndex] + 'px', 'text-align': props.tableNode?.align?.[cellIndex] ?? 'left' }">
 						<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
 							:class="(rowIndex == 0 ? 'header-text' : 'cell-text') + ' ' + cellItem.type"
 							>{{ cellItem.text }}</text>
