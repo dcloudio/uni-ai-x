@@ -108,21 +108,6 @@ class TreeToList {
                 let nextList = this.getLeafNodes(nextItems, item)
                 list.push(...nextList)
             } else {
-                // #ifdef WEB
-                // 方便分析，web 端把值为 null 的属性删除
-                for (const key in item) {
-                    if (item[key] == null) {
-                        delete item[key]
-                    }
-                }
-                // #endif
-    
-                // 如果上级是链接
-                // if (parent.type == 'link') {
-                // 	item.inLink = true
-                // 	item.className += ' link'
-                // 	item.linkHref = parent.href
-                // }
                 list.push(item)
             }
         });

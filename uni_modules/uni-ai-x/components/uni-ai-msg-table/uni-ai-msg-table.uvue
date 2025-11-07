@@ -21,7 +21,6 @@
 	const props = defineProps<{ tableNode : MarkdownToken }>()
 	
 	const tableAligns = computed(() : Align[] => {
-		console.log('(props.tableNode as MarkdownToken)?.align', (props.tableNode as MarkdownToken)?.align)
 		return (props.tableNode as MarkdownToken)?.align ?? ['left', 'left', 'left']
 	})
 
