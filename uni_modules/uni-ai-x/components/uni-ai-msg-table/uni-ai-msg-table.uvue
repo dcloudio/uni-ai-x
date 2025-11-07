@@ -4,7 +4,7 @@
 			:style="{width: tableWrapperWidth + 'px'}">
 			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="table-row">
 				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">
-					<text :style="{width: columnWidths[cellIndex] + 'px', 'text-align': props.tableNode?.align?.[cellIndex] ?? 'left' }">
+					<text class="cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': tableAligns[cellIndex]}">
 						<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
 							:class="(rowIndex == 0 ? 'header-text' : 'cell-text') + ' ' + cellItem.type"
 							>{{ cellItem.text }}</text>
@@ -17,9 +17,13 @@
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk';
-	import { MarkdownToken } from '@/uni_modules/uni-cmark'
+	import { MarkdownToken, Align } from '@/uni_modules/uni-cmark'
 	const props = defineProps<{ tableNode : MarkdownToken }>()
-
+	
+	const tableAligns = computed(() : Align[] => {
+		console.log('(props.tableNode as MarkdownToken)?.align', (props.tableNode as MarkdownToken)?.align)
+		return (props.tableNode as MarkdownToken)?.align ?? ['left', 'left', 'left']
+	})
 
 	const columnWidths = ref<number[]>([])
 	// 表格数据
@@ -85,32 +89,27 @@
 				align-self: flex-start;
 				justify-content: center;
 				align-items: center;
-
-				// 通用文字样式
-				.header-text,
-				.cell-text {
+				.cell {
+					// 通用文字样式
 					flex-shrink: 0;
-					text-align: center;
 					padding: 12px 8px;
 					min-height: 48px;
 					line-height: 1.4;
 					height: 100%;
-				}
-
-				// 表头特殊样式
-				.header-text {
-					font-size: 14px;
-					font-weight: bold;
-					color: #333333;
-				}
-
-				// 数据特殊样式
-				.cell-text {
-					font-size: 13px;
-					color: #666666;
-					&.code {
-						padding: 1px 5px;
-						border-radius: 10px;
+					// 表头特殊样式
+					.header-text {
+						font-size: 14px;
+						font-weight: bold;
+						color: #333333;
+					}
+					// 数据特殊样式
+					.cell-text {
+						font-size: 13px;
+						color: #666666;
+						&.code {
+							padding: 1px 5px;
+							border-radius: 10px;
+						}
 					}
 				}
 			}
