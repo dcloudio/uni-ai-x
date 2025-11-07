@@ -218,7 +218,7 @@ class RequestAiWorker {
 			let i = 0
 			let timer: number = 0
 			timer = setInterval(() => {
-				if (i >= testMarkdownText.length) {
+				if (this.userAbort || i >= testMarkdownText.length) {
 					clearInterval(timer)
 					this.parseMarkdown!.runTask(this.msgBody)
 					this.parseMarkdown!.msgReceiveDone = true
