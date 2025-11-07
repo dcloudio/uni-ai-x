@@ -1,7 +1,7 @@
 import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, markdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
-export { MsgItem, ChatItem, BaseMsgItem, Userinfo, markdownElItem }
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
+export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
@@ -278,7 +278,7 @@ class UniAi {
 			_id: this.getLocalMsgId(),
 			create_time: Date.now(),
 			state: 0,
-			markdownElList: [] as markdownElItem[],
+			markdownElList: [] as MarkdownElItem[],
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)

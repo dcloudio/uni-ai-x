@@ -1,6 +1,6 @@
 import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
-import { Chunk, Provider, RequestAiCoMessage, markdownElItem, Llm } from '@/uni_modules/uni-ai-x/types.uts';
+import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm } from '@/uni_modules/uni-ai-x/types.uts';
 import {MarkdownToken} from '@/uni_modules/uni-cmark'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
@@ -11,7 +11,7 @@ export type OnMessageOptions = {
 	action?: 'set' | 'update' | 'remove' | 'add',
 	index?: number,
 	size?: number,
-	markdownElList?: markdownElItem[]
+	markdownElList?: MarkdownElItem[]
 }
 
 type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
@@ -59,7 +59,7 @@ class RequestAiWorker {
 	thinkContent : string = ''
 	parseMarkdown : ParseMarkdown | null = null
 	// 解析后的 markdown 元素列表
-	markdownElList : markdownElItem[] = []
+	markdownElList : MarkdownElItem[] = []
 	onMessageFnList : OnMessageFn[] = [];
 	canRender : boolean = true
 	currentChatState : string = ''
@@ -154,7 +154,7 @@ class RequestAiWorker {
 	//实现入口函数
 	entry() { }
 	// 转换
-	token2el(token : MarkdownToken) : markdownElItem {
+	token2el(token : MarkdownToken) : MarkdownElItem {
 		return {
 			uniqueId: token.uniqueId!,
 			type: token.type!,
