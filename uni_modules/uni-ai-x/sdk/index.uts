@@ -382,13 +382,39 @@ class UniAi {
 						console.log('setMarkdownElList 当前对话已停止，忽略消息')
 						return
 					}
+					// const start = Date.now()
 					const action = message.action
 					const markdownElList = message.markdownElList
 					if (action == 'set' && markdownElList != null) {
 						aiMsgItem.markdownElList = markdownElList!
 					} else if (action == 'update') {
 						if (message.index! < aiMsgItem.markdownElList.length) {
-							aiMsgItem.markdownElList[message.index!] = message.markdownElList![0]
+							const markdownEl = message.markdownElList![0]
+							// console.log('markdownEl', markdownEl)
+							if (markdownEl.type == 'list'){
+								const oldList = aiMsgItem.markdownElList[message.index!].datasList[0]
+								const newList = markdownEl.datasList[0]
+								const oldLen = oldList.length, newLen = newList.length
+								// 如果新的还没旧的长，则直接删除丢失的项
+								if (newLen < oldLen) {
+									oldList.splice(newLen, oldLen - newLen)
+									// console.warn('删除', newLen, oldLen)
+								} else {
+									// 先找到旧数据中，对于新的数据中第一个不相同的索引（倒序避免扫整个列表）
+									let noDiffIndex = oldLen
+									for (let i = oldLen - 1; i >= 0; i--) {
+										// 如果新的和旧的第一个不相同的索引
+										if (oldList[i].text == newList[i].text) {
+											noDiffIndex = i
+											break
+										}
+									}
+									// 用新List将oldList原地更新为与newList一致（更高效且易于维护）
+									oldList.splice(noDiffIndex, oldList.length - noDiffIndex, ...newList.slice(noDiffIndex))
+								}
+							} else {
+								aiMsgItem.markdownElList[message.index!] = markdownEl
+							}
 						} else {
 							console.error('setMarkdownElList 索引越界', message.index!, aiMsgItem.markdownElList.length)
 						}
@@ -397,6 +423,7 @@ class UniAi {
 					} else if (action == 'add') {
 						aiMsgItem.markdownElList.push(...markdownElList!)
 					}
+					// console.warn("setMarkdownElList 耗时", Date.now() - start)
 				}],
 				['setThinkContent', () => {
 					aiMsgItem.thinkContent = data as string
