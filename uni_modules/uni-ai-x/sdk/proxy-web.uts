@@ -1,3 +1,4 @@
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 type OnMsgFn = (e : UTSJSONObject) => void
 class ProxyWeb {
 	isInit : boolean = false
@@ -55,18 +56,20 @@ class ProxyWeb {
 		})
 	}
 	emitMsg(res : UTSJSONObject) {
-        if (res['action'] == 'DOMContentLoaded_callback') {
+		if (res['action'] == 'DOMContentLoaded_callback') {
 			this.isInit = true
 			return
 		}
-        const funName = res['action']! as string
+		const funName = res['action']! as string
 		// console.log('funName', funName)
-        const callback = this.callbackMap.get(funName)
-        if (callback == null) {
-            console.error('callback is null', funName)
-            return
-        }
-        callback(res['param'] as UTSJSONObject)
+		const callback = this.callbackMap.get(funName)
+		if (callback == null) {
+			console.error('callback is null', funName)
+			return
+		}
+		utils.uniGetDispatcher('io',()=>{
+			callback(res['param'] as UTSJSONObject)
+		})
 	}
 }
 export default new ProxyWeb()

@@ -3,6 +3,7 @@ import { defaultLLM, currentUser } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
 import testMarkdownText from './testMarkdownText.uts';
@@ -71,18 +72,6 @@ class UniAi {
 	getLocalMsgId(): string {
 		// 生成一个 local_ 开头的随机字符串
 		return (this.currentUser._id ?? 'tmp') + "_" + (Date.now()).toString(16) + "_" + Math.floor(Math.random() * 10000).toString(16)
-	}
-	
-	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
-	uniGetDispatcher(taskName: string, fn: () => void) {
-		// #ifdef APP-ANDROID
-		UTSAndroid.getDispatcher(taskName).async((_) => {
-			fn()
-		})
-		// #endif
-		// #ifndef APP-ANDROID
-		fn()
-		// #endif
 	}
 	
 	addChat(checkEmpty: boolean = true) {

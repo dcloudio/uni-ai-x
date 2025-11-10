@@ -18,5 +18,16 @@ class Utils {
 		})
 		return text
 	}
+	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
+	uniGetDispatcher(taskName : string, fn : () => void) {
+		// #ifdef APP-ANDROID
+		UTSAndroid.getDispatcher(taskName).async((_) => {
+			fn()
+		})
+		// #endif
+		// #ifndef APP-ANDROID
+		fn()
+		// #endif
+	}
 }
 export default new Utils()

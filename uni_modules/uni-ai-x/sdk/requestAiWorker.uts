@@ -4,7 +4,7 @@ import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm } from '@/uni_
 import {MarkdownToken} from '@/uni_modules/uni-cmark'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
-
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 export type OnMessageOptions = {
 	type: string,
 	data?: string | boolean | number 
@@ -40,17 +40,6 @@ export type RequestAiOptions = {
 	llm: Llm
 }
 
-// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
-function uniGetDispatcher(taskName : string, fn : () => void) {
-	// #ifdef APP-ANDROID
-	UTSAndroid.getDispatcher(taskName).async((_) => {
-		fn()
-	})
-	// #endif
-	// #ifndef APP-ANDROID
-	fn()
-	// #endif
-}
 // extends WorkerTaskImpl
 type OnMessageFn = (message : any) => void;
 class RequestAiWorker {
@@ -433,7 +422,7 @@ class RequestAiWorker {
 			// 拷贝主线程的数据，然后给子线程使用
 			const messageCopy : RequestAiOptions | UTSJSONObject = JSON.parse<RequestAiOptions>(JSON.stringify(message))!
 			if (messageCopy instanceof RequestAiOptions) {
-				uniGetDispatcher("io", () => {
+				utils.uniGetDispatcher("io", () => {
 					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm);
 				});
 			}
@@ -468,7 +457,7 @@ class RequestAiWorker {
 		// console.log('emitOnMessage 拷贝耗时', Date.now() - startTime)
 		this.onMessageFnList.forEach(fn => {
 			// 在主线程执行回调函数
-			uniGetDispatcher("main", () => {
+			utils.uniGetDispatcher("main", () => {
 				fn(messageCopy);
 			});
 		});
@@ -482,41 +471,43 @@ export default RequestAiWorker;
 
 // 解析流式数据
 function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
-	const chunkText : string = new TextDecoder().decode(chunkData)
-	// console.error('chunkText======', chunkText)
-	const lines : string[] = chunkText.trim().split('\n\n')
-	// console.error('lines======', lines, lines.length)
-	lines.forEach((line : string) => {
-		line.split('\n').forEach((lineItem : string) => {
-			const keyValue : string[] = lineItem.split(':')
-			const key : string = keyValue[0]
-			const value : string = keyValue.slice(1).join(':')
-			if (key == 'data') {
-				if (value == " [DONE]") {
+	utils.uniGetDispatcher("io", () => {
+		const chunkText : string = new TextDecoder().decode(chunkData)
+		// console.error('chunkText======', chunkText)
+		const lines : string[] = chunkText.trim().split('\n\n')
+		// console.error('lines======', lines, lines.length)
+		lines.forEach((line : string) => {
+			line.split('\n').forEach((lineItem : string) => {
+				const keyValue : string[] = lineItem.split(':')
+				const key : string = keyValue[0]
+				const value : string = keyValue.slice(1).join(':')
+				if (key == 'data') {
+					if (value == " [DONE]") {
+						doneCallback()
+						return
+					}
+					let chunk : Chunk | null = null
+					try {
+						chunk = JSON.parse<Chunk>(value) as Chunk
+					} catch (e) {
+						console.error('JSON.parse error', e, 'value:', value)
+					}
+					// console.log('chunk',chunk)
+					callback(chunk ?? {} as Chunk);
+				} else if (key == '{"error"') {
+					// console.error('parseChunkData error', {key,value})
+					let info : UTSJSONObject = {}
+					try {
+						info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
+					} catch (e) {
+						console.error('JSON.parse error', e, 'value:', value)
+					}
+					errorCallback(info.error! as UTSJSONObject)
 					doneCallback()
-					return
+				} else {
+					callback({} as Chunk);
 				}
-				let chunk : Chunk | null = null
-				try {
-					chunk = JSON.parse<Chunk>(value) as Chunk
-				} catch (e) {
-					console.error('JSON.parse error', e, 'value:', value)
-				}
-				// console.log('chunk',chunk)
-				callback(chunk ?? {} as Chunk);
-			} else if (key == '{"error"') {
-				// console.error('parseChunkData error', {key,value})
-				let info : UTSJSONObject = {}
-				try {
-					info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
-				} catch (e) {
-					console.error('JSON.parse error', e, 'value:', value)
-				}
-				errorCallback(info.error! as UTSJSONObject)
-				doneCallback()
-			} else {
-				callback({} as Chunk);
-			}
+			})
 		})
 	})
 }
