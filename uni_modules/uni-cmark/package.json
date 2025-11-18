@@ -10,7 +10,7 @@
   "engines": {
     "HBuilderX": "^3.6.8",
     "uni-app": "",
-    "uni-app-x": "^4.61"
+    "uni-app-x": "^4.85"
   },
   "dcloudext": {
     "type": "uts",
@@ -79,16 +79,31 @@
         },
         "uni-app-x": {
           "web": {
-            "safari": "√",
-            "chrome": "√"
+            "safari": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            },
+            "chrome": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            }
           },
           "app": {
-            "android": "√",
-            "ios": "√",
-            "harmony": "√"
+            "android": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            },
+            "ios": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            },
+            "harmony": "-"
           },
           "mp": {
-            "weixin": "√"
+            "weixin": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            }
           }
         }
       }
