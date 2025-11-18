@@ -2,7 +2,7 @@
   "id": "uni-cmark",
   "displayName": "uni-cmark",
   "version": "1.0.0",
-  "description": "本插件支持基于 TextMate 语法规则（如 javascript.tmLanguage.json）的代码高亮渲染。",
+  "description": "一个由 AI 基于 C 语言库 cmark-gfm 封装的 Markdown 解析 UTS 插件，适用于 uni-app 生态",
   "keywords": [
     "uni-cmark"
 ],
