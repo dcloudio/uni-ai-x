@@ -28,7 +28,7 @@
           parentIsWeb = envObj.h5
         })
 
-        const isInHarmonyWeb = window.arkWeb != undefined
+        // const isInHarmonyWeb = window.arkWeb != undefined
 
 			
         class ProxyWebHandler {
@@ -51,7 +51,7 @@
             //     uniqueId: 'mermaid' + Date.now() + Math.random().toString(36).substring(2, 15)
             //   });
             // });
-
+						
             // 监听当前 web 初始化完成
             document.addEventListener('DOMContentLoaded', () => {
               this.postMessage({
@@ -103,12 +103,12 @@
           postMessage({ action, param }) {
             // console.log('web 内部执行了 postMessage', action, param)
             const arg = { action, param }
-            if (isInHarmonyWeb) {
-              // TODO:解决在鸿蒙端套娃使用 webview 套 webview 时，无法使用 uni.webView.postMessage 的问题
-              window.parent.postMessage({ data: { arg, name: 'postMessage' }}, '*');
-            } else {
+            // if (isInHarmonyWeb) {
+            //   // TODO:解决在鸿蒙端套娃使用 webview 套 webview 时，无法使用 uni.webView.postMessage 的问题
+            //   window.parent.postMessage({ data: { arg, name: 'postMessage' }}, '*');
+            // } else {
               uni.webView.postMessage({data: arg});
-            }
+            // }
           }
 
           onMessage(param) {

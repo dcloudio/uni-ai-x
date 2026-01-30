@@ -1,16 +1,10 @@
 <template>
-	<!-- #ifdef APP-HARMONY -->
-		<!-- 鸿蒙端使用webview的方式加载，需要将web发行资源包放到`/uni_modules/uni-ai-x/static/app-harmony/html/`文件夹下，或将其部署到服务端并改写下方`web-view src`的值 -->
-		<web-view class="web-view" src="/uni_modules/uni-ai-x/static/app-harmony/html/index.html" id="web-view"></web-view>
-	<!-- #endif -->
-	<!-- #ifndef APP-HARMONY -->
-		<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu, [`ui-theme-${uiTheme}`]: true}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
-			<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
-			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
-		</view>
-		<!-- #ifndef MP-WEIXIN -->
-		<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
-		<!-- #endif -->
+	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu, [`ui-theme-${uiTheme}`]: true}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
+		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
+		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+	</view>
+	<!-- #ifndef MP-WEIXIN -->
+	<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
 	<!-- #endif -->
 
 	<!-- 用于非 Android 端测量文字宽度的容器 -->
@@ -22,7 +16,6 @@
 </template>
 
 <script lang="uts" setup>
-// #ifndef APP-HARMONY
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
@@ -158,7 +151,6 @@
 		proxyWeb.init(proxyWebContext!)
 		// #endif
 	})
-// #endif
 </script>
 
 <style lang="scss">
