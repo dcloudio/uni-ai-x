@@ -1,7 +1,7 @@
 <template>
 	<view class="add-chat-box" v-if="msgListLength > 1">
 		<add-chat size="16">
-			<text class="text">开启新对话</text>
+			<text class="add-chat-box-text">开启新对话</text>
 		</add-chat>
 	</view>
 </template>
@@ -25,16 +25,11 @@
 	border: 1px solid var(--border-secondary);
 	border-radius: 30px;
 	background-color: var(--bg-primary);
-	.text {
-		font-size: 14px;
-		margin-left: 2px;
-		color: var(--text-secondary);
-	}
-	/* #ifdef WEB */
-	cursor: pointer;
-	&:hover {
-		filter: brightness(0.9);
-	}
-	/* #endif */
+}
+
+.add-chat-box-text {
+	font-size: 14px;
+	margin-left: 2px;
+	color: var(--text-secondary);
 }
 </style>

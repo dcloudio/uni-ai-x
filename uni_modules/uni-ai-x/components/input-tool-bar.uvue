@@ -1,19 +1,23 @@
 <template>
     <view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
-        <view class="btn" :class="{active: currentLLMModel.thinking ?? false}" @click="setThinking">
-            <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="text" :class="{active: currentLLMModel.thinking ?? false, disable: !hasDeepseekR1Model}">深度思考 (R1)</text>
+        <view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
+            <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666')"></uni-ai-icon>
+            <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考 (R1)</text>
         </view>
-        <view class="btn search" :class="{disable: !canWebSearch, active: webSearch}" @click="setWebSearch">
+        <view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="text" :class="{disable: !canWebSearch, active: webSearch}">联网搜索</text>
+            <text class="input-tool-bar-text" :class="[!canWebSearch ? 'input-tool-bar-text-disable' : '', webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
         </view>
-        <!-- 上传图片 -->
-        <uni-icons v-if="canParseImg" @click="uploadImage" class="upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
-        <view v-if="aiState == 'processing'" class="stop active" @click="stop">
+				
+        <uni-icons v-if="canParseImg" @click="uploadImage" class="input-tool-bar-upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
+        <view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active" @click="stop">
             <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
         </view>
-        <view v-else class="send" @click="send" :class="{active: inputContent.length > 0 && allUploaded}" :title="allUploaded ? '发送' : '请等待图片上传完成'">
+        <view v-else class="input-tool-bar-send" @click="send" :class="inputContent.length > 0 && allUploaded ? 'input-tool-bar-send-active' : ''"
+					<!-- #ifdef WEB -->
+					:title="allUploaded ? '发送' : '请等待图片上传完成'"
+					<!-- #endif -->
+				>
             <uni-ai-icon code="e627" color="#FFF" size="20"></uni-ai-icon>
         </view>
     </view>
@@ -41,6 +45,10 @@ llmModelMap.forEach((provider,providerName) => {
             hasDoubaoSeed16Model.value = true;
         }
     });
+});
+
+const isOpenClaw = computed<boolean>(() => {
+    return uniAi.llm.provider == 'openClaw';
 });
 
 
@@ -124,6 +132,13 @@ const canThinking = computed<boolean>(() => {
     return currentLLMModel.value.thinking ?? false;
 });
 const setThinking = () => {
+    if (isOpenClaw.value) {
+        uni.showToast({
+            title: 'openClaw不支持深度思考',
+            icon: 'none'
+        });
+        return
+    }
     if (!hasDeepseekR1Model.value) {
         uni.showToast({
             title: '请在 config.json 中配置 deepseek-r1 模型',
@@ -259,69 +274,56 @@ onMounted(() => {
 .input-tool-bar {
     flex-direction: row;
     align-items: center;
-    padding:5px 0;
-    .btn {
-        flex-direction: row;
-        align-items: center;
-        padding: 5px 10px;
-        border-radius: 30px;
-        margin-right: 5px;
-        background-color: var(--input-btn-bg);
-        &.active {
-            background-color: var(--input-btn-active-bg);
-        }
-        // #ifdef WEB
-        cursor: pointer;
-        &:hover {
-            background-color: var(--bg-tertiary);
-        }
-        // #endif
-        .text {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-left: 3px;
-        }
-        .active.text {
-            color: var(--accent-primary);
-        }
-        .disable.text {
-            color: var(--text-disabled);
-        }
-    }
-    .search {
-        margin-right: auto;
-    }
-   .stop, .send {
-        background-color: var(--accent-secondary);
-        width: 30px;
-        height: 30px;
-        justify-content: center;
-        align-items: center;
-        border-radius: 100px;
-         // #ifndef APP
-         transition: all 0.2s ease;
-        // #endif
-        // #ifdef WEB
-        cursor: pointer;
-        &.active:hover {
-            background-color: var(--accent-primary);
-        }
-        &:active {
-            box-shadow: 0 1px 4px var(--shadow);
-        }
-        // #endif
-        &.active {
-            background-color: var(--accent-primary);
-        }
-    }
-    .upload-image-btn {
-        margin-right: 15px;
-        // #ifdef WEB
-        cursor: pointer;
-        &:hover {
-            filter: brightness(0.8);
-        }
-        // #endif
-    }
+    padding: 5px 0;
+}
+
+.input-tool-bar-btn {
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 30px;
+    margin-right: 5px;
+    background-color: var(--input-btn-bg);
+}
+
+.input-tool-bar-btn-active {
+    background-color: var(--input-btn-active-bg);
+}
+
+.input-tool-bar-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 3px;
+}
+
+.input-tool-bar-text-active {
+    color: var(--accent-primary);
+}
+
+.input-tool-bar-text-disable {
+    color: var(--text-disabled);
+}
+
+.input-tool-bar-search {
+    margin-right: auto;
+}
+
+.input-tool-bar-stop,
+.input-tool-bar-send {
+    background-color: var(--accent-secondary);
+    width: 30px;
+    height: 30px;
+    justify-content: center;
+    align-items: center;
+    border-radius: 100px;
+}
+
+.input-tool-bar-stop-active,
+.input-tool-bar-send-active {
+    background-color: var(--accent-primary);
+}
+
+.input-tool-bar-upload-image-btn {
+    margin-right: 15px;
 }
 </style>

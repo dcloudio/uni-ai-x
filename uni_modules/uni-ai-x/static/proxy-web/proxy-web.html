@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- 预加载常用 KaTeX 字体（必须加 crossorigin 以匹配 CSS @font-face 的匿名跨域模式） -->
+    <link rel="preload" href="./libs/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./libs/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./libs/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
     <link rel="stylesheet" href="./libs/katex.min.css">
     <title></title>
   </head>
@@ -28,7 +32,7 @@
           parentIsWeb = envObj.h5
         })
 
-        const isInHarmonyWeb = window.arkWeb != undefined
+        // const isInHarmonyWeb = window.arkWeb != undefined
 
 			
         class ProxyWebHandler {
@@ -51,7 +55,7 @@
             //     uniqueId: 'mermaid' + Date.now() + Math.random().toString(36).substring(2, 15)
             //   });
             // });
-
+						
             // 监听当前 web 初始化完成
             document.addEventListener('DOMContentLoaded', () => {
               this.postMessage({
@@ -103,12 +107,12 @@
           postMessage({ action, param }) {
             // console.log('web 内部执行了 postMessage', action, param)
             const arg = { action, param }
-            if (isInHarmonyWeb) {
-              // TODO:解决在鸿蒙端套娃使用 webview 套 webview 时，无法使用 uni.webView.postMessage 的问题
-              window.parent.postMessage({ data: { arg, name: 'postMessage' }}, '*');
-            } else {
+            // if (isInHarmonyWeb) {
+            //   // TODO:解决在鸿蒙端套娃使用 webview 套 webview 时，无法使用 uni.webView.postMessage 的问题
+            //   window.parent.postMessage({ data: { arg, name: 'postMessage' }}, '*');
+            // } else {
               uni.webView.postMessage({data: arg});
-            }
+            // }
           }
 
           onMessage(param) {

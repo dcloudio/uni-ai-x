@@ -1,5 +1,5 @@
 <template>
-	<text :decode="true" :style="{ color: color, 'font-size': iconSize }" @click="_onClick" class="uni-ai-icon">{{unicode}}</text>
+	<text :style="{ color: color, 'font-size': iconSize }" @click="_onClick" class="uni-ai-icon">{{unicode}}</text>
 </template>
 
 <script lang="uts" setup>

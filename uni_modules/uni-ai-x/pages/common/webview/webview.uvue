@@ -58,6 +58,7 @@
 	// #endif
 </script>
 <style lang="scss">
+	/* 蒸汽模式：仅单层 class */
 	.nav-bar {
 		flex-direction: row;
 		padding: 10px;
@@ -66,20 +67,22 @@
 		/* #endif */
 		justify-content: space-between;
 		border-bottom: 1px solid #ccc;
-		.nav-bar-left, .nav-bar-right {
-			width: 25px;
-			align-items: center;
-		}
-		.nav-bar-title {
-			width: 50%;
-			text-overflow: ellipsis;
-			text-align: center;
-			// 不换行
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
 	}
+
+	.nav-bar-left,
+	.nav-bar-right {
+		width: 25px;
+		align-items: center;
+	}
+
+	.nav-bar-title {
+		width: 50%;
+		text-overflow: ellipsis;
+		text-align: center;
+		white-space: nowrap;
+		overflow: hidden;
+	}
+
 	.web-view {
 		width: 750rpx;
 		flex: 1;

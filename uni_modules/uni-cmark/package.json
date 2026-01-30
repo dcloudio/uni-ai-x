@@ -1,7 +1,7 @@
 {
   "id": "uni-cmark",
   "displayName": "uni-cmark",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "一个由 AI 基于 C 语言库 cmark-gfm 封装的 Markdown 解析 UTS 插件，适用于 uni-app 生态",
   "keywords": [
     "uni-cmark"

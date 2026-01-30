@@ -50,14 +50,14 @@ export type ChatItem = {
 }
 
 // 流式响应分块
-type ChunkChoiceDelta = {
+export type ChunkChoiceDelta = {
 	content: string,
 	reasoning_content?: string
 }
-type ChunkMessage = {
+export type ChunkMessage = {
 	content: string
 }
-type ChunkChoice = {
+export type ChunkChoice = {
 	delta?: ChunkChoiceDelta
 	message?: ChunkMessage
 }
