@@ -1,6 +1,6 @@
 <template>
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
-		<scroll-view class="uni-ai-msg-table-table-box" :scroll-x="true" direction="horizontal" :show-scrollbar="isHorizontalScroll"
+		<scroll-view class="uni-ai-msg-table-table-box" direction="horizontal" :show-scrollbar="isHorizontalScroll"
 			:style="{width: tableWrapperWidth + 'px'}">
 			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="uni-ai-msg-table-table-row">
 				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">

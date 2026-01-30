@@ -3,7 +3,7 @@
 		<text class="menu-box-title">UNI-AI 助手</text>
 		<addChatBtn @click="closeMenu()" />
 		<text class="menu-box-nav">历史对话</text>
-		<scroll-view :scroll-y="true" class="menu-box-chat-list">
+		<scroll-view direction="horizontal" class="menu-box-chat-list">
 			<view v-for="chat in chatDatas" :key="chat.id" @click="setActiveChat(chat)" class="menu-box-chat-item" :class="chat.id == activeChatId ? 'menu-box-chat-item-active' : ''"
 				@longpress="longpress(chat)"
 			>

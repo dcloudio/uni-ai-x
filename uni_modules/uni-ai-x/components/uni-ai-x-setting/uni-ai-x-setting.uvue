@@ -20,7 +20,7 @@
 		<uni-popup ref="modelPopupRef" @clickMask="closeModelPopup">
 			<view class="uni-im-setting-choose-llm-model">
 				<text class="uni-im-setting-choose-title">选择AI模型</text>
-				<scroll-view :scroll-y="true" class="uni-im-setting-scroll-view">
+				<scroll-view direction="horizontal" class="uni-im-setting-scroll-view">
 					<view v-for="provider in providerNameList" :key="provider" class="uni-im-setting-provider-item">
 						<view class="uni-im-setting-info">
 							<image class="uni-im-setting-info-logo" :src="'/uni_modules/uni-ai-x/static/ai-provider/'+provider+'.png'" mode="aspectFill"></image>

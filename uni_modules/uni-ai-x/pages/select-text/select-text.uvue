@@ -1,5 +1,5 @@
 <template>
-	<scroll-view :scroll-y="true" class="select-text-scroll-view">
+	<scroll-view direction="vertical" class="select-text-scroll-view">
 		<rich-text id="richtext" class="select-text-richtext"
 			:selectable="true" :nodes="text" 
 			mode="web"
