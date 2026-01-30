@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- 预加载常用 KaTeX 字体（不加 crossorigin，与 katex.min.css 内同源字体请求一致） -->
+    <link rel="preload" href="./libs/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" />
+    <link rel="preload" href="./libs/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" />
+    <link rel="preload" href="./libs/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" />
     <link rel="stylesheet" href="./libs/katex.min.css">
     <title></title>
   </head>
