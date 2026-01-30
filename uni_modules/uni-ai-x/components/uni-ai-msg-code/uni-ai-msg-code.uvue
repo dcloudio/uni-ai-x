@@ -1,38 +1,37 @@
 <template>
-	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`, {mermaid: language == 'mermaid'}]">
-		<view class="code-header">
-			<!-- 选择显示的图表，还是代码的切换 -->
-			<view class="mermaid-switch" v-if="language == 'mermaid'">
-				<text class="item" :class="{active: showMermaidImage}" @click="showMermaidImage = true">图表</text>
-				<text class="item" :class="{active: !showMermaidImage}" @click="showMermaidImage = false">代码</text>
+	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`, language == 'mermaid' ? 'uni-code-msg-root-mermaid' : '']">
+		<view class="uni-code-msg-code-header">
+			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
+				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="showMermaidImage = true">图表</text>
+				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="showMermaidImage = false">代码</text>
 			</view>
 			<template v-if="!showMermaidImage">
-				<text class="language">{{language}}</text>
-				<view class="copy-btn" @click="copyCode">
-					<uni-ai-icon class="copy" code="e60c" size="12" color="var(--text-primary)"/>
-					<text class="copy-text">复制代码</text>
+				<text class="uni-code-msg-language">{{language}}</text>
+				<view class="uni-code-msg-copy-btn" @click="copyCode">
+					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="var(--text-primary)"/>
+					<text class="uni-code-msg-copy-text">复制代码</text>
 				</view>
 			</template>
 		</view>
-		<view v-if="language == 'mermaid' && showMermaidImage" class="mermaid-image-box">
+		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box">
 			<!-- #ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN -->
 				<!-- #ifdef MP-WEIXIN -->
-				<text class="not-support-tip">小程序端不支持图表渲染</text>
+				<text class="uni-code-msg-not-support-tip">小程序端不支持图表渲染</text>
 				<!-- #endif -->
 				<!-- #ifndef MP-WEIXIN -->
-				<text class="not-support-tip">当前 HBuilderX 版本低于 4.81，暂不支持图表渲染</text>
+				<text class="uni-code-msg-not-support-tip">当前 HBuilderX 版本低于 4.81，暂不支持图表渲染</text>
 				<!-- #endif -->
 			<!-- #endif -->
 			<template v-for="(mermaidInfo, i) in mermaidInfos" :key="i">
-				<image @click="previewMermaidImage" class="mermaid-image" mode="aspectFit" 
+				<image @click="previewMermaidImage" class="uni-code-msg-mermaid-image" mode="aspectFit" 
 					v-if="mermaidInfo.renderd" :src="mermaidInfo.href" :style="{opacity: mermaidInfo.show ? 1 : 0}"
 				/>
 			</template>
 		</view>
-		<scroll-view v-else class="code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<text v-if="props.codeTokens.length == 0" class="origin-code" :selectable="true" :style="{width: maxLineWidth}">{{codeText}}</text>
-			<text v-else class="line" :selectable="true" v-for="(tokens,index) in props.codeTokens" :key="index" :style="{width: maxLineWidth}">
-				<text v-for="token in tokens" :key="token.uniqueId" class="code" :class="token.className">{{token.text}}</text>
+		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
+			<text v-if="props.codeTokens.length == 0" class="uni-code-msg-origin-code" :selectable="true" :style="{width: maxLineWidth}">{{codeText}}</text>
+			<text v-else class="uni-code-msg-line" :selectable="true" v-for="(tokens,index) in props.codeTokens" :key="index" :style="{width: maxLineWidth}">
+				<text v-for="token in tokens" :key="token.uniqueId" :class="'uni-code-msg-line-code uni-code-msg-code-' + (token.className ?? '')">{{token.text}}</text>
 			</text>
 		</scroll-view>
 	</view>
@@ -203,131 +202,121 @@ const previewMermaidImage = () => {
 .uni-code-msg-root {
 	width: 100%;
 	margin-bottom: 5px;
-	background-color: var(--bg-secondary); 
+	background-color: var(--bg-secondary);
 	border-radius: 6px;
 	border: 1px solid var(--border-color);
-	.code-header {
-		width: 100%;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		padding: 4px 10px;
-		background-color: var(--bg-tertiary);
-		.mermaid-switch {
-			flex-direction: row;
-			border-radius: 6px;
-			padding: 2px 0;
-			background-color: var(--border-color);
-			.item {
-				padding: 4px 10px;
-				margin: 0 1px;
-				border-radius: 6px;
-				font-size: 12px;
-				color: var(--text-secondary);
-				// #ifdef WEB
-				cursor: pointer;
-				&:hover {
-					background-color: var(--bg-tertiary);
-				}
-				// #endif
-				&.active {
-					background-color: var(--bg-primary);
-					color: var(--text-primary);
-				}
-			}
-		}
-		.language {
-			font-size: 12px;
-			color: var(--text-primary);
-		}
-		
-		.run-time {
-			font-size: 12px;
-			color: var(--success-color);
-		}
-		
-		.copy-btn {
-			flex-direction: row;
-			align-items: center;
-			padding: 2px 4px;
-			border-radius: 4px;
-			// #ifdef WEB
-			cursor: pointer;
-			&:hover {
-				background-color: var(--bg-tertiary);
-			}
-			// #endif
-			.copy-text {
-				font-size: 10px;
-				color: var(--text-primary);
-				margin-left: 2px;
-			}
-		}
-	}
-	.mermaid-image-box {
-		height: 400px;
-		background-color: #FFF;
-		align-items: center;
-		.not-support-tip {
-			font-size: 12px;
-			color: var(--warning-color);
-			margin-top: 10px;
-		}
-		.mermaid-image {
-			position: absolute;
-			top: 0;
-			height: 100%;
-		}
-	}
-	.code-scroll-view {
-		padding: 8px 0;
-		height: auto;
-		width: 100%;
-		// 高度变化的过渡动画
-		transition: height 0.2s linear;
-		.line, .origin-code {
-			padding: 0 15px;
-		}
-		.line {
-			height: 22px;
-			white-space: nowrap;
-			align-self: flex-start;
-			.code {
-				white-space: nowrap;
-				font-family: CodeFontFamily;
-				font-size: 14px;
-				color: var(--text-primary);
-			}
-			// 代码高亮颜色，使用主题变量
-			.keyword { color: var(--code-keyword); }
-			.string { color: var(--code-string); }
-			.comment { color: var(--code-comment); }
-			.meta { color: var(--code-meta); }
-			.storage { color: var(--code-storage); }
-			// #ifdef uniVersion >= 4.81 || MP-WEIXIN
-			// .source, .eol {white-space: pre;}
-			// #endif
-			.entity { color: var(--code-entity); }
-			.support { color: var(--code-support); }
-			.constant { color: var(--code-constant); }
-			.variable { color: var(--code-variable); }
-			.punctuation { color: var(--code-punctuation); }
-			.function { color: var(--code-function); }
-		}
-		.origin-code {
-			color: var(--text-primary);
-			height: 100%;
-			font-size: 14px;
-			// #ifdef uniVersion >= 4.81 || MP-WEIXIN
-			// white-space: pre!important;
-			// #endif
-			align-self: flex-start;
-			line-height: 22px;
-			font-family: CodeFontFamily;
-			overflow: visible;
-		}
-	}
 }
 
+.uni-code-msg-code-header {
+	width: 100%;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	padding: 4px 10px;
+	background-color: var(--bg-tertiary);
+}
+
+.uni-code-msg-mermaid-switch {
+	flex-direction: row;
+	border-radius: 6px;
+	padding: 2px 0;
+	background-color: var(--border-color);
+}
+
+.uni-code-msg-mermaid-item {
+	padding: 4px 10px;
+	margin: 0 1px;
+	border-radius: 6px;
+	font-size: 12px;
+	color: var(--text-secondary);
+}
+
+.uni-code-msg-mermaid-item-active {
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+}
+
+.uni-code-msg-language {
+	font-size: 12px;
+	color: var(--text-primary);
+}
+
+.uni-code-msg-copy-btn {
+	flex-direction: row;
+	align-items: center;
+	padding: 2px 4px;
+	border-radius: 4px;
+}
+
+.uni-code-msg-copy-text {
+	font-size: 10px;
+	color: var(--text-primary);
+	margin-left: 2px;
+}
+
+.uni-code-msg-mermaid-image-box {
+	height: 400px;
+	background-color: #FFF;
+	align-items: center;
+}
+
+.uni-code-msg-not-support-tip {
+	font-size: 12px;
+	color: var(--warning-color);
+	margin-top: 10px;
+}
+
+.uni-code-msg-mermaid-image {
+	position: absolute;
+	top: 0;
+	height: 100%;
+}
+
+.uni-code-msg-code-scroll-view {
+	padding: 8px 0;
+	height: auto;
+	width: 100%;
+	transition: height 0.2s linear;
+}
+
+.uni-code-msg-line,
+.uni-code-msg-origin-code {
+	padding: 0 15px;
+}
+
+.uni-code-msg-line {
+	height: 22px;
+	white-space: nowrap;
+	align-self: flex-start;
+}
+
+.uni-code-msg-line-code {
+	white-space: nowrap;
+	font-family: CodeFontFamily;
+	font-size: 14px;
+	color: var(--text-primary);
+}
+
+.uni-code-msg-code-keyword { color: var(--code-keyword); }
+.uni-code-msg-code-string { color: var(--code-string); }
+.uni-code-msg-code-comment { color: var(--code-comment); }
+.uni-code-msg-code-meta { color: var(--code-meta); }
+.uni-code-msg-code-storage { color: var(--code-storage); }
+.uni-code-msg-code-entity { color: var(--code-entity); }
+.uni-code-msg-code-support { color: var(--code-support); }
+.uni-code-msg-code-constant { color: var(--code-constant); }
+.uni-code-msg-code-variable { color: var(--code-variable); }
+.uni-code-msg-code-punctuation { color: var(--code-punctuation); }
+.uni-code-msg-code-function { color: var(--code-function); }
+
+.uni-code-msg-origin-code {
+	color: var(--text-primary);
+	height: 100%;
+	font-size: 14px;
+	align-self: flex-start;
+	line-height: 22px;
+	font-family: CodeFontFamily;
+	overflow: visible;
+}
 
 </style>

@@ -2,7 +2,7 @@
   <view
     v-if="showPopup"
     class="uni-popup"
-    :class="[popupstyle, isDesktop ? 'fixforpc-z-index' : '']"
+    :class="[popupstyle, isDesktop ? 'fixforpc-z-index' : '', (popupstyle === 'top' || popupstyle === 'left' || popupstyle === 'right') ? 'uni-popup-' + popupstyle : '']"
   >
     <view @touchstart="touchstart">
       <uni-transition
@@ -27,7 +27,7 @@
         <view
           class="uni-popup__wrapper"
           :style="getStyles"
-          :class="[popupstyle]"
+          :class="[popupstyle, (popupstyle === 'left' || popupstyle === 'right') ? 'uni-popup__wrapper-' + popupstyle : '']"
           @click="clear"
         >
           <slot />
@@ -399,40 +399,41 @@ defineExpose({
 });
 </script>
 <style lang="scss">
+/* 蒸汽模式：仅单层 class，无 .a .b 组合选择器 */
 .uni-popup {
   position: fixed;
   /* #ifndef APP-NVUE */
   z-index: 99;
-
   /* #endif */
-  &.top,
-  &.left,
-  &.right {
-    /* #ifdef H5 */
-    top: var(--window-top);
-    /* #endif */
-    /* #ifndef H5 */
-    top: 0;
-    /* #endif */
-  }
+}
 
-  .uni-popup__wrapper {
-    /* #ifndef APP-NVUE */
-    display: block;
-    /* #endif */
-    position: relative;
+.uni-popup-top,
+.uni-popup-left,
+.uni-popup-right {
+  /* #ifdef H5 */
+  top: var(--window-top);
+  /* #endif */
+  /* #ifndef H5 */
+  top: 0;
+  /* #endif */
+}
 
-    &.left,
-    &.right {
-      /* #ifdef H5 */
-      padding-top: var(--window-top);
-      /* #endif */
-      /* #ifndef H5 */
-      padding-top: 0;
-      /* #endif */
-      flex: 1;
-    }
-  }
+.uni-popup__wrapper {
+  /* #ifndef APP-NVUE */
+  display: block;
+  /* #endif */
+  position: relative;
+}
+
+.uni-popup__wrapper-left,
+.uni-popup__wrapper-right {
+  /* #ifdef H5 */
+  padding-top: var(--window-top);
+  /* #endif */
+  /* #ifndef H5 */
+  padding-top: 0;
+  /* #endif */
+  flex: 1;
 }
 
 .fixforpc-z-index {

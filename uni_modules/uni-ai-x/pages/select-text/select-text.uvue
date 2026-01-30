@@ -1,6 +1,6 @@
 <template>
-	<scroll-view :scroll-y="true" class="scroll-view">
-		<rich-text id="richtext" class="richtext"
+	<scroll-view :scroll-y="true" class="select-text-scroll-view">
+		<rich-text id="richtext" class="select-text-richtext"
 			:selectable="true" :nodes="text" 
 			mode="web"
 		></rich-text>
@@ -31,14 +31,13 @@
 </script>
 
 <style lang="scss">
-	.scroll-view {
+	.select-text-scroll-view {
 		height: 100%;
 		width: 100%;
 		background-color: #fff;
 		padding: 10px;
-		// border: solid 1px blue;
-		.richtext {
-			// border: solid 1px red;
-		}
+	}
+
+	.select-text-richtext {
 	}
 </style>

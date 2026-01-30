@@ -3,7 +3,7 @@
         <!-- #ifdef WEB -->
         <view class="katex" v-if="html != null && html.length > 0" v-html="html"></view>
         <!-- #endif -->
-        <image v-if="href != null && href.length > 0" :src="href" class="katex-image" mode="heightFix"
+        <image v-if="href != null && href.length > 0" :src="href" class="katex-el-katex-image" mode="heightFix"
             :style="{'height': katexHeight}" 
         />
     </view>
@@ -37,8 +37,9 @@
     // #endif
     .katex-el {
         width: 100%;
-        .katex-image {
-            width: 100%;
-        }
+    }
+
+    .katex-el-katex-image {
+        width: 100%;
     }
 </style>

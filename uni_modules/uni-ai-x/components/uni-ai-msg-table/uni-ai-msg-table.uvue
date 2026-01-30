@@ -1,12 +1,12 @@
 <template>
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
-		<scroll-view class="table-box" :scroll-x="true" direction="horizontal" :show-scrollbar="isHorizontalScroll"
+		<scroll-view class="uni-ai-msg-table-table-box" :scroll-x="true" direction="horizontal" :show-scrollbar="isHorizontalScroll"
 			:style="{width: tableWrapperWidth + 'px'}">
-			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="table-row">
+			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="uni-ai-msg-table-table-row">
 				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">
-					<text class="cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': tableAligns[cellIndex]}">
+					<text class="uni-ai-msg-table-cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': tableAligns[cellIndex]}">
 						<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
-							:class="(rowIndex == 0 ? 'header-text' : 'cell-text') + ' ' + cellItem.type"
+							:class="(rowIndex == 0 ? 'uni-ai-msg-table-header-text' : 'uni-ai-msg-table-cell-text') + (cellItem.type ? ' uni-ai-msg-table-cell-text-' + cellItem.type : '')"
 							>{{ cellItem.text }}</text>
 					</text>
 				</template>
@@ -72,46 +72,48 @@
 <style lang="scss">
 	// 引用scss
 	@import '@/uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md.scss';
+	/* 蒸汽模式：仅单层 class */
 	.uni-ai-msg-table {
 		width: 100% !important;
 		margin-bottom: 10px;
+	}
 
-		.table-box {
-			width: 100% !important;
-			background-color: #ffffff;
-			margin: 16px 0;
+	.uni-ai-msg-table-table-box {
+		width: 100% !important;
+		background-color: #ffffff;
+		margin: 16px 0;
+	}
 
-			.table-row {
-				flex-direction: row;
-				border-bottom: 1px solid #e0e0e0;
-				background-color: #ffffff;
-				align-self: flex-start;
-				justify-content: center;
-				align-items: center;
-				.cell {
-					// 通用文字样式
-					flex-shrink: 0;
-					padding: 12px 8px;
-					min-height: 48px;
-					line-height: 1.4;
-					height: 100%;
-					// 表头特殊样式
-					.header-text {
-						font-size: 14px;
-						font-weight: bold;
-						color: #333333;
-					}
-					// 数据特殊样式
-					.cell-text {
-						font-size: 13px;
-						color: #666666;
-						&.code {
-							padding: 1px 5px;
-							border-radius: 10px;
-						}
-					}
-				}
-			}
-		}
+	.uni-ai-msg-table-table-row {
+		flex-direction: row;
+		border-bottom: 1px solid #e0e0e0;
+		background-color: #ffffff;
+		align-self: flex-start;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.uni-ai-msg-table-cell {
+		flex-shrink: 0;
+		padding: 12px 8px;
+		min-height: 48px;
+		line-height: 1.4;
+		height: 100%;
+	}
+
+	.uni-ai-msg-table-header-text {
+		font-size: 14px;
+		font-weight: bold;
+		color: #333333;
+	}
+
+	.uni-ai-msg-table-cell-text {
+		font-size: 13px;
+		color: #666666;
+	}
+
+	.uni-ai-msg-table-cell-text-code {
+		padding: 1px 5px;
+		border-radius: 10px;
 	}
 </style>

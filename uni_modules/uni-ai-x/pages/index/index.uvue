@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-page" ref="uni-ai-page" :class="{showMenu, [`ui-theme-${uiTheme}`]: true}" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
+	<view class="uni-ai-page" ref="uni-ai-page" :class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 	</view>
@@ -169,29 +169,34 @@
 	flex-direction: row;
 	background-color: var(--bg-primary);
 	transition: transform 0.3s;
-	&.showMenu {
-		transform: translateX(0) !important;
-	}
-	::v-deep .uni-ai-msg-table {
-		.uni-table {
-			background-color: var(--uni-table-bg-color) !important;
-		}
-		.uni-table-th, .uni-table-td, .table--border {
-			border: 1px solid var(--uni-table-border-color) !important;
-		}
-		.uni-table-text {
-			color: var(--uni-table-color) !important;
-		}
-	}
+}
+
+.uni-ai-page-showMenu {
+	transform: translateX(0) !important;
+}
+
+/* 蒸汽模式：单层 class，子组件需加对应 class 才能生效 */
+.uni-ai-msg-table-uni-table {
+	background-color: var(--uni-table-bg-color) !important;
+}
+
+.uni-ai-msg-table-uni-table-th,
+.uni-ai-msg-table-uni-table-td,
+.uni-ai-msg-table-table--border {
+	border: 1px solid var(--uni-table-border-color) !important;
+}
+
+.uni-ai-msg-table-uni-table-text {
+	color: var(--uni-table-color) !important;
 }
 
 /* #ifdef H5 */
 @media screen and (min-device-width:960px){
 	.uni-ai-page {
 		transition: transform 0.3s, width 0.3s;
-		&.showMenu {
-			width: 100%;
-		}
+	}
+	.uni-ai-page-showMenu {
+		width: 100%;
 	}
 }
 /* #endif */
