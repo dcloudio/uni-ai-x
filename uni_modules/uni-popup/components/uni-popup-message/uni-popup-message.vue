@@ -15,68 +15,58 @@
   </view>
 </template>
 
-<script>
-import popup from "../uni-popup/popup.js";
+<script setup>
+import { getCurrentInstance, onMounted } from "vue";
+import { usePopupParent } from "../uni-popup/usePopupParent.js";
+
 /**
  * PopUp 弹出层-消息提示
- * @description 弹出层-消息提示
- * @tutorial https://ext.dcloud.net.cn/plugin?id=329
- * @property {String} type = [success|warning|info|error] 主题样式
- *  @value success 成功
- * 	@value warning 提示
- * 	@value info 消息
- * 	@value error 错误
- * @property {String} message 消息提示文字
- * @property {String} duration 显示时间，设置为 0 则不会自动关闭
  */
+const props = defineProps({
+  type: {
+    type: String,
+    default: "success",
+  },
+  message: {
+    type: String,
+    default: "",
+  },
+  duration: {
+    type: Number,
+    default: 3000,
+  },
+  maskShow: {
+    type: Boolean,
+    default: false,
+  },
+});
 
-export default {
-  name: "uniPopupMessage",
-  mixins: [popup],
-  props: {
-    /**
-     * 主题 success/warning/info/error	  默认 success
-     */
-    type: {
-      type: String,
-      default: "success",
-    },
-    /**
-     * 消息文字
-     */
-    message: {
-      type: String,
-      default: "",
-    },
-    /**
-     * 显示时间，设置为 0 则不会自动关闭
-     */
-    duration: {
-      type: Number,
-      default: 3000,
-    },
-    maskShow: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  data() {
-    return {};
-  },
-  created() {
-    this.popup.maskShow = this.maskShow;
-    this.popup.messageChild = this;
-  },
-  methods: {
-    timerClose() {
-      if (this.duration === 0) return;
-      clearTimeout(this.timer);
-      this.timer = setTimeout(() => {
-        this.popup.close();
-      }, this.duration);
-    },
-  },
-};
+const { popup } = usePopupParent();
+
+let timer = null;
+
+onMounted(() => {
+  if (popup.value) {
+    popup.value.maskShow = props.maskShow;
+    if (typeof popup.value.setMessageChild === "function") {
+      popup.value.setMessageChild(getCurrentInstance()?.proxy);
+    } else {
+      popup.value.messageChild = getCurrentInstance()?.proxy;
+    }
+  }
+});
+
+function timerClose() {
+  if (props.duration === 0) return;
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    if (popup.value) popup.value.close();
+  }, props.duration);
+}
+
+defineExpose({
+  timerClose,
+});
 </script>
 <style lang="scss">
 .uni-popup-message {

@@ -26,91 +26,67 @@
   </view>
 </template>
 
-<script>
-import popup from "../uni-popup/popup.js";
+<script setup>
+import { computed } from "vue";
+import { usePopupParent } from "../uni-popup/usePopupParent.js";
 import { initVueI18n } from "@dcloudio/uni-i18n";
 import messages from "../uni-popup/i18n/index.js";
 const { t } = initVueI18n(messages);
-export default {
+
+defineOptions({
   name: "UniPopupShare",
-  mixins: [popup],
-  emits: ["select"],
-  props: {
-    title: {
-      type: String,
-      default: "",
-    },
-    beforeClose: {
-      type: Boolean,
-      default: false,
-    },
+});
+
+const emit = defineEmits(["select"]);
+
+const props = defineProps({
+  title: {
+    type: String,
+    default: "",
   },
-  data() {
-    return {
-      // TODO 替换为自己的图标
-      bottomData: [
-        {
-          text: "微信",
-          icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
-          name: "wx",
-        },
-        {
-          text: "支付宝",
-          icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
-          name: "ali",
-        },
-        {
-          text: "QQ",
-          icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
-          name: "qq",
-        },
-        {
-          text: "新浪",
-          icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
-          name: "sina",
-        },
-        // {
-        // 	text: '百度',
-        // 	icon: 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-dc-site/1ec6e920-50bf-11eb-8a36-ebb87efcf8c0.png',
-        // 	name: 'copy'
-        // },
-        // {
-        // 	text: '其他',
-        // 	icon: 'https://vkceyugu.cdn.bspapp.com/VKCEYUGU-dc-site/2e0fdfe0-50bf-11eb-b997-9918a5dda011.png',
-        // 	name: 'more'
-        // }
-      ],
-    };
+  beforeClose: {
+    type: Boolean,
+    default: false,
   },
-  created() {},
-  computed: {
-    cancelText() {
-      return t("uni-popup.cancel");
-    },
-    shareTitleText() {
-      return this.title || t("uni-popup.shareTitle");
-    },
+});
+
+const { popup } = usePopupParent();
+
+const bottomData = [
+  {
+    text: "微信",
+    icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
+    name: "wx",
   },
-  methods: {
-    /**
-     * 选择内容
-     */
-    select(item, index) {
-      this.$emit("select", {
-        item,
-        index,
-      });
-      this.close();
-    },
-    /**
-     * 关闭窗口
-     */
-    close() {
-      if (this.beforeClose) return;
-      this.popup.close();
-    },
+  {
+    text: "支付宝",
+    icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
+    name: "ali",
   },
-};
+  {
+    text: "QQ",
+    icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
+    name: "qq",
+  },
+  {
+    text: "新浪",
+    icon: "https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/unicloudlogo.png",
+    name: "sina",
+  },
+];
+
+const cancelText = computed(() => t("uni-popup.cancel"));
+const shareTitleText = computed(() => props.title || t("uni-popup.shareTitle"));
+
+function select(item, index) {
+  emit("select", { item, index });
+  close();
+}
+
+function close() {
+  if (props.beforeClose) return;
+  if (popup.value) popup.value.close();
+}
 </script>
 <style lang="scss">
 .uni-popup-share {

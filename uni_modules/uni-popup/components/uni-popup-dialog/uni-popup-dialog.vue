@@ -41,188 +41,177 @@
   </view>
 </template>
 
-<script>
-import popup from "../uni-popup/popup.js";
+<script setup>
+import { ref, computed, watch, onMounted } from "vue";
+import { usePopupParent } from "../uni-popup/usePopupParent.js";
 import { initVueI18n } from "@dcloudio/uni-i18n";
 import messages from "../uni-popup/i18n/index.js";
 const { t } = initVueI18n(messages);
-/**
- * PopUp 弹出层-对话框样式
- * @description 弹出层-对话框样式
- * @tutorial https://ext.dcloud.net.cn/plugin?id=329
- * @property {String} value input 模式下的默认值
- * @property {String} placeholder input 模式下输入提示
- * @property {Boolean} focus input模式下是否自动聚焦，默认为true
- * @property {String} type = [success|warning|info|error] 主题样式
- *  @value success 成功
- * 	@value warning 提示
- * 	@value info 消息
- * 	@value error 错误
- * @property {String} mode = [base|input] 模式、
- * 	@value base 基础对话框
- * 	@value input 可输入对话框
- * @showClose {Boolean} 是否显示关闭按钮
- * @property {String} content 对话框内容
- * @property {Boolean} beforeClose 是否拦截取消事件
- * @property {Number} maxlength 输入
- * @event {Function} confirm 点击确认按钮触发
- * @event {Function} close 点击取消按钮触发
- */
 
-export default {
-  name: "uniPopupDialog",
-  mixins: [popup],
-  emits: ["confirm", "close", "update:modelValue", "input"],
-  props: {
-    inputType: {
-      type: String,
-      default: "text",
-    },
-    showClose: {
-      type: Boolean,
-      default: true,
-    },
+defineOptions({
+  name: "UniPopupDialog",
+});
+
+const emit = defineEmits(["confirm", "close", "update:modelValue", "input"]);
+
+const props = defineProps({
+  inputType: {
+    type: String,
+    default: "text",
+  },
+  showClose: {
+    type: Boolean,
+    default: true,
+  },
+  // #ifdef VUE2
+  value: {
+    type: [String, Number],
+    default: "",
+  },
+  // #endif
+  // #ifdef VUE3
+  modelValue: {
+    type: [Number, String],
+    default: "",
+  },
+  // #endif
+  placeholder: {
+    type: [String, Number],
+    default: "",
+  },
+  type: {
+    type: String,
+    default: "error",
+  },
+  mode: {
+    type: String,
+    default: "base",
+  },
+  title: {
+    type: String,
+    default: "",
+  },
+  content: {
+    type: String,
+    default: "",
+  },
+  beforeClose: {
+    type: Boolean,
+    default: false,
+  },
+  cancelText: {
+    type: String,
+    default: "",
+  },
+  confirmText: {
+    type: String,
+    default: "",
+  },
+  maxlength: {
+    type: Number,
+    default: -1,
+  },
+  focus: {
+    type: Boolean,
+    default: true,
+  },
+});
+
+const { popup } = usePopupParent();
+
+const dialogType = ref("error");
+const val = ref("");
+
+const okText = computed(() => props.confirmText || t("uni-popup.ok"));
+const closeText = computed(() => props.cancelText || t("uni-popup.cancel"));
+const placeholderText = computed(
+  () => props.placeholder || t("uni-popup.placeholder")
+);
+const titleText = computed(() => props.title || t("uni-popup.title"));
+
+watch(
+  () => props.type,
+  (v) => {
+    dialogType.value = v;
+  }
+);
+watch(
+  () => props.mode,
+  (v) => {
+    if (v === "input") dialogType.value = "info";
+  }
+);
+// #ifdef VUE2
+watch(
+  () => props.value,
+  (v) => {
+    if (props.maxlength != -1 && props.mode === "input") {
+      val.value = String(v).slice(0, props.maxlength);
+    } else {
+      val.value = v;
+    }
+  }
+);
+// #endif
+// #ifdef VUE3
+watch(
+  () => props.modelValue,
+  (v) => {
+    if (props.maxlength != -1 && props.mode === "input") {
+      val.value = String(v).slice(0, props.maxlength);
+    } else {
+      val.value = v;
+    }
+  }
+);
+// #endif
+watch(val, (v) => {
+  // #ifdef VUE2
+  emit("input", v);
+  // #endif
+  // #ifdef VUE3
+  emit("update:modelValue", v);
+  // #endif
+});
+
+onMounted(() => {
+  if (popup.value) popup.value.disableMask();
+  if (props.mode === "input") {
+    dialogType.value = "info";
     // #ifdef VUE2
-    value: {
-      type: [String, Number],
-      default: "",
-    },
+    val.value = props.value;
     // #endif
     // #ifdef VUE3
-    modelValue: {
-      type: [Number, String],
-      default: "",
-    },
+    val.value = props.modelValue;
     // #endif
+  } else {
+    dialogType.value = props.type;
+  }
+});
 
-    placeholder: {
-      type: [String, Number],
-      default: "",
-    },
-    type: {
-      type: String,
-      default: "error",
-    },
-    mode: {
-      type: String,
-      default: "base",
-    },
-    title: {
-      type: String,
-      default: "",
-    },
-    content: {
-      type: String,
-      default: "",
-    },
-    beforeClose: {
-      type: Boolean,
-      default: false,
-    },
-    cancelText: {
-      type: String,
-      default: "",
-    },
-    confirmText: {
-      type: String,
-      default: "",
-    },
-    maxlength: {
-      type: Number,
-      default: -1,
-    },
-    focus: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  data() {
-    return {
-      dialogType: "error",
-      val: "",
-    };
-  },
-  computed: {
-    okText() {
-      return this.confirmText || t("uni-popup.ok");
-    },
-    closeText() {
-      return this.cancelText || t("uni-popup.cancel");
-    },
-    placeholderText() {
-      return this.placeholder || t("uni-popup.placeholder");
-    },
-    titleText() {
-      return this.title || t("uni-popup.title");
-    },
-  },
-  watch: {
-    type(val) {
-      this.dialogType = val;
-    },
-    mode(val) {
-      if (val === "input") {
-        this.dialogType = "info";
-      }
-    },
-    value(val) {
-      if (this.maxlength != -1 && this.mode === "input") {
-        this.val = val.slice(0, this.maxlength);
-      } else {
-        this.val = val;
-      }
-    },
-    val(val) {
-      // #ifdef VUE2
-      // TODO 兼容 vue2
-      this.$emit("input", val);
-      // #endif
-      // #ifdef VUE3
-      // TODO　兼容　vue3
-      this.$emit("update:modelValue", val);
-      // #endif
-    },
-  },
-  created() {
-    // 对话框遮罩不可点击
-    this.popup.disableMask();
-    // this.popup.closeMask()
-    if (this.mode === "input") {
-      this.dialogType = "info";
-      this.val = this.value;
-      // #ifdef VUE3
-      this.val = this.modelValue;
-      // #endif
-    } else {
-      this.dialogType = this.type;
-    }
-  },
-  methods: {
-    /**
-     * 点击确认按钮
-     */
-    onOk() {
-      if (this.mode === "input") {
-        this.$emit("confirm", this.val);
-      } else {
-        this.$emit("confirm");
-      }
-      if (this.beforeClose) return;
-      this.popup.close();
-    },
-    /**
-     * 点击取消按钮
-     */
-    closeDialog() {
-      this.$emit("close");
-      if (this.beforeClose) return;
-      this.popup.close();
-    },
-    close() {
-      this.popup.close();
-    },
-  },
-};
+function onOk() {
+  if (props.mode === "input") {
+    emit("confirm", val.value);
+  } else {
+    emit("confirm");
+  }
+  if (props.beforeClose) return;
+  if (popup.value) popup.value.close();
+}
+
+function closeDialog() {
+  emit("close");
+  if (props.beforeClose) return;
+  if (popup.value) popup.value.close();
+}
+
+function close() {
+  if (popup.value) popup.value.close();
+}
+
+defineExpose({
+  close,
+});
 </script>
 
 <style lang="scss">
