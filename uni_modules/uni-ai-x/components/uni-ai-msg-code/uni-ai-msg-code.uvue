@@ -305,7 +305,7 @@ const previewMermaidImage = () => {
 			.meta { color: var(--code-meta); }
 			.storage { color: var(--code-storage); }
 			// #ifdef uniVersion >= 4.81 || MP-WEIXIN
-			.source, .eol {white-space: pre;}
+			// .source, .eol {white-space: pre;}
 			// #endif
 			.entity { color: var(--code-entity); }
 			.support { color: var(--code-support); }
@@ -319,7 +319,7 @@ const previewMermaidImage = () => {
 			height: 100%;
 			font-size: 14px;
 			// #ifdef uniVersion >= 4.81 || MP-WEIXIN
-			white-space: pre!important;
+			// white-space: pre!important;
 			// #endif
 			align-self: flex-start;
 			line-height: 22px;

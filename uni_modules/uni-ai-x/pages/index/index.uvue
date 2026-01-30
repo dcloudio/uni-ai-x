@@ -132,7 +132,7 @@
 						// 删除节点
 						measureTextWidthInfos.value = measureTextWidthInfos.value.filter((item) => item.id != id)
 					})
-			},0)
+			},30)
 		})
 	}
 	// #endif
