@@ -1,6 +1,5 @@
 import { ScopeparserBridge } from "scopeparser4ios"
 export * from '../interface.uts'
-import { MarkdownToken, ParseMdRes } from '../interface.uts'
 // 创建 scopeparserBridge 实例
 let scopeparserBridge: ScopeparserBridge | null = null
 function getScopeparserBridge(): ScopeparserBridge {
