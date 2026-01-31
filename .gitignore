@@ -9,6 +9,8 @@ node_modules
 uniCloud-alipay/database/newQuery.jql
 package-lock.json
 *.yaml
+# AI 代码评审配置需纳入版本管理
+!code-review/configs/code-review.yaml
 cementing-debug.log
 *.log
 uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-ai-x/config.json
