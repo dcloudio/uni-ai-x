@@ -101,5 +101,5 @@ graph TD
 ***
 下面也是分割线`
 
-// testMarkdownText = '' // 清空测试文本，切换为非演示模式
+testMarkdownText = '' // 清空测试文本，切换为非演示模式
 export default testMarkdownText

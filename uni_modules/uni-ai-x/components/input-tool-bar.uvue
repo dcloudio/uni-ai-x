@@ -1,13 +1,14 @@
 <template>
     <view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
-        <view class="input-tool-bar-btn" :class="(currentLLMModel.thinking ?? false) ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
-            <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', !hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '']">深度思考 (R1)</text>
+        <view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
+            <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666')"></uni-ai-icon>
+            <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考 (R1)</text>
         </view>
         <view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[!canWebSearch ? 'input-tool-bar-text-disable' : '', webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
         </view>
+				
         <uni-icons v-if="canParseImg" @click="uploadImage" class="input-tool-bar-upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
         <view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active" @click="stop">
             <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
@@ -40,6 +41,10 @@ llmModelMap.forEach((provider,providerName) => {
             hasDoubaoSeed16Model.value = true;
         }
     });
+});
+
+const isOpenClaw = computed<boolean>(() => {
+    return uniAi.llm.provider == 'openClaw';
 });
 
 
@@ -123,6 +128,13 @@ const canThinking = computed<boolean>(() => {
     return currentLLMModel.value.thinking ?? false;
 });
 const setThinking = () => {
+    if (isOpenClaw.value) {
+        uni.showToast({
+            title: 'openClaw不支持深度思考',
+            icon: 'none'
+        });
+        return
+    }
     if (!hasDeepseekR1Model.value) {
         uni.showToast({
             title: '请在 config.json 中配置 deepseek-r1 模型',

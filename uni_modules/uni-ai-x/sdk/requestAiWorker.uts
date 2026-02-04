@@ -5,6 +5,15 @@ import {MarkdownToken} from '@/uni_modules/uni-cmark'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import WebSocketManager, { WebSocketCallbacks } from './websocket-manager.uts'
+
+// 全局 WebSocketManager 实例引用（由 index.uts 设置）
+let globalWebSocketManager: WebSocketManager | null = null
+
+export function setGlobalWebSocketManager(manager: WebSocketManager) {
+	globalWebSocketManager = manager
+}
+
 export type OnMessageOptions = {
 	type: string,
 	data?: string | boolean | number 
@@ -295,9 +304,68 @@ class RequestAiWorker {
 			this.requestTask = null
 		})
 	}
+	// WebSocket 通信实现
+	async requestViaWebSocket(options : BailianOptions, resolveFn : (data : UTSJSONObject) => void, rejectFn : (data : UTSJSONObject) => void) : Promise<UTSJSONObject> {
+		try {
+			// 检查 WebSocketManager 是否已初始化
+			const wsManager = globalWebSocketManager
+			if (wsManager == null || !wsManager.isConnected()) {
+				const errInfo: UTSJSONObject = {
+					errCode: -200,
+					errMsg: 'WebSocket 未连接'
+				}
+				options.onError?.(errInfo)
+				return new Promise<UTSJSONObject>((resolve, reject) => {
+					reject(errInfo)
+				})
+			}
+
+			// 构建 WebSocket 回调
+			const callbacks: WebSocketCallbacks = {
+				onChunk: options.onChunk,
+				onError: options.onError,
+				onDone: options.onDone
+			}
+
+			// 使用 WebSocketManager 发送消息
+			const success = wsManager.send(options.messages, options.llm.model, callbacks)
+
+			if (!success) {
+				const errInfo: UTSJSONObject = {
+					errCode: -201,
+					errMsg: '发送消息失败'
+				}
+				options.onError?.(errInfo)
+				return new Promise<UTSJSONObject>((resolve, reject) => {
+					reject(errInfo)
+				})
+			}
+
+			return new Promise<UTSJSONObject>((resolve, reject) => {
+				resolveFn = resolve
+				rejectFn = reject
+			})
+		} catch (e) {
+			console.error('WebSocket 请求异常', e)
+			const errInfo: UTSJSONObject = {
+				errCode: -204,
+				errMsg: 'WebSocket 请求异常'
+			}
+			options.onError?.(errInfo)
+			return new Promise<UTSJSONObject>((resolve, reject) => {
+				reject(errInfo)
+			})
+		}
+	}
 	async requestAlServer(options : BailianOptions) : Promise<UTSJSONObject> {
 		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
 		const config : Provider = llmModelMap.get(options.llm.provider)!
+
+		// 如果是 openClaw provider,使用 WebSocket 通信
+		if (options.llm.provider == 'openClaw') {
+			return this.requestViaWebSocket(options, resolveFn, rejectFn)
+		}
+
 		// 请求的token
 		let tmpToken : string;
 		try {
@@ -392,6 +460,8 @@ class RequestAiWorker {
 	}
 	// 让阿里百联总结更新
 	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm){
+		// 如果是 openClaw 服务商，不启动总结功能
+		if (llm.provider == 'openClaw') return;
 		messages = messages.slice(0)
 		messages.push({
 			role: 'user',
@@ -432,6 +502,7 @@ class RequestAiWorker {
 				this.parseMarkdown!.userAbort = true
 				this.userAbort = true
 				this.requestTask?.abort()
+				// 不关闭 WebSocket 连接,保持持久连接
 				// TODO： 由于Android平台 和 本地数据测试模式，abort不走 fail 这里冗余一次setCurrentChatState stop 逻辑
 				this.emitOnMessage({
 					type: "setCurrentChatState",
