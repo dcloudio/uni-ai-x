@@ -39,17 +39,17 @@
 		isOpen.value = true
 	}
 
+	function close() : void {
+		isOpen.value = false
+		emit('close')
+		closeCallBack()
+	}
+
 	function clickMask() : void {
 		if (props.maskClick == true) {
 			emit('clickMask')
 			close()
 		}
-	}
-
-	function close() : void {
-		isOpen.value = false
-		emit('close')
-		closeCallBack()
 	}
 
 	function hiden() : void {

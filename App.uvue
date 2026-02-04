@@ -3,7 +3,7 @@
 
 	let firstBackTime : number = 0
 
-	onAppLaunch(() => {
+	onAppLaunch((_) => {
 		console.log('App Launch')
 	})
 

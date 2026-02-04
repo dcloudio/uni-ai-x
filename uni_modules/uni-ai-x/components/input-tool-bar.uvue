@@ -1,8 +1,8 @@
 <template>
     <view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
-        <view class="input-tool-bar-btn" :class="currentLLMModel.thinking ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
+        <view class="input-tool-bar-btn" :class="(currentLLMModel.thinking ?? false) ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
             <uni-ai-icon code="e639" :color="currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[currentLLMModel.thinking ? 'input-tool-bar-text-active' : '', !hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '']">深度思考 (R1)</text>
+            <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', !hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '']">深度思考 (R1)</text>
         </view>
         <view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>

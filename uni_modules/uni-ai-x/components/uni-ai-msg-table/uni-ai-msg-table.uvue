@@ -6,7 +6,7 @@
 				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">
 					<text class="uni-ai-msg-table-cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': tableAligns[cellIndex]}">
 						<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
-							:class="(rowIndex == 0 ? 'uni-ai-msg-table-header-text' : 'uni-ai-msg-table-cell-text') + (cellItem.type ? ' uni-ai-msg-table-cell-text-' + cellItem.type : '')"
+							:class="(rowIndex == 0 ? 'uni-ai-msg-table-header-text' : 'uni-ai-msg-table-cell-text') + (cellItem.type != null ? ' uni-ai-msg-table-cell-text-' + cellItem.type : '')"
 							>{{ cellItem.text }}</text>
 					</text>
 				</template>
