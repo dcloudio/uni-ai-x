@@ -1,23 +1,17 @@
 <script lang="uts" setup>
+	// #ifndef WEB
 	import { onLaunch as onAppLaunch, onShow as onAppShow, onHide as onAppHide, onExit as onAppExit, onLastPageBackPress } from '@dcloudio/uni-app'
+	// #endif
 
 	let firstBackTime : number = 0
 
+	// #ifndef WEB
 	onAppLaunch((_) => {
 		console.log('App Launch')
 	})
 
 	onAppShow(() => {
 		console.log('App Show')
-		// #ifdef WEB
-		// 解决在 web-pc 端，通过 chrome 模拟移动端打开时。长按会弹出系统菜单的问题
-		window.addEventListener('contextmenu', (e) => {
-			// 判断是否是移动端
-			if (window.navigator.userAgent.match(/Android/i) != null || window.navigator.userAgent.match(/iPhone/i) != null || window.navigator.userAgent.match(/iPad/i) != null || window.navigator.userAgent.match(/iPod/i) != null) {
-				e.preventDefault()
-			}
-		})
-		// #endif
 	})
 
 	onAppHide(() => {
@@ -46,6 +40,17 @@
 	onAppExit(() => {
 		console.log('App Exit')
 	})
+	// #endif
+
+	// #ifdef WEB
+	// 解决在 web-pc 端,通过 chrome 模拟移动端打开时。长按会弹出系统菜单的问题
+	window.addEventListener('contextmenu', (e) => {
+		// 判断是否是移动端
+		if (window.navigator.userAgent.match(/Android/i) != null || window.navigator.userAgent.match(/iPhone/i) != null || window.navigator.userAgent.match(/iPad/i) != null || window.navigator.userAgent.match(/iPod/i) != null) {
+			e.preventDefault()
+		}
+	})
+	// #endif
 </script>
 
 <style>
