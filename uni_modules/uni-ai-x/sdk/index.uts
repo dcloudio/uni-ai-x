@@ -361,7 +361,8 @@ class UniAi {
 		const requestAiOptions: RequestAiOptions = {
 			type: 'requestAi',
 			messages,
-			llm: this.llm as Llm
+			llm: this.llm as Llm,
+			chat_id: this.currentChat!.id
 		}
 		requestAiWorker = new RequestAiWorker()
 		requestAiWorker?.postMessage(requestAiOptions)

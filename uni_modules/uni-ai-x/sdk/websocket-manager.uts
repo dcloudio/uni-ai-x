@@ -97,7 +97,7 @@ class WebSocketManager {
 	}
 
 	// 发送消息
-	async send(messages: RequestAiCoMessage[], model: string, callbacks: WebSocketCallbacks): Promise<boolean> {
+	async send(messages: RequestAiCoMessage[], model: string, chat_id: string, callbacks: WebSocketCallbacks): Promise<boolean> {
 		// 检查连接状态，如果断开则先重连
 		if (!this.connected) {
 			console.log('WebSocket 未连接，尝试重新连接')
@@ -134,7 +134,8 @@ class WebSocketManager {
 
 		const messageData = {
 			text: lastUserMessageText,
-			timestamp: Date.now()
+			timestamp: Date.now(),
+			chat_id: chat_id
 		}
 		this.socketTask!.send({
 			data: JSON.stringify(messageData),

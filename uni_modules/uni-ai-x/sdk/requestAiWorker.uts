@@ -33,6 +33,7 @@ type BailianOptions = {
 	llm : Llm,
 	messages : RequestAiCoMessage[],
 	stream ?: boolean,
+	chat_id ?: string,
 	onChunk ?: BailianOptionsOnChunkFn,
 	onError ?: BailianOptionsOnErrorFn,
 	onDone ?: BailianOptionsOnDoneFn,
@@ -46,7 +47,8 @@ type CheckDiffFn = (index : number, checkDiffEndFn : CheckDiffEndFn) => void
 export type RequestAiOptions = {
 	type: 'requestAi',
 	messages: RequestAiCoMessage[],
-	llm: Llm
+	llm: Llm,
+	chat_id: string
 }
 
 // extends WorkerTaskImpl
@@ -201,7 +203,7 @@ class RequestAiWorker {
 			this.parseMarkdown?.runTask(this.msgBody)
 		}
 	};
-	requestAi(messages : RequestAiCoMessage[], llm : Llm){
+	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string){
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.markdownElList = []
@@ -251,6 +253,7 @@ class RequestAiWorker {
 			llm,
 			messages,
 			stream: true,
+			chat_id: chat_id,
 			onTaskCreate: (requestTask : RequestTask) => {
 				this.requestTask = requestTask
 			},
@@ -328,7 +331,8 @@ class RequestAiWorker {
 			}
 
 			// 使用 WebSocketManager 发送消息（内部会自动检查连接并重连）
-			const success = await wsManager.send(options.messages, options.llm.model, callbacks)
+			const chat_id = options.chat_id ?? ''
+			const success = await wsManager.send(options.messages, options.llm.model, chat_id, callbacks)
 
 			if (!success) {
 				const errInfo: UTSJSONObject = {
@@ -493,7 +497,7 @@ class RequestAiWorker {
 			const messageCopy : RequestAiOptions | UTSJSONObject = JSON.parse<RequestAiOptions>(JSON.stringify(message))!
 			if (messageCopy instanceof RequestAiOptions) {
 				utils.uniGetDispatcher("io", () => {
-					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm);
+					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm, messageCopy.chat_id);
 				});
 			}
 		} else if (message instanceof UTSJSONObject) {
