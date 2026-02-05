@@ -55,30 +55,38 @@ async function handleUserMessage(userConnectionId, data) {
 	console.log('用户消息已广播给', gateways.length, '个网关')
 }
 
-// 处理网关发送的消息，广播给所有用户
+// 处理网关发送的消息，必须发送给指定用户
 async function handleGatewayMessage(gatewayConnectionId, data) {
-	const users = await getAllUsers()
+	// 检查是否有指定接收者
+	const toConnectionId = data.toConnectionId
 
-	if (users.length === 0) {
+	if (!toConnectionId) {
+		console.error('网关消息缺少 toConnectionId，拒绝发送')
 		await ws.send(gatewayConnectionId, {
 			type: 'error',
-			message: '没有在线用户',
+			message: '消息缺少 toConnectionId，无法发送',
 			timestamp: Date.now()
 		})
 		return
 	}
 
-	// 广播给所有用户
-	for (const user of users) {
-		await ws.send(user.connection_id, {
+	try {
+		await ws.send(toConnectionId, {
 			type: 'gateway_message',
 			from: 'openclaw',
 			data: data,
 			timestamp: Date.now()
 		})
+		// console.log('网关消息已发送给用户', toConnectionId)
+	} catch (err) {
+		console.error('发送给用户失败:', toConnectionId, err)
+		// 通知网关发送失败
+		await ws.send(gatewayConnectionId, {
+			type: 'error',
+			message: `发送给用户 ${toConnectionId} 失败: ${err.message}`,
+			timestamp: Date.now()
+		})
 	}
-
-	console.log('网关消息已广播给', users.length, '个用户')
 }
 
 module.exports = {
