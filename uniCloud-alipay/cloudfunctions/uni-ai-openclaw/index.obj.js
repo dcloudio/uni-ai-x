@@ -6,10 +6,10 @@ const db = uniCloud.database()
 const socketCollection = db.collection('socket-id')
 const config = require('./config.json')
 
-// 辅助函数：获取所有网关连接
-async function getAllGateways() {
+// 辅助函数：获取所有 OpenClaw 连接
+async function getAllOpenClaws() {
 	const res = await socketCollection.where({
-		type: 'gateway'
+		type: 'openClaw'
 	}).get()
 	return res.data || []
 }
@@ -22,30 +22,30 @@ async function getAllUsers() {
 	return res.data || []
 }
 
-// 辅助函数：获取可用的网关
-async function getAvailableGateway() {
-	const gateways = await getAllGateways()
-	if (gateways.length === 0) return null
-	// 简单轮询，返回第一个网关
-	return gateways[0].connection_id
+// 辅助函数：获取可用的 OpenClaw
+async function getAvailableOpenClaw() {
+	const openClaws = await getAllOpenClaws()
+	if (openClaws.length === 0) return null
+	// 简单轮询，返回第一个 OpenClaw
+	return openClaws[0].connection_id
 }
 
-// 处理用户发送的消息，广播给所有网关
+// 处理用户发送的消息，广播给所有 OpenClaw
 async function handleUserMessage(userConnectionId, data) {
-	const gateways = await getAllGateways()
+	const openClaws = await getAllOpenClaws()
 
-	if (gateways.length === 0) {
+	if (openClaws.length === 0) {
 		await ws.send(userConnectionId, {
 			type: 'error',
-			message: '没有可用的网关',
+			message: '没有可用的 OpenClaw',
 			timestamp: Date.now()
 		})
 		return
 	}
 
-	// 广播给所有网关
-	for (const gateway of gateways) {
-		await ws.send(gateway.connection_id, {
+	// 广播给所有 OpenClaw
+	for (const openClaw of openClaws) {
+		await ws.send(openClaw.connection_id, {
 			type: 'user_message',
 			fromConnectionId: userConnectionId,
 			data: data,
@@ -53,17 +53,17 @@ async function handleUserMessage(userConnectionId, data) {
 		})
 	}
 
-	console.log('用户消息已广播给', gateways.length, '个网关')
+	console.log('用户消息已广播给', openClaws.length, '个 OpenClaw')
 }
 
-// 处理网关发送的消息，必须发送给指定用户
-async function handleGatewayMessage(gatewayConnectionId, data) {
+// 处理 OpenClaw 发送的消息，必须发送给指定用户
+async function handleOpenClawMessage(openClawConnectionId, data) {
 	// 检查是否有指定接收者
 	const toConnectionId = data.toConnectionId
 
 	if (!toConnectionId) {
-		console.error('网关消息缺少 toConnectionId，拒绝发送')
-		await ws.send(gatewayConnectionId, {
+		console.error('OpenClaw 消息缺少 toConnectionId，拒绝发送')
+		await ws.send(openClawConnectionId, {
 			type: 'error',
 			message: '消息缺少 toConnectionId，无法发送',
 			timestamp: Date.now()
@@ -73,16 +73,16 @@ async function handleGatewayMessage(gatewayConnectionId, data) {
 
 	try {
 		await ws.send(toConnectionId, {
-			type: 'gateway_message',
+			type: 'openclaw_message',
 			from: 'openclaw',
 			data: data,
 			timestamp: Date.now()
 		})
-		// console.log('网关消息已发送给用户', toConnectionId)
+		// console.log('OpenClaw 消息已发送给用户', toConnectionId)
 	} catch (err) {
 		console.error('发送给用户失败:', toConnectionId, err)
-		// 通知网关发送失败
-		await ws.send(gatewayConnectionId, {
+		// 通知 OpenClaw 发送失败
+		await ws.send(openClawConnectionId, {
 			type: 'error',
 			message: `发送给用户 ${toConnectionId} 失败: ${err.message}`,
 			timestamp: Date.now()
@@ -161,13 +161,7 @@ module.exports = {
 				return
 			}
 
-			const connectionType = type === 'openclaw' ? 'gateway' : 'user'
-			
-			// const ws = uniCloud.webSocketServer()
-			// await ws.send(connectionId, {
-			// 	errMsg: "错误，无效的access_token"
-			// })
-			// await ws.close(connectionId)
+			const connectionType = type === 'openclaw' ? 'openClaw' : 'user'
 
 			// 如果提供了 clientId，检查是否有旧连接需要断开
 			if (clientId) {
@@ -199,29 +193,29 @@ module.exports = {
 			})
 
 			if (type === 'openclaw') {
-				// OpenClaw 网关连接
+				// OpenClaw 连接
 				ws.send(connectionId, {
 					type: 'welcome',
-					role: 'gateway',
-					message: 'OpenClaw 网关连接成功',
+					role: 'openClaw',
+					message: 'OpenClaw 连接成功',
 					connectionId: connectionId,
 					timestamp: Date.now()
 				}).catch(err => {
-					console.error('发送网关欢迎消息失败:', err)
+					console.error('发送 OpenClaw 欢迎消息失败:', err)
 				})
 
-				const gateways = await getAllGateways()
-				console.log('网关已连接，当前网关数:', gateways.length)
+				const openClaws = await getAllOpenClaws()
+				console.log('OpenClaw 已连接，当前 OpenClaw 数:', openClaws.length)
 			} else {
 				// 普通用户连接
-				const gatewayId = await getAvailableGateway()
+				const openClawId = await getAvailableOpenClaw()
 
 				ws.send(connectionId, {
 					type: 'welcome',
 					role: 'user',
 					message: '欢迎连接到 OpenClaw 服务',
 					connectionId: connectionId,
-					hasGateway: !!gatewayId,
+					hasOpenClaw: !!openClawId,
 					timestamp: Date.now()
 				}).catch(err => {
 					console.error('发送用户欢迎消息失败:', err)
@@ -237,7 +231,7 @@ module.exports = {
 
 	/**
 	 * WebSocket 消息事件
-	 * 实现用户和网关之间的消息转发
+	 * 实现用户和 OpenClaw 之间的消息转发
 	 */
 	async _onWebsocketMessage(event) {
 		const { connectionId, payload } = event
@@ -268,11 +262,11 @@ module.exports = {
 
 		const connection = connResult.data[0]
 
-		if (connection.type === 'gateway') {
-			// 网关发送的消息，转发给所有用户
-			await handleGatewayMessage(connectionId, receivedData)
+		if (connection.type === 'openClaw') {
+			// OpenClaw 发送的消息，转发给所有用户
+			await handleOpenClawMessage(connectionId, receivedData)
 		} else if (connection.type === 'user') {
-			// 用户发送的消息，转发给所有网关
+			// 用户发送的消息，转发给所有 OpenClaw
 			await handleUserMessage(connectionId, receivedData)
 		}
 	},
@@ -297,9 +291,9 @@ module.exports = {
 				// 从数据库删除连接记录
 				await socketCollection.doc(connection._id).remove()
 
-				if (connection.type === 'gateway') {
-					const gateways = await getAllGateways()
-					console.log('网关已断开，当前网关数:', gateways.length)
+				if (connection.type === 'openClaw') {
+					const openClaws = await getAllOpenClaws()
+					console.log('OpenClaw 已断开，当前 OpenClaw 数:', openClaws.length)
 				} else {
 					const users = await getAllUsers()
 					console.log('用户已断开，当前用户数:', users.length)

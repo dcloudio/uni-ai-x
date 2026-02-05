@@ -66,12 +66,12 @@ class WebSocketManager {
 			const message = JSON.parse<UTSJSONObject>(data) as UTSJSONObject
 			const type = message.getString('type', '')
 
-			if (type == 'gateway_message') {
-				const gatewayData = message.getJSON('data')
-				// console.log('gatewayData', gatewayData)
-				if (gatewayData != null) {
-					const content = gatewayData.getString('text', '')
-					const isDone = gatewayData.getBoolean('isDone', false)
+			if (type == 'openclaw_message') {
+				const openClawData = message.getJSON('data')
+				// console.log('openClawData', openClawData)
+				if (openClawData != null) {
+					const content = openClawData.getString('text', '')
+					const isDone = openClawData.getBoolean('isDone', false)
 					console.log('isDone', isDone)
 
 					if (content.length > 0) {
