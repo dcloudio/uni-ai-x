@@ -137,7 +137,7 @@ export default class ParseMarkdown {
 		this.md2jsonTask(markdownText, (newJsonList)=>{
 			// #ifdef  APP-ANDROID
 			if (Thread.currentThread().name == 'main') {
-				console.error('意外回到主线程执行了')
+				// console.error('意外回到主线程执行了')
 			}
 			// #endif
 			// console.error('md2jsonTask 耗时', Date.now() - start)
