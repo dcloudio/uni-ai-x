@@ -1,9 +1,8 @@
 <template>
-	<text :decode="true" class="text" :class="itemType + '-box' + (itemType == 'list' ? ' list-content' : '') + ' uni-ai-text-md-' + itemType + '-box'">
+	<text class="text" :class="itemType + '-box' + (itemType == 'list' ? ' list-content' : '') + ' uni-ai-text-md-' + itemType + '-box'">
 		<text v-for="(data, index) in datas" :key="index"
 			:class="headingBoxClass(data.className)" 
 			@click="toLink(data.href)"
-			:decode="true"
 		>{{data.text}}</text>
 	</text>
 </template>

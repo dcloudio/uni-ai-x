@@ -9,7 +9,7 @@
 					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
 				</view>
 				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
-					<text class="msg-root-think-content-text" :decode="true">{{msg.thinkContent}}</text>
+					<text class="msg-root-think-content-text">{{msg.thinkContent}}</text>
 				</view>
 			</view>
 			<template v-for="(item, index) in msg.markdownElList" :key="index">

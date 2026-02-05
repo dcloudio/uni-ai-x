@@ -73,7 +73,7 @@ class TreeToList {
                     // 根据 orderedIndex 的值，插入对应的空格
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        text: "&nbsp;".repeat(item.deepIndex  * 2)
+                        text: " ".repeat(item.deepIndex  * 2)
                     }			
                     list.push(newItem)
                 }

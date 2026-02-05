@@ -13,7 +13,11 @@
         <view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active" @click="stop">
             <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
         </view>
-        <view v-else class="input-tool-bar-send" @click="send" :class="inputContent.length > 0 && allUploaded ? 'input-tool-bar-send-active' : ''" :title="allUploaded ? '发送' : '请等待图片上传完成'">
+        <view v-else class="input-tool-bar-send" @click="send" :class="inputContent.length > 0 && allUploaded ? 'input-tool-bar-send-active' : ''"
+					<!-- #ifdef WEB -->
+					:title="allUploaded ? '发送' : '请等待图片上传完成'"
+					<!-- #endif -->
+				>
             <uni-ai-icon code="e627" color="#FFF" size="20"></uni-ai-icon>
         </view>
     </view>
