@@ -20,7 +20,13 @@ class WebSocketManager {
 			console.log('已经处于连接状态，无需重新连接')
 			return
 		}
-		const socketTask: SocketTask = await uniCloud.connectWebSocket({name: 'uni-ai-openclaw'})
+		const socketTask: SocketTask = await uniCloud.connectWebSocket({
+			name: 'uni-ai-openclaw',
+			query: {
+				type: "user",
+				access_token: "userDefaultToken"
+			}
+		})
 		await new Promise<void>(resolve => {
 			// 连接成功时触发
 			socketTask.onOpen(event => {

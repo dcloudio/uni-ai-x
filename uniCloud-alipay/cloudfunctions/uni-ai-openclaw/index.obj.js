@@ -4,6 +4,7 @@
 const ws = uniCloud.webSocketServer()
 const db = uniCloud.database()
 const socketCollection = db.collection('socket-id')
+const config = require('./config.json')
 
 // 辅助函数：获取所有网关连接
 async function getAllGateways() {
@@ -139,12 +140,34 @@ module.exports = {
 	 */
 	async _onWebsocketConnection(event) {
 		const { connectionId, query } = event
-		const { type, clientId } = query || {}
+		const { type, clientId, access_token } = query || {}
 
 		console.log('客户端连接:', connectionId, 'type:', type, 'clientId:', clientId)
 
 		try {
+			// 验证 access_token
+			const expectedToken = type === 'openclaw' ? config.access_token.openClaw : config.access_token.user
+			if (access_token !== expectedToken) {
+				console.error('连接拒绝：无效的 access_token', access_token)
+				await ws.send(connectionId, {
+					type: 'error',
+					message: '鉴权失败：无效的 access_token',
+					timestamp: Date.now()
+				})
+				// 延迟关闭，确保消息发出
+				setTimeout(() => {
+					ws.close(connectionId).catch(console.error)
+				}, 100)
+				return
+			}
+
 			const connectionType = type === 'openclaw' ? 'gateway' : 'user'
+			
+			// const ws = uniCloud.webSocketServer()
+			// await ws.send(connectionId, {
+			// 	errMsg: "错误，无效的access_token"
+			// })
+			// await ws.close(connectionId)
 
 			// 如果提供了 clientId，检查是否有旧连接需要断开
 			if (clientId) {
