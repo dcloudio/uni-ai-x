@@ -14,40 +14,39 @@ class WebSocketManager {
 	private socketTask: SocketTask | null = null
 	private connected: boolean = false
 	private currentCallbacks: WebSocketCallbacks | null = null
-
-	// 初始化 WebSocket 连接
-	async init() {
+	// WebSocket 连接
+	async connectWebSocket(): Promise<void> {
 		if (this.connected) {
+			console.log('已经处于连接状态，无需重新连接')
 			return
 		}
-		try {
-			console.log('初始化 WebSocket 连接')
-			const socketTask = await uniCloud.connectWebSocket({
-				name: 'uni-ai-openclaw'
+		const socketTask: SocketTask = await uniCloud.connectWebSocket({name: 'uni-ai-openclaw'})
+		await new Promise<void>(resolve => {
+			// 连接成功时触发
+			socketTask.onOpen(event => {
+				console.log('WebSocket 连接成功', event)
+				this.connected = true
+				// 设置消息监听
+				socketTask.onMessage((res) => {
+					this.handleMessage(res)
+				})
+				socketTask.onError((err) => {
+					console.error('WebSocket 错误', err)
+					this.connected = false
+				})
+				socketTask.onClose(() => {
+					console.log('WebSocket 已关闭')
+					this.connected = false
+				})
+				this.socketTask = socketTask
+				resolve()
 			})
-			this.socketTask = socketTask
-			this.connected = true
-
-			// 设置消息监听
-			socketTask.onMessage((res) => {
-				this.handleMessage(res)
-			})
-
-			socketTask.onError((err) => {
-				console.error('WebSocket 错误', err)
-				this.connected = false
-			})
-
-			socketTask.onClose(() => {
-				console.log('WebSocket 已关闭')
-				this.socketTask = null
-				this.connected = false
-			})
-
-			console.log('WebSocket 持久连接已建立')
-		} catch (e) {
-			console.error('WebSocket 连接失败', e)
-		}
+		})	
+	}
+	// 初始化 
+	async init() {
+		// 初始化 WebSocket 连接
+		await this.connectWebSocket()
 	}
 
 	// 处理 WebSocket 消息
@@ -98,10 +97,22 @@ class WebSocketManager {
 	}
 
 	// 发送消息
-	send(messages: RequestAiCoMessage[], model: string, callbacks: WebSocketCallbacks): boolean {
-		if (this.socketTask == null || !this.connected) {
-			console.error('WebSocket 未连接')
-			return false
+	async send(messages: RequestAiCoMessage[], model: string, callbacks: WebSocketCallbacks): Promise<boolean> {
+		// 检查连接状态，如果断开则先重连
+		if (!this.connected) {
+			console.log('WebSocket 未连接，尝试重新连接')
+			await this.connectWebSocket()
+
+			// 重连后再次检查
+			if (!this.connected) {
+				console.error('WebSocket 重连失败')
+				const errInfo: UTSJSONObject = {
+					errCode: -203,
+					errMsg: 'WebSocket 未连接，且重连失败'
+				}
+				callbacks.onError?.(errInfo)
+				return false
+			}
 		}
 
 		// console.log('messages',messages)
@@ -125,7 +136,7 @@ class WebSocketManager {
 			text: lastUserMessageText,
 			timestamp: Date.now()
 		}
-		this.socketTask.send({
+		this.socketTask!.send({
 			data: JSON.stringify(messageData),
 			// data: messageData,
 			success: () => {

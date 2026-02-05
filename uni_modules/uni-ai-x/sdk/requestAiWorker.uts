@@ -309,10 +309,10 @@ class RequestAiWorker {
 		try {
 			// 检查 WebSocketManager 是否已初始化
 			const wsManager = globalWebSocketManager
-			if (wsManager == null || !wsManager.isConnected()) {
+			if (wsManager == null) {
 				const errInfo: UTSJSONObject = {
 					errCode: -200,
-					errMsg: 'WebSocket 未连接'
+					errMsg: 'WebSocket 管理器未初始化'
 				}
 				options.onError?.(errInfo)
 				return new Promise<UTSJSONObject>((resolve, reject) => {
@@ -327,8 +327,8 @@ class RequestAiWorker {
 				onDone: options.onDone
 			}
 
-			// 使用 WebSocketManager 发送消息
-			const success = wsManager.send(options.messages, options.llm.model, callbacks)
+			// 使用 WebSocketManager 发送消息（内部会自动检查连接并重连）
+			const success = await wsManager.send(options.messages, options.llm.model, callbacks)
 
 			if (!success) {
 				const errInfo: UTSJSONObject = {
