@@ -136,6 +136,9 @@
 	})
 	
 	const chatTitle = computed<string>(() => {
+		if (uniAi.llm.provider == 'openClaw') {
+			return '与 openClaw 对话'
+		}
 		const title = uniAi.currentChat?.title ?? ''
 		if (title.length > 0) {
 			return title.length > 10 ? title.slice(0, 10) + '...' : title
