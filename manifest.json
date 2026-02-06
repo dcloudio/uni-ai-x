@@ -2,11 +2,9 @@
 	"name": "uni-ai-x",
 	"appid": "__UNI__C50103A",
 	"description": "",
-	"versionName": "1.6.0",
+	"versionName": "2.1.0",
 	"versionCode": "26020501",
-	"uni-app-x": {
-		"vapor": true
-	},
+	"uni-app-x": {},
 	/* 快应用特有相关 */
 	"quickapp": {},
 	/* 小程序特有相关 */

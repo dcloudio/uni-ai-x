@@ -1,3 +1,5 @@
+## 2.1.0（2026-02-06）
+- 【重要】支持 uni-ai-openclaw-channel-plugin，[详情](https://gitcode.com/dcloud/uni-ai-openclaw-channel-plugin)
 ## 2.0.0（2025-11-12）
 - 更新【重要】markdown 解析器改为基于c语言库 [cmark-gfm](https://github.com/github/cmark-gfm) 的 uts 插件实现，性能显著提升支持更多的语法
 - 新增 图片理解功能
