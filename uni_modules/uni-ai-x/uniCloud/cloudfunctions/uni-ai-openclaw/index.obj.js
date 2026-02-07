@@ -3,7 +3,7 @@
 
 const ws = uniCloud.webSocketServer()
 const db = uniCloud.database()
-const socketCollection = db.collection('socket-id')
+const socketCollection = db.collection('uni-socket-id')
 const config = require('./config.json')
 
 // 辅助函数：获取所有 OpenClaw 连接
