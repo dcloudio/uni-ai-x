@@ -20,3 +20,4 @@ logs
 !*/.gitkeep
 platformConfig.json
 package.json
+!/uni_modules/uni-ai-x/uniCloud/cloudfunctions/uni-ai-openclaw/package.json
