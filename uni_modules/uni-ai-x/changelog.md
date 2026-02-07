@@ -1,3 +1,6 @@
+## 2.1.1（2026-02-07）
+- 更新 uni-ai-openclaw 云对象，package.json 默认带上云函数 url 的 path
+- 更新 socket-id 表名称为 uni-socket-id 补充 uni-socket-id.schema.json （需要右键上传）
 ## 2.1.0（2026-02-06）
 - 【重要】支持 uni-ai-openclaw-channel-plugin，[详情](https://gitcode.com/dcloud/uni-ai-openclaw-channel-plugin)
 ## 2.0.0（2025-11-12）
