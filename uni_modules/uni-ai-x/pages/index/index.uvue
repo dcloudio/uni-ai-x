@@ -2,17 +2,16 @@
 	<view class="uni-ai-page" ref="uni-ai-page" :class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+		<!-- 用于非 Android 端测量文字宽度的容器 -->
+		<!-- #ifndef APP-ANDROID -->
+		<view style="flex-direction: row;width: 1000%;height: 0;">
+			<text v-for="item in measureTextWidthInfos" :key="item.id" :id="item.id" :style="{fontSize: item.fontSize + 'px'}">{{item.text}}</text>
+		</view>
+		<!-- #endif -->
+		<!-- #ifndef MP-WEIXIN -->
+		<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
+		<!-- #endif -->
 	</view>
-	<!-- #ifndef MP-WEIXIN -->
-	<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
-	<!-- #endif -->
-
-	<!-- 用于非 Android 端测量文字宽度的容器 -->
-	<!-- #ifndef APP-ANDROID -->
-	<view style="flex-direction: row;width: 1000%;height: 0;">
-		<text v-for="item in measureTextWidthInfos" :key="item.id" :id="item.id" :style="{fontSize: item.fontSize + 'px'}">{{item.text}}</text>
-	</view>
-	<!-- #endif -->
 </template>
 
 <script lang="uts" setup>
@@ -128,11 +127,11 @@
 			setTimeout(() => {
 				uni.createSelectorQuery().in(proxy).select(`#${id}`)
 					.boundingClientRect().exec((ret) => {
-						resolve(ret.length == 0 ? 0 : ret[0].width!)
+						resolve(ret.length == 0 ? 0 : ret[0]?.width ?? 0)
 						// 删除节点
 						measureTextWidthInfos.value = measureTextWidthInfos.value.filter((item) => item.id != id)
 					})
-			},30)
+			},1000)
 		})
 	}
 	// #endif
