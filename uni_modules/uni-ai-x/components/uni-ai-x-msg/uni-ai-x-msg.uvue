@@ -95,103 +95,109 @@
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-	/* 蒸汽模式：仅单层 class */
-	.msg-root {
-		flex-direction: row;
-		flex-wrap: wrap;
-		background-color: var(--bg-primary);
-		padding: 0 45px;
-		min-height: 45px;
-	}
+/* #ifdef WEB */
+.msg-root * {
+	// 所有文字可以被选中
+	user-select: text;
+}
+/* #endif */
+/* 蒸汽模式：仅单层 class */
+.msg-root {
+	flex-direction: row;
+	flex-wrap: wrap;
+	background-color: var(--bg-primary);
+	padding: 0 45px;
+	min-height: 45px;
+}
 
-	.msg-root-avatar {
-		position: absolute;
-		top: 0;
-		left: 10px;
-		width: 25px;
-		height: 25px;
-		padding: 3px;
-		border-radius: 50px;
-		border: 1px solid var(--border-secondary);
-	}
+.msg-root-avatar {
+	position: absolute;
+	top: 0;
+	left: 10px;
+	width: 25px;
+	height: 25px;
+	padding: 3px;
+	border-radius: 50px;
+	border: 1px solid var(--border-secondary);
+}
 
-	.msg-root-think-content-header {
-		flex-direction: row;
-	}
+.msg-root-think-content-header {
+	flex-direction: row;
+}
 
-	.msg-root-think-content-title {
-		color: var(--text-tertiary);
-	}
+.msg-root-think-content-title {
+	color: var(--text-tertiary);
+}
 
-	.msg-root-think-content-text-box {
-		margin-top: 10px;
-		border-left: 3px solid var(--bg-tertiary);
-		padding-left: 10px;
-		width: 100%;
-		margin: 5px 0;
-	}
+.msg-root-think-content-text-box {
+	margin-top: 10px;
+	border-left: 3px solid var(--bg-tertiary);
+	padding-left: 10px;
+	width: 100%;
+	margin: 5px 0;
+}
 
-	.msg-root-think-content-text-box-hide {
-		margin-top: 0;
-		height: 0;
-	}
+.msg-root-think-content-text-box-hide {
+	margin-top: 0;
+	height: 0;
+}
 
-	.msg-root-think-content-text {
-		text-align: left;
-		color: var(--text-tertiary);
-	}
+.msg-root-think-content-text {
+	text-align: left;
+	color: var(--text-tertiary);
+}
 
-	.msg-root-error-msg,
-	.msg-root-stop-text,
-	.msg-root-need-try {
-		text-align: left;
-		width: 100%;
-	}
+.msg-root-error-msg,
+.msg-root-stop-text,
+.msg-root-need-try {
+	text-align: left;
+	width: 100%;
+}
 
-	.msg-root-error-msg {
-		color: var(--error);
-		font-size: 14px;
-		line-height: 26px;
-	}
+.msg-root-error-msg {
+	color: var(--error);
+	font-size: 14px;
+	line-height: 26px;
+}
 
-	.msg-root-loging-icon {
-		margin-top: 10px;
-		width: 16px;
-		height: 16px;
-	}
+.msg-root-loging-icon {
+	margin-top: 10px;
+	width: 16px;
+	height: 16px;
+}
 
-	.msg-root-stop-text {
-		color: var(--text-disabled);
-		font-size: 14px;
-		padding: 10px 0;
-	}
+.msg-root-stop-text {
+	color: var(--text-disabled);
+	font-size: 14px;
+	padding: 10px 0;
+}
 
-	.msg-root-need-try {
-		color: var(--error);
-		font-size: 14px;
-		padding: 10px;
-	}
+.msg-root-need-try {
+	color: var(--error);
+	font-size: 14px;
+	padding: 10px;
+}
 
-	.msg-root-table-box,
-	.msg-root-code-box,
-	.msg-root-hr-box,
-	.msg-root-think-content,
-	.msg-root-block-quote-box {
-		width: 100%;
-		margin: 5px 0;
-	}
+.msg-root-table-box,
+.msg-root-code-box,
+.msg-root-hr-box,
+.msg-root-think-content,
+.msg-root-block-quote-box {
+	width: 100%;
+	margin: 5px 0;
+}
 
-	.msg-root-hr-box {
-		height: 1px;
-		background: var(--border-primary);
-		margin: 10px 0;
-	}
+.msg-root-hr-box {
+	height: 1px;
+	background: var(--border-primary);
+	margin: 10px 0;
+}
 
-	.msg-root-block-quote-box {
-		border-left: 4px solid var(--border-primary);
-		width: 100%;
-		padding: 5px;
-		background: var(--bg-secondary);
-		margin-bottom: 10px;
-	}
+.msg-root-block-quote-box {
+	border-left: 4px solid var(--border-primary);
+	width: 100%;
+	padding: 5px;
+	background: var(--bg-secondary);
+	margin-bottom: 10px;
+}
 </style>

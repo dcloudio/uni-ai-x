@@ -422,6 +422,9 @@
 	border-radius: 15px 15px 0 15px;
 	background-color: var(--user-msg-bg);
 	color: var(--text-primary);
+	/* #ifdef WEB */
+	user-select: text;
+	/* #endif */
 }
 
 .chat-box-img-group {
