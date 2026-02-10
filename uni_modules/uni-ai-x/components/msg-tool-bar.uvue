@@ -114,6 +114,9 @@
 		margin-right: 15px;
 		color: var(--text-tertiary);
 		transition: color 0.2s ease;
+		/* #ifdef WEB */
+		cursor: pointer;
+		/* #endif */
 	}
 
 	.uni-ai-tool-bar-btn-copy {
