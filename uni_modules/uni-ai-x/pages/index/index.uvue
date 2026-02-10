@@ -4,12 +4,12 @@
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 		<!-- 用于非 Android 端测量文字宽度的容器 -->
 		<!-- #ifndef APP-ANDROID -->
-		<view style="flex-direction: row;width: 1000%;height: 0;">
+		<view class="hidden"  style="flex-direction: row;width: 1000%;height: 0;">
 			<text v-for="item in measureTextWidthInfos" :key="item.id" :id="item.id" :style="{fontSize: item.fontSize + 'px'}">{{item.text}}</text>
 		</view>
 		<!-- #endif -->
 		<!-- #ifndef MP-WEIXIN -->
-		<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
+		<web-view class="hidden" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
 		<!-- #endif -->
 	</view>
 </template>
@@ -199,7 +199,7 @@
 	}
 }
 /* #endif */
-.proxy-web {
+.hidden {
 	position: fixed;
 	// bottom: 100px;
 	top: -1100px;
