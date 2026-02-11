@@ -1,3 +1,8 @@
+## 2.1.2（2026-02-11）
+- 【重要】uni-ai-x & openClaw 专题文档发布[详情点此](https://doc.dcloud.net.cn/uniCloud/uni-ai-x-openClaw.html)
+- 修复 vapor模式下鸿蒙端，因为页面为多根节点 uni.createSelectorQuery() api 不能正常使用的问题
+- 修复 web pc 端uni-ai-chat组件被其他元素遮住的问题
+- 修复 web-pc 端文本无法被划选的问题
 ## 2.1.1（2026-02-07）
 - 更新 uni-ai-openclaw 云对象，package.json 默认带上云函数 url 的 path
 - 更新 socket-id 表名称为 uni-socket-id 补充 uni-socket-id.schema.json （需要右键上传）
