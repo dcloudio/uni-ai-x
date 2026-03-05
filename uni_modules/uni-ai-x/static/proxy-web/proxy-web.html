@@ -117,12 +117,10 @@
 
           onMessage(param) {
             // console.log('web.onMessage收到', param);
-            if (!parentIsAppAndroid) {
-              try {
-                param = JSON.parse(decodeURIComponent(param));
-              } catch (error) {
-                console.log('error', error,decodeURIComponent(param));
-              }
+            try {
+              param = JSON.parse(decodeURIComponent(param));
+            } catch (error) {
+              console.log('error', error, decodeURIComponent(param));
             }
             // console.log('web 内部执行了 onMessage', param);
             const { action } = param;
