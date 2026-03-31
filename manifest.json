@@ -73,10 +73,10 @@
 	},
 	"app-harmony": {
 		"distribute": {
-			"bundleName": "io.dcloud.dev.app.h",
-			"signingConfigs": {
-				"default": {}
-			}
+			"bundleName": "",
+			"deviceTypes": [
+				"phone"
+			]
 		}
 	}
 }
