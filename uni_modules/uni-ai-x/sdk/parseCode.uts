@@ -1,6 +1,8 @@
+import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+
 const grammarList = ['javascript', 'python', 'typescript', 'javascriptReact', 'html', 'css', 'cpp', 'dart', 'go', 'java', 'lua', 'php', 'r', 'sql', 'json', 'jsonc', 'jsonl', 'c', 'cuda-cpp', 'xml', 'xsl']
 // Import all grammar files - start
-// #ifndef APP-ANDROID || APP-HARMONY
+// #ifndef APP
 import javascriptGrammar from '@/uni_modules/uni-ai-x/static/grammar/javascript.tmLanguage.json'
 import pythonGrammar from '@/uni_modules/uni-ai-x/static/grammar/python.tmLanguage.json'
 import javascriptReactGrammar from '@/uni_modules/uni-ai-x/static/grammar/javascriptReact.tmLanguage.json'
@@ -26,7 +28,9 @@ import xslGrammar from '@/uni_modules/uni-ai-x/static/grammar/xsl.tmLanguage.jso
 // Import all grammar files - end
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
+// #ifndef APP
 import { CreateHighLighter, HighLighterOptions, ILineTokens } from "@/uni_modules/uni-highlight"
+// #endif
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 export { MarkdownToken }
 export type ParseLineCodeRes = {
@@ -39,7 +43,9 @@ type TmlFile = {
 	scopeName : string,
 	path : string
 }
+// #ifndef APP
 let uniCodeHighlighter = null as CreateHighLighter | null
+// #endif
 function getTmlFile(filePaths: TmlFile[]) {
 	let fileManager = uni.getFileSystemManager()
 	let res = {}
@@ -59,8 +65,12 @@ function getTmlFile(filePaths: TmlFile[]) {
 }
 
 function initUniCodeHighlighter(callBack: () => void){
+	// #ifdef APP
+	callBack()
+	return
+	// #endif
+	// #ifndef APP
 	if (uniCodeHighlighter == null) {
-		// #ifndef APP-ANDROID || APP-HARMONY
 		// 根据 grammarList 生成tmls
 		const tmls = {
 			javascript: javascriptGrammar,
@@ -85,28 +95,13 @@ function initUniCodeHighlighter(callBack: () => void){
 			xml: xmlGrammar,
 			xsl: xslGrammar
 		}
-		// #endif
-		// #ifdef APP-ANDROID || APP-HARMONY
-		const tmlsList = [] as TmlFile[]
-		grammarList.forEach(item => {
-			tmlsList.push({
-				scopeName: item,
-				path: `/uni_modules/uni-ai-x/static/grammar/${item}.tmLanguage.json`
-			})
-		})
-		// console.log('tmlsList',tmlsList)
-		const tmls = getTmlFile(tmlsList)
-		// #endif
-		// createHighLighter({ languages: tmls } as HighLighterOptions).then((res: CreateHighLighterRes) => {
-		// 	uniCodeHighlighter = res
-		// 	callBack()
-		// })
 		uniCodeHighlighter = new CreateHighLighter({ languages: tmls } as HighLighterOptions)
 		callBack()
 		// console.log(tmls)
 	} else {
 		callBack()
 	}
+	// #endif
 }
 
 export function parseLineCode(parseLineCodeCallBack: ParseLineCodeCallBack, codeSource: string,language: string){
@@ -123,6 +118,36 @@ export function parseLineCode(parseLineCodeCallBack: ParseLineCodeCallBack, code
 			parseLineCodeCallBack(res)
 			return
 		}
+		// #ifdef APP
+		proxyWeb.callMethod({
+			action: 'highlightCodeLine',
+			language,
+			codeSource
+		}, (param : UTSJSONObject) => {
+			const tokensJson = param['tokensJson'] as string | null
+			const errorMsg = param['errorMsg'] as string | null
+			if (errorMsg != null && errorMsg.length > 0) {
+				const res: ParseLineCodeRes = {
+					tokens: [],
+					language: language,
+					error: errorMsg
+				}
+				parseLineCodeCallBack(res)
+				return
+			}
+			const tokens = tokensJson != null && tokensJson.length > 0
+				? JSON.parseArray<MarkdownToken>(tokensJson) as MarkdownToken[]
+				: [] as MarkdownToken[]
+			const res: ParseLineCodeRes = {
+				tokens,
+				language: language,
+				error: null
+			}
+			parseLineCodeCallBack(res)
+		})
+		return
+		// #endif
+		// #ifndef APP
 		initUniCodeHighlighter(() => {
 			// TODO: 第三个参数暂时传 0 即可，但下一个版本的 uni-highlight，需要将上一次解析返回的 state 传入 用于提升性能
 			uniCodeHighlighter!.tokenizeLine(language, codeSource, 0).then((iLineToken: ILineTokens | null) => {
@@ -150,6 +175,7 @@ export function parseLineCode(parseLineCodeCallBack: ParseLineCodeCallBack, code
 				});
 			})
 		})
+		// #endif
 	} catch (error) {
 		const res: ParseLineCodeRes = {
 			tokens: [],

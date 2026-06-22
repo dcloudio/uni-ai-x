@@ -156,6 +156,8 @@
 	}
 	
 	const isDemo = ref(testMarkdownText.length > 0)
+	const demoPrompt = '给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面'
+	const autoDemoRequested = ref<boolean>(false)
 	
 	// #ifdef WEB
 	setTimeout(() => {
@@ -167,7 +169,7 @@
 	
 	function markQA() {
 		if (isDemo.value) {
-			chatInputContent.value = "给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面"
+			chatInputContent.value = demoPrompt
 			uni.showModal({
 				content: '已生成演示专用问题，且无法修改。\n 请点击右下角的发送按钮体验效果',
 				showCancel: false
@@ -333,6 +335,14 @@
 	}
 	
 	onMounted(() => {
+		if (isDemo.value && msgList.value.length == 0 && state.value == 'none' && !autoDemoRequested.value) {
+			autoDemoRequested.value = true
+			chatInputContent.value = demoPrompt
+			nextTick(() => {
+				uniAi.sendMsg(demoPrompt)
+				chatInputContent.value = ''
+			})
+		}
 		uniAi.onBeforeRequestAi(() => {
 			autoToLastMsg = true
 			needSetLockAutoToLastMsg = true

@@ -1,4 +1,4 @@
-import {MarkdownToken} from '@/uni_modules/uni-cmark'
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 class TreeToList {
     br = "\n" as string
     // 哪些类型不需要处理

@@ -38,7 +38,7 @@
 </template>
 
 <script lang="uts" setup>
-import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark'
+import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 
 type UniAiMsgCodeProps = {

@@ -38,8 +38,8 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
-	import { MarkdownToken} from '@/uni_modules/uni-cmark';
-	import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark'
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+	import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	
 	type UniAiXMsgProps = {

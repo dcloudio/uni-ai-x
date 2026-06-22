@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-	import { MarkdownToken} from '@/uni_modules/uni-cmark';
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 	type UniAiTextMdProps = {
 		datas: MarkdownToken[]
 		itemType: string

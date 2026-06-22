@@ -1,4 +1,4 @@
-import { MarkdownToken } from '@/uni_modules/uni-cmark'
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 class Utils {
 	async measureTextWidth(text: string, fontSize: number) : Promise<number> {
 		return new Promise((resolve) => {

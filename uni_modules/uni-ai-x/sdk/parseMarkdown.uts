@@ -1,4 +1,7 @@
-import { md2json, ParseMdRes, MarkdownToken } from '@/uni_modules/uni-cmark'
+import { ParseMdRes, MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+// #ifndef APP
+import { md2json } from '@/uni_modules/uni-cmark'
+// #endif
 import { parseLineCode, ParseLineCodeRes} from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
@@ -178,20 +181,36 @@ export default class ParseMarkdown {
 	}
 	md2jsonTask(markdownText : string, md2JsonCallBack: Md2JsonCallBack ) {
 		// const start = Date.now()
-		// #ifdef APP-IOS
-		const jsonString = md2json(markdownText)
-		// const start2 = Date.now()
-		let newJsonList = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
-		// console.error('JSON.parseArray 耗时', Date.now() - start2)
+		// #ifdef APP
+		proxyWeb.callMethod({
+			action: 'parseMarkdown',
+			markdownText
+		}, (param : UTSJSONObject) => {
+			const errorMsg = param['errorMsg'] as string | null
+			if (errorMsg != null && errorMsg.length > 0) {
+				md2JsonCallBack([])
+				return
+			}
+			const jsonString = param['jsonString'] as string | null
+			let newJsonList : MarkdownToken[] = []
+			if (jsonString != null && jsonString.length > 0) {
+				newJsonList = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
+			}
+			this.handleMd2jsonResult(newJsonList, md2JsonCallBack)
+		})
+		return
 		// #endif
-		// #ifndef APP-IOS
+		// #ifndef APP
 		const parseMdRes = md2json(markdownText)
 		if (parseMdRes.errorMsg.length > 0) {
 			md2JsonCallBack([])
 			return
 		}
 		let newJsonList : MarkdownToken[] = parseMdRes.data
+		this.handleMd2jsonResult(newJsonList, md2JsonCallBack)
 		// #endif
+	}
+	handleMd2jsonResult(newJsonList : MarkdownToken[], md2JsonCallBack: Md2JsonCallBack) {
 		// console.error('md2json 耗时', Date.now() - start)
 		if (newJsonList.length == 0) {
 			md2JsonCallBack([])
