@@ -1,0 +1,12 @@
+Expected mode: legacy
+FPS samples: 1423
+FPS modes: legacy,simple
+FPS avg: 118.29
+FPS min: 2
+FPS max: 122
+Render log lines: 1189
+Has send marker: True
+Has request marker: True
+Has run marker: True
+Has simple marker: True
+RESULT: PASS

@@ -1,0 +1,1189 @@
+06-23 21:34:56.117  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.117  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.226  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.226  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.341  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.341  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.450  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.450  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.564  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.564  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.677  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.677  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.786  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.787  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.900  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:56.901  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.012  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.013  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.125  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.125  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.238  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.238  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.354  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.355  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.468  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.468  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.584  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.584  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.694  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.694  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.810  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.810  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.919  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:57.919  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.035  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.036  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.149  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.149  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.258  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.258  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.372  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.372  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.486  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.486  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.604  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.604  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.716  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.716  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.829  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.830  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.944  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:58.944  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.059  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.060  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.173  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.173  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.284  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.285  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.393  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.393  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.507  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.507  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.620  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.620  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.729  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.729  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.842  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.842  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.955  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:34:59.955  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.069  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.070  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.186  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.186  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.299  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.300  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.412  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.413  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.524  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.525  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.627  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.628  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.739  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.739  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.842  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.843  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.952  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:00.952  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.058  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.058  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.160  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.161  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.275  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.276  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.389  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.389  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.492  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.493  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.596  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.596  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.699  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.699  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.801  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.802  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.916  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:01.916  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.020  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.020  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.132  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.133  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.246  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.246  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.362  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.362  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.475  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.475  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.583  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.584  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.699  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.699  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.812  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.812  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.929  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:02.929  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.072  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.072  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.186  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.187  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.300  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.300  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.411  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.411  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.524  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.524  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.635  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.635  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.743  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.743  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.857  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.857  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.969  2609  2609 D JSConsole: uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+06-23 21:35:03.969  2609  2609 I console : [LOG]uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.145 uni-ai-x-render simple-parse tokens=2 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.146 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.146 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.147 uni-ai-x-render simple-parse tokens=3 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.147 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.147 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.148 uni-ai-x-render simple-parse tokens=4 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.148 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.148 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.148 uni-ai-x-render simple-parse tokens=5 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.148 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.149 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.149 uni-ai-x-render simple-parse tokens=6 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.149 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.149 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.149 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.150 uni-ai-x-render simple-parse tokens=7 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.150 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.150 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.150 uni-ai-x-render simple-parse tokens=9 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.150 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.151 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.151 uni-ai-x-render simple-parse tokens=10 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.151 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.151 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.151 uni-ai-x-render simple-parse tokens=10 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.151 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.152 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.152 uni-ai-x-render simple-parse tokens=10 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.152 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.153 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.153 uni-ai-x-render simple-parse tokens=11 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.153 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.153 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.154 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.154 uni-ai-x-render simple-parse tokens=12 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.155 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.155 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.155 uni-ai-x-render simple-parse tokens=12 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.155 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.155 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.155 uni-ai-x-render simple-parse tokens=12 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.156 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.156 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.156 uni-ai-x-render simple-parse tokens=13 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.156 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.156 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.157 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.157 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.157 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.157 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.157 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.157 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.158 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.158 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.158 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.158 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.158 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.159 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.159 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.159 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.159 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.159 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.159 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.160 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.160 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.160 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.160 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.160 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.160 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.160 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.161 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.161 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.161 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.161 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.161 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.162 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.162 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.162 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.162 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.162 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.163 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.163 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.163 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.163 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.163 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.163 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.164 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.164 uni-ai-x-render simple-parse tokens=19 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.164 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.164 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.164 uni-ai-x-render simple-parse tokens=20 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.164 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.165 uni-ai-x-render simple-parse tokens=20 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.165 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.165 uni-ai-x-render simple-parse tokens=22 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.165 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.165 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.166 uni-ai-x-render simple-parse tokens=22 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.166 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.166 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.166 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.166 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.166 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.167 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.167 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.167 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.167 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.167 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.168 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.168 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.168 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.168 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.168 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.168 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.169 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.169 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.169 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.169 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.170 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.170 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.170 uni-ai-x-render simple-parse tokens=24 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.170 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.170 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.171 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.171 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.171 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.171 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.172 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.172 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.172 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.172 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.172 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.172 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.173 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.173 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.173 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.173 uni-ai-x-render simple-parse tokens=27 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.174 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.174 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.174 uni-ai-x-render simple-parse tokens=29 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.174 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.174 uni-ai-x-render simple-parse tokens=31 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.174 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.175 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.175 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.175 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.175 uni-ai-x-render simple-parse tokens=31 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.175 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.175 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.176 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.176 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.176 uni-ai-x-render simple-parse tokens=34 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.176 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.177 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.177 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.177 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.177 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.177 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.177 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.178 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.178 uni-ai-x-render simple-parse tokens=39 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.178 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.178 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.179 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.179 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.179 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.179 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.179 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.179 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.180 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.180 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.180 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.180 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.181 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.181 uni-ai-x-render simple-parse tokens=42 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.181 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.181 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.181 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.181 uni-ai-x-render run mode=simple done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.182 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.182 uni-ai-x-render simple-parse tokens=45 done=true at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.183 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.202 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.203 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.203 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.203 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.203 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.203 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.204 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.204 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.204 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.204 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.204 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.205 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.205 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.205 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.205 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.205 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.206 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.206 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.206 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.206 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.206 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.207 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.207 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.207 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.207 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.207 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.207 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.208 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.208 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.208 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.208 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.208 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.209 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.209 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.209 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.209 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.209 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.210 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.210 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.210 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.210 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.210 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.211 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.211 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.211 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.211 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.212 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.212 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.212 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.212 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.212 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.212 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.213 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.213 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.213 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.213 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.213 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.214 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.214 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.214 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.214 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.214 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.214 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.215 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.215 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.215 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.215 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.215 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.216 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.216 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.216 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.216 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.216 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.217 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.217 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.217 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.217 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.217 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.217 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.218 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.218 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.218 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.218 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.219 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.219 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.219 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.219 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.219 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.219 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.220 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.220 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.220 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.220 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.220 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.221 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.358 uni-ai-x-render page-params source=index-load params={} at uni_modules/uni-ai-x/sdk/renderModeControl.uts:55
+21:35:19.359 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.360 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.360 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.360 uni-ai-x-render options source=index-mounted path=uni_modules/uni-ai-x/pages/index/index query={} at uni_modules/uni-ai-x/sdk/renderModeControl.uts:42
+21:35:19.361 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.361 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.361 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.361 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.361 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.362 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.362 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.362 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.362 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.362 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.363 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.363 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.363 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.363 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.363 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.364 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.364 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.364 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.364 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.365 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.365 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.365 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.365 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.365 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.365 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.366 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.366 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.366 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.366 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.366 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.367 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.367 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.367 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.367 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.367 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.368 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.368 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.368 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.368 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.368 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.368 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.369 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.369 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.369 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.369 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.370 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.370 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.370 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.370 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.370 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.370 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.371 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.371 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.371 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.371 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.372 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.372 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.372 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.372 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.372 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.372 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.373 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.373 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.373 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.373 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.373 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.374 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.374 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.374 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.374 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.374 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.375 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.375 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.375 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.375 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.375 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.376 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.376 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.376 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.376 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.376 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.377 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.377 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.377 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.377 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.377 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.377 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.378 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.378 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.378 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.378 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.378 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.390 uni-ai-x-render page-params source=index-load params={} at uni_modules/uni-ai-x/sdk/renderModeControl.uts:55
+21:35:19.390 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.390 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.391 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.391 uni-ai-x-render options source=index-mounted path=uni_modules/uni-ai-x/pages/index/index query={} at uni_modules/uni-ai-x/sdk/renderModeControl.uts:42
+21:35:19.391 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.391 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.391 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.391 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.392 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.392 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.392 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.392 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.392 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.393 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.393 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.393 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.393 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.393 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.394 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.394 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.395 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.395 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.395 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.395 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.396 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.396 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.396 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.396 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.396 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.397 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.397 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.397 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.397 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.397 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.397 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.398 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.398 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.398 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.398 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.398 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.399 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.399 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.399 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.399 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.399 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.399 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.400 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.400 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.400 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.400 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.401 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.401 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.401 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.401 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.401 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.401 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.402 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.402 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.402 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.402 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.402 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.403 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.403 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.403 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.403 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.403 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.404 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.404 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.404 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.404 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.404 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.404 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.405 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.405 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.405 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.405 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.406 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.406 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.406 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.406 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.406 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.407 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.407 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.407 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.407 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.407 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.408 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.408 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.408 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.408 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.408 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.409 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.409 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.409 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.409 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.409 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.438 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.438 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.438 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.439 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.439 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.439 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.439 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.439 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.440 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.440 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.440 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.440 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.441 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.441 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.441 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.441 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.441 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.442 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.442 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.442 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.443 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.443 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.443 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.444 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.444 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.444 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.444 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.444 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.445 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.445 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.445 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.445 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.445 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.446 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.446 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.446 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.446 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.446 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.447 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.447 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.447 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.447 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.447 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.448 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.448 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.448 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.448 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.449 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.449 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.449 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.449 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.449 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.450 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.450 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.450 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.450 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.451 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.451 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.451 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.451 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.451 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.451 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.452 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.452 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.452 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.452 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.453 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.453 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.453 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.453 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.454 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.454 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.454 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.454 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.455 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.455 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.455 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.455 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.455 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.455 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.456 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.456 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.456 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.456 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.456 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.457 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.457 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.457 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.457 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.457 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.457 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.458 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.458 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.458 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.459 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.481 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.481 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.481 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.482 uni-ai-x-render apply mode=simple source=index-mounted at uni_modules/uni-ai-x/sdk/renderModeControl.uts:62
+21:35:19.482 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.482 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.482 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.482 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.482 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.482 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.483 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.483 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.483 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.483 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.483 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.484 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.484 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.484 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.484 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.484 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.485 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.485 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.485 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.485 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.485 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.486 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.486 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.486 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.486 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.486 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.487 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.487 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.487 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.487 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.487 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.487 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.488 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.488 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.488 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.488 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.488 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.489 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.489 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.489 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.489 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.489 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.490 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.490 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.490 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.490 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.490 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.490 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.491 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.491 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.491 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.491 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.491 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.492 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.492 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.492 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.492 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.492 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.492 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.493 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.493 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.493 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.493 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.493 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.493 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.494 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.494 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.494 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.494 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.495 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.495 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.495 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.495 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.495 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.495 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.496 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.496 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.496 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.496 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.496 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.497 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.498 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.498 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.498 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.498 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.498 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.508 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.508 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.508 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.509 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.509 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.509 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.509 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.509 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.510 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.510 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.510 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.510 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.510 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.511 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.511 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.511 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.511 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.511 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.512 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.512 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.512 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.512 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.512 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.513 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.513 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.513 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.513 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.513 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.514 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.514 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.514 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.514 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.514 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.514 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.515 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.515 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.515 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.515 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.516 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.516 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.516 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.516 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.516 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.517 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.517 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.517 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.517 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.517 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.517 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.518 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.518 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.518 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.518 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.518 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.519 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.519 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.519 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.519 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.519 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.519 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.520 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.520 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.520 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.520 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.521 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.521 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.521 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.521 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.521 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.521 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.522 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.522 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.522 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.522 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.522 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.523 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.523 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.523 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.523 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.523 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.523 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.524 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.525 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.525 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.525 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.525 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.525 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.526 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.526 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.526 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.526 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.527 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.527 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.527 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.527 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.527 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.527 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.528 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.528 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.528 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.528 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.528 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.529 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.529 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.540 uni-ai-x-render apply mode=simple source=index-load-sync at uni_modules/uni-ai-x/sdk/renderModeControl.uts:62
+21:35:19.540 uni-ai-x-render auto-send start mode=simple at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.540 uni-ai-x-render send mode=simple at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.540 uni-ai-x-render request mode=simple at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.541 uni-ai-x-render apply mode=simple source=index-mounted at uni_modules/uni-ai-x/sdk/renderModeControl.uts:62
+21:35:19.541 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.541 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.541 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.541 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.541 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.542 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.542 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.543 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.543 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.543 uni-ai-x-render simple-parse tokens=1 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.543 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.543 uni-ai-x-render simple-parse tokens=9 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.544 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.544 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.544 uni-ai-x-render simple-parse tokens=10 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.544 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.544 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.544 uni-ai-x-render simple-parse tokens=10 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.545 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.545 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.545 uni-ai-x-render simple-parse tokens=10 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.545 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.545 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.546 uni-ai-x-render simple-parse tokens=11 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.546 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.546 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.546 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.546 uni-ai-x-render simple-parse tokens=12 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.546 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.547 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.547 uni-ai-x-render simple-parse tokens=12 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.547 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.547 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.547 uni-ai-x-render simple-parse tokens=12 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.547 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.548 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.548 uni-ai-x-render simple-parse tokens=13 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.548 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.548 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.548 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.549 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.549 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.549 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.549 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.549 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.549 uni-ai-x-render simple-parse tokens=14 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.550 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.550 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.550 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.550 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.550 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.550 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.551 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.551 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.551 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.551 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.551 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.552 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.552 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.552 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.552 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.552 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.553 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.553 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.553 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.553 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.553 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.554 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.554 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.554 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.554 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.554 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.554 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.555 uni-ai-x-render simple-parse tokens=17 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.555 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.555 uni-ai-x-render simple-parse tokens=19 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.555 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.555 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.556 uni-ai-x-render simple-parse tokens=20 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.556 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.556 uni-ai-x-render simple-parse tokens=20 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.556 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.556 uni-ai-x-render simple-parse tokens=22 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.556 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.557 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.557 uni-ai-x-render simple-parse tokens=22 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.557 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.557 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.557 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.557 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.558 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.558 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.558 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.558 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.558 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.558 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.559 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.559 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.559 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.559 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.560 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.560 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.560 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.560 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.560 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.560 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.561 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.561 uni-ai-x-render simple-parse tokens=23 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.561 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.561 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.561 uni-ai-x-render simple-parse tokens=24 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.562 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.562 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.562 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.562 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.562 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.563 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.563 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.563 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.563 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.563 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.564 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.564 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.564 uni-ai-x-render simple-parse tokens=26 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.564 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.564 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.565 uni-ai-x-render simple-parse tokens=27 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.565 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.565 uni-ai-x-render simple-parse tokens=28 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.565 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.565 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.565 uni-ai-x-render simple-parse tokens=29 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.566 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.566 uni-ai-x-render simple-parse tokens=31 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.566 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.566 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.567 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.567 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.567 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.567 uni-ai-x-render simple-parse tokens=33 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.567 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.568 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.568 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.568 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.568 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.569 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.569 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.569 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.570 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.570 uni-ai-x-render simple-parse tokens=38 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.570 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.570 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.570 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.571 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.571 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.571 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.571 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.571 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.577 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.578 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.578 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.579 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.579 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.580 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.580 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.580 uni-ai-x-render simple-parse tokens=42 done=false at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.580 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.581 uni-ai-x-render run mode=simple done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.581 uni-ai-x-render run mode=simple done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.582 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.582 uni-ai-x-render simple-parse tokens=45 done=true at uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts:182
+21:35:19.583 uni-ai-x-render simple-list update at uni_modules/uni-ai-x/sdk/index.uts:429
+21:35:19.600 uni-ai-x-render apply mode=legacy source=index-load-sync at uni_modules/uni-ai-x/sdk/renderModeControl.uts:62
+21:35:19.600 uni-ai-x-render auto-send start mode=legacy at uni_modules/uni-ai-x/pages/index/index.uvue:210
+21:35:19.600 uni-ai-x-render send mode=legacy at uni_modules/uni-ai-x/sdk/index.uts:364
+21:35:19.601 uni-ai-x-render request mode=legacy at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:243
+21:35:19.601 uni-ai-x-render apply mode=legacy source=index-mounted at uni_modules/uni-ai-x/sdk/renderModeControl.uts:62
+21:35:19.601 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.601 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.601 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.601 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.602 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.602 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.602 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.602 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.603 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.603 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.603 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.603 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.603 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.603 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.604 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.604 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.604 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.604 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.604 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.605 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.605 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.605 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.605 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.605 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.606 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.606 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.606 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.606 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.606 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.607 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.607 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.607 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.607 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.607 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.608 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.608 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.608 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.609 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.609 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.609 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.609 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.609 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.610 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.610 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.610 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.610 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.610 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.611 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.611 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.611 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.611 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.611 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.612 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.612 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.612 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.612 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.612 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.612 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.613 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.613 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.613 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.613 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.613 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.614 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.614 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.614 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.614 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.614 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.614 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.615 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.615 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.615 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.615 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.616 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.616 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.616 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.616 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.616 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.616 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.617 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.617 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.617 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.617 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.617 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.617 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.618 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.618 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.618 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.618 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.619 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.619 uni-ai-x-render run mode=legacy done=false at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217
+21:35:19.619 uni-ai-x-render run mode=legacy done=true at uni_modules/uni-ai-x/sdk/requestAiWorker.uts:217

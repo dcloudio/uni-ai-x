@@ -1,0 +1,651 @@
+--------- beginning of main
+06-23 20:00:53.287  6731  8542 D ProfileInstaller: Skipping profile installation for io.dcloud.uniappx
+--------- beginning of system
+06-23 20:00:53.365  2258  4611 D GreezeManager: notify dump uid 10763 pid 6731
+06-23 20:00:53.450  6731  8226 I .dcloud.uniappx: This is non sticky GC, maxfree is 33554432 minfree is 8388608
+06-23 20:00:53.450  6731  8226 I .dcloud.uniappx: Explicit concurrent copying GC freed 331858(12MB) AllocSpace objects, 5(256KB) LOS objects, 75% free, 13MB/54MB, paused 126us,24us total 81.334ms
+06-23 20:00:53.707  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:53.707  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:53.710  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:53.711  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:53.711  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:53.712  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.004ms, app=0, page=1, thread=main
+06-23 20:00:53.713  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.154ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:53.714  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.034ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:53.721  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:53.725  6731  8358 I test    : onUpdateLayout time:0 pageId:1 CDOMThread
+06-23 20:00:53.729  6731  6731 I test    : executeRenderTasks taskSize:4  time:2  queues=[renderNativeLayoutTasks:1/1.61ms, renderTextLayoutTasks:3/0.12ms] main
+06-23 20:00:53.735  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=3.383) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:6
+06-23 20:00:53.802  1120 24270 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+06-23 20:00:53.802  1120 24270 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+06-23 20:00:53.953  1120 24260 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+06-23 20:00:54.085  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:00:54.582  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:00:54.597  1991  1991 I wificond: station_bandwidth: �
+06-23 20:00:54.603  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:45
+06-23 20:00:54.708  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:54.708  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:54.712  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:54.713  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:54.714  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:54.715  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.008ms, app=0, page=1, thread=main
+06-23 20:00:54.715  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.100ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:54.715  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 0.727ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:54.717  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:54.725  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:00:54.728  6731  6731 I test    : executeRenderTasks taskSize:4  time:2  queues=[renderNativeLayoutTasks:1/1.61ms, renderTextLayoutTasks:3/0.12ms] main
+06-23 20:00:54.737  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=6.597) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:8
+06-23 20:00:54.955 27144 28042 I TeaLog  : s worked:true 60000
+06-23 20:00:55.045  8558 26425 W lyra-mdns-core: _deal_timeout query _lyra-mdns._udp.local[0C] timeout!
+06-23 20:00:55.713  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:55.714  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:55.723  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:55.724  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:55.726  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.010ms, app=0, page=1, thread=main
+06-23 20:00:55.726  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.086ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:55.727  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.920ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:55.729  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:55.734  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:00:55.738  6731  6731 I test    : executeRenderTasks taskSize:3  time:3  queues=[renderNativeLayoutTasks:1/2.18ms, renderTextLayoutTasks:2/0.13ms] main
+06-23 20:00:55.746  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=3.42) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:8
+06-23 20:00:56.671  2258  2610 D HeapUsage Monitor: HeapAllocSize : 157MB; monitorSize : 500MB
+06-23 20:00:56.717  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:56.717  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:56.725  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:56.727  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:56.727  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:56.729  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.063ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:56.729  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.010ms, app=0, page=1, thread=main
+06-23 20:00:56.731  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.535ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:56.733  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:56.738  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:00:56.742  6731  6731 I test    : executeRenderTasks taskSize:4  time:2  queues=[renderNativeLayoutTasks:1/1.72ms, renderTextLayoutTasks:3/0.15ms] main
+06-23 20:00:56.749  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.015) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:7
+06-23 20:00:57.089  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:00:57.607  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:00:57.610   719  8259 I keystore2: system/security/keystore2/src/watchdog.rs:319 - Watchdog thread idle -> terminating. Have a great day.
+06-23 20:00:57.618  1991  1991 I wificond: station_bandwidth: �
+06-23 20:00:57.622  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:45
+06-23 20:00:57.722  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:57.722  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:57.731  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:57.733  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:57.734  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:57.737  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.089ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:57.737  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.014ms, app=0, page=1, thread=main
+06-23 20:00:57.738  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.843ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:57.740  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:57.746  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:00:57.751  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.65ms, renderTextLayoutTasks:3/0.16ms] main
+06-23 20:00:57.755 10332 10332 I SidebarWrapper: lowlightSidebarLine
+06-23 20:00:57.756  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.829) hasTasks:true isNeedLayout:true updateDuration:5 到屏幕:5
+06-23 20:00:57.756 10332 10332 I SidebarAnimUtils: setAlpha: alpha = 0.4
+06-23 20:00:57.774  1411  1411 D MI-SF   : mIsSupportAutomodeForMaxFpsSetting is 0(0), getCurrentBrightness() = 581(880), mIsKeepAutoMode 0
+06-23 20:00:57.774  1411  1411 D RefreshRateSelector: fixedMode_group: 0, isFindModeGroup 0
+06-23 20:00:57.774  1411  1411 D RefreshRateSelector: find max refresh rate:120, mode Group:0
+06-23 20:00:58.068  2258  4666 D SLM-SRV-SLAService: checktemp temperature = 37026 temperature_average = 36728 isPerformanceMode = false thermal_enable_slm = true
+06-23 20:00:58.727  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:58.728  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:58.735  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:58.737  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:58.739  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.011ms, app=0, page=1, thread=main
+06-23 20:00:58.739  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.124ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:58.740  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.746ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:58.741  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:58.745  6731  8358 I test    : onUpdateLayout time:0 pageId:1 CDOMThread
+06-23 20:00:58.750  6731  6731 I test    : executeRenderTasks taskSize:3  time:2  queues=[renderNativeLayoutTasks:1/2.10ms, renderTextLayoutTasks:2/0.12ms] main
+06-23 20:00:58.757  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=2.966) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:7
+06-23 20:00:59.616  2258  3008 W ProcessStats: Tracking association SourceState{a556949 com.android.phone/1001 ImpFg #585722} whose proc state 5 is better than process ProcessState{c8c5447 com.xiaomi.registration/1001 pkg=com.xiaomi.registration} proc state 8 (583 skipped)
+06-23 20:00:59.730  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:59.731  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:00:59.739  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:59.741  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:59.742  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:00:59.743  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:00:59.744  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.091ms, app=0, page=1, thread=CDOMThread
+06-23 20:00:59.746  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.757ms, app=0, page=1, thread=KTElementThread
+06-23 20:00:59.746  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:00:59.752  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:00:59.757  6731  6731 I test    : executeRenderTasks taskSize:4  time:2  queues=[renderNativeLayoutTasks:1/2.27ms, renderTextLayoutTasks:3/0.16ms] main
+06-23 20:00:59.764  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.863) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:7
+06-23 20:00:59.782  1411  1411 D MI-SF   : mIsSupportAutomodeForMaxFpsSetting is 0(0), getCurrentBrightness() = 581(880), mIsKeepAutoMode 0
+06-23 20:00:59.783  1411  1411 D RefreshRateSelector: fixedMode_group: 0, isFindModeGroup 0
+06-23 20:00:59.783  1411  1411 D RefreshRateSelector: find max refresh rate:120, mode Group:0
+06-23 20:01:00.000  2258  3023 D ActivityManager: checkAllowBackground: uid=1000 pkg=android rec=UidRecord{1fba60d 1000 PER  fgServices change:procadj procs:0 seq(4575424,4537705)} caps=LCMNFU always=false idle=false
+06-23 20:01:00.002  2258  3023 D AlarmManager: mBroadcastRefCount -> 1
+06-23 20:01:00.009  2258  2258 D AlarmManager: mBroadcastRefCount -> 0
+06-23 20:01:00.009  2258  2258 D AlarmManager: mPendingIntent -> null
+06-23 20:01:00.010  4305  4305 D MiuiClockController: Listener updateTime
+06-23 20:01:00.012  4305  4305 E AnimationHelper: updateTime mToAod:false mHasNotification: true, mClockType: classic
+06-23 20:01:00.013  4305  4305 D MiuiStatusBarClock: updateTime: 8:01
+06-23 20:01:00.023  4305  4305 W View    : requestLayout() improperly called by com.android.keyguard.AlphaOptimizedLinearLayout{dde8add V.E...... ......ID 0,0-503,263 #7f0a0963 app:id/status_icons_container} during layout: running second layout pass
+06-23 20:01:00.023  4305  4305 W View    : requestLayout() improperly called by com.android.systemui.statusbar.views.MiuiClock{9fea652 V.ED..... ......ID 0,0-503,263 #7f0a0149 app:id/big_time} during layout: running second layout pass
+06-23 20:01:00.093  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:01:00.185  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+06-23 20:01:00.185  1120 24267 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+06-23 20:01:00.186  1120 24267 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+06-23 20:01:00.186  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+06-23 20:01:00.189 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete d4:5e:ec:99:90:75
+06-23 20:01:00.190 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete d4:5e:ec:99:90:75
+06-23 20:01:00.192 24133 24206 D BluetoothRemoteDevices: Property type: 1
+06-23 20:01:00.192 24133 24206 D BluetoothRemoteDevices: Skip name update for D4:5E:EC:99:90:75
+06-23 20:01:00.192 24133 24206 D BluetoothRemoteDevices: Property type: 4
+06-23 20:01:00.192 24133 24206 D BluetoothRemoteDevices: Skip class update for D4:5E:EC:99:90:75
+06-23 20:01:00.192 24133 24206 D BluetoothRemoteDevices: Property type: 5
+06-23 20:01:00.192 24133 24206 D BluetoothRemoteDevices: BT_PROPERTY_TYPE_OF_DEVICE D4:5E:EC:99:90:75
+06-23 20:01:00.193 24133 24240 D BluetoothRemoteDevices:  getMappingAddr null
+06-23 20:01:00.193 24133 24240 D BluetoothAdapterService: getIdentityAddress null retruning D4:5E:EC:99:90:75
+06-23 20:01:00.198 10790 24453 D DeviceNickName_Plugin: data type: SUPPORT_REDMI_KERBOARD_FAST, []
+06-23 20:01:00.198 10790 24453 E MiuiFastConnectService_Plugin: check adv data not fast connect
+06-23 20:01:00.198 10790 24453 D MiuiNearbyOnScanResult_Plugin: checkOfflineFindDevice 
+06-23 20:01:00.198 10790 24495 D OfflineFindScanController: handleMessage: what: MSG_CHECK_DEVICE
+06-23 20:01:00.199 10790 24495 E OfflineFindScanController: offline find scan is disable , offlineFindSwitch: false,  cloudControlFindScan: true
+06-23 20:01:00.227  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+06-23 20:01:00.227  1120 24267 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+06-23 20:01:00.378  1120 24260 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+06-23 20:01:00.626  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:01:00.645  1991  1991 I wificond: station_bandwidth: �
+06-23 20:01:00.651  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:47
+06-23 20:01:00.734  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:00.734  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:00.739  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:00.740  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:00.740  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:00.741  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.008ms, app=0, page=1, thread=main
+06-23 20:01:00.742  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.060ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:00.743  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.262ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:00.744  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:00.749  6731  8358 I test    : onUpdateLayout time:0 pageId:1 CDOMThread
+06-23 20:01:00.753  6731  6731 I test    : executeRenderTasks taskSize:4  time:2  queues=[renderNativeLayoutTasks:1/1.78ms, renderTextLayoutTasks:3/0.14ms] main
+06-23 20:01:00.759  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.491) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:6
+06-23 20:01:01.740  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:01.741  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:01.749  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:01.751  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:01.751  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:01.753  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:01.753  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.089ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:01.755  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:01.756  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 3.357ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:01.760  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:01.767  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.19ms, renderTextLayoutTasks:3/0.24ms] main
+06-23 20:01:01.771  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:01.772  6731  8358 I test    : onUpdateLayout time:0 pageId:1 CDOMThread
+06-23 20:01:01.776  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=0.588) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:9
+06-23 20:01:01.786  6731  6731 I test    : executeRenderTasks taskSize:2  time:0  queues=[renderNativeLayoutTasks:1/0.62ms, renderTextLayoutTasks:1/0.06ms] main
+06-23 20:01:01.790  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=0.588) hasTasks:true isNeedLayout:true updateDuration:1 到屏幕:4
+06-23 20:01:02.200  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+06-23 20:01:02.200  1120 24267 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+06-23 20:01:02.201  1120 24267 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+06-23 20:01:02.201  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+06-23 20:01:02.202 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete d4:5e:ec:99:90:75
+06-23 20:01:02.202 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete d4:5e:ec:99:90:75
+06-23 20:01:02.204 24133 24240 D BluetoothRemoteDevices:  getMappingAddr null
+06-23 20:01:02.204 24133 24240 D BluetoothAdapterService: getIdentityAddress null retruning D4:5E:EC:99:90:75
+06-23 20:01:02.207 10790 24453 D DeviceNickName_Plugin: data type: SUPPORT_REDMI_KERBOARD_FAST, []
+06-23 20:01:02.207 10790 24453 E MiuiFastConnectService_Plugin: check adv data not fast connect
+06-23 20:01:02.207 10790 24453 D MiuiNearbyOnScanResult_Plugin: checkOfflineFindDevice 
+06-23 20:01:02.207 10790 24495 D OfflineFindScanController: handleMessage: what: MSG_CHECK_DEVICE
+06-23 20:01:02.208 10790 24495 E OfflineFindScanController: offline find scan is disable , offlineFindSwitch: false,  cloudControlFindScan: true
+06-23 20:01:02.242  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+06-23 20:01:02.242  1120 24267 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+06-23 20:01:02.392  1120 24260 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+06-23 20:01:02.743  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:02.744  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:02.754  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:02.756  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:02.758  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.093ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:02.758  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:02.759  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.828ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:02.761  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:02.765  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:02.770  6731  6731 I test    : executeRenderTasks taskSize:3  time:3  queues=[renderNativeLayoutTasks:1/2.18ms, renderTextLayoutTasks:2/0.12ms] main
+06-23 20:01:02.778  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=3.404) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:7
+06-23 20:01:03.096  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:01:03.655  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:01:03.669  1991  1991 I wificond: station_bandwidth: �
+06-23 20:01:03.674  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:48
+06-23 20:01:03.748  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:03.748  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:03.756  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:03.758  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:03.759  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:03.761  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:03.761  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.131ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:03.763  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.870ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:03.763  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:03.770  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:03.774  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.36ms, renderTextLayoutTasks:3/0.16ms] main
+06-23 20:01:03.786  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=5.164) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:12
+06-23 20:01:04.751  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:04.752  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:04.760  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:04.762  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:04.763  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:04.765  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.136ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:04.765  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:04.767  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 2.584ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:04.768  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:04.775  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:04.780  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.30ms, renderTextLayoutTasks:3/0.24ms] main
+06-23 20:01:04.788  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=6.303) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:8
+06-23 20:01:04.800  2258  4611 D CompatibilityChangeReporter: Compat change id reported: 261072174; UID 10763; state: DISABLED
+06-23 20:01:04.802 19454 19454 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.safetynet.service.START pkg=com.google.android.gms }
+06-23 20:01:04.809 19454 19454 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.safebrowsing.SafeBrowsingService.START dat=chimera-action:/... cmp=com.google.android.gms/.chimera.GmsBoundBrokerService }
+06-23 20:01:04.813  2258  3295 I MiuiNetworkPolicy: updateUidState uid = 10166, uidState = 5
+06-23 20:01:05.045  8558 26425 W lyra-mdns-core: _deal_timeout query _lyra-mdns._udp.local[0C] timeout!
+06-23 20:01:05.756  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:05.757  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:05.764  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:05.766  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:05.766  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:05.768  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.011ms, app=0, page=1, thread=main
+06-23 20:01:05.768  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.078ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:05.770  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.836ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:05.771  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:05.777  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:05.782  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.26ms, renderTextLayoutTasks:3/0.16ms] main
+06-23 20:01:05.788  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.807) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:6
+06-23 20:01:06.100  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:01:06.294  2258  3295 D MiuiNetworkPolicy: updateLimit mLimitEnabled=true,enabled=false,mNetworkPriorityMode=1,mThermalForceMode=0
+06-23 20:01:06.304  2258  3295 I MiuiNetworkPolicy: getDisableLimitTimeout when thermal mode is:0
+06-23 20:01:06.678  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:01:06.690  1991  1991 I wificond: station_bandwidth: �
+06-23 20:01:06.696  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:49
+06-23 20:01:06.740  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+06-23 20:01:06.741  1120 24267 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+06-23 20:01:06.742  1120 24267 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+06-23 20:01:06.742  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+06-23 20:01:06.745 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete d4:5e:ec:99:90:75
+06-23 20:01:06.746 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete d4:5e:ec:99:90:75
+06-23 20:01:06.749 24133 24240 D BluetoothRemoteDevices:  getMappingAddr null
+06-23 20:01:06.749 24133 24240 D BluetoothAdapterService: getIdentityAddress null retruning D4:5E:EC:99:90:75
+06-23 20:01:06.753 10790 24453 D DeviceNickName_Plugin: data type: SUPPORT_REDMI_KERBOARD_FAST, []
+06-23 20:01:06.753 10790 24453 E MiuiFastConnectService_Plugin: check adv data not fast connect
+06-23 20:01:06.754 10790 24453 D MiuiNearbyOnScanResult_Plugin: checkOfflineFindDevice 
+06-23 20:01:06.754 10790 24495 D OfflineFindScanController: handleMessage: what: MSG_CHECK_DEVICE
+06-23 20:01:06.754 10790 24495 E OfflineFindScanController: offline find scan is disable , offlineFindSwitch: false,  cloudControlFindScan: true
+06-23 20:01:06.758  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:06.758  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:06.763  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:06.764  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:06.764  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:06.765  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.007ms, app=0, page=1, thread=main
+06-23 20:01:06.766  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.097ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:06.767  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.293ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:06.767  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:06.773  6731  8358 I test    : onUpdateLayout time:0 pageId:1 CDOMThread
+06-23 20:01:06.778  6731  6731 I test    : executeRenderTasks taskSize:4  time:2  queues=[renderNativeLayoutTasks:1/2.12ms, renderTextLayoutTasks:3/0.14ms] main
+06-23 20:01:06.782  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+06-23 20:01:06.783  1120 24267 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+06-23 20:01:06.786  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.766) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:7
+06-23 20:01:06.933  1120 24260 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+06-23 20:01:07.764  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:07.764  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:07.772  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:07.774  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:07.775  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.085ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:07.775  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.013ms, app=0, page=1, thread=main
+06-23 20:01:07.777  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.790ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:07.779  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:07.783  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:07.787  6731  6731 I test    : executeRenderTasks taskSize:3  time:2  queues=[renderNativeLayoutTasks:1/2.08ms, renderTextLayoutTasks:2/0.11ms] main
+06-23 20:01:07.794  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=3.001) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:7
+06-23 20:01:08.074  2258  4666 D SLM-SRV-SLAService: checktemp temperature = 37399 temperature_average = 36851 isPerformanceMode = false thermal_enable_slm = true
+06-23 20:01:08.769  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:08.769  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:08.777  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:08.779  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:08.780  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:08.782  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.087ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:08.782  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:08.784  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 2.311ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:08.784  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:08.790  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:08.794  6731  6731 I test    : executeRenderTasks taskSize:4  time:1  queues=[renderNativeLayoutTasks:1/1.37ms, renderTextLayoutTasks:3/0.11ms] main
+06-23 20:01:08.797  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.732) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:2
+06-23 20:01:09.104  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:01:09.698  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:01:09.715  1991  1991 I wificond: station_bandwidth: �
+06-23 20:01:09.721  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:50
+06-23 20:01:09.773  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:09.774  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:09.780  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:09.781  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:09.783  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:09.783  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.162ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:09.784  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.560ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:09.788  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:09.792  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:09.796  6731  6731 I test    : executeRenderTasks taskSize:3  time:1  queues=[renderNativeLayoutTasks:1/1.56ms, renderTextLayoutTasks:2/0.10ms] main
+06-23 20:01:09.804  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=2.83) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:8
+06-23 20:01:10.352 10790 24453 D MiuiFastConnectService_Plugin: stopBleScan: scanning: true
+06-23 20:01:10.353 10790 24453 D BluetoothAdapter: isLeEnabled(): ON
+06-23 20:01:10.353 10790 24453 D BluetoothAdapter: isLeEnabled(): ON
+06-23 20:01:10.357 24133 24159 D BtGatt.GattService: stopScan() - queue size =4
+06-23 20:01:10.360 24133 24234 I BtGatt.ScanManager: msg.what = MSG_STOP_BLE_SCAN, msg.arg1 = None
+06-23 20:01:10.360 24133 24234 D BtGatt.ScanManager: track LE scan event: callerPackage = [com.xiaomi.bluetooth], scanMode = [0], reportDelayMillis = [0], behavior = [2], scannerId = [9], duration = [59914]
+06-23 20:01:10.360 24133 24234 D BtGatt.ScanManager: handling stopping scan  [ScanClient scanModeApp 0 scanModeUsed 0 [appScanStats android.uid.bluetooth:1002]]
+06-23 20:01:10.361 24133 24234 E BluetoothUtils: isDeepDozeMode? false
+06-23 20:01:10.361 24133 24159 D BtGatt.GattService: unregisterScanner() - scannerId=9
+06-23 20:01:10.362  1120  1120 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+06-23 20:01:10.363  1120  1120 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+06-23 20:01:10.363  1120  1120 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+06-23 20:01:10.369  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+06-23 20:01:10.369  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+06-23 20:01:10.369  1120  1120 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+06-23 20:01:10.370  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+06-23 20:01:10.370  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+06-23 20:01:10.371 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=1, availableSpace=54
+06-23 20:01:10.371 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.373 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=1, availableSpace=55
+06-23 20:01:10.373 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.374 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=1, availableSpace=56
+06-23 20:01:10.374 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.376 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=1, availableSpace=57
+06-23 20:01:10.376 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.377 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=1, availableSpace=58
+06-23 20:01:10.377 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.378 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=1, availableSpace=59
+06-23 20:01:10.379 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.379 24133 24234 D BtGatt.ScanManager: configureRegularScanParams() - queue=3
+06-23 20:01:10.379 24133 24234 D BtGatt.ScanManager: configureRegularScanParams() - ScanSetting LE 1M Scan mode=0 ScanSetting LE Coded Scan mode=0 mLastConfiguredScanSettingLE1M=0 mLastConfiguredScanSettingLECoded=0 scanPhy=255
+06-23 20:01:10.381 24133 24234 D BtGatt.ScanManager: configureRegularScanParams - scanInterval LE 1M = 660 configureRegularScanParams - scanWindow LE 1M= 66 configureRegularScanParams - scanInterval LE Coded= 660 configureRegularScanParams - scanWindow LE Coded= 66
+06-23 20:01:10.381 24133 24206 D BtGatt.GattService: onScanParamSetupCompleted : 0
+06-23 20:01:10.423 10790 24453 D BluetoothAdapter: isLeEnabled(): ON
+06-23 20:01:10.423 10790 24453 D MiuiFastConnectService_Plugin: handleMessage: MSG_START_BLE_SCAN mode: 0
+06-23 20:01:10.423 10790 24453 V BluetoothPluginCloud: queryPluginFeatureSupport: pluginVersion = 1.1_1.27featureId = scan_aux
+06-23 20:01:10.425  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+06-23 20:01:10.430 10790 24453 D BluetoothAdapter: isLeEnabled(): ON
+06-23 20:01:10.433 24133 24159 D BtGatt.GattService: registerScanner() - UUID=c014ce25-d88c-40d8-a0a9-2a6cb562862c
+06-23 20:01:10.434 24133 24206 D BtGatt.GattService: onScannerRegistered() - UUID=c014ce25-d88c-40d8-a0a9-2a6cb562862c, scannerId=9, status=0
+06-23 20:01:10.435 10790 32745 D BluetoothLeScanner: onScannerRegistered() - status=0 scannerId=9 mScannerId=0
+06-23 20:01:10.435 24133 24159 D BtGatt.GattService: start scan with filters. callingPackage: com.xiaomi.bluetooth
+06-23 20:01:10.436 24133 24159 D BtGatt.GattService: enforcePrivilegedPermissionIfNeeded([BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=null, mServiceData=null, mServiceDataMask=null, mManufacturerId=911, mManufacturerData=[], mManufacturerDataMask=null, mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null], mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=null, mServiceData=null, mServiceDataMask=null, mManufacturerId=65535, mManufacturerData=[77], mManufacturerDataMask=null, mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null], mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fe95-0000-1000-8000-00805f9b34fb, mServiceData=[], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null], mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fdaa-0000-1000-8000-00805f9b34fb, mServiceData=[], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null], mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fdee-0000-1000-8000-00805f9b34fb, mServiceData=[1, 1, 1], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null], mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fd2d-0000-1000-8000-00805f9b34fb, mServiceData=[], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null], mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false])
+06-23 20:01:10.444 24133 24159 D BtGatt.ScanManager: startScan()  [ScanClient scanModeApp 0 scanModeUsed 0 [appScanStats android.uid.bluetooth:1002]]
+06-23 20:01:10.444 24133 24234 I BtGatt.ScanManager: msg.what = MSG_RECORD_CALLER, msg.arg1 = None
+06-23 20:01:10.444 24133 24234 I BtGatt.ScanManager: msg.what = MSG_START_BLE_SCAN, msg.arg1 = None
+06-23 20:01:10.444 24133 24234 D BtGatt.ScanManager: handling starting scan
+06-23 20:01:10.444 24133 24234 D BtGatt.ScanManager: isAptXLowLatencyModeEnabled: false
+06-23 20:01:10.444 24133 24234 D BtGatt.ScanManager: track LE scan event: callerPackage = [com.xiaomi.bluetooth], scanMode = [0], reportDelayMillis = [0], behavior = [1], scannerId = [9], duration = [0]
+06-23 20:01:10.445  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+06-23 20:01:10.445  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+06-23 20:01:10.446 24133 24206 D BtGatt.GattService: onScanFilterEnableDisabled() - clientIf=9, status=0, action=1
+06-23 20:01:10.446 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.446 24133 24234 D BtGatt.ScanManager: configureScanFilters rssiThreshold: -60, 15
+06-23 20:01:10.446 24133 24234 D BtGatt.ScanManager: Available Filter size: 56
+06-23 20:01:10.446 24133 24206 D BtGatt.GattService: onScanFilterConfig() - clientIf=9, action = 0 status = 0, filterType=0, availableSpace=0
+06-23 20:01:10.446 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.447 24133 24234 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+06-23 20:01:10.448 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=0, availableSpace=58
+06-23 20:01:10.448 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.449 24133 24206 D BtGatt.GattService: onScanFilterConfig() - clientIf=9, action = 0 status = 0, filterType=0, availableSpace=0
+06-23 20:01:10.449 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.449 24133 24234 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+06-23 20:01:10.451 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete 72:f3:b0:24:c8:0a
+06-23 20:01:10.451 24133 24273 I bt_stack: [INFO:btm_ble_gap.cc(3528)] btm_ble_process_adv_pkt_cont Data Complete 72:f3:b0:24:c8:0a
+06-23 20:01:10.452 24133 24240 D BluetoothAdapterService: getIdentityAddress null retruning 72:F3:B0:24:C8:0A
+06-23 20:01:10.452 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=0, availableSpace=57
+06-23 20:01:10.452 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.453 24133 24206 D BtGatt.GattService: onScanFilterConfig() - clientIf=9, action = 0 status = 0, filterType=0, availableSpace=0
+06-23 20:01:10.453 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.453 24133 24234 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+06-23 20:01:10.455 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=0, availableSpace=56
+06-23 20:01:10.455 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.455 24133 24206 D BtGatt.GattService: onScanFilterConfig() - clientIf=9, action = 0 status = 0, filterType=0, availableSpace=0
+06-23 20:01:10.455 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.456 24133 24234 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+06-23 20:01:10.457 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=0, availableSpace=55
+06-23 20:01:10.457 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.458 24133 24206 D BtGatt.GattService: onScanFilterConfig() - clientIf=9, action = 0 status = 0, filterType=0, availableSpace=0
+06-23 20:01:10.458 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.458 24133 24234 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+06-23 20:01:10.460 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=0, availableSpace=54
+06-23 20:01:10.460 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.460 24133 24206 D BtGatt.GattService: onScanFilterConfig() - clientIf=9, action = 0 status = 0, filterType=0, availableSpace=0
+06-23 20:01:10.460 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.460 24133 24234 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+06-23 20:01:10.462 24133 24206 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=9, status=0, action=0, availableSpace=53
+06-23 20:01:10.462 24133 24206 D BtGatt.ScanManager: callback done for scannerId - 9 status - 0
+06-23 20:01:10.464 24133 24234 D BtGatt.ScanManager: configureRegularScanParams() - queue=4
+06-23 20:01:10.464 24133 24234 D BtGatt.ScanManager: configureRegularScanParams() - ScanSetting LE 1M Scan mode=0 ScanSetting LE Coded Scan mode=0 mLastConfiguredScanSettingLE1M=0 mLastConfiguredScanSettingLECoded=0 scanPhy=255
+06-23 20:01:10.465 24133 24234 D BtGatt.ScanManager: configureRegularScanParams - scanInterval LE 1M = 660 configureRegularScanParams - scanWindow LE 1M= 66 configureRegularScanParams - scanInterval LE Coded= 660 configureRegularScanParams - scanWindow LE Coded= 66
+06-23 20:01:10.465 24133 24234 D BtGatt.ScanManager: apply scan timeout (1800000)to scannerId 9
+06-23 20:01:10.465 24133 24206 D BtGatt.GattService: onScanParamSetupCompleted : 0
+06-23 20:01:10.510  1120 24267 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+06-23 20:01:10.779  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:10.779  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:10.788  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:10.789  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:10.790  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.094ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:10.791  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.013ms, app=0, page=1, thread=main
+06-23 20:01:10.792  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.796ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:10.793  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:10.798  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:10.803  6731  6731 I test    : executeRenderTasks taskSize:3  time:2  queues=[renderNativeLayoutTasks:1/2.32ms, renderTextLayoutTasks:2/0.12ms] main
+06-23 20:01:10.810  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=3.192) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:7
+06-23 20:01:11.306  2258  3295 D MiuiNetworkPolicy: updateLimit mLimitEnabled=false,enabled=true,mNetworkPriorityMode=1,mThermalForceMode=0
+06-23 20:01:11.314  2258  3295 I MiuiNetworkPolicy: getEnableLimitTimeout when thermal mode is:0
+06-23 20:01:11.470  1120 24270 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+06-23 20:01:11.470  1120 24270 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+06-23 20:01:11.621  1120 24260 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+06-23 20:01:11.786  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:11.786  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:11.795  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:11.796  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:11.798  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:11.798  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.144ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:11.799  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.896ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:11.801  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:11.806  6731  8358 I test    : onUpdateLayout time:0 pageId:1 CDOMThread
+06-23 20:01:11.810  6731  6731 I test    : executeRenderTasks taskSize:3  time:3  queues=[renderNativeLayoutTasks:1/2.22ms, renderTextLayoutTasks:2/0.12ms] main
+06-23 20:01:11.817  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=3.336) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:7
+06-23 20:01:12.105  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:01:12.410 24133 24234 I BtGatt.ScanManager: msg.what = MSG_CHECK_SCAN_STATUS, msg.arg1 = CHECK_BACKGROUND_TIMEOUT
+06-23 20:01:12.725  2258  4815 I NetworkAccelerateSwitchService: EVENT_RSSI_POLL. mRssiPoll=true
+06-23 20:01:12.740  1991  1991 I wificond: station_bandwidth: �
+06-23 20:01:12.745  2258  4815 I NetworkAccelerateSwitchService: getAverageWifiRssi:48
+06-23 20:01:12.786  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:12.786  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:12.793  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:12.796  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:12.797  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:12.798  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.011ms, app=0, page=1, thread=main
+06-23 20:01:12.798  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.084ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:12.800  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 2.082ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:12.801  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:12.807  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:12.812  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.68ms, renderTextLayoutTasks:3/0.16ms] main
+06-23 20:01:12.820  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=5.372) hasTasks:true isNeedLayout:true updateDuration:5 到屏幕:6
+06-23 20:01:13.790  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:13.791  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:13.797  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:13.798  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:13.799  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.071ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:13.799  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.009ms, app=0, page=1, thread=main
+06-23 20:01:13.800  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.148ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:13.801  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:13.805  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:13.809  6731  6731 I test    : executeRenderTasks taskSize:3  time:1  queues=[renderNativeLayoutTasks:1/1.16ms, renderTextLayoutTasks:2/0.41ms] main
+06-23 20:01:13.817  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=2.871) hasTasks:true isNeedLayout:true updateDuration:3 到屏幕:8
+06-23 20:01:14.794  6731  6731 D JSConsole: uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:14.795  6731  6731 I console : [LOG]uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+06-23 20:01:14.802  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=4 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:14.804  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=6 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:14.805  6731  6731 D UNIAPPX_LOG:SharedDataAndroid: "QueueJobs no render jobs instance=0xb4000075c55d5e00 key=7 totalJobs=0" --/Volumes/EXT/ext/io.dcloud.package/xv-android/complier@dev/src/common/vue/shared/uni_shared_data_android_js.cpp:730:QueueJobs
+06-23 20:01:14.807  6731  6731 I UniSharedDataPage: _flushJobsAsync UI 线程耗时 0.012ms, app=0, page=1, thread=main
+06-23 20:01:14.807  6731  8358 I UniSharedDataPage: _flushJobsAsync C DOM 线程耗时 0.180ms, app=0, page=1, thread=CDOMThread
+06-23 20:01:14.808  6731  8359 I UniSharedDataPage: _flushJobsAsync KT Element 线程耗时 1.795ms, app=0, page=1, thread=KTElementThread
+06-23 20:01:14.810  6731  8358 E UniPage : calculateLayout pageId:1 w:1440.0 h:3200.0
+06-23 20:01:14.816  6731  8358 I test    : onUpdateLayout time:1 pageId:1 CDOMThread
+06-23 20:01:14.821  6731  6731 I test    : executeRenderTasks taskSize:4  time:3  queues=[renderNativeLayoutTasks:1/2.25ms, renderTextLayoutTasks:3/0.15ms] main
+06-23 20:01:14.829  6731  6731 I test    : pageGetProfileInfo PageProfileInfo(flexNodeCreateTime=0.0, layoutTime=4.855) hasTasks:true isNeedLayout:true updateDuration:4 到屏幕:8
+06-23 20:01:15.045  8558 26425 W lyra-mdns-core: _deal_timeout query _lyra-mdns._udp.local[0C] timeout!
+06-23 20:01:15.108  2258  3295 I MiuiNetworkPolicy: bandwidth: 0 KB/s, Max bandwidth: 3032 KB/s
+06-23 20:01:15.188  2258  4658 I NetworkBoostStatusManager: handle: 107
+06-23 20:01:15.190  2258  4658 D NetworkBoostStatusManager: isModemSingnalStrengthStatus signalStrength or serviceState is null
+20:01:16.173 HBuilderX Version: 5.21.2026062210-dev
+20:01:16.175 项目 uni-ai-x 开始编译
+20:01:16.175 请注意运行模式下，因日志输出、sourcemap 以及未压缩源码等原因，性能和包体积，均不及发行模式。
+20:01:16.175 编译器版本：5.21（uni-app x）蒸汽模式
+20:01:16.176 当前视图层编译目标：字节码
+20:01:16.176 正在编译中...
+20:01:16.176 已忽略静态资源目录：uni_modules/uni-cmark/static/、uni_modules/uni-highlight/static/。详见：https://uniapp.dcloud.net.cn/tutorial/platform.html#static
+20:01:16.176 本项目的uniCloud使用的默认服务空间spaceId为：env-00jxhjkqc6wv
+20:01:16.176 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/index/index...20:01:16.177 当前工程3个页面，正在编译App...20:01:16.177 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/select-text/select-text...20:01:16.177 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/common/webview/webview...20:01:16.177 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/index/index...20:01:16.177 当前工程3个页面，正在编译App...20:01:16.178 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/select-text/select-text...20:01:16.178 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/common/webview/webview...20:01:16.178 当前工程3个页面，正在编译uni_modules/uni-icons/components/uni-icons/uni-icons...20:01:16.178 当前工程3个页面，正在编译uni_modules/uni-icons/components/uni-icons/uni-icons...20:01:16.178 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-chat...20:01:16.178 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-menu...20:01:16.179 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/fps/fps...20:01:16.179 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-chat...20:01:16.179 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-menu...20:01:16.179 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/fps/fps...20:01:16.179 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat-btn...20:01:16.180 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-setting/uni-ai-x-setting...20:01:16.180 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat-btn...20:01:16.180 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-setting/uni-ai-x-setting...20:01:16.180 当前工程3个页面，正在编译App...20:01:16.180 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/select-text/select-text...20:01:16.180 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/common/webview/webview...20:01:16.181 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/index/index...20:01:16.181 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat...20:01:16.181 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/input-tool-bar...20:01:16.181 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg...20:01:16.181 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon...20:01:16.182 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat...20:01:16.182 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/input-tool-bar...20:01:16.182 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg...20:01:16.182 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat...20:01:16.182 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon...20:01:16.182 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon...20:01:16.183 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/input-tool-bar...20:01:16.183 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg...20:01:16.183 当前工程3个页面，正在编译uni_modules/uni-popup/components/uni-popup/uni-popup...20:01:16.183 当前工程3个页面，正在编译uni_modules/uni-popup/components/uni-popup/uni-popup...20:01:16.183 当前工程3个页面，正在编译uni_modules/uni-popup/components/uni-popup/uni-popup...20:01:16.183 当前工程3个页面，正在编译uni_modules/uni-icons/components/uni-icons/uni-icons...20:01:16.184 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/fps/fps...20:01:16.184 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-menu...20:01:16.184 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-chat...20:01:16.184 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat-btn...20:01:16.184 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-setting/uni-ai-x-setting...20:01:16.185 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/msg-tool-bar...20:01:16.185 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md...20:01:16.185 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/msg-tool-bar...20:01:16.185 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/msg-tool-bar...20:01:16.185 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table...20:01:16.186 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-rotate-icon/uni-rotate-icon...20:01:16.186 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/katex-el/katex-el...20:01:16.186 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code...20:01:16.186 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md...20:01:16.186 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-rotate-icon/uni-rotate-icon...20:01:16.187 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table...20:01:16.187 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/katex-el/katex-el...20:01:16.187 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-rotate-icon/uni-rotate-icon...20:01:16.187 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md...20:01:16.187 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code...20:01:16.188 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/katex-el/katex-el...20:01:16.188 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table...20:01:16.188 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code...20:01:16.188 项目 uni-ai-x 编译成功。
+20:01:16.188 ready in 8837ms.
+20:01:16.188 [33m手机端uni-app x调试基座已是最新版本，跳过更新[39m
+20:01:16.189 正在建立手机连接...
+20:01:16.189 正在同步手机端程序文件...
+20:01:16.189 同步手机端程序文件成功
+20:01:16.189 正在启动uni-app x调试基座...
+20:01:16.189 [31m应用【uni-ai-x】已启动[39m
+20:01:16.189 uni-ai-x-fps mode=legacy fps=110 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.190 uni-ai-x-fps mode=legacy fps=20 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.190 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.190 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.190 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.190 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.190 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.191 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.191 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.191 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.193 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.194 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.194 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.194 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.194 uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.195 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.195 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.195 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.196 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.196 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.196 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.196 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.196 uni-ai-x-fps mode=legacy fps=113 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.197 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.197 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.197 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.197 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.197 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.197 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.198 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.198 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.198 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.198 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.198 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.198 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.199 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.199 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.199 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.199 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.199 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.199 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.200 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.200 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.200 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.200 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.200 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.200 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.201 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.201 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.201 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.201 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.201 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.202 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.202 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.202 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.202 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.202 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.203 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.203 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.203 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.203 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.204 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.204 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.204 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.204 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.205 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.205 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.205 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.205 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.206 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.206 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.206 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.206 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.206 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.206 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.207 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.207 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.207 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.207 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.207 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.208 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.208 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.208 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.208 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.208 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.208 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.209 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.209 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.209 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.209 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.209 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.209 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.210 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.210 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.210 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.210 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.210 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.211 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.211 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.211 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.211 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.211 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.211 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.212 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.212 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.212 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.212 uni-ai-x-fps mode=legacy fps=116 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.212 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.213 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.213 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.213 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.213 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.213 uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.213 uni-ai-x-fps mode=simple fps=89 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.214 uni-ai-x-fps mode=compare fps=60 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.214 uni-ai-x-fps mode=compare fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.214 uni-ai-x-fps mode=compare fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.214 uni-ai-x-fps mode=compare fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.214 uni-ai-x-fps mode=compare fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.214 uni-ai-x-fps mode=compare fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.215 uni-ai-x-fps mode=compare fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.215 uni-ai-x-fps mode=compare fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.215 uni-ai-x-fps mode=legacy fps=114 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.215 uni-ai-x-fps mode=legacy fps=56 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.215 uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.215 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.216 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.216 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.216 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.216 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.216 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.216 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.217 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.217 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.217 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.217 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.217 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.217 uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.218 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.218 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.218 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.218 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.218 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.219 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.219 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.219 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.219 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+20:01:16.219 uni-ai-x-fps mode=legacy fps=117 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+

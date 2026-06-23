@@ -1,0 +1,60 @@
+Applications Memory Usage (in Kilobytes):
+Uptime: 364904441 Realtime: 1326825904
+
+** MEMINFO in pid 31468 [io.dcloud.uniappx] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    23379    23352        0       46    24396    40208    37981     2226
+  Dalvik Heap    18536    13620     4764       10    19972    55714    13929    41785
+ Dalvik Other    10874     6108       40        0    15780                           
+        Stack     3660     3660        0        0     3668                           
+       Ashmem      260      164        0        0     1292                           
+      Gfx dev     2068     2068        0        0     2072                           
+    Other dev       26        0       24        0      492                           
+     .so mmap    40036     1588    34236        1    83656                           
+    .jar mmap     2284        0      668        0    47704                           
+    .apk mmap    13728      488     3852        0    42876                           
+    .ttf mmap     1376        0      484        0     9008                           
+    .dex mmap    31781       80    31040        0    35692                           
+    .oat mmap      184        0      140        0     2456                           
+    .art mmap    10774     8204     1920       23    22300                           
+   Other mmap      585      100      220        0     2396                           
+   EGL mtrack    74000    74000        0        0    74000                           
+    GL mtrack      712      712        0        0      712                           
+      Unknown    19583    19256      316        1    20024                           
+        TOTAL   253927   153400    77704       81   408496    95922    51910    44011
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:    23744                          42272
+         Native Heap:    23352                          24396
+                Code:    72600                         230864
+               Stack:     3660                           3668
+            Graphics:    76780                          76784
+       Private Other:    30968
+              System:    22823
+             Unknown:                                   30512
+ 
+           TOTAL PSS:   253927            TOTAL RSS:   408496       TOTAL SWAP PSS:       81
+ 
+ Objects
+               Views:       83         ViewRootImpl:        1
+         AppContexts:        8           Activities:        2
+              Assets:       39        AssetManagers:        0
+       Local Binders:       74        Proxy Binders:       60
+       Parcel memory:       17         Parcel count:       70
+    Death Recipients:        5             WebViews:        1
+ 
+ SQL
+         MEMORY_USED:      351
+  PAGECACHE_OVERFLOW:      289          MALLOC_SIZE:      208
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b) cache hits cache misses cache size  Dbname
+PER CONNECTION STATS
+         4      260             58   114    25     7  /data/user/0/io.dcloud.uniappx/databases/DCStorage
+POOL STATS
+     cache hits  cache misses    cache size  Dbname
+            114            26           140  /data/user/0/io.dcloud.uniappx/databases/DCStorage

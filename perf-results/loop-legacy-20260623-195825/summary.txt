@@ -1,0 +1,12 @@
+Expected mode: legacy
+FPS samples: 64
+FPS modes: legacy
+FPS avg: 114.8
+FPS min: 20
+FPS max: 121
+Render log lines: 0
+Has send marker: False
+Has request marker: False
+Has run marker: False
+Has simple marker: False
+RESULT: FAIL legacy chain did not execute

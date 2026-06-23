@@ -1,0 +1,8 @@
+package=io.dcloud.uniappx
+mode=simple
+duration=8
+project_path=/Users/json/Desktop/code/uni-ai-x
+hbx_cli=/Applications/HBuilderX-Dev.app/Contents/MacOS/cli
+mode_tap=620,82
+send_tap=
+auto_mode=1

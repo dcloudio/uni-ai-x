@@ -1,0 +1,235 @@
+19:53:26.552 HBuilderX Version: 5.21.2026062210-dev
+19:53:27.636 项目 uni-ai-x 开始编译
+19:53:29.188 请注意运行模式下，因日志输出、sourcemap 以及未压缩源码等原因，性能和包体积，均不及发行模式。
+19:53:29.189 编译器版本：5.21（uni-app x）蒸汽模式
+19:53:29.189 当前视图层编译目标：字节码
+19:53:29.189 正在编译中...
+19:53:31.248 已忽略静态资源目录：uni_modules/uni-cmark/static/、uni_modules/uni-highlight/static/。详见：https://uniapp.dcloud.net.cn/tutorial/platform.html#static
+19:53:31.255 本项目的uniCloud使用的默认服务空间spaceId为：env-00jxhjkqc6wv
+19:53:34.707 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/common/webview/webview...19:53:34.707 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/select-text/select-text...19:53:34.708 当前工程3个页面，正在编译App...                                               19:53:34.710 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/index/index...            19:53:34.721 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/common/webview/webview... 19:53:34.726 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/select-text/select-text...19:53:34.733 当前工程3个页面，正在编译App...                                               19:53:34.738 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/index/index...            19:53:35.045 当前工程3个页面，正在编译uni_modules/uni-icons/components/uni-icons/uni-icons...19:53:35.052 当前工程3个页面，正在编译uni_modules/uni-icons/components/uni-icons/uni-icons...19:53:35.213 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-chat...         19:53:35.214 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-menu...         19:53:35.214 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/fps/fps...             19:53:35.227 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-chat...         19:53:35.231 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-menu...         19:53:35.235 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/fps/fps...             19:53:35.364 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat-btn...        19:53:35.365 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-setting/uni-ai-x-setting...19:53:35.367 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat-btn...                     19:53:35.389 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-setting/uni-ai-x-setting...19:53:35.642 当前工程3个页面，正在编译App...                                                              19:53:35.671 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/select-text/select-text...               19:53:35.671 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/common/webview/webview...                19:53:35.804 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/input-tool-bar...                   19:53:35.804 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat...                         19:53:35.804 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg...        19:53:35.805 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon...          19:53:35.848 当前工程3个页面，正在编译uni_modules/uni-ai-x/pages/index/index...                           19:53:35.865 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat...                         19:53:35.870 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/input-tool-bar...                   19:53:35.877 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg...        19:53:35.885 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon...          19:53:35.886 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon...          19:53:35.900 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat...                         19:53:35.943 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/input-tool-bar...                   19:53:35.951 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg...        19:53:35.994 当前工程3个页面，正在编译uni_modules/uni-popup/components/uni-popup/uni-popup...             19:53:35.998 当前工程3个页面，正在编译uni_modules/uni-popup/components/uni-popup/uni-popup...             19:53:36.006 当前工程3个页面，正在编译uni_modules/uni-popup/components/uni-popup/uni-popup...             19:53:36.011 当前工程3个页面，正在编译uni_modules/uni-icons/components/uni-icons/uni-icons...             19:53:36.028 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/fps/fps...                          19:53:36.081 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-menu...                      19:53:36.083 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-chat...                      19:53:36.191 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/msg-tool-bar...                     19:53:36.192 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code...  19:53:36.193 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table...19:53:36.200 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/msg-tool-bar...                     19:53:36.209 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code...  19:53:36.222 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/add-chat-btn...                     19:53:36.223 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/msg-tool-bar...                     19:53:36.227 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/katex-el/katex-el...                19:53:36.228 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md...    19:53:36.228 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-rotate-icon/uni-rotate-icon...  19:53:36.235 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table...19:53:36.245 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/katex-el/katex-el...                19:53:36.270 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code...  19:53:36.281 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md...    19:53:36.286 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-rotate-icon/uni-rotate-icon...  19:53:36.343 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-rotate-icon/uni-rotate-icon...  19:53:36.344 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/katex-el/katex-el...                19:53:36.345 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table...19:53:36.347 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-x-setting/uni-ai-x-setting...19:53:36.349 当前工程3个页面，正在编译uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md...    19:53:39.001 项目 uni-ai-x 编译成功。                                                                 
+19:53:39.023 ready in 10924ms.
+19:53:39.294 [33m手机端uni-app x调试基座已是最新版本，跳过更新[39m
+19:53:39.780 正在建立手机连接...
+19:53:41.364 正在同步手机端程序文件...
+19:53:42.437 同步手机端程序文件成功
+19:53:43.477 正在启动uni-app x调试基座...
+19:53:44.648 [31m应用【uni-ai-x】已启动[39m
+19:53:46.783 uni-ai-x-fps mode=legacy fps=27 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:47.789 uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:48.798 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:49.805 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:50.803 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:51.813 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:52.815 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:53.821 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:54.824 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:55.829 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:56.833 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:57.839 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:58.842 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:53:59.847 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:00.875 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:01.853 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:02.859 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:03.861 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:04.867 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:05.870 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:06.876 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:07.879 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:08.885 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:09.890 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:10.893 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:11.898 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:12.901 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:13.906 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:14.910 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:15.912 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:16.918 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:17.924 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:18.926 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:19.933 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:20.937 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:21.940 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:22.946 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:23.942 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:24.956 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:25.957 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:26.962 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:27.966 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:28.971 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:29.975 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:30.982 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:31.983 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:32.988 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:33.993 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:34.999 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:36.003 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:37.006 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:38.010 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:39.016 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:40.019 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:41.023 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:42.029 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:43.034 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:44.038 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:45.042 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:46.046 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:47.049 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:48.049 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:49.057 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:50.066 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:51.070 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:52.073 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:53.077 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:54.084 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:55.086 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:56.093 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:57.096 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:58.100 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:54:59.105 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:00.111 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:01.114 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:02.118 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:03.126 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:04.128 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:05.132 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:06.136 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:07.140 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:08.145 uni-ai-x-fps mode=legacy fps=118 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:09.148 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:10.154 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:11.158 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:12.163 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:13.166 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:14.171 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:15.178 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:16.180 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:17.183 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:18.189 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:19.194 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:20.196 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:21.201 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:22.204 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:23.208 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:24.213 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:25.216 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:26.223 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:27.235 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:28.230 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:29.236 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:30.242 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:31.244 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:32.249 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:33.253 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:34.257 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:35.261 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:36.262 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:37.269 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:38.274 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:39.278 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:40.281 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:41.286 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:42.291 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:43.296 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:44.299 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:45.303 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:46.307 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:47.312 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:48.316 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:49.321 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:50.325 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:51.329 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:52.334 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:53.338 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:54.341 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:55.346 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:56.349 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:57.355 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:58.358 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:55:59.363 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:00.368 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:01.370 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:02.377 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:03.380 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:04.384 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:05.388 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:06.393 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:07.397 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:08.401 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:09.404 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:10.409 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:11.413 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:12.418 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:13.421 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:14.425 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:15.428 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:16.434 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:17.437 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:18.443 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:19.447 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:20.449 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:21.454 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:22.459 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:23.461 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:24.468 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:25.469 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:26.476 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:27.480 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:28.484 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:29.488 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:30.493 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:31.498 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:32.501 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:33.507 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:34.509 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:35.514 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:36.514 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:37.524 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:38.528 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:39.532 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:40.537 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:41.542 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:42.546 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:43.551 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:44.555 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:45.559 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:46.564 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:47.568 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:48.570 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:49.577 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:50.580 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:51.586 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:52.588 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:53.595 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:54.598 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:55.601 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:56.607 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:57.610 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:58.613 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:56:59.619 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:00.623 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:01.626 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:02.631 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:03.636 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:04.640 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:05.643 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:06.649 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:07.652 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:08.657 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:09.662 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:10.666 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:11.671 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:12.681 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:13.679 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:14.684 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:15.684 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:16.692 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:17.697 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:18.701 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:19.706 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:20.708 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:21.713 uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:22.716 uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:23.721 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:24.724 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134
+19:57:25.730 uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:134

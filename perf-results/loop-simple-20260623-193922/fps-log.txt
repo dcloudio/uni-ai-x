@@ -1,0 +1,13 @@
+06-23 19:39:56.382  1075  1075 D JSConsole: uni-ai-x-fps mode=legacy fps=116 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:56.382  1075  1075 I console : [LOG]uni-ai-x-fps mode=legacy fps=116 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:57.389  1075  1075 D JSConsole: uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:57.390  1075  1075 I console : [LOG]uni-ai-x-fps mode=legacy fps=120 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:58.392  1075  1075 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:58.392  1075  1075 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:59.397  1075  1075 D JSConsole: uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:39:59.398  1075  1075 I console : [LOG]uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:40:00.399  1075  1075 D JSConsole: uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:40:00.399  1075  1075 I console : [LOG]uni-ai-x-fps mode=legacy fps=119 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:40:01.404  1075  1075 D JSConsole: uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+06-23 19:40:01.405  1075  1075 I console : [LOG]uni-ai-x-fps mode=legacy fps=121 at uni_modules/uni-ai-x/pages/index/index.uvue:40
+19:40:09.403 uni-ai-x-fps mode=legacy fps=30 at uni_modules/uni-ai-x/pages/index/index.uvue:40
