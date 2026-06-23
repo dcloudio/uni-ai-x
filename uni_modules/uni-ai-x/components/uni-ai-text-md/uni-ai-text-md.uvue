@@ -1,5 +1,11 @@
 <template>
-	<text class="text" :class="itemType + '-box' + (itemType == 'list' ? ' list-content' : '') + ' uni-ai-text-md-' + itemType + '-box'">
+	<view v-if="itemType == 'heading'" class="uni-ai-text-md-heading-root uni-ai-text-md-heading-box">
+		<text v-for="(data, index) in datas" :key="index"
+			:class="headingBoxClass(data.className)"
+			@click="toLink(data.href)"
+		>{{data.text}}</text>
+	</view>
+	<text v-else class="text" :class="itemType + '-box' + (itemType == 'list' ? ' list-content' : '') + ' uni-ai-text-md-' + itemType + '-box'">
 		<text v-for="(data, index) in datas" :key="index"
 			:class="headingBoxClass(data.className)" 
 			@click="toLink(data.href)"
@@ -80,6 +86,12 @@
 	.uni-ai-text-md-heading-box {
 		width: 100%;
 		margin: 5px 0;
+	}
+
+	.uni-ai-text-md-heading-root {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
 	}
 
 	.uni-ai-text-md-heading-box-text {
