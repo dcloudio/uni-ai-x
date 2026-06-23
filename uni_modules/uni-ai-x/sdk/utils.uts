@@ -21,9 +21,14 @@ class Utils {
 	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
 	uniGetDispatcher(taskName : string, fn : () => void) {
 		// #ifdef APP-ANDROID
-		UTSAndroid.getDispatcher(taskName).async((_) => {
+		try {
+			UTSAndroid.getDispatcher(taskName).async((_) => {
+				fn()
+			})
+		} catch (error) {
+			// 蒸汽模式 JS 引擎版下可能不存在 UTSAndroid，直接回退为当前线程执行。
 			fn()
-		})
+		}
 		// #endif
 		// #ifndef APP-ANDROID
 		fn()

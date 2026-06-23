@@ -29,7 +29,8 @@
 						<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
 						<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
 					</view>
-					<view style="height: 35px;" id="last-msg"></view>
+					<view style="height: 35px;" id="last-msg-a" v-if="bottomAnchorId == 'last-msg-a'"></view>
+					<view style="height: 35px;" id="last-msg-b" v-else></view>
 				</scroll-view>
 				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden', position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)'}"/>
 				<view :style="{visibility: scrollInBottom || scrolling ? 'hidden' : 'visible'}" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
@@ -94,6 +95,7 @@
 	
 	const keyboardHeight = ref<number>(0)
 	const scrollIntoView = ref<string>('')
+	const bottomAnchorId = ref<string>('last-msg-a')
 	const scrollInBottom = ref<boolean>(true)
 	const scrollWithAnimation = ref<boolean>(false)
 	const scrollTouch = ref<boolean>(false)
@@ -147,10 +149,10 @@
 	})
 	function scrollToLastMsg(userClick: boolean){
 		autoToLastMsg = true
-		scrollIntoView.value = ""
 		scrollWithAnimation.value = userClick
+		bottomAnchorId.value = bottomAnchorId.value == 'last-msg-a' ? 'last-msg-b' : 'last-msg-a'
 		nextTick(() => {
-			scrollIntoView.value = "last-msg"
+			scrollIntoView.value = bottomAnchorId.value
 			scrollInBottom.value = true
 		})
 	}

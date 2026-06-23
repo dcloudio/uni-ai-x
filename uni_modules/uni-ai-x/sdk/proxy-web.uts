@@ -1,8 +1,11 @@
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 type OnMsgFn = (e : UTSJSONObject) => void
+type WebviewEvalTarget = {
+	evalJS: (code: string) => void
+}
 class ProxyWeb {
 	isInit : boolean = false
-	private webviewContext : WebviewContext | null = null
+	private webviewContext : WebviewContext | WebviewEvalTarget | null = null
 	callbackMap : Map<string, OnMsgFn> = new Map()
 	constructor() {
 		// #ifdef WEB
@@ -32,14 +35,14 @@ class ProxyWeb {
 		// console.log('code', code)
 		// #ifdef APP
 		utils.uniGetDispatcher('main', () => {
-			this.webviewContext?.evalJS(code)
+			(this.webviewContext as WebviewEvalTarget | null)?.evalJS(code)
 		})
 		// #endif
 		// #ifdef WEB
 			(this.webviewContext as any)?.contentWindow.eval(code)
 		// #endif
 	}
-	init(webviewContext : WebviewContext) {
+	init(webviewContext : WebviewContext | WebviewEvalTarget) {
 		this.webviewContext = webviewContext
 	}
 	onWebMsg(e : UniWebViewMessageEvent) {

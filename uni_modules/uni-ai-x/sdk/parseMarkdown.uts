@@ -11,16 +11,6 @@ type ParseMathCallBack = (mathToken: MarkdownToken | null) => void
 type GetTextWidthCallBack = (width: number) => void
 type CallBack = () => void
 
-// #ifdef WEB
-const Thread = {
-	currentThread: () => {
-		return {
-			name: 'web is all main'
-		}
-	}
-}
-// #endif
-
 // 数学公式标记的映射
 const mathMarkMap = new Map<string, string>([
     ['$', '$'],
@@ -90,9 +80,6 @@ export default class ParseMarkdown {
 		}
 		this.parseLock = true
 		
-		// 输出当前运行在哪个线程
-		// console.log('currentThread.name', Thread.currentThread().name)
-		
 		// 增量获得msgBody的内容，增量处理数学公式
 		this.myMarkdownText = this.myMarkdownText + msgBody.slice(this.oldMsgBodyLength);
 		this.oldMsgBodyLength = msgBody.length
@@ -138,11 +125,6 @@ export default class ParseMarkdown {
 		const start = Date.now()
 		// console.error('s')
 		this.md2jsonTask(markdownText, (newJsonList)=>{
-			// #ifdef  APP-ANDROID
-			if (Thread.currentThread().name == 'main') {
-				// console.error('意外回到主线程执行了')
-			}
-			// #endif
 			// console.error('md2jsonTask 耗时', Date.now() - start)
 			// console.error('e')
 			if (newJsonList.length > 1 && !(newJsonList[0].type == 'table' && newJsonList[1].isClose != 1)) {
@@ -381,10 +363,9 @@ export default class ParseMarkdown {
 	}
 	getMeasureTextWidth(callBack: GetTextWidthCallBack, text : string, fontSize : number){
 		// #ifdef APP-ANDROID
-		const layout = new UniTextLayout();
-		layout.setText(text);
-		layout.setFontSize(fontSize + 'px');
-		const width = layout.measure({} as UniLayoutConstraintSize).width
+		// 蒸汽模式 JS 引擎版下不可直接使用 UniTextLayout，回退为近似宽度估算避免运行时错误。
+		const textLength = text.length
+		const width = textLength == 0 ? 0 : textLength * fontSize * 0.6
 		callBack(width)
 		// #endif
 		// #ifndef APP-ANDROID

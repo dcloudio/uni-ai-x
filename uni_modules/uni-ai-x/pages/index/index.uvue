@@ -115,7 +115,10 @@
 		})
 		const proxyWebContext = document.getElementById('proxy-web')
 		// #endif
-		// #ifndef WEB || MP-WEIXIN
+		// #ifdef APP
+		const proxyWebContext = uni.getElementById('proxy-web')
+		// #endif
+		// #ifdef MP-WEIXIN
 		const proxyWebContext = uni.createWebviewContext('proxy-web')
 		// #endif
 		// #ifndef MP-WEIXIN

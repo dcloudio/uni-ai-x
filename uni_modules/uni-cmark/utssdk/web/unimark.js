@@ -38,6 +38,8 @@ function convertInlineToken(token) {
       }
     case 'br':
       return createTextToken('\n', token.raw)
+    case 'checkbox':
+      return null
     case 'link':
       return {
         type: 'link',
@@ -110,6 +112,7 @@ function convertBlockToken(token) {
   switch (token.type) {
     case 'space':
     case 'def':
+    case 'checkbox':
       return null
     case 'heading':
       return {

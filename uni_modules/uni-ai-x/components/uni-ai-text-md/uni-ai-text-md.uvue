@@ -133,6 +133,10 @@
 
 	.uni-ai-text-md-list-box-text {
 		line-height: 28px;
+		white-space: pre-wrap;
+		/* #ifndef APP */
+		word-break: break-all;
+		/* #endif */
 	}
 
 	.uni-ai-text-md-list-item-content-box {
@@ -148,9 +152,17 @@
 	}
 
 	.uni-ai-text-md-list-item-index {
-		width: 20px;
+		width: 26px;
 		font-size: 14px;
 		color: var(--text-secondary);
+	}
+
+	.uni-ai-text-md-list-box-task {
+		line-height: 30px;
+	}
+
+	.uni-ai-text-md-list-box-checked {
+		color: var(--text-primary);
 	}
 
 	.uni-ai-text-md-list-item-index-unordered {
