@@ -71,11 +71,17 @@ type Mermaid = {
 	renderd: boolean
 }
 const mermaidInfos = reactive<Mermaid[]>([])
+
+function hasMermaidImage(href: string | null): boolean {
+	return href != null && href.length > 0
+}
+
 watch((): string | null => props.href, (href: string | null) => {
-	if (href == null) return
+	if (!hasMermaidImage(href)) return
 	const index = mermaidInfos.length
+	const imageHref = href as string
 	const mermaid: Mermaid = {
-		href,
+		href: imageHref,
 		renderd: true,
 		show: index == 0 ? true : false
 	}
@@ -96,11 +102,17 @@ const codeLineHeight = 22
 const codeVerticalPadding = 16
 
 watch((): string => props.language, (language: string) => {
-	showMermaidImage.value = language == 'mermaid'
+	showMermaidImage.value = language == 'mermaid' && hasMermaidImage(props.href)
 	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
 	showMermaidImage.value = false
 	//#endif
 }, {immediate: true})
+
+watch((): string | null => props.href, (href: string | null) => {
+	if (props.language == 'mermaid' && hasMermaidImage(href)) {
+		showMermaidImage.value = true
+	}
+})
 
 //#ifdef uniVersion < 4.81
 let lastDiffLineIndex = 0

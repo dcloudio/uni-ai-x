@@ -1,0 +1,157 @@
+<template>
+  <view class="fps-root" :style="{top: top + 'px'}">
+    <text class="fps-text">{{label}} FPS: {{ fps }}</text>
+    <text class="fps-sub-text">当前模式：{{ currentModeText }}</text>
+    <text class="fps-sub-text">当前样本：{{ currentSummaryText }}</text>
+    <text class="fps-sub-text">旧链路：{{ legacySummaryText }}</text>
+    <text class="fps-sub-text">新链路：{{ simpleSummaryText }}</text>
+    <text class="fps-sub-text" v-if="compareSummary.hasData">对比模式：{{ compareSummaryText }}</text>
+  </view>
+</template>
+
+<script setup lang="uts">
+  type FpsSummary = {
+    label: string,
+    samples: number,
+    min: number,
+    max: number,
+    avg: number,
+    last: number,
+    hasData: boolean
+  }
+
+  const emit = defineEmits(['updateFps'])
+  const props = withDefaults(defineProps<{
+    interval?: number
+    top?: number
+    label?: string
+    currentMode?: string
+    legacySummary?: FpsSummary
+    simpleSummary?: FpsSummary
+    compareSummary?: FpsSummary
+  }>(), {
+    interval: 1000,
+    top: 54,
+    label: '',
+    currentMode: 'legacy'
+  })
+
+  let animationId : number = -1
+  const fps = ref<number>(0)
+  let frameCount: number = 0
+  let fpsUpdateTime: number = 0
+
+  function emptySummary(label: string): FpsSummary {
+    return {
+      label,
+      samples: 0,
+      min: 0,
+      max: 0,
+      avg: 0,
+      last: 0,
+      hasData: false
+    }
+  }
+
+  const legacySummary = computed<FpsSummary>(() => {
+    return props.legacySummary ?? emptySummary('旧链路')
+  })
+
+  const simpleSummary = computed<FpsSummary>(() => {
+    return props.simpleSummary ?? emptySummary('新链路')
+  })
+
+  const compareSummary = computed<FpsSummary>(() => {
+    return props.compareSummary ?? emptySummary('对比模式')
+  })
+
+  function modeToText(mode: string): string {
+    if (mode == 'simple') return '新链路'
+    if (mode == 'compare') return '对比模式'
+    return '旧链路'
+  }
+
+  function summaryToText(summary: FpsSummary): string {
+    if (!summary.hasData) {
+      return '暂无样本'
+    }
+    return 'last ' + summary.last + ' | avg ' + summary.avg + ' | min ' + summary.min + ' | max ' + summary.max + ' | n ' + summary.samples
+  }
+
+  const currentModeText = computed<string>(() => {
+    return modeToText(props.currentMode)
+  })
+
+  const currentSummaryText = computed<string>(() => {
+    if (props.currentMode == 'simple') return summaryToText(simpleSummary.value)
+    if (props.currentMode == 'compare') return summaryToText(compareSummary.value)
+    return summaryToText(legacySummary.value)
+  })
+
+  const legacySummaryText = computed<string>(() => {
+    return summaryToText(legacySummary.value)
+  })
+
+  const simpleSummaryText = computed<string>(() => {
+    return summaryToText(simpleSummary.value)
+  })
+
+  const compareSummaryText = computed<string>(() => {
+    return summaryToText(compareSummary.value)
+  })
+
+  let calculateFPS = (currentTime : number) => { }
+  calculateFPS = (currentTime : number) => {
+    if (fpsUpdateTime == (0 as number)) {
+      fpsUpdateTime = currentTime
+      animationId = requestAnimationFrame(calculateFPS)
+      return
+    }
+    frameCount++
+    const delta = currentTime - fpsUpdateTime
+    if (delta >= props.interval) {
+      const value = Math.round(frameCount * 1000 / delta)
+      fps.value = value
+      emit('updateFps', value)
+      frameCount = 0
+      fpsUpdateTime = currentTime
+    }
+    animationId = requestAnimationFrame(calculateFPS)
+  }
+
+  onMounted(() => {
+    animationId = requestAnimationFrame(calculateFPS)
+  })
+
+  onBeforeUnmount(() => {
+    cancelAnimationFrame(animationId)
+  })
+</script>
+
+<style>
+.fps-root {
+  position: fixed;
+  right: 10px;
+  z-index: 999;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.58);
+  min-width: 220px;
+}
+
+.fps-text {
+  font-size: 18px;
+  color: #00e676;
+  font-weight: 700;
+}
+
+.fps-sub-text {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 16px;
+  color: #ffffff;
+}
+</style>

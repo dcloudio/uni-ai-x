@@ -2,7 +2,9 @@ import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown';
+import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdownLegacy.uts';
+import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts';
+import markdownRenderMode, { MarkdownRenderMode } from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
@@ -42,6 +44,7 @@ export type RequestAiOptions = {
 	messages: RequestAiCoMessage[],
 	llm: Llm,
 	chat_id: string
+	renderMode: MarkdownRenderMode
 }
 
 // extends WorkerTaskImpl
@@ -51,17 +54,20 @@ class RequestAiWorker {
 	msgBody : string = ''
 	thinkContent : string = ''
 	parseMarkdown : ParseMarkdown | null = null
+	parseMarkdownSimple : ParseMarkdownSimple | null = null
 	// 解析后的 markdown 元素列表
 	markdownElList : MarkdownElItem[] = []
 	onMessageFnList : OnMessageFn[] = [];
 	canRender : boolean = true
 	currentChatState : string = ''
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
+	beforeUpdateMdElListSimple : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	delayTaskTimer : number = 0;
 	lockBeforeUpdateMdElList : boolean = false
 	oldMarkdownTokenList : MarkdownToken[] = []
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
+	renderMode : MarkdownRenderMode = 'legacy'
 	constructor() {
 		this.onMessageFnList = []
 		
@@ -142,7 +148,19 @@ class RequestAiWorker {
 				}, 1000)
 			}
 		}
+		this.beforeUpdateMdElListSimple = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
+			if (!this.canRender) return
+			this.emitOnMessage({
+				type: "setMarkdownElListSimple",
+				action: 'set',
+				markdownElList: newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
+			})
+			if (isParseDone && this.renderMode != 'compare') {
+				this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
+			}
+		}
 		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList)
+		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElListSimple, markdownRenderMode.parseInterval)
 	}
 	//实现入口函数
 	entry() { }
@@ -192,11 +210,37 @@ class RequestAiWorker {
 		}
 
 		if (content != null) {
-			// console.log('onChunkFn runTask this.msgBody', this.msgBody)
-			this.parseMarkdown?.runTask(this.msgBody)
+			this.runMarkdownParse(false)
 		}
 	};
-	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string){
+	runMarkdownParse(isDone: boolean = false) {
+		console.log('uni-ai-x-render run mode=' + this.renderMode + ' done=' + isDone)
+		if (this.renderMode == 'legacy') {
+			if (isDone) this.parseMarkdown!.msgReceiveDone = true
+			this.parseMarkdown?.runTask(this.msgBody)
+			return
+		}
+		if (this.renderMode == 'simple') {
+			this.parseMarkdownSimple!.msgReceiveDone = isDone
+			if (isDone) {
+				this.parseMarkdownSimple?.flush(this.msgBody)
+			} else {
+				this.parseMarkdownSimple?.runTask(this.msgBody)
+			}
+			return
+		}
+		if (isDone) this.parseMarkdown!.msgReceiveDone = true
+		this.parseMarkdown?.runTask(this.msgBody)
+		this.parseMarkdownSimple!.msgReceiveDone = isDone
+		if (isDone) {
+			this.parseMarkdownSimple?.flush(this.msgBody)
+		} else {
+			this.parseMarkdownSimple?.runTask(this.msgBody)
+		}
+	}
+	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string, renderMode : MarkdownRenderMode = 'legacy'){
+		this.renderMode = renderMode
+		console.log('uni-ai-x-render request mode=' + this.renderMode)
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.markdownElList = []
@@ -213,8 +257,7 @@ class RequestAiWorker {
 			timer = setInterval(() => {
 				if (this.userAbort || i >= testMarkdownText.length) {
 					clearInterval(timer)
-					this.parseMarkdown!.runTask(this.msgBody)
-					this.parseMarkdown!.msgReceiveDone = true
+					this.runMarkdownParse(true)
 					// 设置状态为完成
 					this.currentChatState = 'completed'
 					this.emitOnMessage({
@@ -234,7 +277,7 @@ class RequestAiWorker {
 					// console.log('aiMsgItem.body', aiMsgItem.body)
 					i = endIndex
 					// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
-					this.parseMarkdown?.runTask(this.msgBody)
+					this.runMarkdownParse(false)
 				}
 			}, 100)
 			return
@@ -292,8 +335,7 @@ class RequestAiWorker {
 				if (!this.msgBody.endsWith('\n')) {
 					this.msgBody += '\n'
 				}
-				this.parseMarkdown!.runTask(this.msgBody)
-				this.parseMarkdown!.msgReceiveDone = true
+				this.runMarkdownParse(true)
 			}
 		}).finally(() => {
 			// console.log('requestAlServer finally')
@@ -487,13 +529,14 @@ class RequestAiWorker {
 			const messageCopy : RequestAiOptions | UTSJSONObject = JSON.parse<RequestAiOptions>(JSON.stringify(message))!
 			if (messageCopy instanceof RequestAiOptions) {
 				utils.uniGetDispatcher("io", () => {
-					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm, messageCopy.chat_id);
+					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm, messageCopy.chat_id, messageCopy.renderMode);
 				});
 			}
 		} else if (message instanceof UTSJSONObject) {
 			const type = message.getString('type')
 			if (type == 'abortRequest') {
 				this.parseMarkdown!.userAbort = true
+				this.parseMarkdownSimple!.userAbort = true
 				this.userAbort = true
 				this.requestTask?.abort()
 				// 不关闭 WebSocket 连接,保持持久连接

@@ -1,0 +1,100 @@
+import markdownRenderMode, { MarkdownRenderMode } from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts'
+
+let autoSendFromOptions = false
+
+function normalizeParamValue(value: any): string | null {
+	if (value == null) return null
+	if (typeof value == 'string') return value
+	if (typeof value == 'number' || typeof value == 'boolean') return String(value)
+	return null
+}
+
+function getObjectValue(params: UTSJSONObject | null, key: string): string | null {
+	if (params == null) return null
+	const directValue = normalizeParamValue(params[key])
+	if (directValue != null) return directValue
+	const getStringFn = params['getString']
+	if (typeof getStringFn == 'function') {
+		return params.getString(key, '')
+	}
+	return null
+}
+
+function getUrlQueryValue(url: string | null, key: string): string | null {
+	if (url == null || url.length == 0) return null
+	const queryStartIndex = url.indexOf('?')
+	if (queryStartIndex == -1) return null
+	const queryText = url.slice(queryStartIndex + 1)
+	const queryItems = queryText.split('&')
+	for (let i = 0; i < queryItems.length; i++) {
+		const item = queryItems[i]
+		if (item.length == 0) continue
+		const equalIndex = item.indexOf('=')
+		const rawKey = equalIndex == -1 ? item : item.slice(0, equalIndex)
+		if (rawKey != key) continue
+		const rawValue = equalIndex == -1 ? '' : item.slice(equalIndex + 1)
+		return decodeURIComponent(rawValue)
+	}
+	return null
+}
+
+function getLaunchOptionValue(options: OnLaunchOptions | OnShowOptions, key: string): string | null {
+	const query = options.query as UTSJSONObject | null
+	const queryValue = getObjectValue(query, key)
+	if (queryValue != null && queryValue.length > 0) return queryValue
+	const appSchemeValue = getUrlQueryValue(options.appScheme ?? null, key)
+	if (appSchemeValue != null) return appSchemeValue
+	return getUrlQueryValue(options.appLink ?? null, key)
+}
+
+function normalizeMode(value: string | null): MarkdownRenderMode | null {
+	if (value == null) return null
+	if (value == 'simple') return 'simple'
+	if (value == 'legacy') return 'legacy'
+	if (value == 'compare') return 'compare'
+	return null
+}
+
+function applyRenderModeValue(value: string | null, source: string): boolean {
+	const mode = normalizeMode(value)
+	if (mode == null) return false
+	markdownRenderMode.mode = mode
+	console.log('uni-ai-x-render apply mode=' + mode + ' source=' + source)
+	return true
+}
+
+export function applyRenderModeFromOptions(options: OnLaunchOptions | OnShowOptions | null, source: string = 'unknown') {
+	if (options == null) return
+	const modeValue = getLaunchOptionValue(options, 'uni_ai_x_render_mode')
+	const autoSendValue = getLaunchOptionValue(options, 'uni_ai_x_auto_send')
+	applyRenderModeValue(modeValue, source)
+	if (autoSendValue == '1') autoSendFromOptions = true
+}
+
+function getPageParamValue(params: UTSJSONObject | null, key: string): string | null {
+	return getObjectValue(params, key)
+}
+
+export function applyRenderModeFromPageParams(params: UTSJSONObject | null, source: string = 'page') {
+	if (params == null) return
+	const modeValue = getPageParamValue(params, 'uni_ai_x_render_mode')
+	const autoSendValue = getPageParamValue(params, 'uni_ai_x_auto_send')
+	applyRenderModeValue(modeValue, source)
+	if (autoSendValue == '1' || modeValue != null) {
+		autoSendFromOptions = true
+	}
+}
+
+export function applyRenderModeFromLaunchOptions(source: string = 'sync') {
+	const options = uni.getLaunchOptionsSync()
+	applyRenderModeFromOptions(options, source)
+}
+
+export function getLaunchQueryValue(key: string): string {
+	const options = uni.getLaunchOptionsSync()
+	return getLaunchOptionValue(options, key) ?? ''
+}
+
+export function shouldAutoSendFromLaunchOptions(): boolean {
+	return autoSendFromOptions || getLaunchQueryValue('uni_ai_x_auto_send') == '1' || getLaunchQueryValue('uni_ai_x_render_mode').length > 0
+}
