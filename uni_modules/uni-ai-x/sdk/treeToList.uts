@@ -3,6 +3,12 @@ class TreeToList {
     br = "\n" as string
     // 哪些类型不需要处理
     noProcessTypes = ['code_block', 'table'] as string[]
+    indentText(level: number): string {
+        return String.fromCharCode(160).repeat(level * 2)
+    }
+    itemIndentPrefix(item: MarkdownToken): string {
+        return item.deepIndex > 0 ? this.indentText(item.deepIndex) : ''
+    }
     uicon(code: string) {
         // #ifdef APP
         // 将字符串分割成 Unicode 编码的字符
@@ -68,26 +74,18 @@ class TreeToList {
                     text: "\n"
                 }
                 list.push(newItem)
-                // 插入 list item 缩进的空格
-                if (item.deepIndex > 0) {
-                    // 根据 orderedIndex 的值，插入对应的空格
-                    const newItem: MarkdownToken = {
-                        type: 'text',
-                        text: " ".repeat(item.deepIndex  * 2)
-                    }			
-                    list.push(newItem)
-                }
+                const indentPrefix = this.itemIndentPrefix(item)
                 if (item.type == 'tasklist') {
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        text: (item.checked == 1 ? this.uicon('e607') : this.uicon('e608') )+ ' ',
+                        text: indentPrefix + (item.checked == 1 ? this.uicon('e607') : this.uicon('e608') )+ ' ',
                         className: 'uni-ai-icon list-item-index task' + (item.checked == 1 ? ' checked' : '')
                     }			
                     list.push(newItem)
                 } else if (item.ordered == 0) {
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        text: this.uicon("ec1e"),
+                        text: indentPrefix + this.uicon("ec1e"),
                         className: 'uni-ai-icon list-item-index unordered'
                     }
                     list.push(newItem)
@@ -96,7 +94,7 @@ class TreeToList {
                 if (item.ordered == 1) {
                     const newItem: MarkdownToken = {
                         type: 'text',
-                        text: item.orderedIndex + 1 + '. ',
+                        text: indentPrefix + (item.orderedIndex + 1 + '. '),
                         className: 'list-item-index'
                     }
                     list.push(newItem)

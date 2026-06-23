@@ -4,7 +4,7 @@
 			:style="{width: tableWrapperWidth + 'px'}">
 			<view v-for="(row, rowIndex) in tableData" :key="rowIndex" class="uni-ai-msg-table-table-row">
 				<template v-for="(cell, cellIndex) in row.tokens" :key="cellIndex">
-					<text class="uni-ai-msg-table-cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': tableAligns[cellIndex]}">
+					<text class="uni-ai-msg-table-cell" :style="{width: columnWidths[cellIndex] + 'px', 'text-align': getTableAlign(cellIndex)}">
 						<text v-for="(cellItem, cellItemIndex) in cell.tokens" :key="cellItemIndex"
 							:class="(rowIndex == 0 ? 'uni-ai-msg-table-header-text' : 'uni-ai-msg-table-cell-text') + (cellItem.type != null ? ' uni-ai-msg-table-cell-text-' + cellItem.type : '')"
 							>{{ cellItem.text }}</text>
@@ -23,6 +23,11 @@
 	const tableAligns = computed(() : Align[] => {
 		return (props.tableNode as MarkdownToken)?.align ?? ['left', 'left', 'left']
 	})
+
+	const getTableAlign = (cellIndex: number): string => {
+		const align = tableAligns.value[cellIndex] as string | null
+		return align != null && align.length > 0 ? align : 'left'
+	}
 
 	const columnWidths = ref<number[]>([])
 	// 表格数据

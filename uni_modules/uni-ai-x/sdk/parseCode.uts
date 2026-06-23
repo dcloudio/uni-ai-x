@@ -46,6 +46,29 @@ type TmlFile = {
 // #ifndef APP
 let uniCodeHighlighter = null as CreateHighLighter | null
 // #endif
+
+function normalizeLanguage(language: string): string {
+	const normalized = language.trim().toLowerCase()
+	if (normalized == 'js') return 'javascript'
+	if (normalized == 'jsx') return 'javascriptReact'
+	if (normalized == 'ts') return 'typescript'
+	if (normalized == 'tsx') return 'javascriptReact'
+	if (normalized == 'text' || normalized == 'txt' || normalized == 'plain' || normalized == 'plaintext') return 'plaintext'
+	if (normalized == 'bash' || normalized == 'shell' || normalized == 'sh' || normalized == 'zsh') return 'plaintext'
+	if (normalized == 'yml') return 'plaintext'
+	return normalized
+}
+
+function createPlainTextTokens(codeSource: string): MarkdownToken[] {
+	if (codeSource.length == 0) {
+		return [] as MarkdownToken[]
+	}
+	return [{
+		text: codeSource,
+		className: ''
+	}] as MarkdownToken[]
+}
+
 function getTmlFile(filePaths: TmlFile[]) {
 	let fileManager = uni.getFileSystemManager()
 	let res = {}
@@ -105,15 +128,23 @@ function initUniCodeHighlighter(callBack: () => void){
 }
 
 export function parseLineCode(parseLineCodeCallBack: ParseLineCodeCallBack, codeSource: string,language: string){
-	if (language == 'js') language = "javascript"
+	language = normalizeLanguage(language)
 	try {
+		if (language == 'plaintext') {
+			const res: ParseLineCodeRes = {
+				tokens: createPlainTextTokens(codeSource),
+				language: language,
+				error: null
+			}
+			parseLineCodeCallBack(res)
+			return
+		}
 		// 判断这个language是否在支持的列表中
 		if (!grammarList.includes(language)) {
-			// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
 			const res: ParseLineCodeRes = {
-				tokens: [],
+				tokens: createPlainTextTokens(codeSource),
 				language: language,
-				error: '不支持解析的语言类型'
+				error: null
 			}
 			parseLineCodeCallBack(res)
 			return
