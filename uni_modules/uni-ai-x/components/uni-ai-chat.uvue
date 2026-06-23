@@ -33,7 +33,7 @@
 					<view style="height: 35px;" id="last-msg-b" v-else></view>
 				</scroll-view>
 				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden', position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)'}"/>
-				<view :style="{visibility: scrollInBottom || scrolling ? 'hidden' : 'visible'}" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
+				<view :style="{visibility: showScrollToBottom ? 'visible' : 'hidden'}" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
@@ -97,11 +97,14 @@
 	const scrollIntoView = ref<string>('')
 	const bottomAnchorId = ref<string>('last-msg-a')
 	const scrollInBottom = ref<boolean>(true)
+	const showScrollToBottom = ref<boolean>(false)
 	const scrollWithAnimation = ref<boolean>(false)
 	const scrollTouch = ref<boolean>(false)
 	const scrolling = ref<boolean>(false)
 	let autoToLastMsg = false
 	let scrollingT = 0
+	let scrollBottomCheckTimer = 0
+	let showScrollToBottomTimer = 0
 	let mouseScroll = false
 	let needSetLockAutoToLastMsg = true
 	
@@ -179,19 +182,52 @@
 		}
 	}
 	
-	const setIsInScrollBottom = () => {
+	function syncScrollToBottomBtn() {
+		const shouldShow = !scrollInBottom.value && !scrolling.value
+		if (!shouldShow) {
+			if (showScrollToBottomTimer != 0) {
+				clearTimeout(showScrollToBottomTimer)
+				showScrollToBottomTimer = 0
+			}
+			showScrollToBottom.value = false
+			return
+		}
+		if (showScrollToBottom.value || showScrollToBottomTimer != 0) {
+			return
+		}
+		showScrollToBottomTimer = setTimeout(() => {
+			showScrollToBottom.value = true
+			showScrollToBottomTimer = 0
+		}, 180)
+	}
+
+	function updateScrollInBottom() {
 		// #ifndef MP-WEIXIN
 		nextTick(() => {
 			const scrollList = uni.getElementById('msg-list')
 			if (scrollList != null) {
 				const diff: number = scrollList.scrollHeight - scrollList.scrollTop - scrollList.offsetHeight
-				scrollInBottom.value = diff < 30
+				const isInBottom = scrollInBottom.value ? diff < 60 : diff < 30
+				if (scrollInBottom.value != isInBottom) {
+					scrollInBottom.value = isInBottom
+				}
 				if (scrollTouch.value || mouseScroll) {
 					autoToLastMsg = !(diff > 3)
 				}
+				syncScrollToBottomBtn()
 			}
 		})
 		// #endif
+	}
+
+	function setIsInScrollBottom() {
+		if (scrollBottomCheckTimer != 0) {
+			return
+		}
+		scrollBottomCheckTimer = setTimeout(() => {
+			scrollBottomCheckTimer = 0
+			updateScrollInBottom()
+		}, 120)
 	}
 	
 	watch(chatActiveId, () => {
@@ -301,11 +337,13 @@
 	const onScroll = (e: UniScrollEvent) => {
 		setIsInScrollBottom()
 		scrolling.value = true
+		syncScrollToBottomBtn()
 		if (scrollingT != 0) {
 			clearTimeout(scrollingT)
 		}
 		scrollingT = setTimeout(() => {
 			scrolling.value = false
+			syncScrollToBottomBtn()
 		}, 500)
 	}
 
@@ -365,6 +403,7 @@
 		const observer = uni.createIntersectionObserver(getCurrentInstance().proxy,{});
 		observer.relativeTo('#msg-list').observe('#last-msg', (result: any) => {
 			scrollInBottom.value = result.intersectionRatio > 0
+			syncScrollToBottomBtn()
 		})
 		// #endif
 	})
