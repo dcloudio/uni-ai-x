@@ -528,9 +528,11 @@
 	right: 10px;
 	width: 35px;
 	height: 35px;
+	flex-direction: row;
 	justify-content: center;
 	align-items: center;
 	background-color: var(--bg-primary);
+	border: 1px solid var(--border-color);
 	border-radius: 50px;
 	padding: 5px;
 	box-shadow: 0 0 10px 0 var(--shadow);
@@ -644,12 +646,6 @@
 /* #ifdef MP-WEIXIN */
 .chat-box-nav-bar {
 	padding-top: calc(var(--status-bar-height) + 35px);
-}
-/* #endif */
-
-/* #ifdef APP-HARMONY */
-.chat-box-scroll-to-bottom {
-	border: 1px solid var(--border-secondary);
 }
 /* #endif */
 
