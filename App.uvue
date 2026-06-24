@@ -1,17 +1,13 @@
 <script lang="uts">
 	import { installOpenClaw } from '@/uni_modules/uni-ai-x-openClaw/install.uts'
-	import { applyRenderModeFromOptions, applyRenderModeFromLaunchOptions } from '@/uni_modules/uni-ai-x/sdk/renderModeControl.uts'
 	let firstBackTime = 0
 	export default {
-		onLaunch: function (options: OnLaunchOptions) {
+		onLaunch: function () {
 			console.log('App Launch')
-			applyRenderModeFromOptions(options, 'launch')
 			installOpenClaw()
 		},
-		onShow: function (options: OnShowOptions) {
+		onShow: function () {
 			console.log('App Show')
-			applyRenderModeFromOptions(options, 'show')
-			applyRenderModeFromLaunchOptions('show-sync')
 			// #ifdef WEB
 			// 解决在 web-pc 端，通过 chrome 模拟移动端打开时。长按会弹出系统菜单的问题
 			window.addEventListener('contextmenu', (e) => {

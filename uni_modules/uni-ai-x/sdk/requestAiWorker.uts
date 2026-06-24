@@ -2,16 +2,14 @@ import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdownLegacy.uts';
 import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts';
-import markdownRenderMode, { MarkdownRenderMode } from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts';
 import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 
 export type OnMessageOptions = {
 	type: string,
-	data?: string | boolean | number 
+	data?: string | boolean | number,
 	action?: 'set' | 'update' | 'remove' | 'add',
 	index?: number,
 	size?: number,
@@ -35,8 +33,8 @@ type BailianOptions = {
 	onSuccess ?: BailianOptionsOnSuccessFn,
 	onTaskCreate ?: BailianOptionsOnTaskCreateFn
 }
-type CheckDiffEndFn = () => void
-type CheckDiffFn = (index : number, checkDiffEndFn : CheckDiffEndFn) => void
+
+const SIMPLE_PARSE_INTERVAL = 120
 
 // 消息类型
 export type RequestAiOptions = {
@@ -44,127 +42,39 @@ export type RequestAiOptions = {
 	messages: RequestAiCoMessage[],
 	llm: Llm,
 	chat_id: string
-	renderMode: MarkdownRenderMode
 }
 
-// extends WorkerTaskImpl
 type OnMessageFn = (message : any) => void;
 class RequestAiWorker {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
-	parseMarkdown : ParseMarkdown | null = null
 	parseMarkdownSimple : ParseMarkdownSimple | null = null
-	// 解析后的 markdown 元素列表
-	markdownElList : MarkdownElItem[] = []
 	onMessageFnList : OnMessageFn[] = [];
 	canRender : boolean = true
 	currentChatState : string = ''
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
-	beforeUpdateMdElListSimple : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
-	delayTaskTimer : number = 0;
-	lockBeforeUpdateMdElList : boolean = false
-	oldMarkdownTokenList : MarkdownToken[] = []
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
-	renderMode : MarkdownRenderMode = 'legacy'
 	constructor() {
 		this.onMessageFnList = []
-		
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
-			// console.log('beforeUpdateMdElList', newMarkdownTokenList)
-			// 清除延迟任务
-			if (this.delayTaskTimer != 0) {
-				clearTimeout(this.delayTaskTimer)
-			}
-			if (!this.lockBeforeUpdateMdElList && this.canRender) {
-				this.lockBeforeUpdateMdElList = true
-				const newLength = newMarkdownTokenList.length
-				const oldLength = this.oldMarkdownTokenList.length
-				// 倒着检查，如果发现有不一样的，就更新。直到检查到有相同项为止
-				let checkDiffCount : number = 0
-				let checkDiff : CheckDiffFn = () => {}
-				checkDiff = (index : number, checkDiffEndFn : CheckDiffEndFn) => {
-					if (index < 0 || index >= newLength) {
-						checkDiffEndFn()
-						return
-					}
-					const oldMdToken = this.oldMarkdownTokenList[index]
-					const newMdToken = newMarkdownTokenList[index]
-					if (oldMdToken.isClose == 0) {
-						checkDiffCount++
-						// console.log('检查到不一样的', checkDiffCount)
-						this.oldMarkdownTokenList[index] = newMarkdownTokenList[index]
-						this.emitOnMessage({
-							type: "setMarkdownElList",
-							action: 'update',
-							index: index,
-							markdownElList: [this.token2el(newMarkdownTokenList[index])]
-						})
-						checkDiff(index - 1, checkDiffEndFn)
-					} else {
-						checkDiffEndFn()
-					}
-				}
-				checkDiff(oldLength - 1, () => {
-					// 如果新的更长，则把多的部分添加到 oldMarkdownTokenList 中
-					if (newLength > oldLength) {
-						const newItems = newMarkdownTokenList.slice(oldLength)
-						this.oldMarkdownTokenList.push(...newItems)
-						this.emitOnMessage({
-							type: "setMarkdownElList",
-							action: 'add',
-							markdownElList: newItems.map((item : MarkdownToken) => this.token2el(item))
-						})
-					}
-					// 如果旧的更长，则把多的部分删除
-					if (oldLength > newLength) {
-						this.oldMarkdownTokenList.splice(newLength)
-						// console.log('删除过期项', oldLength - newLength)
-						this.emitOnMessage({
-							type: "setMarkdownElList",
-							action: 'remove',
-							index: newLength,
-							size: oldLength - newLength
-						})
-					}
-					// #ifdef APP-ANDROID
-					this.lockBeforeUpdateMdElList = false
-					// #endif
-					// #ifndef APP-ANDROID
-					nextTick(() => {
-						this.lockBeforeUpdateMdElList = false
-					})
-					// #endif
-				})
-				if (isParseDone) {
-					this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
-				}
-			} else {
-				// console.log('beforeUpdateMdElList 暂停渲染')
-				// 创建延迟任务
-				this.delayTaskTimer = setTimeout(() => {
-					this.beforeUpdateMdElList(newMarkdownTokenList, isParseDone)
-				}, 1000)
-			}
-		}
-		this.beforeUpdateMdElListSimple = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
 			if (!this.canRender) return
 			this.emitOnMessage({
-				type: "setMarkdownElListSimple",
+				type: "setMarkdownElList",
 				action: 'set',
 				markdownElList: newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
 			})
-			if (isParseDone && this.renderMode != 'compare') {
-				this.emitOnMessage({type: "setRendered",data: true} as OnMessageOptions)
+			if (isParseDone) {
+				this.emitOnMessage({type: "setRendered", data: true} as OnMessageOptions)
 			}
 		}
-		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList)
-		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElListSimple, markdownRenderMode.parseInterval)
+		this.resetParser()
 	}
-	//实现入口函数
 	entry() { }
-	// 转换
+	resetParser() {
+		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElList, SIMPLE_PARSE_INTERVAL)
+	}
 	token2el(token : MarkdownToken) : MarkdownElItem {
 		return {
 			uniqueId: token.uniqueId!,
@@ -172,17 +82,14 @@ class RequestAiWorker {
 			datasList: treeToListSdk.markTreeToList(token)
 		}
 	}
-	// 子线程请求AI
 	onChunkFn(chunkObj : Chunk) {
 		let reasoningContent: null | string = null
-		// console.log('onChunk', chunkObj)
 		let content = chunkObj.choices?.[0]?.delta?.content
-		// 特殊模型，例如豆包，深度思考内容在 content 的<think>标签中，需要单独处理
 		if (this.msgBody == '' && content == "<think>") {
 			this.hasThinkContent = true
 			content = ''
 		}
-		if (this.hasThinkContent){
+		if (this.hasThinkContent) {
 			if (content != '</think>') {
 				reasoningContent = content
 			} else {
@@ -190,8 +97,7 @@ class RequestAiWorker {
 			}
 			content = ''
 		}
-		// end - 处理 think 标签
-		
+
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		if (content != null && content.length > 0) {
 			this.msgBody += content
@@ -205,8 +111,6 @@ class RequestAiWorker {
 				type: "setThinkContent",
 				data: this.thinkContent.trim()
 			})
-		} else {
-			// console.error('content == null')
 		}
 
 		if (content != null) {
@@ -214,23 +118,7 @@ class RequestAiWorker {
 		}
 	};
 	runMarkdownParse(isDone: boolean = false) {
-		console.log('uni-ai-x-render run mode=' + this.renderMode + ' done=' + isDone)
-		if (this.renderMode == 'legacy') {
-			if (isDone) this.parseMarkdown!.msgReceiveDone = true
-			this.parseMarkdown?.runTask(this.msgBody)
-			return
-		}
-		if (this.renderMode == 'simple') {
-			this.parseMarkdownSimple!.msgReceiveDone = isDone
-			if (isDone) {
-				this.parseMarkdownSimple?.flush(this.msgBody)
-			} else {
-				this.parseMarkdownSimple?.runTask(this.msgBody)
-			}
-			return
-		}
-		if (isDone) this.parseMarkdown!.msgReceiveDone = true
-		this.parseMarkdown?.runTask(this.msgBody)
+		console.log('uni-ai-x-render run mode=simple done=' + isDone)
 		this.parseMarkdownSimple!.msgReceiveDone = isDone
 		if (isDone) {
 			this.parseMarkdownSimple?.flush(this.msgBody)
@@ -238,27 +126,22 @@ class RequestAiWorker {
 			this.parseMarkdownSimple?.runTask(this.msgBody)
 		}
 	}
-	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string, renderMode : MarkdownRenderMode = 'legacy'){
-		this.renderMode = renderMode
-		console.log('uni-ai-x-render request mode=' + this.renderMode)
+	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		console.log('uni-ai-x-render request mode=simple')
 		this.msgBody = ''
 		this.thinkContent = ''
-		this.markdownElList = []
 		this.currentChatState = ''
+		this.userAbort = false
+		this.hasThinkContent = false
+		this.resetParser()
 
-		this.delayTaskTimer = 0
-		this.lockBeforeUpdateMdElList = false
-		this.oldMarkdownTokenList = []
-
-		// 如果测试文本不为空，则使用测试文本
-		if (testMarkdownText.length > 0){
+		if (testMarkdownText.length > 0) {
 			let i = 0
 			let timer: number = 0
 			timer = setInterval(() => {
 				if (this.userAbort || i >= testMarkdownText.length) {
 					clearInterval(timer)
 					this.runMarkdownParse(true)
-					// 设置状态为完成
 					this.currentChatState = 'completed'
 					this.emitOnMessage({
 						type: "setCurrentChatState",
@@ -268,23 +151,19 @@ class RequestAiWorker {
 					const batchSize = 10
 					const endIndex = Math.min(i + batchSize, testMarkdownText.length)
 					const newText = testMarkdownText.slice(i, endIndex)
-					// console.log('aiMsgItem.body', aiMsgItem.body, newText)
 					this.msgBody += newText
 					this.emitOnMessage({
 						type: "setMsgBody",
 						data: this.msgBody
 					})
-					// console.log('aiMsgItem.body', aiMsgItem.body)
 					i = endIndex
-					// 在主线程中获取 body 的副本，避免在 IO 线程中访问响应式对象
 					this.runMarkdownParse(false)
 				}
 			}, 100)
 			return
 		}
-		
+
 		this.updateChatTitle(messages, llm)
-		this.userAbort = false
 		this.requestAlServer({
 			llm,
 			messages,
@@ -294,7 +173,6 @@ class RequestAiWorker {
 				this.requestTask = requestTask
 			},
 			onChunk: (chunkObj : Chunk) => {
-				// console.log('onChunk', chunkObj, this)
 				this.onChunkFn(chunkObj)
 			},
 			onError: (errRes) => {
@@ -302,18 +180,15 @@ class RequestAiWorker {
 				errRes = errRes as UTSJSONObject
 				const errCode = errRes.getString('errCode', '')
 				let errMsg = errRes.getString('errMsg', '未知错误')
-				console.log('errCode', errCode)
-				console.log('errMsg', errMsg)
 				if (errCode == 'data_inspection_failed') {
 					errMsg = '数据检查失败，疑似包含敏感信息'
 				}
-				// 如果用户手动停止，则不显示错误信息
 				if (this.userAbort == false) {
 					this.emitOnMessage({
 						type: "setErrorMsg",
 						data: errMsg
 					})
-				}					
+				}
 				this.currentChatState = 'stop'
 				this.emitOnMessage({
 					type: "setCurrentChatState",
@@ -321,28 +196,24 @@ class RequestAiWorker {
 				})
 			},
 			onDone: () => {
-				if (this.currentChatState == 'stop'){
+				if (this.currentChatState == 'stop') {
 					console.log('requestAlServer onDone 当前对话已停止，忽略消息')
 					return
 				}
-				// 设置状态为完成
 				this.currentChatState = 'completed'
 				this.emitOnMessage({
 					type: "setCurrentChatState",
 					data: 'completed'
 				})
-				// 多加个换行结尾方便解析，防止解析到最后一行时，没有换行符，导致解析失败
 				if (!this.msgBody.endsWith('\n')) {
 					this.msgBody += '\n'
 				}
 				this.runMarkdownParse(true)
 			}
 		}).finally(() => {
-			// console.log('requestAlServer finally')
 			this.requestTask = null
 		})
 	}
-	// 通过自定义提供商适配器发起请求
 	async requestViaCustomProvider(options : BailianOptions, resolveFn : (data : UTSJSONObject) => void, rejectFn : (data : UTSJSONObject) => void) : Promise<UTSJSONObject> {
 		const adapter = getCustomProvider(options.llm.provider)
 		if (adapter == null) {
@@ -362,8 +233,8 @@ class RequestAiWorker {
 				onError: options.onError,
 				onDone: options.onDone
 			}
-			const chat_id = options.chat_id ?? ''
-			const success = await adapter.request(options.messages, options.llm.model, chat_id, callbacks)
+			const currentChatId = options.chat_id ?? ''
+			const success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks)
 
 			if (!success) {
 				const errInfo: UTSJSONObject = {
@@ -396,12 +267,10 @@ class RequestAiWorker {
 		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
 		const config : Provider = llmModelMap.get(options.llm.provider)!
 
-		// 如果是已注册的自定义提供商，委托给对应的适配器处理
 		if (getCustomProvider(options.llm.provider) != null) {
 			return this.requestViaCustomProvider(options, resolveFn, rejectFn)
 		}
 
-		// 请求的token
 		let tmpToken : string;
 		try {
 			tmpToken = await config.getToken?.()!
@@ -433,18 +302,14 @@ class RequestAiWorker {
 				'Content-Type': 'application/json'
 			},
 			success: (res : RequestSuccess<any>) => {
-				// console.log('request success', res)
 				if (options.stream == false) {
-					// console.error('非流式数据----',res.data,typeof res.data)
 					const strData = typeof res.data == 'string' ? res.data : JSON.stringify(res.data)
 					const chunkObj : Chunk = (JSON.parse<Chunk>(strData) ?? {}) as Chunk
 					options.onSuccess?.(chunkObj)
 				} else {
 					if (res.data instanceof UTSJSONObject) {
-						// 部分情况下（内容包含违禁词时），流式响应未返回数据，就立即结束请求。此时错误信息会放在 data 中
 						const error = res.data.getJSON('error')
 						if (error != null) {
-							// console.log('error', error)
 							const errInfo: UTSJSONObject = {
 								errCode: error.getString('code', 'unknown'),
 								errMsg: error.getString('message', '未知错误')
@@ -471,19 +336,16 @@ class RequestAiWorker {
 		if (options.stream == true) {
 			// @ts-ignore
 			requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
-				// console.log('onChunkReceived-----------------------------------', chunk)
 				parseChunkData(chunk.data as ArrayBuffer, (chunkObj : Chunk) => {
 					options.onChunk?.(chunkObj)
 				},
 					(err : UTSJSONObject) => {
 						err.errCode = err.code ?? ''
 						err.errMsg = err.message ?? '未知错误'
-						// console.error('parseChunkData error', err)
 						options.onError?.(err)
 						rejectFn(err)
 					},
 					() => {
-						// console.log('流式数据结束')
 						options.onDone?.({} as UTSJSONObject)
 					})
 			})
@@ -493,9 +355,7 @@ class RequestAiWorker {
 			rejectFn = (data : UTSJSONObject) => { reject(data as UTSJSONObject) }
 		})
 	}
-	// 让阿里百联总结更新
-	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm){
-		// 如果该提供商不支持标题更新，则跳过
+	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm) {
 		const customAdapter = getCustomProvider(llm.provider)
 		if (customAdapter != null && customAdapter.supportsTitleUpdate != true) return;
 		messages = messages.slice(0)
@@ -511,9 +371,7 @@ class RequestAiWorker {
 				console.error('updateChatTitle error', err)
 			},
 			onSuccess: (chunkObj: Chunk) => {
-				// console.log('updateChatTitle success', chunkObj, typeof chunkObj)
 				const newTitle = chunkObj.choices?.[0]?.message?.content
-				// console.log('updateChatTitle success', 'newTitle', newTitle)
 				this.emitOnMessage({
 					type: "setChatTitle",
 					data: newTitle ?? '更新失败'
@@ -521,26 +379,20 @@ class RequestAiWorker {
 			}
 		})
 	}
-	//接收主线程发来的消息
 	postMessage(message : RequestAiOptions | UTSJSONObject) {
-		// console.log('收到主线程发来的 postMessage', message)
 		if (message instanceof RequestAiOptions) {
-			// 拷贝主线程的数据，然后给子线程使用
 			const messageCopy : RequestAiOptions | UTSJSONObject = JSON.parse<RequestAiOptions>(JSON.stringify(message))!
 			if (messageCopy instanceof RequestAiOptions) {
 				utils.uniGetDispatcher("io", () => {
-					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm, messageCopy.chat_id, messageCopy.renderMode);
+					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm, messageCopy.chat_id);
 				});
 			}
 		} else if (message instanceof UTSJSONObject) {
 			const type = message.getString('type')
 			if (type == 'abortRequest') {
-				this.parseMarkdown!.userAbort = true
 				this.parseMarkdownSimple!.userAbort = true
 				this.userAbort = true
 				this.requestTask?.abort()
-				// 不关闭 WebSocket 连接,保持持久连接
-				// TODO： 由于Android平台 和 本地数据测试模式，abort不走 fail 这里冗余一次setCurrentChatState stop 逻辑
 				this.emitOnMessage({
 					type: "setCurrentChatState",
 					data: 'stop'
@@ -554,36 +406,25 @@ class RequestAiWorker {
 		} else {
 			console.error('postMessage未知类型的消息', message)
 		}
-
 	}
-	// 子线程向主线程，发送消息
 	emitOnMessage(message : OnMessageOptions) {
-		// 拷贝主线程的数据，然后给子线程使用
-		// 计算拷贝耗时
-		// const startTime = Date.now()
 		const messageCopy = JSON.parse<OnMessageOptions>(JSON.stringify(message)) as OnMessageOptions
-		// console.log('emitOnMessage 拷贝耗时', Date.now() - startTime)
 		this.onMessageFnList.forEach(fn => {
-			// 在主线程执行回调函数
 			utils.uniGetDispatcher("main", () => {
 				fn(messageCopy);
 			});
 		});
 	}
-	// 主线程向子线程，注册消息回调函数
 	onMessage(onMessageFn : OnMessageFn) {
 		this.onMessageFnList.push(onMessageFn);
 	}
 }
 export default RequestAiWorker;
 
-// 解析流式数据
 function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
 	utils.uniGetDispatcher("io", () => {
 		const chunkText : string = new TextDecoder().decode(chunkData)
-		// console.error('chunkText======', chunkText)
 		const lines : string[] = chunkText.trim().split('\n\n')
-		// console.error('lines======', lines, lines.length)
 		lines.forEach((line : string) => {
 			line.split('\n').forEach((lineItem : string) => {
 				const keyValue : string[] = lineItem.split(':')
@@ -600,10 +441,8 @@ function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) =
 					} catch (e) {
 						console.error('JSON.parse error', e, 'value:', value)
 					}
-					// console.log('chunk',chunk)
 					callback(chunk ?? {} as Chunk);
 				} else if (key == '{"error"') {
-					// console.error('parseChunkData error', {key,value})
 					let info : UTSJSONObject = {}
 					try {
 						info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject

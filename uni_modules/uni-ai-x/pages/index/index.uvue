@@ -2,18 +2,9 @@
 	<view class="uni-ai-page" ref="uni-ai-page" :class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
-		<fps
-			:interval="1000"
-			:label="fpsLabel"
-			:current-mode="markdownRenderMode.mode"
-			:legacy-summary="legacyFpsSummary"
-			:simple-summary="simpleFpsSummary"
-			:compare-summary="compareFpsSummary"
-			@updateFps="onFpsUpdate"
-		/>
 		<!-- 用于非 Android 端测量文字宽度的容器 -->
 		<!-- #ifndef APP-ANDROID -->
-		<view class="hidden"  style="flex-direction: row;width: 1000%;height: 0;">
+		<view class="hidden" style="flex-direction: row; width: 1000%; height: 0;">
 			<text v-for="item in measureTextWidthInfos" :key="item.id" :id="item.id" :style="{fontSize: item.fontSize + 'px'}">{{item.text}}</text>
 		</view>
 		<!-- #endif -->
@@ -26,224 +17,47 @@
 <script lang="uts" setup>
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
-	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
-	import {uniAi, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
-	import markdownRenderMode from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts'
-	import { applyRenderModeFromLaunchOptions, applyRenderModeFromPageParams, shouldAutoSendFromLaunchOptions } from '@/uni_modules/uni-ai-x/sdk/renderModeControl.uts'
+	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-	
-	
+
 	const startX = ref<number>(0)
 	const translateX = ref<number>(-260)
 	const isDragging = ref<boolean>(false)
 	const isMoveing = ref<boolean>(false)
 	const showMenu = ref<boolean>(false)
-	const enableStartupBenchmark = false
-	const fpsLabel = computed<string>(() => {
-		if (markdownRenderMode.mode == 'simple') return 'Simple'
-		if (markdownRenderMode.mode == 'compare') return 'Compare'
-		return 'Legacy'
-	})
 
-	type FpsStats = {
-		samples: number,
-		min: number,
-		max: number,
-		total: number,
-		last: number
-	}
-
-	type FpsSummary = {
-		label: string,
-		samples: number,
-		min: number,
-		max: number,
-		avg: number,
-		last: number,
-		hasData: boolean
-	}
-
-	type FpsStatsState = {
-		legacy: FpsStats,
-		simple: FpsStats,
-		compare: FpsStats
-	}
-
-	function createFpsStats(): FpsStats {
-		return {
-			samples: 0,
-			min: 0,
-			max: 0,
-			total: 0,
-			last: 0
-		}
-	}
-
-	const fpsStats = reactive<FpsStatsState>({
-		legacy: createFpsStats(),
-		simple: createFpsStats(),
-		compare: createFpsStats()
-	})
-
-	function getFpsStats(mode: string): FpsStats {
-		if (mode == 'simple') return fpsStats.simple
-		if (mode == 'compare') return fpsStats.compare
-		return fpsStats.legacy
-	}
-
-	function resetFpsStats(mode: string) {
-		const stats = getFpsStats(mode)
-		stats.samples = 0
-		stats.min = 0
-		stats.max = 0
-		stats.total = 0
-		stats.last = 0
-	}
-
-	function buildFpsSummary(mode: string, label: string): FpsSummary {
-		const stats = getFpsStats(mode)
-		const hasData = stats.samples > 0
-		return {
-			label,
-			samples: stats.samples,
-			min: hasData ? stats.min : 0,
-			max: hasData ? stats.max : 0,
-			avg: hasData ? Math.round(stats.total / stats.samples) : 0,
-			last: hasData ? stats.last : 0,
-			hasData
-		}
-	}
-
-	const legacyFpsSummary = computed<FpsSummary>(() => {
-		return buildFpsSummary('legacy', '旧链路')
-	})
-
-	const simpleFpsSummary = computed<FpsSummary>(() => {
-		return buildFpsSummary('simple', '新链路')
-	})
-
-	const compareFpsSummary = computed<FpsSummary>(() => {
-		return buildFpsSummary('compare', '对比模式')
-	})
-
-	let autoSendStarted = false
-	let startupBenchmarkStarted = false
-
-	function sleep(delay: number): Promise<boolean> {
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				resolve(true)
-			}, delay)
-		})
-	}
-
-	async function createBenchmarkChat() {
-		uniAi.addChat(false)
-		await nextTick()
-		const newChat = uniAi.chat.datas[uniAi.chat.datas.length - 1]
-		uniAi.chat.activeId = newChat.id
-		await nextTick()
-	}
-
-	async function waitForChatDone(chatId: string, timeoutMs: number = 90000): Promise<boolean> {
-		const startTime = Date.now()
-		while (Date.now() - startTime < timeoutMs) {
-			const chat = uniAi.chat.datas.find((item) => item.id == chatId)
-			if (chat != null && (chat.state == 'completed' || chat.state == 'stop' || chat.state == 'none')) {
-				return true
-			}
-			await sleep(300)
-		}
-		return false
-	}
-
-	function logBenchmarkSummary(mode: string, summary: FpsSummary, done: boolean) {
-		console.log('uni-ai-x-benchmark mode=' + mode + ' avg=' + summary.avg + ' min=' + summary.min + ' max=' + summary.max + ' last=' + summary.last + ' samples=' + summary.samples + ' done=' + done)
-	}
-
-	async function runSingleBenchmark(mode: 'legacy' | 'simple'): Promise<FpsSummary> {
-		resetFpsStats(mode)
-		markdownRenderMode.mode = mode
-		await createBenchmarkChat()
-		const chatId = uniAi.currentChat!.id
-		await sleep(300)
-		await uniAi.sendMsg('自动性能测试：请输出 Markdown 标题、列表、表格、代码块、数学公式和 Mermaid。')
-		const done = await waitForChatDone(chatId)
-		await sleep(1500)
-		const summary = buildFpsSummary(mode, mode == 'simple' ? '新链路' : '旧链路')
-		logBenchmarkSummary(mode, summary, done)
-		return summary
-	}
-
-	async function runStartupBenchmark() {
-		if (!enableStartupBenchmark || startupBenchmarkStarted) return
-		startupBenchmarkStarted = true
-		console.log('uni-ai-x-benchmark start')
-		const legacySummary = await runSingleBenchmark('legacy')
-		const simpleSummary = await runSingleBenchmark('simple')
-		const avgDiff = simpleSummary.avg - legacySummary.avg
-		const minDiff = simpleSummary.min - legacySummary.min
-		const maxDiff = simpleSummary.max - legacySummary.max
-		console.log('uni-ai-x-benchmark compare avgDiff=' + avgDiff + ' minDiff=' + minDiff + ' maxDiff=' + maxDiff + ' legacyAvg=' + legacySummary.avg + ' simpleAvg=' + simpleSummary.avg)
-	}
-
-	function onFpsUpdate(fps: number) {
-		const mode = markdownRenderMode.mode
-		const stats = getFpsStats(mode)
-		stats.samples += 1
-		stats.total += fps
-		stats.last = fps
-		if (stats.samples == 1) {
-			stats.min = fps
-			stats.max = fps
-		} else {
-			stats.min = Math.min(stats.min, fps)
-			stats.max = Math.max(stats.max, fps)
-		}
-		console.log('uni-ai-x-fps mode=' + markdownRenderMode.mode + ' fps=' + fps)
-	}
-
-	function startAutoRenderTest() {
-		if (autoSendStarted || !shouldAutoSendFromLaunchOptions()) return
-		autoSendStarted = true
-		console.log('uni-ai-x-render auto-send start mode=' + markdownRenderMode.mode)
-		uniAi.addChat(false)
-		setTimeout(() => {
-			uniAi.sendMsg('自动性能测试：请输出 Markdown 标题、列表、表格、代码块、数学公式和 Mermaid。')
-		}, 500)
-	}
-	
 	const setMenu = (show: boolean) => {
 		showMenu.value = show
 		translateX.value = show ? 0 : -260
 	}
-	
+
 	const changeMenu = () => {
 		setMenu(!showMenu.value)
 	}
-	
+
 	const touchStart = (event: TouchEvent) => {
 		startX.value = event.touches[0].pageX
+		isDragging.value = true
 	}
-	
+
 	const touchMove = (event: TouchEvent) => {
 		if (!isDragging.value) return
 		isMoveing.value = true
-		
+
 		const currentX = event.touches[0].pageX
 		const diffX = currentX - startX.value
-		
+
 		let newTranslateX = showMenu.value ? diffX : -260 + diffX
-		
+
 		if (newTranslateX > 0) newTranslateX = 0
 		if (newTranslateX < -260) newTranslateX = -260
-		
+
 		translateX.value = newTranslateX
 	}
-	
+
 	const touchEnd = () => {
-		nextTick(()=>{
+		nextTick(() => {
 			isMoveing.value = false
 		})
 		if (!isDragging.value) return
@@ -254,19 +68,16 @@
 			setMenu(false)
 		}
 	}
-	
+
 	const closeMenu = () => {
 		if (isMoveing.value) return
 		setMenu(false)
 	}
 
 	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
-		// console.log('proxyWebMsg', e)
 		proxyWeb.onWebMsg(e)
 	}
 
-
-	// 测量文字宽度的方法
 	type MeasureTextWidthInfo = {
 		id: string,
 		text: string,
@@ -278,7 +89,6 @@
 	const measureTextWidthInfos = ref<MeasureTextWidthInfo[]>([])
 	utils.measureTextWidth = async (text: string, fontSize?: number) => {
 		fontSize = fontSize ?? 16
-		// 创建一个文本节点
 		const id = `measure-text-width-${measureTextWidthInfos.value.length}`
 		measureTextWidthInfos.value.push({id, text, fontSize})
 		return new Promise((resolve) => {
@@ -286,32 +96,19 @@
 				uni.createSelectorQuery().in(proxy).select(`#${id}`)
 					.boundingClientRect().exec((ret) => {
 						resolve(ret.length == 0 ? 0 : ret[0]?.width ?? 0)
-						// 删除节点
 						measureTextWidthInfos.value = measureTextWidthInfos.value.filter((item) => item.id != id)
 					})
-			},1000)
+			}, 1000)
 		})
 	}
 	// #endif
-	
-	onLoad((params) => {
-		applyRenderModeFromLaunchOptions('index-load-sync')
-		applyRenderModeFromPageParams(params, 'index-load')
-		setTimeout(() => {
-			startAutoRenderTest()
-		}, 0)
-	})
 
 	onMounted(() => {
-		applyRenderModeFromLaunchOptions('index-mounted')
-		startAutoRenderTest()
-		setTimeout(() => {
-			runStartupBenchmark()
-		}, 600)
 		// #ifdef WEB
 		window.addEventListener('resize', () => {
 			setMenu(window.innerWidth > 960)
 		})
+		setMenu(window.innerWidth > 960)
 		const proxyWebContext = document.getElementById('proxy-web')
 		// #endif
 		// #ifdef APP
@@ -348,7 +145,6 @@
 	transform: translateX(0) !important;
 }
 
-/* 蒸汽模式：单层 class，子组件需加对应 class 才能生效 */
 .uni-ai-msg-table-uni-table {
 	background-color: var(--uni-table-bg-color) !important;
 }
@@ -375,12 +171,10 @@
 /* #endif */
 .hidden {
 	position: fixed;
-	// bottom: 100px;
 	top: -1100px;
 	right: 0;
 	width: 100%;
 	height: 400px;
-	border: 1px solid red;
 	z-index: 100;
 }
 </style>

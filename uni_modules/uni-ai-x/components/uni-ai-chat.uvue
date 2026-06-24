@@ -3,9 +3,6 @@
 		<view class="chat-box-nav-bar">
 			<uni-ai-icon @click="changeMenu" code="e622" color="var(--text-primary)" size="20"></uni-ai-icon>
 			<text class="chat-box-chat-title">{{chatTitle}}</text>
-			<view class="chat-box-render-mode" @click="toggleMarkdownRenderMode">
-				<text class="chat-box-render-mode-text">{{markdownRenderModeText}}</text>
-			</view>
 			<!-- #ifndef MP-WEIXIN -->
 			<addChat></addChat>
 			<!-- #endif -->
@@ -77,7 +74,6 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme, testMarkdownText, isCustomProvider} from '@/uni_modules/uni-ai-x/sdk/'
-	import markdownRenderMode from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts'
 	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
@@ -154,26 +150,6 @@
 		}
 		return '新对话'
 	})
-
-	const markdownRenderModeText = computed<string>(() => {
-		if (markdownRenderMode.mode == 'simple') return '新链路'
-		if (markdownRenderMode.mode == 'compare') return '对比模式'
-		return '旧链路'
-	})
-
-	function getNextMarkdownRenderMode(): 'legacy' | 'simple' | 'compare' {
-		if (markdownRenderMode.mode == 'legacy') return 'simple'
-		if (markdownRenderMode.mode == 'simple') return 'compare'
-		return 'legacy'
-	}
-
-	function toggleMarkdownRenderMode() {
-		markdownRenderMode.mode = getNextMarkdownRenderMode()
-		uni.showToast({
-			title: '已切换到' + markdownRenderModeText.value,
-			icon: 'none'
-		})
-	}
 
 	function scrollToLastMsg(userClick: boolean){
 		autoToLastMsg = true
@@ -461,18 +437,6 @@
 .chat-box-chat-title {
 	font-size: 16px;
 	color: var(--text-primary);
-}
-
-.chat-box-render-mode {
-	border: 1px solid var(--border-secondary);
-	border-radius: 999px;
-	padding: 4px 10px;
-	background-color: var(--bg-secondary);
-}
-
-.chat-box-render-mode-text {
-	font-size: 12px;
-	color: var(--text-secondary);
 }
 
 .chat-box-mask {

@@ -12,60 +12,22 @@
 					<text class="msg-root-think-content-text">{{msg.thinkContent}}</text>
 				</view>
 			</view>
-			<template v-if="isCompareMode">
-				<view class="msg-root-compare-panel msg-root-compare-panel-legacy">
-					<text class="msg-root-compare-title">Legacy 渲染链路</text>
-					<text v-if="showLegacyPlainText" class="msg-root-plain-text">{{msg.body}}</text>
-					<template v-for="(item, index) in msg.markdownElList" :key="'legacy-' + index">
-						<view v-if="item.type == 'block_quote'" class="msg-root-block-quote-box">
-							<uni-ai-text-md v-for="(blockQuote, i) in item.datasList" :key="i" :datas="blockQuote" :itemType="item.type"/>
-						</view>
-						<template v-else v-for="(datas, i) in item.datasList" :key="i">
-							<template v-for="(data, k) in datas" :key="k" v-if="['table', 'code_block', 'math', 'thematic_break', 'block_quote'].includes(item.type)">
-								<uni-ai-msg-table class="msg-root-table-box" v-if="item.type == 'table'" :table-node="data" />
-								<uni-ai-msg-code class="msg-root-code-box" v-else-if="item.type == 'code_block'" :codeTokens="data.codeTokens ?? []"  :codeText="data.text" :language="data.lang" :href="data.href" />
-								<katex-el v-else-if="item.type == 'math'" :html="data.html" :href="data.href" :width="data.width" :height="data.height" />
-								<view v-else-if="item.type == 'thematic_break'" class="msg-root-hr-box"></view>
-							</template>
-							<uni-ai-text-md v-else :datas="datas" :itemType="item.type" :key="item.uniqueId"/>
-						</template>
-					</template>
-				</view>
-				<view class="msg-root-compare-panel msg-root-compare-panel-simple">
-					<text class="msg-root-compare-title">Simple 渲染链路</text>
-					<text v-if="showSimplePlainText" class="msg-root-plain-text">{{msg.body}}</text>
-					<template v-for="(item, index) in simpleMarkdownElList" :key="'simple-' + index">
-						<view v-if="item.type == 'block_quote'" class="msg-root-block-quote-box">
-							<uni-ai-text-md v-for="(blockQuote, i) in item.datasList" :key="i" :datas="blockQuote" :itemType="item.type"/>
-						</view>
-						<template v-else v-for="(datas, i) in item.datasList" :key="i">
-							<template v-for="(data, k) in datas" :key="k" v-if="['table', 'code_block', 'math', 'thematic_break', 'block_quote'].includes(item.type)">
-								<uni-ai-msg-table class="msg-root-table-box" v-if="item.type == 'table'" :table-node="data" />
-								<uni-ai-msg-code class="msg-root-code-box" v-else-if="item.type == 'code_block'" :codeTokens="data.codeTokens ?? []"  :codeText="data.text" :language="data.lang" :href="data.href" />
-								<katex-el v-else-if="item.type == 'math'" :html="data.html" :href="data.href" :width="data.width" :height="data.height" />
-								<view v-else-if="item.type == 'thematic_break'" class="msg-root-hr-box"></view>
-							</template>
-							<uni-ai-text-md v-else :datas="datas" :itemType="item.type" :key="item.uniqueId"/>
-						</template>
-					</template>
-				</view>
-			</template>
-			<text v-else-if="showActivePlainText" class="msg-root-plain-text">{{msg.body}}</text>
-			<template v-else v-for="(item, index) in activeMarkdownElList" :key="index">
+			<text v-if="showPlainText" class="msg-root-plain-text">{{msg.body}}</text>
+			<template v-else v-for="(item, index) in msg.markdownElList" :key="index">
 				<view v-if="item.type == 'block_quote'" class="msg-root-block-quote-box">
 					<uni-ai-text-md v-for="(blockQuote, i) in item.datasList" :key="i" :datas="blockQuote" :itemType="item.type"/>
 				</view>
 				<template v-else v-for="(datas, i) in item.datasList" :key="i">
 					<template v-for="(data, k) in datas" :key="k" v-if="['table', 'code_block', 'math', 'thematic_break', 'block_quote'].includes(item.type)">
 						<uni-ai-msg-table class="msg-root-table-box" v-if="item.type == 'table'" :table-node="data" />
-						<uni-ai-msg-code class="msg-root-code-box" v-else-if="item.type == 'code_block'" :codeTokens="data.codeTokens ?? []"  :codeText="data.text" :language="data.lang" :href="data.href" />
+						<uni-ai-msg-code class="msg-root-code-box" v-else-if="item.type == 'code_block'" :codeTokens="data.codeTokens ?? []" :codeText="data.text" :language="data.lang" :href="data.href" />
 						<katex-el v-else-if="item.type == 'math'" :html="data.html" :href="data.href" :width="data.width" :height="data.height" />
 						<view v-else-if="item.type == 'thematic_break'" class="msg-root-hr-box"></view>
 					</template>
 					<uni-ai-text-md v-else :datas="datas" :itemType="item.type" :key="item.uniqueId"/>
 				</template>
-		   </template>
-		   <template v-if="isLastAiMsg && msg.body == ''">
+			</template>
+			<template v-if="isLastAiMsg && msg.body == ''">
 				<text v-if="state == 'stop'" class="msg-root-stop-text">回答被终止</text>
 				<text v-if="state == 'none'" class="msg-root-need-try">错误：未回复</text>
 				<uni-rotate-icon v-if="state == 'processing'" class="msg-root-loging-icon" />
@@ -77,87 +39,31 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
-	import markdownRenderMode from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts'
-	import { MarkdownElItem } from '@/uni_modules/uni-ai-x/types.uts'
-	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-	import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
-	
+
 	type UniAiXMsgProps = {
 		msg: MsgItem
 	}
-	
+
 	const props = defineProps<UniAiXMsgProps>()
-	
 	const msg = ref<MsgItem>(props.msg as MsgItem)
-	
 	const emit = defineEmits<{
 		'changeThinkContent': [hideThinkContent: boolean]
 	}>()
-	
-	const runTime = ref<number>(0)
-	const parseLock = ref<boolean>(false)
-	const lastParseLineCodeText = ref<string>('')
 	const hideThinkContent = ref<boolean>(false)
-	const readyParseMdIndex = ref<number>(0)
-	const parseMdIndex = ref<number>(0)
-	
+
 	const state = computed<string>(() => {
 		return uniAi.currentChat!.state
 	})
-	
+
 	const isLastAiMsg = computed<boolean>(() => {
 		return uniAi.lastAiMsg?._id == msg.value._id
 	})
 
-	const isCompareMode = computed<boolean>(() => {
-		return markdownRenderMode.mode == 'compare'
-	})
-
-	const simpleMarkdownElList = computed<MarkdownElItem[]>(() => {
-		const empty = [] as MarkdownElItem[]
-		return msg.value.markdownElListSimple ?? empty
-	})
-
-	const activeMarkdownElList = computed<MarkdownElItem[]>(() => {
-		const empty = [] as MarkdownElItem[]
-		if (markdownRenderMode.mode == 'simple') {
-			return msg.value.markdownElListSimple ?? empty
-		}
-		return msg.value.markdownElList
-	})
-
-	const showLegacyPlainText = computed<boolean>(() => {
+	const showPlainText = computed<boolean>(() => {
 		return msg.value.body.length > 0 && msg.value.markdownElList.length == 0
 	})
 
-	const showSimplePlainText = computed<boolean>(() => {
-		const list = msg.value.markdownElListSimple ?? ([] as MarkdownElItem[])
-		return msg.value.body.length > 0 && list.length == 0
-	})
-
-	const showActivePlainText = computed<boolean>(() => {
-		return msg.value.body.length > 0 && activeMarkdownElList.value.length == 0
-	})
-	
-	watch((): string => {
-		return msg.value.body
-	}, async (msgBody: string) => {
-		if (msgBody.length == 0) {
-			readyParseMdIndex.value = 0
-			parseMdIndex.value = 0
-			parseLock.value = false
-		}
-		if (state.value == 'processing') {
-		} else {
-		}
-	})
-	
-	watch(state, (state: string) => {
-		if (state == 'completed' || state == 'stop') {
-		}
-	})
-	
 	const changeThinkContent = () => {
 		hideThinkContent.value = !hideThinkContent.value
 		emit('changeThinkContent', hideThinkContent.value)
@@ -168,11 +74,9 @@
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 /* #ifdef WEB */
 .msg-root * {
-	// 所有文字可以被选中
 	user-select: text;
 }
 /* #endif */
-/* 蒸汽模式：仅单层 class */
 .msg-root {
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -278,29 +182,5 @@
 	padding: 5px;
 	background: var(--bg-secondary);
 	margin-bottom: 10px;
-}
-
-.msg-root-compare-panel {
-	width: 100%;
-	padding: 8px;
-	margin: 6px 0;
-	border-radius: 8px;
-	border: 1px solid var(--border-secondary);
-	background-color: var(--bg-primary);
-}
-
-.msg-root-compare-panel-legacy {
-	border-left: 3px solid var(--warning);
-}
-
-.msg-root-compare-panel-simple {
-	border-left: 3px solid var(--success);
-}
-
-.msg-root-compare-title {
-	font-size: 12px;
-	line-height: 20px;
-	color: var(--text-tertiary);
-	margin-bottom: 5px;
 }
 </style>

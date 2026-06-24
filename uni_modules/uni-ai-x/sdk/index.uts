@@ -3,7 +3,6 @@ import { defaultLLM, currentUser } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
-import markdownRenderMode from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
@@ -270,7 +269,6 @@ class UniAi {
 			create_time: Date.now(),
 			state: 0,
 			markdownElList: [] as MarkdownElItem[],
-			markdownElListSimple: [] as MarkdownElItem[],
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)
@@ -343,7 +341,6 @@ class UniAi {
 		msg.error_msg = null
 		msg.thinkContent = null
 		msg.markdownElList = []
-		msg.markdownElListSimple = []
 		this.updateMsg2Storage(msg)
 	}
 	
@@ -358,10 +355,9 @@ class UniAi {
 			type: 'requestAi',
 			messages,
 			llm: this.llm as Llm,
-			chat_id: this.currentChat!.id,
-			renderMode: markdownRenderMode.mode
+			chat_id: this.currentChat!.id
 		}
-		console.log('uni-ai-x-render send mode=' + markdownRenderMode.mode)
+		console.log('uni-ai-x-render send mode=simple')
 		requestAiWorker = new RequestAiWorker()
 		requestAiWorker?.postMessage(requestAiOptions)
 		requestAiWorker?.onMessage((message: any) => {
@@ -420,16 +416,6 @@ class UniAi {
 						aiMsgItem.markdownElList.push(...markdownElList!)
 					}
 					// console.warn("setMarkdownElList 耗时", Date.now() - start)
-				}],
-				['setMarkdownElListSimple', () => {
-					if (this.currentChat!.state == 'stop') {
-						console.log('setMarkdownElListSimple 当前对话已停止，忽略消息')
-						return
-					}
-					console.log('uni-ai-x-render simple-list update')
-					if (message.markdownElList != null) {
-						aiMsgItem.markdownElListSimple = message.markdownElList!
-					}
 				}],
 				['setThinkContent', () => {
 					aiMsgItem.thinkContent = data as string

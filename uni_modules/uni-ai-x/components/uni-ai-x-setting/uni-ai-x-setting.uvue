@@ -8,16 +8,6 @@
 					<switch class="uni-im-setting-switch" color="#111" :checked="isDarkMode" @change="onThemeChange" />
 				</view>
 				<view class="uni-im-setting-item">
-					<view class="uni-im-setting-label-box">
-						<text class="uni-im-setting-label">Markdown 渲染模式</text>
-						<text class="uni-im-setting-desc">可切换旧链路、新链路和双栏对比模式</text>
-					</view>
-					<view class="uni-im-setting-value-box" @click="chooseMarkdownRenderMode">
-						<text class="uni-im-setting-value">{{markdownRenderModeText}}</text>
-						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
-					</view>
-				</view>
-				<view class="uni-im-setting-item">
 					<text class="uni-im-setting-label">大语言模型</text>
 					<view class="uni-im-setting-value-box" @click="changeModel">
 						<image class="uni-im-setting-logo" :src="'/uni_modules/uni-ai-x/static/ai-provider/'+uniAi.llm.provider+'.png'" mode="aspectFill"></image>
@@ -55,7 +45,6 @@
 
 <script lang="uts" setup>
 	import {uniAi, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
-	import markdownRenderMode from '@/uni_modules/uni-ai-x/sdk/markdownRenderMode.uts';
 	import {Theme, Provider} from '@/uni_modules/uni-ai-x/types.uts';
 	
 	import {llmModelMap, providerNameList} from '@/uni_modules/uni-ai-x/config';
@@ -73,12 +62,6 @@
 	
 	const currentModel = computed<string>(() => {
 		return uniAi.llm.model
-	})
-
-	const markdownRenderModeText = computed<string>(() => {
-		if (markdownRenderMode.mode == 'simple') return '新链路'
-		if (markdownRenderMode.mode == 'compare') return '对比模式'
-		return '旧链路'
 	})
 
 	const openModelPopup = () => {
@@ -104,23 +87,6 @@
 	// 主题切换事件处理
 	const onThemeChange = (event: UniSwitchChangeEvent) => {
 		uniAi.setting.theme = event.detail.value ? 'dark' : 'light'
-	}
-
-	const chooseMarkdownRenderMode = () => {
-		uni.showActionSheet({
-			itemList: ['旧链路', '新链路', '对比模式'],
-			success: (res) => {
-				if (res.tapIndex == 0) {
-					markdownRenderMode.mode = 'legacy'
-					return
-				}
-				if (res.tapIndex == 1) {
-					markdownRenderMode.mode = 'simple'
-					return
-				}
-				markdownRenderMode.mode = 'compare'
-			}
-		})
 	}
 	
 	const changeModel = () => {
@@ -169,19 +135,9 @@
 	transform: scale(0.8);
 }
 
-.uni-im-setting-label-box {
-	flex: 1;
-}
-
 .uni-im-setting-label {
 	font-size: 16px;
 	color: var(--text-primary);
-}
-
-.uni-im-setting-desc {
-	font-size: 12px;
-	color: var(--text-tertiary);
-	margin-top: 4px;
 }
 
 .uni-im-setting-value-box {
