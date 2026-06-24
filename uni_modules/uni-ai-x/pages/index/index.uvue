@@ -2,6 +2,7 @@
 	<view class="uni-ai-page" ref="uni-ai-page" :class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]" :style="{transform: `translateX(${translateX}px)`}" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchEnd">
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+		<fps />
 		<!-- 用于非 Android 端测量文字宽度的容器 -->
 		<!-- #ifndef APP-ANDROID -->
 		<view class="hidden" style="flex-direction: row; width: 1000%; height: 0;">
@@ -17,6 +18,7 @@
 <script lang="uts" setup>
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
+	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'

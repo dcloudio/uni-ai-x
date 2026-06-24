@@ -53,12 +53,7 @@ const isOpenClaw = computed<boolean>(() => {
 
 
 const aiState = computed<string>(() => {
-    let state = uniAi.currentChat?.state ?? 'none';
-    if (state != 'processing' && uniAi.lastAiMsg?.rendered == false) {
-        state = 'processing'
-    }
-    return state
-
+    return uniAi.currentChat?.state ?? 'none'
 });
 
 const inputContent = ref<string>(uniAi.currentChat?.inputContent ?? '')

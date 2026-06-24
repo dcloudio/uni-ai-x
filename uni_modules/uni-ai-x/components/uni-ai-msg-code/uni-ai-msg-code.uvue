@@ -2,8 +2,8 @@
 	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`, language == 'mermaid' ? 'uni-code-msg-root-mermaid' : '']">
 		<view class="uni-code-msg-code-header">
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
-				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="showMermaidImage = true">图表</text>
-				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="showMermaidImage = false">代码</text>
+				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(true)">图表</text>
+				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(false)">代码</text>
 			</view>
 			<template v-if="!showMermaidImage">
 				<text class="uni-code-msg-language">{{language}}</text>
@@ -12,6 +12,9 @@
 					<text class="uni-code-msg-copy-text">复制代码</text>
 				</view>
 			</template>
+		</view>
+		<view v-if="!showMermaidImage && shouldShowHorizontalHint" class="uni-code-msg-scroll-tip-row">
+			<text class="uni-code-msg-scroll-tip">左右滑动查看完整代码</text>
 		</view>
 		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box">
 			<!-- #ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN -->
@@ -29,9 +32,9 @@
 			</template>
 		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<text v-if="props.codeTokens.length == 0" class="uni-code-msg-origin-code" :style="{width: maxLineWidth}">{{codeText}}</text>
+			<text v-if="shouldUseOriginCode" class="uni-code-msg-origin-line" v-for="(lineText, lineIndex) in rawCodeLines" :key="'raw-' + lineIndex" :style="{width: maxLineWidth}">{{lineText}}</text>
 			<text v-else class="uni-code-msg-line" v-for="(tokens,index) in props.codeTokens" :key="index" :style="{width: maxLineWidth}">
-				<text v-for="token in tokens" :key="token.uniqueId" :class="'uni-code-msg-line-code uni-code-msg-code-' + (token.className ?? '')">{{token.text}}</text>
+				<text v-for="(token, tokenIndex) in tokens" :key="index + '-' + tokenIndex + '-' + (token.className ?? '') + '-' + (token.text ?? '')" :class="'uni-code-msg-line-code uni-code-msg-code-' + (token.className ?? '')">{{token.text}}</text>
 			</text>
 		</scroll-view>
 	</view>
@@ -98,10 +101,78 @@ const tokens = ref<Array<IToken>>([])
 const tokensLines = ref<IToken[][]>([])
 const maxLineWidth = ref<string>('')
 const showMermaidImage = ref<boolean>(false)
+const mermaidViewTouched = ref<boolean>(false)
 const codeLineHeight = 22
 const codeVerticalPadding = 16
+const estimatedCodeCharWidth = 16
+const estimatedCodeHorizontalPadding = 30
+const estimatedCardHorizontalInset = 48
+const forceFixedLineWidthOnAndroid = ref<boolean>(false)
+const windowWidth = ref<number>(0)
+
+// Android 继续保留显式宽度修复，避免长代码行被错误裁切。
+// #ifdef APP-ANDROID
+forceFixedLineWidthOnAndroid.value = true
+// #endif
+
+function setMermaidView(showImage: boolean) {
+	mermaidViewTouched.value = true
+	showMermaidImage.value = showImage && hasMermaidImage(props.href)
+}
+
+function normalizeCodeText(text: string): string {
+	return text.replace(/\r\n/g, '\n')
+}
+
+function buildRenderedCodeText(codeTokens: IToken[][]): string {
+	return codeTokens.map((lineTokens: IToken[]) => {
+		return lineTokens.map((token: IToken) => token.text ?? '').join('')
+	}).join('\n')
+}
+
+const showOriginCode = computed<boolean>(() => {
+	if (props.codeTokens.length == 0) return true
+	const rawCode = normalizeCodeText(props.codeText)
+	const renderedCode = normalizeCodeText(buildRenderedCodeText(props.codeTokens))
+	return rawCode != renderedCode
+})
+
+const shouldUseOriginCode = computed<boolean>(() => {
+	return showOriginCode.value
+})
+
+function normalizeRawCodeLines(text: string): string[] {
+	const normalizedText = normalizeCodeText(text)
+	const lines = normalizedText.split('\n')
+	return lines.map((line: string) => line.length > 0 ? line : ' ')
+}
+
+function updateWindowWidth() {
+	windowWidth.value = uni.getWindowInfo().windowWidth
+}
+
+const rawCodeLines = computed<string[]>(() => {
+	return normalizeRawCodeLines(props.codeText)
+})
+
+const maxLineCharacterCount = computed<number>(() => {
+	let maxLineSize = 1
+	for (let i = 0; i < rawCodeLines.value.length; i++) {
+		maxLineSize = Math.max(maxLineSize, rawCodeLines.value[i].length)
+	}
+	return maxLineSize
+})
+
+const shouldShowHorizontalHint = computed<boolean>(() => {
+	if (showMermaidImage.value) return false
+	const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
+	const visibleCodeWidth = Math.max(160, currentWindowWidth - estimatedCardHorizontalInset)
+	const requiredCodeWidth = maxLineCharacterCount.value * estimatedCodeCharWidth + estimatedCodeHorizontalPadding
+	return requiredCodeWidth > visibleCodeWidth
+})
 
 watch((): string => props.language, (language: string) => {
+	mermaidViewTouched.value = false
 	showMermaidImage.value = language == 'mermaid' && hasMermaidImage(props.href)
 	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
 	showMermaidImage.value = false
@@ -109,43 +180,54 @@ watch((): string => props.language, (language: string) => {
 }, {immediate: true})
 
 watch((): string | null => props.href, (href: string | null) => {
-	if (props.language == 'mermaid' && hasMermaidImage(href)) {
+	if (props.language == 'mermaid' && hasMermaidImage(href) && !mermaidViewTouched.value) {
 		showMermaidImage.value = true
 	}
+})
+
+onMounted(() => {
+	updateWindowWidth()
 })
 
 //#ifdef uniVersion < 4.81
 let lastDiffLineIndex = 0
 let lastMaxLineSize = 0
 watch((): string => props.codeText, (codeText: string) => {
-	let isAndroidOrWeb: boolean = false
-	// #ifdef APP-ANDROID || WEB
-	isAndroidOrWeb = true
-	// #endif
-	if (!isAndroidOrWeb || (props.codeTokens.length == 0 && codeText.length > 0)) {
-		const codeTextLines = codeText.split('\n')
-		for (let i = lastDiffLineIndex; i < codeTextLines.length; i++) {
-			const lineSize = codeTextLines[i].length
-			if (maxLineWidth.value == '' || lastMaxLineSize < lineSize) {
-				lastMaxLineSize = lineSize
-				maxLineWidth.value = `${lastMaxLineSize * 16}px`
-			} else {
-				// console.log(lineSize,'小于', lastMaxLineSize)
-			}
+	const codeTextLines = codeText.split('\n')
+	for (let i = lastDiffLineIndex; i < codeTextLines.length; i++) {
+		const lineSize = codeTextLines[i].length
+		if (lastMaxLineSize < lineSize) {
+			lastMaxLineSize = lineSize
 		}
-		lastDiffLineIndex = codeTextLines.length - 1
+	}
+	lastDiffLineIndex = codeTextLines.length - 1
+	if (forceFixedLineWidthOnAndroid.value) {
+		maxLineWidth.value = `${Math.max(1, lastMaxLineSize) * 16}px`
+	} else if (props.codeTokens.length == 0 && codeText.length > 0) {
+		maxLineWidth.value = `${Math.max(1, lastMaxLineSize) * 16}px`
 	}
 	tokensLines.value = props.codeTokens
 }, {immediate: true})
 // #endif
 // #ifdef uniVersion >= 4.81 || MP-WEIXIN
-maxLineWidth.value = 'auto'
+if (forceFixedLineWidthOnAndroid.value) {
+	watch((): string => props.codeText, (codeText: string) => {
+		const codeTextLines = codeText.split('\n')
+		let maxLineSize = 1
+		for (let i = 0; i < codeTextLines.length; i++) {
+			maxLineSize = Math.max(maxLineSize, codeTextLines[i].length)
+		}
+		maxLineWidth.value = `${maxLineSize * 16}px`
+	}, {immediate: true})
+} else {
+	maxLineWidth.value = 'auto'
+}
 // #endif
 
 const scrollViewHeight = computed<string>(() => {
-	const rawLineCount = props.codeText.split('\n').length
+	const rawLineCount = rawCodeLines.value.length
 	const renderedLineCount = props.codeTokens.length
-	const lineCount = renderedLineCount > 0 ? renderedLineCount : rawLineCount
+	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
 	return `${lineCount * codeLineHeight + codeVerticalPadding}px`
 })
 
@@ -235,6 +317,19 @@ const previewMermaidImage = () => {
 	background-color: var(--bg-tertiary);
 }
 
+.uni-code-msg-scroll-tip-row {
+	padding: 4px 12px 0;
+	flex-direction: row;
+	justify-content: flex-end;
+	background-color: var(--bg-secondary);
+}
+
+.uni-code-msg-scroll-tip {
+	font-size: 10px;
+	line-height: 14px;
+	color: var(--text-secondary);
+}
+
 .uni-code-msg-mermaid-switch {
 	flex-direction: row;
 	border-radius: 6px;
@@ -299,7 +394,8 @@ const previewMermaidImage = () => {
 }
 
 .uni-code-msg-line,
-.uni-code-msg-origin-code {
+.uni-code-msg-origin-code,
+.uni-code-msg-origin-line {
 	padding: 0 15px;
 }
 
@@ -315,6 +411,13 @@ const previewMermaidImage = () => {
 	font-size: 14px;
 	color: var(--text-primary);
 }
+
+/* #ifdef APP-ANDROID */
+.uni-code-msg-line-code,
+.uni-code-msg-origin-code {
+	font-family: monospace;
+}
+/* #endif */
 
 .uni-code-msg-code-keyword { color: var(--code-keyword); }
 .uni-code-msg-code-string { color: var(--code-string); }
@@ -337,6 +440,16 @@ const previewMermaidImage = () => {
 	white-space: pre;
 	font-family: CodeFontFamily;
 	overflow: visible;
+}
+
+.uni-code-msg-origin-line {
+	height: 22px;
+	line-height: 22px;
+	white-space: pre;
+	font-size: 14px;
+	color: var(--text-primary);
+	align-self: flex-start;
+	font-family: CodeFontFamily;
 }
 
 </style>

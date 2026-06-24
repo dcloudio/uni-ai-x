@@ -1,0 +1,98 @@
+<template>
+	<view class="fps-root" :style="{ top: top + 'px' }">
+		<text class="fps-text">{{label}} {{ fps }}</text>
+		<text class="fps-sub-text">avg {{ avgFps }} | min {{ minFps }} | max {{ maxFps }}</text>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const props = withDefaults(defineProps<{
+		interval?: number
+		top?: number
+		label?: string
+	}>(), {
+		interval: 1000,
+		top: 54,
+		label: 'FPS'
+	})
+
+	let animationId: number = -1
+	let frameCount = 0
+	let frameStartTime = 0
+	let totalFps = 0
+	let sampleCount = 0
+	const fps = ref<number>(0)
+	const avgFps = ref<number>(0)
+	const minFps = ref<number>(0)
+	const maxFps = ref<number>(0)
+
+	function updateStats(nextFps: number) {
+		fps.value = nextFps
+		totalFps += nextFps
+		sampleCount++
+		avgFps.value = Math.round(totalFps / sampleCount)
+		if (sampleCount == 1) {
+			minFps.value = nextFps
+			maxFps.value = nextFps
+			return
+		}
+		minFps.value = Math.min(minFps.value, nextFps)
+		maxFps.value = Math.max(maxFps.value, nextFps)
+	}
+
+	let calculateFps = (currentTime: number) => {}
+	calculateFps = (currentTime: number) => {
+		if (frameStartTime == 0) {
+			frameStartTime = currentTime
+			animationId = requestAnimationFrame(calculateFps)
+			return
+		}
+		frameCount++
+		const delta = currentTime - frameStartTime
+		if (delta >= props.interval) {
+			updateStats(Math.round(frameCount * 1000 / delta))
+			frameCount = 0
+			frameStartTime = currentTime
+		}
+		animationId = requestAnimationFrame(calculateFps)
+	}
+
+	onMounted(() => {
+		animationId = requestAnimationFrame(calculateFps)
+	})
+
+	onBeforeUnmount(() => {
+		if (animationId != -1) {
+			cancelAnimationFrame(animationId)
+		}
+	})
+</script>
+
+<style>
+.fps-root {
+	position: fixed;
+	right: 10px;
+	z-index: 999;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background-color: rgba(0, 0, 0, 0.58);
+	min-width: 180px;
+	pointer-events: none;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+}
+
+.fps-text {
+	font-size: 18px;
+	font-weight: 700;
+	color: #00e676;
+}
+
+.fps-sub-text {
+	margin-top: 2px;
+	font-size: 11px;
+	line-height: 16px;
+	color: #ffffff;
+}
+</style>

@@ -1,0 +1,21 @@
+const jsLogPrefix = 'console' + '.log'
+
+const testMarkdownTextOriginal = [
+	'```javascript',
+	"var a = document.getElementById('app')",
+	`${jsLogPrefix}(a)`,
+	`${jsLogPrefix}(b)`,
+	`${jsLogPrefix}(c)`,
+	'function test(){',
+	`\t${jsLogPrefix}(d)`,
+	'}',
+	'test()',
+	'```',
+	'',
+	'```php',
+	'print_r($data);',
+	'```',
+	'> 引用'
+].join('\n')
+
+export default testMarkdownTextOriginal

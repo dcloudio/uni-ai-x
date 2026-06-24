@@ -1,12 +1,19 @@
 {
 	"pages": [
-		// {
-		// 	"path" : "pages/test-cmark/test-cmark",
-		// 	"style" : 
-		// 	{
-		// 		"navigationBarTitleText" : "uni-cmark 测试"
-		// 	}
-		// },
+		{
+			"path" : "uni_modules/uni-ai-x/pages/debug/markdown-original-proof",
+			"style" : 
+			{
+				"navigationBarTitleText" : "原始 Markdown 验证"
+			}
+		},
+		{
+			"path" : "uni_modules/uni-ai-x/pages/debug/code-render-proof",
+			"style" : 
+			{
+				"navigationBarTitleText" : "代码渲染验证"
+			}
+		},
 		{
 			"path" : "uni_modules/uni-ai-x/pages/index/index",
 			"style" : 

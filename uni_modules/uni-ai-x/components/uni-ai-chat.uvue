@@ -321,10 +321,6 @@
 		}, 1000)
 	}
 
-	watchEffect(() => {
-		uniAi.canRender = !scrollTouch.value && !scrolling.value && !menuIsChangeIng.value
-	})
-	
 	const changeMenu = () => {
 		setMenuIsChangeIng()
 		emit('change-menu')
@@ -376,6 +372,8 @@
 	}
 	
 	onMounted(() => {
+		// 触摸和滚动不再暂停消息渲染，避免最终修正结果被卡在中间态。
+		uniAi.canRender = true
 		if (isDemo.value && msgList.value.length == 0 && state.value == 'none' && !autoDemoRequested.value) {
 			autoDemoRequested.value = true
 			chatInputContent.value = demoPrompt
@@ -407,6 +405,10 @@
 			syncScrollToBottomBtn()
 		})
 		// #endif
+	})
+
+	onUnmounted(() => {
+		uniAi.canRender = true
 	})
 </script>
 

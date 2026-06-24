@@ -1,0 +1,215 @@
+<template>
+	<scroll-view class="proof-page" direction="vertical">
+		<view class="proof-toolbar">
+			<text class="proof-toolbar-title">原始 testMarkdownText 单页验证</text>
+			<text class="proof-toolbar-meta">状态：{{parseStatus}}</text>
+			<text class="proof-toolbar-meta">token：{{markdownTokenCount}} / element：{{markdownElCount}}</text>
+			<text class="proof-toolbar-btn" @click="runProof">重新解析</text>
+		</view>
+
+		<view class="proof-section">
+			<text class="proof-section-title">原始输入</text>
+			<scroll-view class="proof-source-box" direction="horizontal">
+				<text class="proof-source-text">{{testMarkdownText}}</text>
+			</scroll-view>
+		</view>
+
+		<view class="proof-section">
+			<text class="proof-section-title">渲染结果</text>
+			<view class="proof-render-box">
+				<text v-if="markdownElList.length == 0" class="proof-empty-text">暂无解析结果</text>
+				<template v-else v-for="(item, index) in markdownElList" :key="item.uniqueId + '-' + index">
+					<view v-if="item.type == 'block_quote'" class="proof-block-quote-box">
+						<uni-ai-text-md v-for="(blockQuote, i) in item.datasList" :key="'quote-' + i" :datas="blockQuote" :itemType="item.type"/>
+					</view>
+					<template v-else v-for="(datas, i) in item.datasList" :key="item.uniqueId + '-' + i">
+						<template v-for="(data, k) in datas" :key="item.uniqueId + '-' + i + '-' + k" v-if="['table', 'code_block', 'math', 'thematic_break', 'block_quote'].includes(item.type)">
+							<uni-ai-msg-table class="proof-table-box" v-if="item.type == 'table'" :table-node="data" />
+							<uni-ai-msg-code class="proof-code-box" v-else-if="item.type == 'code_block'" :codeTokens="data.codeTokens ?? []" :codeText="data.text" :language="data.lang" :href="data.href" />
+							<katex-el v-else-if="item.type == 'math'" :html="data.html" :href="data.href" :width="data.width" :height="data.height" />
+							<view v-else-if="item.type == 'thematic_break'" class="proof-hr-box"></view>
+						</template>
+						<uni-ai-text-md v-else :datas="datas" :itemType="item.type" :key="'text-' + item.uniqueId + '-' + i"/>
+					</template>
+				</template>
+			</view>
+		</view>
+		<!-- #ifndef MP-WEIXIN -->
+		<web-view class="proof-hidden-webview" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
+		<!-- #endif -->
+	</scroll-view>
+</template>
+
+<script lang="uts" setup>
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+	import { MarkdownElItem } from '@/uni_modules/uni-ai-x/types.uts'
+	import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts'
+	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+	import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList'
+	import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownTextOriginal.uts'
+	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
+	import uniAiTextMd from '@/uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md.uvue'
+	import uniAiMsgTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table.uvue'
+	import katexEl from '@/uni_modules/uni-ai-x/components/katex-el/katex-el.uvue'
+
+	const parseStatus = ref<string>('idle')
+	const markdownTokenList = ref<MarkdownToken[]>([])
+	const markdownElList = ref<MarkdownElItem[]>([])
+
+	function token2el(token: MarkdownToken): MarkdownElItem {
+		return {
+			uniqueId: token.uniqueId ?? '',
+			type: token.type ?? 'text',
+			datasList: treeToListSdk.markTreeToList(token)
+		} as MarkdownElItem
+	}
+
+	function runProof() {
+		parseStatus.value = 'parsing'
+		markdownTokenList.value = []
+		markdownElList.value = []
+		const parser = new ParseMarkdownSimple((tokenList: MarkdownToken[], isDone: boolean) => {
+			markdownTokenList.value = tokenList
+			markdownElList.value = tokenList.map((token: MarkdownToken) => token2el(token))
+			parseStatus.value = isDone ? 'completed' : 'parsing'
+		}, 30)
+		parser.msgReceiveDone = true
+		parser.flush(testMarkdownText)
+	}
+
+	const markdownTokenCount = computed<number>(() => {
+		return markdownTokenList.value.length
+	})
+
+	const markdownElCount = computed<number>(() => {
+		return markdownElList.value.length
+	})
+
+	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
+		proxyWeb.onWebMsg(e)
+	}
+
+	onMounted(() => {
+		// #ifdef WEB
+		const proxyWebContext = document.getElementById('proxy-web')
+		// #endif
+		// #ifdef APP
+		const proxyWebContext = uni.getElementById('proxy-web')
+		// #endif
+		// #ifdef MP-WEIXIN
+		const proxyWebContext = uni.createWebviewContext('proxy-web')
+		// #endif
+		// #ifndef MP-WEIXIN
+		proxyWeb.init(proxyWebContext!)
+		// #endif
+		setTimeout(() => {
+			runProof()
+		}, 300)
+	})
+</script>
+
+<style lang="scss">
+.proof-page {
+	height: 100%;
+	padding: 20px;
+	box-sizing: border-box;
+	background-color: #f6f7fb;
+	flex-direction: column;
+}
+
+.proof-toolbar {
+	padding: 16px;
+	border-radius: 12px;
+	background-color: #0f172a;
+	margin-bottom: 16px;
+	flex-direction: column;
+}
+
+.proof-toolbar-title {
+	font-size: 16px;
+	font-weight: 700;
+	color: #f8fafc;
+}
+
+.proof-toolbar-meta {
+	margin-top: 6px;
+	font-size: 12px;
+	color: #cbd5e1;
+}
+
+.proof-toolbar-btn {
+	margin-top: 10px;
+	font-size: 13px;
+	font-weight: 700;
+	color: #93c5fd;
+}
+
+.proof-section {
+	padding: 16px;
+	border-radius: 12px;
+	background-color: #ffffff;
+	border: 1px solid #d8dee9;
+	margin-bottom: 16px;
+	flex-direction: column;
+}
+
+.proof-section-title {
+	font-size: 15px;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 12px;
+}
+
+.proof-source-box {
+	width: 100%;
+	padding: 12px;
+	border-radius: 10px;
+	background-color: #111827;
+	flex-direction: column;
+}
+
+.proof-source-text {
+	font-size: 13px;
+	line-height: 20px;
+	white-space: pre;
+	font-family: monospace;
+	color: #e5e7eb;
+}
+
+.proof-render-box {
+	flex-direction: column;
+	background-color: #ffffff;
+}
+
+.proof-empty-text {
+	font-size: 13px;
+	line-height: 20px;
+	color: #64748b;
+}
+
+.proof-table-box,
+.proof-code-box,
+.proof-hr-box,
+.proof-block-quote-box {
+	width: 100%;
+	margin: 6px 0;
+}
+
+.proof-hr-box {
+	height: 1px;
+	background-color: #d8dee9;
+}
+
+.proof-block-quote-box {
+	padding: 6px;
+	border-left: 4px solid #cbd5e1;
+	background-color: #f8fafc;
+	flex-direction: column;
+}
+
+.proof-hidden-webview {
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+}
+</style>

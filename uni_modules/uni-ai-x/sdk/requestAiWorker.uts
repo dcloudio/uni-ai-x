@@ -53,25 +53,43 @@ class RequestAiWorker {
 	onMessageFnList : OnMessageFn[] = [];
 	canRender : boolean = true
 	currentChatState : string = ''
+	pendingMarkdownElList : MarkdownElItem[] | null = null
+	pendingParseDone : boolean = false
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
 	constructor() {
 		this.onMessageFnList = []
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
+			const markdownElList = newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
+			this.pendingMarkdownElList = markdownElList
+			this.pendingParseDone = this.pendingParseDone || isParseDone
 			if (!this.canRender) return
-			this.emitOnMessage({
-				type: "setMarkdownElList",
-				action: 'set',
-				markdownElList: newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
-			})
-			if (isParseDone) {
-				this.emitOnMessage({type: "setRendered", data: true} as OnMessageOptions)
-			}
+			this.flushPendingRender()
 		}
 		this.resetParser()
 	}
 	entry() { }
+	flushPendingRender() {
+		const markdownElList = this.pendingMarkdownElList
+		if (markdownElList == null) return
+		const isParseDone = this.pendingParseDone
+		this.pendingMarkdownElList = null
+		this.pendingParseDone = false
+		this.emitOnMessage({
+			type: "setMarkdownElList",
+			action: 'set',
+			markdownElList
+		})
+		if (isParseDone) {
+			this.currentChatState = 'completed'
+			this.emitOnMessage({
+				type: "setCurrentChatState",
+				data: 'completed'
+			})
+			this.emitOnMessage({type: "setRendered", data: true} as OnMessageOptions)
+		}
+	}
 	resetParser() {
 		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElList, SIMPLE_PARSE_INTERVAL)
 	}
@@ -131,6 +149,8 @@ class RequestAiWorker {
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.currentChatState = ''
+		this.pendingMarkdownElList = null
+		this.pendingParseDone = false
 		this.userAbort = false
 		this.hasThinkContent = false
 		this.resetParser()
@@ -142,11 +162,6 @@ class RequestAiWorker {
 				if (this.userAbort || i >= testMarkdownText.length) {
 					clearInterval(timer)
 					this.runMarkdownParse(true)
-					this.currentChatState = 'completed'
-					this.emitOnMessage({
-						type: "setCurrentChatState",
-						data: 'completed'
-					})
 				} else {
 					const batchSize = 10
 					const endIndex = Math.min(i + batchSize, testMarkdownText.length)
@@ -200,11 +215,6 @@ class RequestAiWorker {
 					console.log('requestAlServer onDone 当前对话已停止，忽略消息')
 					return
 				}
-				this.currentChatState = 'completed'
-				this.emitOnMessage({
-					type: "setCurrentChatState",
-					data: 'completed'
-				})
 				if (!this.msgBody.endsWith('\n')) {
 					this.msgBody += '\n'
 				}
@@ -400,6 +410,9 @@ class RequestAiWorker {
 				this.onMessageFnList.length = 0
 			} else if (type == 'setCanRender') {
 				this.canRender = message.getBoolean('value', true)
+				if (this.canRender) {
+					this.flushPendingRender()
+				}
 			} else {
 				console.error('postMessage未知任务类型的消息', message)
 			}
@@ -424,20 +437,24 @@ export default RequestAiWorker;
 function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
 	utils.uniGetDispatcher("io", () => {
 		const chunkText : string = new TextDecoder().decode(chunkData)
-		const lines : string[] = chunkText.trim().split('\n\n')
+		const normalizedChunkText = chunkText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+		const lines : string[] = normalizedChunkText.split('\n\n')
 		lines.forEach((line : string) => {
+			if (line.length == 0) return
 			line.split('\n').forEach((lineItem : string) => {
+				if (lineItem.length == 0) return
 				const keyValue : string[] = lineItem.split(':')
-				const key : string = keyValue[0]
+				const key : string = keyValue[0].trim()
 				const value : string = keyValue.slice(1).join(':')
+				const normalizedValue = value.trim()
 				if (key == 'data') {
-					if (value == " [DONE]") {
+					if (normalizedValue == "[DONE]") {
 						doneCallback()
 						return
 					}
 					let chunk : Chunk | null = null
 					try {
-						chunk = JSON.parse<Chunk>(value) as Chunk
+						chunk = JSON.parse<Chunk>(value.trimStart()) as Chunk
 					} catch (e) {
 						console.error('JSON.parse error', e, 'value:', value)
 					}
@@ -445,7 +462,7 @@ function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) =
 				} else if (key == '{"error"') {
 					let info : UTSJSONObject = {}
 					try {
-						info = JSON.parse<UTSJSONObject>('{"error":' + value) as UTSJSONObject
+						info = JSON.parse<UTSJSONObject>('{"error":' + value.trimStart()) as UTSJSONObject
 					} catch (e) {
 						console.error('JSON.parse error', e, 'value:', value)
 					}
