@@ -13,6 +13,13 @@ const STORAGE_KEYS: T_STORAGE_KEYS = {
 	MSG_CONTENT_PREFIX: 'uni-ai-msg-'
 }
 
+function migrateLegacyMessage(rawMessage: string, message: MsgItem): MsgItem {
+	if (rawMessage.includes('"datasList"')) {
+		message.markdownElList = []
+	}
+	return message
+}
+
 // aiChat表结构 - 会话基本信息
 export type AiChat = {
 	id: string
@@ -90,7 +97,9 @@ export class StorageManager {
 		try {
 			const key = `${STORAGE_KEYS.MSG_CONTENT_PREFIX}${msgId}`
 			const result = uni.getStorageSync(key) as string
-			return result.length > 0 ? JSON.parse<MsgItem>(result as string) as MsgItem : null
+			if (result.length == 0) return null
+			const msg = JSON.parse<MsgItem>(result as string) as MsgItem
+			return migrateLegacyMessage(result, msg)
 		} catch (error) {
 			console.error(`获取消息 ${msgId} 失败:`, error)
 			return null

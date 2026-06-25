@@ -45,6 +45,29 @@ type TmlFile = {
 }
 // #ifndef APP
 let uniCodeHighlighter = null as CreateHighLighter | null
+const grammarMap = {
+	javascript: javascriptGrammar,
+	python: pythonGrammar,
+	typescript: typescriptGrammar,
+	javascriptReact: javascriptReactGrammar,
+	html: htmlGrammar,
+	css: cssGrammar,
+	cpp: cppGrammar,
+	dart: dartGrammar,
+	go: goGrammar,
+	java: javaGrammar,
+	lua: luaGrammar,
+	php: phpGrammar,
+	r: rGrammar,
+	sql: sqlGrammar,
+	json: jsonGrammar,
+	jsonc: jsoncGrammar,
+	jsonl: jsonlGrammar,
+	c: cGrammar,
+	"cuda-cpp": cudaCppGrammar,
+	xml: xmlGrammar,
+	xsl: xslGrammar
+}
 // #endif
 
 function normalizeLanguage(language: string): string {
@@ -94,33 +117,8 @@ function initUniCodeHighlighter(callBack: () => void){
 	// #endif
 	// #ifndef APP
 	if (uniCodeHighlighter == null) {
-		// 根据 grammarList 生成tmls
-		const tmls = {
-			javascript: javascriptGrammar,
-			python: pythonGrammar,
-			typescript: typescriptGrammar,
-			javascriptReact: javascriptReactGrammar,
-			html: htmlGrammar,
-			css: cssGrammar,
-			cpp: cppGrammar,
-			dart: dartGrammar,
-			go: goGrammar,
-			java: javaGrammar,
-			lua: luaGrammar,
-			php: phpGrammar,
-			r: rGrammar,
-			sql: sqlGrammar,
-			json: jsonGrammar,
-			jsonc: jsoncGrammar,
-			jsonl: jsonlGrammar,
-			c: cGrammar,
-			"cuda-cpp": cudaCppGrammar,
-			xml: xmlGrammar,
-			xsl: xslGrammar
-		}
-		uniCodeHighlighter = new CreateHighLighter({ languages: tmls } as HighLighterOptions)
+		uniCodeHighlighter = new CreateHighLighter({ languages: grammarMap } as HighLighterOptions)
 		callBack()
-		// console.log(tmls)
 	} else {
 		callBack()
 	}

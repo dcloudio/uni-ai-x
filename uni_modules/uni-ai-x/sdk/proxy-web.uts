@@ -67,6 +67,7 @@ class ProxyWeb {
 			console.error('callback is null', funName)
 			return
 		}
+		this.callbackMap.delete(funName)
 		utils.uniGetDispatcher('io',()=>{
 			callback(res['param'] as UTSJSONObject)
 		})

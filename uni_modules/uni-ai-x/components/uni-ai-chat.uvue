@@ -161,17 +161,9 @@
 		})
 	}
 	
-	const isDemo = ref(testMarkdownText.length > 0)
+	const isDemo = computed<boolean>(() => testMarkdownText.length > 0)
 	const demoPrompt = '给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面'
 	const autoDemoRequested = ref<boolean>(false)
-	
-	// #ifdef WEB
-	setTimeout(() => {
-		if (isDemo.value) {
-			document.querySelector('.chat-input textarea')?.setAttribute('style', 'pointer-events: none;')
-		}
-	}, 0);
-	// #endif
 	
 	function markQA() {
 		if (isDemo.value) {
@@ -258,7 +250,7 @@
 		}
 	}, { deep: true })
 	
-	const changeThinkContent = (hideThinkContent: boolean) => {
+	const changeThinkContent = (_hideThinkContent: boolean) => {
 		setIsInScrollBottom()
 	}
 	
@@ -309,25 +301,11 @@
 		keyboardHeight.value = res.detail.height
 	}
 
-	const menuIsChangeIng = ref<boolean>(false)
-	let menuIsChangeIngT = 0
-	function setMenuIsChangeIng() {
-		if (menuIsChangeIngT != 0) {
-			clearTimeout(menuIsChangeIngT)
-		}
-		menuIsChangeIng.value = true
-		menuIsChangeIngT = setTimeout(() => {
-			menuIsChangeIng.value = false
-		}, 1000)
-	}
-
 	const changeMenu = () => {
-		setMenuIsChangeIng()
 		emit('change-menu')
 	}
 	
 	const closeMenu = () => {
-		setMenuIsChangeIng()
 		emit('close-menu')
 	}
 	
@@ -372,10 +350,11 @@
 	}
 	
 	onMounted(() => {
-		// 触摸和滚动不再暂停消息渲染，避免最终修正结果被卡在中间态。
-		uniAi.canRender = true
-		if (isDemo.value && msgList.value.length == 0 && state.value == 'none' && !autoDemoRequested.value) {
+		if (isDemo.value && !autoDemoRequested.value) {
 			autoDemoRequested.value = true
+			if (msgList.value.length > 0 || state.value != 'none') {
+				uniAi.addChat(false)
+			}
 			chatInputContent.value = demoPrompt
 			nextTick(() => {
 				uniAi.sendMsg(demoPrompt)
@@ -405,10 +384,6 @@
 			syncScrollToBottomBtn()
 		})
 		// #endif
-	})
-
-	onUnmounted(() => {
-		uniAi.canRender = true
 	})
 </script>
 

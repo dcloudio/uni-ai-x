@@ -70,11 +70,7 @@ export type Chunk = {
 	DONE?: boolean,
 }
 
-export type MarkdownElItem = {
-	uniqueId: string,
-	type: string,
-	datasList: MarkdownToken[][]
-}
+export type MarkdownElItem = MarkdownToken
 // 消息
 export type MsgItem = {
 	_id: string

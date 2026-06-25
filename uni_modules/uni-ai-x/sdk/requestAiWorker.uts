@@ -3,16 +3,12 @@ import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts';
-import treeToListSdk from '@/uni_modules/uni-ai-x/sdk/treeToList';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 
 export type OnMessageOptions = {
 	type: string,
 	data?: string | boolean | number,
-	action?: 'set' | 'update' | 'remove' | 'add',
-	index?: number,
-	size?: number,
 	markdownElList?: MarkdownElItem[]
 }
 
@@ -35,6 +31,8 @@ type BailianOptions = {
 }
 
 const SIMPLE_PARSE_INTERVAL = 120
+const DEMO_STREAM_BATCH_SIZE = 10
+const DEMO_STREAM_INTERVAL = 100
 
 // 消息类型
 export type RequestAiOptions = {
@@ -44,61 +42,38 @@ export type RequestAiOptions = {
 	chat_id: string
 }
 
-type OnMessageFn = (message : any) => void;
+type OnMessageFn = (message : OnMessageOptions) => void;
 class RequestAiWorker {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
 	parseMarkdownSimple : ParseMarkdownSimple | null = null
 	onMessageFnList : OnMessageFn[] = [];
-	canRender : boolean = true
 	currentChatState : string = ''
-	pendingMarkdownElList : MarkdownElItem[] | null = null
-	pendingParseDone : boolean = false
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
 	constructor() {
 		this.onMessageFnList = []
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
-			const markdownElList = newMarkdownTokenList.map((item : MarkdownToken) => this.token2el(item))
-			this.pendingMarkdownElList = markdownElList
-			this.pendingParseDone = this.pendingParseDone || isParseDone
-			if (!this.canRender) return
-			this.flushPendingRender()
+			this.emitOnMessage({
+				type: "setMarkdownElList",
+				markdownElList: newMarkdownTokenList
+			})
+			if (isParseDone) {
+				this.currentChatState = 'completed'
+				this.emitOnMessage({
+					type: "setCurrentChatState",
+					data: 'completed'
+				})
+				this.emitOnMessage({type: "setRendered", data: true} as OnMessageOptions)
+			}
 		}
 		this.resetParser()
 	}
 	entry() { }
-	flushPendingRender() {
-		const markdownElList = this.pendingMarkdownElList
-		if (markdownElList == null) return
-		const isParseDone = this.pendingParseDone
-		this.pendingMarkdownElList = null
-		this.pendingParseDone = false
-		this.emitOnMessage({
-			type: "setMarkdownElList",
-			action: 'set',
-			markdownElList
-		})
-		if (isParseDone) {
-			this.currentChatState = 'completed'
-			this.emitOnMessage({
-				type: "setCurrentChatState",
-				data: 'completed'
-			})
-			this.emitOnMessage({type: "setRendered", data: true} as OnMessageOptions)
-		}
-	}
 	resetParser() {
 		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElList, SIMPLE_PARSE_INTERVAL)
-	}
-	token2el(token : MarkdownToken) : MarkdownElItem {
-		return {
-			uniqueId: token.uniqueId!,
-			type: token.type!,
-			datasList: treeToListSdk.markTreeToList(token)
-		}
 	}
 	onChunkFn(chunkObj : Chunk) {
 		let reasoningContent: null | string = null
@@ -149,37 +124,17 @@ class RequestAiWorker {
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.currentChatState = ''
-		this.pendingMarkdownElList = null
-		this.pendingParseDone = false
 		this.userAbort = false
 		this.hasThinkContent = false
 		this.resetParser()
 
 		if (testMarkdownText.length > 0) {
-			let i = 0
-			let timer: number = 0
-			timer = setInterval(() => {
-				if (this.userAbort || i >= testMarkdownText.length) {
-					clearInterval(timer)
-					this.runMarkdownParse(true)
-				} else {
-					const batchSize = 10
-					const endIndex = Math.min(i + batchSize, testMarkdownText.length)
-					const newText = testMarkdownText.slice(i, endIndex)
-					this.msgBody += newText
-					this.emitOnMessage({
-						type: "setMsgBody",
-						data: this.msgBody
-					})
-					i = endIndex
-					this.runMarkdownParse(false)
-				}
-			}, 100)
+			this.streamDemoMarkdown()
 			return
 		}
 
 		this.updateChatTitle(messages, llm)
-		this.requestAlServer({
+		this.requestAiServer({
 			llm,
 			messages,
 			stream: true,
@@ -191,7 +146,7 @@ class RequestAiWorker {
 				this.onChunkFn(chunkObj)
 			},
 			onError: (errRes) => {
-				console.error('requestAlServer error', errRes)
+				console.error('requestAiServer error', errRes)
 				errRes = errRes as UTSJSONObject
 				const errCode = errRes.getString('errCode', '')
 				let errMsg = errRes.getString('errMsg', '未知错误')
@@ -212,7 +167,7 @@ class RequestAiWorker {
 			},
 			onDone: () => {
 				if (this.currentChatState == 'stop') {
-					console.log('requestAlServer onDone 当前对话已停止，忽略消息')
+					console.log('requestAiServer onDone 当前对话已停止，忽略消息')
 					return
 				}
 				if (!this.msgBody.endsWith('\n')) {
@@ -224,7 +179,26 @@ class RequestAiWorker {
 			this.requestTask = null
 		})
 	}
-	async requestViaCustomProvider(options : BailianOptions, resolveFn : (data : UTSJSONObject) => void, rejectFn : (data : UTSJSONObject) => void) : Promise<UTSJSONObject> {
+	streamDemoMarkdown() {
+		let index = 0
+		let timer: number = 0
+		timer = setInterval(() => {
+			if (this.userAbort || index >= testMarkdownText.length) {
+				clearInterval(timer)
+				this.runMarkdownParse(true)
+				return
+			}
+			const endIndex = Math.min(index + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
+			this.msgBody += testMarkdownText.slice(index, endIndex)
+			this.emitOnMessage({
+				type: "setMsgBody",
+				data: this.msgBody
+			})
+			index = endIndex
+			this.runMarkdownParse(false)
+		}, DEMO_STREAM_INTERVAL)
+	}
+	async requestViaCustomProvider(options : BailianOptions) : Promise<UTSJSONObject> {
 		const adapter = getCustomProvider(options.llm.provider)
 		if (adapter == null) {
 			const errInfo: UTSJSONObject = {
@@ -232,35 +206,18 @@ class RequestAiWorker {
 				errMsg: '自定义提供商适配器未注册: ' + options.llm.provider
 			}
 			options.onError?.(errInfo)
-			return new Promise<UTSJSONObject>((resolve, reject) => {
-				reject(errInfo)
-			})
+			throw errInfo
 		}
 
+		const callbacks: CustomProviderCallbacks = {
+			onChunk: options.onChunk,
+			onError: options.onError,
+			onDone: options.onDone
+		}
+		const currentChatId = options.chat_id ?? ''
+		let success = false
 		try {
-			const callbacks: CustomProviderCallbacks = {
-				onChunk: options.onChunk,
-				onError: options.onError,
-				onDone: options.onDone
-			}
-			const currentChatId = options.chat_id ?? ''
-			const success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks)
-
-			if (!success) {
-				const errInfo: UTSJSONObject = {
-					errCode: -201,
-					errMsg: '自定义提供商发送消息失败'
-				}
-				options.onError?.(errInfo)
-				return new Promise<UTSJSONObject>((resolve, reject) => {
-					reject(errInfo)
-				})
-			}
-
-			return new Promise<UTSJSONObject>((resolve, reject) => {
-				resolveFn = resolve
-				rejectFn = reject
-			})
+			success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks)
 		} catch (e) {
 			console.error('自定义提供商请求异常', e)
 			const errInfo: UTSJSONObject = {
@@ -268,33 +225,36 @@ class RequestAiWorker {
 				errMsg: '自定义提供商请求异常'
 			}
 			options.onError?.(errInfo)
-			return new Promise<UTSJSONObject>((resolve, reject) => {
-				reject(errInfo)
-			})
+			throw errInfo
 		}
+		if (!success) {
+			const errInfo: UTSJSONObject = {
+				errCode: -201,
+				errMsg: '自定义提供商发送消息失败'
+			}
+			options.onError?.(errInfo)
+			throw errInfo
+		}
+		return {} as UTSJSONObject
 	}
-	async requestAlServer(options : BailianOptions) : Promise<UTSJSONObject> {
+	async requestAiServer(options : BailianOptions) : Promise<UTSJSONObject> {
 		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
 		const config : Provider = llmModelMap.get(options.llm.provider)!
 
 		if (getCustomProvider(options.llm.provider) != null) {
-			return this.requestViaCustomProvider(options, resolveFn, rejectFn)
+			return this.requestViaCustomProvider(options)
 		}
 
 		let tmpToken : string;
 		try {
 			tmpToken = await config.getToken?.()!
 		} catch (e) {
-			options.onError?.({
+			const errInfo: UTSJSONObject = {
 				errCode: -100,
 				errMsg: '获取临时token失败'
-			} as UTSJSONObject)
-			return new Promise<UTSJSONObject>((resolve, reject) => {
-				reject({
-					errCode: -100,
-					errMsg: '获取临时token失败'
-				} as UTSJSONObject)
-			})
+			}
+			options.onError?.(errInfo)
+			throw errInfo
 		}
 		const requestTask: RequestTask = uni.request({
 			url: config.baseURL!,
@@ -373,7 +333,7 @@ class RequestAiWorker {
 			role: 'user',
 			content: '请总结一下这段对话的内容，不包含本对话，用于更新会话的标题。注意：可以直接使用的不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
 		})
-		this.requestAlServer({
+		this.requestAiServer({
 			llm,
 			messages,
 			stream: false,
@@ -389,42 +349,25 @@ class RequestAiWorker {
 			}
 		})
 	}
-	postMessage(message : RequestAiOptions | UTSJSONObject) {
-		if (message instanceof RequestAiOptions) {
-			const messageCopy : RequestAiOptions | UTSJSONObject = JSON.parse<RequestAiOptions>(JSON.stringify(message))!
-			if (messageCopy instanceof RequestAiOptions) {
-				utils.uniGetDispatcher("io", () => {
-					this.requestAi(messageCopy.messages as RequestAiCoMessage[], messageCopy.llm, messageCopy.chat_id);
-				});
-			}
-		} else if (message instanceof UTSJSONObject) {
-			const type = message.getString('type')
-			if (type == 'abortRequest') {
-				this.parseMarkdownSimple!.userAbort = true
-				this.userAbort = true
-				this.requestTask?.abort()
-				this.emitOnMessage({
-					type: "setCurrentChatState",
-					data: 'stop'
-				})
-				this.onMessageFnList.length = 0
-			} else if (type == 'setCanRender') {
-				this.canRender = message.getBoolean('value', true)
-				if (this.canRender) {
-					this.flushPendingRender()
-				}
-			} else {
-				console.error('postMessage未知任务类型的消息', message)
-			}
-		} else {
-			console.error('postMessage未知类型的消息', message)
-		}
+	postMessage(message : RequestAiOptions) {
+		utils.uniGetDispatcher("io", () => {
+			this.requestAi(message.messages, message.llm, message.chat_id);
+		});
+	}
+	abortRequest() {
+		this.parseMarkdownSimple!.userAbort = true
+		this.userAbort = true
+		this.requestTask?.abort()
+		this.emitOnMessage({
+			type: "setCurrentChatState",
+			data: 'stop'
+		})
+		this.onMessageFnList.length = 0
 	}
 	emitOnMessage(message : OnMessageOptions) {
-		const messageCopy = JSON.parse<OnMessageOptions>(JSON.stringify(message)) as OnMessageOptions
 		this.onMessageFnList.forEach(fn => {
 			utils.uniGetDispatcher("main", () => {
-				fn(messageCopy);
+				fn(message);
 			});
 		});
 	}

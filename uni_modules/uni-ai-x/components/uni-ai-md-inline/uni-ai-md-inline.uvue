@@ -1,0 +1,77 @@
+<template>
+	<text class="uni-ai-md-inline" :class="inlineClass" @click="toLink">{{inlineText}}</text>
+</template>
+
+<script lang="uts" setup>
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+
+	type UniAiMdInlineProps = {
+		node: MarkdownToken
+	}
+	const props = defineProps<UniAiMdInlineProps>()
+
+	const inlineClass = computed<string>(() => {
+		return 'uni-ai-md-inline-' + (props.node.type ?? 'text')
+	})
+
+	const inlineText = computed<string>(() => {
+		return tokenText(props.node)
+	})
+
+	function tokenText(node: MarkdownToken): string {
+		if (node.text != null) return node.text!
+		let text = ''
+		const children = node.tokens ?? node.items ?? [] as MarkdownToken[]
+		children.forEach((child: MarkdownToken) => {
+			text += tokenText(child)
+		})
+		return text
+	}
+
+	function toLink() {
+		const url = props.node.href
+		if (url == null || url.length == 0) return
+		uni.navigateTo({
+			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + url,
+			fail: (e) => {
+				console.error(e)
+			}
+		})
+	}
+</script>
+
+<style lang="scss">
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+	.uni-ai-md-inline {
+		font-size: 18px;
+		line-height: 28px;
+		color: var(--text-primary);
+		white-space: pre-wrap;
+	}
+
+	.uni-ai-md-inline-strong {
+		font-weight: 700;
+	}
+
+	.uni-ai-md-inline-em {
+		font-style: italic;
+	}
+
+	.uni-ai-md-inline-del {
+		text-decoration: line-through;
+	}
+
+	.uni-ai-md-inline-code,
+	.uni-ai-md-inline-codespan {
+		font-size: 16px;
+		padding: 1px 4px;
+		border-radius: 4px;
+		background-color: var(--bg-tertiary);
+	}
+
+	.uni-ai-md-inline-link {
+		color: #2979ff;
+		text-decoration: underline;
+	}
+</style>

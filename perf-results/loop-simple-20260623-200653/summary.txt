@@ -1,8 +1,0 @@
-Expected mode: simple
-FPS samples: 0
-Render log lines: 0
-Has send marker: False
-Has request marker: False
-Has run marker: False
-Has simple marker: False
-RESULT: FAIL simple chain did not execute

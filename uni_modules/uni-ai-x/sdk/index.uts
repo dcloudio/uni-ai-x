@@ -11,23 +11,9 @@ export {testMarkdownText}
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiWorker: RequestAiWorker | null = null
 type BeforeRequestAiFn = () => void
-type MessageHandlerMapFn = () => void
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
-	canRenderVue: boolean = true
-	get canRender(): boolean {
-		return this.canRenderVue
-	}
-	set canRender(value: boolean) {
-		if (this.canRenderVue != value) {
-			this.canRenderVue = value
-			requestAiWorker?.postMessage({
-				type: 'setCanRender',
-				value: value
-			} as UTSJSONObject)
-		}
-	}
 	imgList: ImgItem[] = reactive<ImgItem[]>([]);
 	// 当前用户
 	currentUser: Userinfo = currentUser
@@ -78,6 +64,7 @@ class UniAi {
 	addChat(checkEmpty: boolean = true) {
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
 		const lastItem = this.chat.datas.length == 0 ? null : this.chat.datas[0] as ChatItem | null;
+		let activeId = lastItem?.id ?? ''
 		if (!checkEmpty || lastItem?.msgList.length != 0) {
 			const newChat: ChatItem = {
 				id: this.getLocalMsgId(),
@@ -87,12 +74,13 @@ class UniAi {
 				msgList: reactive<MsgItem[]>([]),
 				inputContent: ''
 			};
-			this.chat.datas.push(newChat);
+			this.chat.datas.unshift(newChat);
+			activeId = newChat.id
 			this.saveChatList2Storage()
 		}
 		// 选中新创建的会话
 		nextTick(() => {
-			this.chat.activeId = this.chat.datas[0].id
+			this.chat.activeId = activeId
 		})
 	}
 	
@@ -297,10 +285,7 @@ class UniAi {
 	}
 	
 	abortRequest() {
-		// 终止请求
-		requestAiWorker?.postMessage({
-			type: 'abortRequest'
-		} as UTSJSONObject)
+		requestAiWorker?.abortRequest()
 	}
 	
 	async sendMsg(inputContent: string = ''): Promise<void> {
@@ -360,93 +345,46 @@ class UniAi {
 		console.log('uni-ai-x-render send mode=simple')
 		requestAiWorker = new RequestAiWorker()
 		requestAiWorker?.postMessage(requestAiOptions)
-		requestAiWorker?.onMessage((message: any) => {
-			if (!(message instanceof OnMessageOptions)){
-				console.log('onMessage 类型错误', message)
-				return
-			}
-			message = message as OnMessageOptions
+		requestAiWorker?.onMessage((message: OnMessageOptions) => {
 			// console.log('answerQuestion message', message)
 			const data = message.data
-			const messageHandlerMap = new Map<string, MessageHandlerMapFn>([
-				['setMarkdownElList', () => {
+			switch (message.type) {
+				case 'setMarkdownElList':
 					if (this.currentChat!.state == 'stop') {
 						console.log('setMarkdownElList 当前对话已停止，忽略消息')
 						return
 					}
-					// const start = Date.now()
-					const action = message.action
 					const markdownElList = message.markdownElList
-					if (action == 'set' && markdownElList != null) {
+					if (markdownElList != null) {
 						aiMsgItem.markdownElList = markdownElList!
-					} else if (action == 'update') {
-						if (message.index! < aiMsgItem.markdownElList.length) {
-							const markdownEl = message.markdownElList![0]
-							// console.log('markdownEl', markdownEl)
-							if (markdownEl.type == 'list'){
-								const oldList = aiMsgItem.markdownElList[message.index!].datasList[0]
-								const newList = markdownEl.datasList[0]
-								const oldLen = oldList.length, newLen = newList.length
-								// 如果新的还没旧的长，则直接删除丢失的项
-								if (newLen < oldLen) {
-									oldList.splice(newLen, oldLen - newLen)
-									// console.warn('删除', newLen, oldLen)
-								} else {
-									// 先找到旧数据中，对于新的数据中第一个不相同的索引（倒序避免扫整个列表）
-									let noDiffIndex = oldLen
-									for (let i = oldLen - 1; i >= 0; i--) {
-										// 如果新的和旧的第一个不相同的索引
-										if (oldList[i].text == newList[i].text) {
-											noDiffIndex = i
-											break
-										}
-									}
-									// 用新List将oldList原地更新为与newList一致（更高效且易于维护）
-									oldList.splice(noDiffIndex, oldList.length - noDiffIndex, ...newList.slice(noDiffIndex))
-								}
-							} else {
-								aiMsgItem.markdownElList[message.index!] = markdownEl
-							}
-						} else {
-							console.error('setMarkdownElList 索引越界', message.index!, aiMsgItem.markdownElList.length)
-						}
-					} else if (action == 'remove') {
-						aiMsgItem.markdownElList.splice(message.index!, message.size!)
-					} else if (action == 'add') {
-						aiMsgItem.markdownElList.push(...markdownElList!)
 					}
-					// console.warn("setMarkdownElList 耗时", Date.now() - start)
-				}],
-				['setThinkContent', () => {
+					break
+				case 'setThinkContent':
 					aiMsgItem.thinkContent = data as string
-				}],
-				['setMsgBody', () => {
+					break
+				case 'setMsgBody':
 					aiMsgItem.body = data as string
-				}],
-				['setMsgState', () => {
+					break
+				case 'setMsgState':
 					this.currentChat!.state = data as string
-				}],
-				['setErrorMsg', () => {
+					break
+				case 'setErrorMsg':
 					aiMsgItem.error_msg = data as string
-				}],
-				['setCurrentChatState', () => {
+					break
+				case 'setCurrentChatState':
 					this.currentChat!.state = data as string
 					if (data == 'stop') {
 						aiMsgItem.rendered = true
 					}
-				}],
-				['setRendered', () => {
+					break
+				case 'setRendered':
 					aiMsgItem.rendered = data as boolean
-				}],
-				['setChatTitle', () => {
+					break
+				case 'setChatTitle':
 					this.updateChatTitle(aiMsgItem.chat_id, data as string)
-				}]
-			])
-			const handler = messageHandlerMap.get(message.type)
-			if (handler != null) {
-				handler()
-			} else {
-				console.error('other answerQuestion message', message)
+					break
+				default:
+					console.error('other answerQuestion message', message)
 			}
 			if (message.type != 'setChatTitle'){
 				this.updateMsg2Storage(aiMsgItem)

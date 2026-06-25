@@ -75,8 +75,6 @@
 </script>
 
 <style lang="scss">
-	// 引用scss
-	@import '@/uni_modules/uni-ai-x/components/uni-ai-text-md/uni-ai-text-md.scss';
 	/* 蒸汽模式：仅单层 class */
 	.uni-ai-msg-table {
 		width: 100% !important;
@@ -120,5 +118,6 @@
 	.uni-ai-msg-table-cell-text-code {
 		padding: 1px 5px;
 		border-radius: 10px;
+		background-color: #f5f5f5;
 	}
 </style>

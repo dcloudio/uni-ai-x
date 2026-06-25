@@ -1,0 +1,71 @@
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+
+type MathStart = {
+	index: number
+	startToken: string
+	endToken: string
+}
+
+function findMathStart(text: string): MathStart | null {
+	const pattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
+	const index = text.search(pattern)
+	if (index == -1) return null
+	const match = text.match(pattern)![0]!
+	let endToken = match
+	if (match == '\\[') endToken = '\\]'
+	if (match == '\\(') endToken = '\\)'
+	if (match.startsWith('\\begin{')) endToken = '\\end{' + match.slice(7)
+	return { index, startToken: match, endToken } as MathStart
+}
+
+export function preprocessMathText(markdownText: string): string {
+	const parts = markdownText.split('```')
+	let result = ''
+	for (let i = 0; i < parts.length; i++) {
+		if (i % 2 == 1) {
+			result += '```' + parts[i]
+			continue
+		}
+		let text = parts[i]
+		let output = ''
+		while (text.length > 0) {
+			const start = findMathStart(text)
+			if (start == null) {
+				output += text
+				break
+			}
+			const index = start.index
+			const startToken = start.startToken
+			const endToken = start.endToken
+			const contentStart = index + startToken.length
+			const rest = text.slice(contentStart)
+			const endIndex = rest.indexOf(endToken)
+			if (endIndex == -1) {
+				output += text
+				break
+			}
+			output += text.slice(0, index) + "\n```math\n" + rest.slice(0, endIndex) + "\n```\n"
+			text = rest.slice(endIndex + endToken.length)
+		}
+		result += (i == 0 ? '' : '```') + output
+	}
+	return result
+}
+
+export function setApproxTableContentWidth(tableData: MarkdownToken[]) {
+	for (let rowIndex = 0; rowIndex < tableData.length; rowIndex++) {
+		const row = tableData[rowIndex]
+		for (let cellIndex = 0; cellIndex < (row.tokens?.length ?? 0); cellIndex++) {
+			const cell = row.tokens![cellIndex]
+			cell.width = 0
+			for (let itemIndex = 0; itemIndex < (cell.tokens?.length ?? 0); itemIndex++) {
+				const cellItem = cell.tokens![itemIndex]
+				const text = cellItem.text ?? utils.getTokensText(cellItem.tokens)
+				const fontSize = rowIndex == 0 ? 16 : 14
+				cellItem.width = text.length == 0 ? 0 : text.length * fontSize * 0.6
+				cell.width = (cell.width ?? 0) + cellItem.width
+			}
+		}
+	}
+}
