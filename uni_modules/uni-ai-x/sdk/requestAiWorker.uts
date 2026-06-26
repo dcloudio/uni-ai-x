@@ -119,13 +119,44 @@ class RequestAiWorker {
 			this.parseMarkdownSimple?.runTask(this.msgBody)
 		}
 	}
-	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+	resetRequestState() {
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.currentChatState = ''
 		this.userAbort = false
 		this.hasThinkContent = false
 		this.resetParser()
+	}
+	handleRequestError(errRes: UTSJSONObject) {
+		console.error('requestAiServer error', errRes)
+		const errCode = errRes.getString('errCode', '')
+		let errMsg = errRes.getString('errMsg', '未知错误')
+		if (errCode == 'data_inspection_failed') {
+			errMsg = '数据检查失败，疑似包含敏感信息'
+		}
+		if (this.userAbort == false) {
+			this.emitOnMessage({
+				type: "setErrorMsg",
+				data: errMsg
+			})
+		}
+		this.currentChatState = 'stop'
+		this.emitOnMessage({
+			type: "setCurrentChatState",
+			data: 'stop'
+		})
+	}
+	finishRequest() {
+		if (this.currentChatState == 'stop') {
+			return
+		}
+		if (!this.msgBody.endsWith('\n')) {
+			this.msgBody += '\n'
+		}
+		this.runMarkdownParse(true)
+	}
+	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		this.resetRequestState()
 
 		if (testMarkdownText.length > 0) {
 			this.streamDemoMarkdown()
@@ -145,34 +176,10 @@ class RequestAiWorker {
 				this.onChunkFn(chunkObj)
 			},
 			onError: (errRes) => {
-				console.error('requestAiServer error', errRes)
-				errRes = errRes as UTSJSONObject
-				const errCode = errRes.getString('errCode', '')
-				let errMsg = errRes.getString('errMsg', '未知错误')
-				if (errCode == 'data_inspection_failed') {
-					errMsg = '数据检查失败，疑似包含敏感信息'
-				}
-				if (this.userAbort == false) {
-					this.emitOnMessage({
-						type: "setErrorMsg",
-						data: errMsg
-					})
-				}
-				this.currentChatState = 'stop'
-				this.emitOnMessage({
-					type: "setCurrentChatState",
-					data: 'stop'
-				})
+				this.handleRequestError(errRes as UTSJSONObject)
 			},
 			onDone: () => {
-				if (this.currentChatState == 'stop') {
-					console.log('requestAiServer onDone 当前对话已停止，忽略消息')
-					return
-				}
-				if (!this.msgBody.endsWith('\n')) {
-					this.msgBody += '\n'
-				}
-				this.runMarkdownParse(true)
+				this.finishRequest()
 			}
 		}).finally(() => {
 			this.requestTask = null
