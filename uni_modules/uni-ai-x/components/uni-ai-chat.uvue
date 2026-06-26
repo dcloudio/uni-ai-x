@@ -87,19 +87,14 @@
 		return uniAi.currentChat?.msgList ?? []
 	})
 	
-	const chatInputContent = ref<string>(uniAi.currentChat?.inputContent ?? '')
-	
-	watch(chatInputContent, (newValue: string) => {
-		if (uniAi.currentChat != null) {
-			uniAi.currentChat!.inputContent = newValue
-		}
-	})
-	
-	watch((): string | null => {
-		return uniAi.currentChat?.inputContent ?? null
-	}, (newValue: string | null) => {
-		if (newValue != null) {
-			chatInputContent.value = newValue
+	const chatInputContent = computed<string>({
+		get: (): string => {
+			return uniAi.currentChat?.inputContent ?? ''
+		},
+		set: (value: string) => {
+			if (uniAi.currentChat != null) {
+				uniAi.currentChat!.inputContent = value
+			}
 		}
 	})
 	
@@ -215,7 +210,6 @@
 	}
 	
 	const onlongTapMsg = (item: MsgItem) => {
-		// console.log('onlongTapMsg', item)
 		if (scrolling.value) {
 			return
 		}
@@ -250,8 +244,6 @@
 					}
 				}
 			},
-			fail(err){
-			}
 		})
 	}
 	
@@ -267,7 +259,7 @@
 		emit('close-menu')
 	}
 	
-	const onScroll = (e: UniScrollEvent) => {
+	const onScroll = () => {
 		setIsInScrollBottom()
 		scrolling.value = true
 		syncScrollToBottomBtn()
