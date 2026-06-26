@@ -112,16 +112,16 @@ class UniAi {
 	}
 	
 	constructor() {
-		// 从新的存储结构中获取数据
 		this.loadDataFromNewStorage()
-
-		// 获取 setting
+		this.loadSetting()
+		this.watchSetting()
+	}
+	private loadSetting() {
 		uni.getStorage({
 			key: 'uni-ai-setting',
 			success: (res) => {
 				if (res.data != null) {
 					const setting = JSON.parse<Setting>(JSON.stringify(res.data)) as Setting
-					// TODO: 如果直接对this.setting赋值会导致响应式丢失
 					this.setting.theme = setting.theme
 					this.setting.language = setting.language
 					this.setting.llm = setting.llm
@@ -131,28 +131,27 @@ class UniAi {
 				// console.error('uni-ai-setting 获取失败', err)
 			}
 		})
-		
-		// 监听设置变化，自动保存设置
+	}
+	private watchSetting() {
 		watch((): Setting => this.setting, () => {
-			// 通知代理web设置变化
-			proxyWeb.callMethod({
-				action: 'setSetting',
-				data: this.setting
-			}, (res) => {
-				console.log('setSetting', res)
-			})
-			// 自动保存设置到本地
-			uni.setStorage({
-				key: 'uni-ai-setting',
-				data: this.setting,
-				success: () => {
-					// console.log('uni-ai-setting 存储成功', this.setting)
-				},
-				fail: (err) => {
-					console.error('uni-ai-setting 存储失败', err)
-				}
-			})
+			this.syncSettingToProxyWeb()
+			this.saveSetting()
 		}, { deep: true, immediate: true })
+	}
+	private syncSettingToProxyWeb() {
+		proxyWeb.callMethod({
+			action: 'setSetting',
+			data: this.setting
+		}, () => {})
+	}
+	private saveSetting() {
+		uni.setStorage({
+			key: 'uni-ai-setting',
+			data: this.setting,
+			fail: (err) => {
+				console.error('uni-ai-setting 存储失败', err)
+			}
+		})
 	}
 	/**
 	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
