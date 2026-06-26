@@ -1,5 +1,6 @@
 export type TextWidthMode = 'normal' | 'mono'
 
+// 流式 Markdown 解析需要同步返回宽度；canvas measureText 可作为后续增强，但不放进主链路。
 function isFullWidthChar(code: number): boolean {
 	return (code >= 0x1100 && code <= 0x115f)
 		|| (code >= 0x2e80 && code <= 0xa4cf)

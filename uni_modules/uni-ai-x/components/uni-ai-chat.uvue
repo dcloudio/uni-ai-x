@@ -67,6 +67,7 @@
 	let scrollingT = 0
 	let scrollBottomCheckTimer = 0
 	let showScrollToBottomTimer = 0
+	let mouseScrollTimer = 0
 	let mouseScroll = false
 	let needSetLockAutoToLastMsg = true
 	
@@ -97,14 +98,18 @@
 	}
 	
 	const autoDemoRequested = ref<boolean>(false)
+
+	function clearTimer(timer: number): number {
+		if (timer != 0) {
+			clearTimeout(timer)
+		}
+		return 0
+	}
 	
 	function syncScrollToBottomBtn() {
 		const shouldShow = !scrollInBottom.value && !scrolling.value
 		if (!shouldShow) {
-			if (showScrollToBottomTimer != 0) {
-				clearTimeout(showScrollToBottomTimer)
-				showScrollToBottomTimer = 0
-			}
+			showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
 			showScrollToBottom.value = false
 			return
 		}
@@ -229,9 +234,7 @@
 		setIsInScrollBottom()
 		scrolling.value = true
 		syncScrollToBottomBtn()
-		if (scrollingT != 0) {
-			clearTimeout(scrollingT)
-		}
+		scrollingT = clearTimer(scrollingT)
 		scrollingT = setTimeout(() => {
 			scrolling.value = false
 			syncScrollToBottomBtn()
@@ -240,10 +243,7 @@
 
 	let touchClearTimer: number = 0
 	function setTouchState(state: boolean) {
-		if (touchClearTimer != 0) {
-			clearTimeout(touchClearTimer)
-			touchClearTimer = 0
-		}
+		touchClearTimer = clearTimer(touchClearTimer)
 		if (state) {
 			scrollTouch.value = true
 		} else {
@@ -279,12 +279,12 @@
 			scrollToLastMsg(false)
 		})
 		// #ifdef H5
-		window.addEventListener('wheel', (e: WheelEvent) => {
+		window.addEventListener('wheel', () => {
 			mouseScroll = true
-			let clear: number = 0
-			clear = setTimeout(() => {
+			mouseScrollTimer = clearTimer(mouseScrollTimer)
+			mouseScrollTimer = setTimeout(() => {
 				mouseScroll = false
-				clearTimeout(clear)
+				mouseScrollTimer = 0
 			}, 1000)
 		})
 		// #endif

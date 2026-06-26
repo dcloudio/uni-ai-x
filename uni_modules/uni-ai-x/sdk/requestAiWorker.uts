@@ -19,6 +19,7 @@ type RequestAiOnErrorFn = (err : UTSJSONObject) => void
 type RequestAiOnDoneFn = (data : UTSJSONObject) => void
 type RequestAiOnSuccessFn = (chunkObj : Chunk) => void
 type RequestAiOnTaskCreateFn = (requestTask : RequestTask) => void
+type RequestPromiseFn = (data : UTSJSONObject) => void
 type RequestAiServerOptions = {
 	llm : Llm,
 	messages : RequestAiCoMessage[],
@@ -72,7 +73,6 @@ class RequestAiWorker {
 		}
 		this.resetParser()
 	}
-	entry() { }
 	resetParser() {
 		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElList, SIMPLE_PARSE_INTERVAL)
 	}
@@ -164,6 +164,9 @@ class RequestAiWorker {
 		}
 
 		this.updateChatTitle(messages, llm)
+		this.requestRemoteAi(messages, llm, chat_id)
+	}
+	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
 		this.requestAiServer({
 			llm,
 			messages,
@@ -245,23 +248,13 @@ class RequestAiWorker {
 	}
 	async requestAiServer(options : RequestAiServerOptions) : Promise<UTSJSONObject> {
 		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
-		const config : Provider = llmModelMap.get(options.llm.provider)!
 
 		if (getCustomProvider(options.llm.provider) != null) {
 			return this.requestViaCustomProvider(options)
 		}
 
-		let tmpToken : string;
-		try {
-			tmpToken = await config.getToken?.()!
-		} catch (e) {
-			const errInfo: UTSJSONObject = {
-				errCode: -100,
-				errMsg: '获取临时token失败'
-			}
-			options.onError?.(errInfo)
-			throw errInfo
-		}
+		const config = this.getProviderConfig(options.llm.provider, options)
+		const tmpToken = await this.requestProviderToken(config, options)
 		const requestTask: RequestTask = uni.request({
 			url: config.baseURL!,
 			method: 'POST',
@@ -278,25 +271,7 @@ class RequestAiWorker {
 				'Content-Type': 'application/json'
 			},
 			success: (res : RequestSuccess<any>) => {
-				if (options.stream == false) {
-					const strData = typeof res.data == 'string' ? res.data : JSON.stringify(res.data)
-					const chunkObj : Chunk = (JSON.parse<Chunk>(strData) ?? {}) as Chunk
-					options.onSuccess?.(chunkObj)
-				} else {
-					if (res.data instanceof UTSJSONObject) {
-						const error = res.data.getJSON('error')
-						if (error != null) {
-							const errInfo: UTSJSONObject = {
-								errCode: error.getString('code', 'unknown'),
-								errMsg: error.getString('message', '未知错误')
-							}
-							options.onError?.(errInfo)
-							rejectFn(errInfo)
-							return
-						}
-					}
-					resolveFn({} as UTSJSONObject)
-				}
+				this.handleRequestSuccess(res, options, resolveFn, rejectFn)
 			},
 			fail: (err : RequestFail) => {
 				console.error('request fail', err)
@@ -310,25 +285,74 @@ class RequestAiWorker {
 		})
 		options.onTaskCreate?.(requestTask)
 		if (options.stream == true) {
-			// @ts-ignore
-			requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
-				parseChunkData(chunk.data as ArrayBuffer, (chunkObj : Chunk) => {
-					options.onChunk?.(chunkObj)
-				},
-					(err : UTSJSONObject) => {
-						err.errCode = err.code ?? ''
-						err.errMsg = err.message ?? '未知错误'
-						options.onError?.(err)
-						rejectFn(err)
-					},
-					() => {
-						options.onDone?.({} as UTSJSONObject)
-					})
-			})
+			this.bindStreamChunks(requestTask, options, rejectFn)
 		}
 		return new Promise<UTSJSONObject>((resolve, reject) => {
 			resolveFn = (data : UTSJSONObject) => { resolve(data as UTSJSONObject) }
 			rejectFn = (data : UTSJSONObject) => { reject(data as UTSJSONObject) }
+		})
+	}
+	getProviderConfig(provider: string, options: RequestAiServerOptions): Provider {
+		const config = llmModelMap.get(provider)
+		if (config == null) {
+			const errInfo: UTSJSONObject = {
+				errCode: -101,
+				errMsg: '模型提供商未配置: ' + provider
+			}
+			options.onError?.(errInfo)
+			throw errInfo
+		}
+		return config
+	}
+	async requestProviderToken(config: Provider, options: RequestAiServerOptions): Promise<string> {
+		try {
+			return await config.getToken?.()!
+		} catch (e) {
+			const errInfo: UTSJSONObject = {
+				errCode: -100,
+				errMsg: '获取临时token失败'
+			}
+			options.onError?.(errInfo)
+			throw errInfo
+		}
+	}
+	handleRequestSuccess(res: RequestSuccess<any>, options: RequestAiServerOptions, resolveFn: RequestPromiseFn, rejectFn: RequestPromiseFn) {
+		if (options.stream == false) {
+			const strData = typeof res.data == 'string' ? res.data : JSON.stringify(res.data)
+			const chunkObj : Chunk = (JSON.parse<Chunk>(strData) ?? {}) as Chunk
+			options.onSuccess?.(chunkObj)
+			resolveFn({} as UTSJSONObject)
+			return
+		}
+		if (res.data instanceof UTSJSONObject) {
+			const error = res.data.getJSON('error')
+			if (error != null) {
+				const errInfo: UTSJSONObject = {
+					errCode: error.getString('code', 'unknown'),
+					errMsg: error.getString('message', '未知错误')
+				}
+				options.onError?.(errInfo)
+				rejectFn(errInfo)
+				return
+			}
+		}
+		resolveFn({} as UTSJSONObject)
+	}
+	bindStreamChunks(requestTask: RequestTask, options: RequestAiServerOptions, rejectFn: RequestPromiseFn) {
+		// @ts-ignore
+		requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
+			parseChunkData(chunk.data as ArrayBuffer, (chunkObj : Chunk) => {
+				options.onChunk?.(chunkObj)
+			},
+				(err : UTSJSONObject) => {
+					err.errCode = err.code ?? ''
+					err.errMsg = err.message ?? '未知错误'
+					options.onError?.(err)
+					rejectFn(err)
+				},
+				() => {
+					options.onDone?.({} as UTSJSONObject)
+				})
 		})
 	}
 	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm) {
@@ -356,7 +380,7 @@ class RequestAiWorker {
 		})
 	}
 	postMessage(message : RequestAiOptions) {
-		utils.uniGetDispatcher("io", () => {
+		utils.runOnDispatcher("io", () => {
 			this.requestAi(message.messages, message.llm, message.chat_id);
 		});
 	}
@@ -372,7 +396,7 @@ class RequestAiWorker {
 	}
 	emitOnMessage(message : OnMessageOptions) {
 		this.onMessageFnList.forEach(fn => {
-			utils.uniGetDispatcher("main", () => {
+			utils.runOnDispatcher("main", () => {
 				fn(message);
 			});
 		});

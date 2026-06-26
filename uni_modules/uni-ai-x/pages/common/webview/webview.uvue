@@ -44,7 +44,7 @@
 	}
 	
 	const webviewError = (event: UniWebViewErrorEvent) => {
-		console.log('webviewError', event);
+		console.error('webviewError', event);
 	}
 	
 	const back = () => {

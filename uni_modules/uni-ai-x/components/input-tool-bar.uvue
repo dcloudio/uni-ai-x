@@ -24,7 +24,7 @@
 </template>
 <script lang="uts" setup>
 import uniAi, { uiTheme, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
-import {llmModelMap, type LLMModel} from '../config';
+import {llmModelMap, defaultLLM, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts';
 
@@ -60,16 +60,18 @@ const canParseImg = computed<boolean>(() => {
 const currentLLMModel = computed<LLMModel>(() => {
     const provider = uniAi.llm.provider
     const model = uniAi.llm.model
-		const currentProviderInfo = llmModelMap.get(provider)
-		if (currentProviderInfo == null) {
-			uni.showModal({
-				content: 'provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider',
-				showCancel: false
-			});
-			console.error('provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider')
-		}
-    const currentLLMModel = currentProviderInfo!.models.find(m => m.name == model) as LLMModel;
-    return currentLLMModel
+    const currentProviderInfo = llmModelMap.get(provider)
+    if (currentProviderInfo == null) {
+        if (!isCustomProvider(provider)) {
+            uni.showModal({
+                content: 'provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider',
+                showCancel: false
+            });
+            console.error('provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider')
+        }
+        return { name: model.length > 0 ? model : defaultLLM.model } as LLMModel
+    }
+    return currentProviderInfo.models.find(m => m.name == model) ?? currentProviderInfo.models[0]!
 });
 
 const webSearch = computed<boolean>(() => {

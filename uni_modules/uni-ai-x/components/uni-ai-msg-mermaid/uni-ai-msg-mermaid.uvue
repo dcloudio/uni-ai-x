@@ -1,0 +1,87 @@
+<template>
+	<view class="uni-code-msg-mermaid-image-box">
+		<!-- #ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN -->
+			<!-- #ifdef MP-WEIXIN -->
+			<text class="uni-code-msg-not-support-tip">小程序端不支持图表渲染</text>
+			<!-- #endif -->
+			<!-- #ifndef MP-WEIXIN -->
+			<text class="uni-code-msg-not-support-tip">当前 HBuilderX 版本低于 4.81，暂不支持图表渲染</text>
+			<!-- #endif -->
+		<!-- #endif -->
+		<template v-for="(mermaidInfo, i) in mermaidInfos" :key="i">
+			<image @click="previewMermaidImage" class="uni-code-msg-mermaid-image" mode="aspectFit"
+				v-if="mermaidInfo.renderd" :src="mermaidInfo.href" :style="{opacity: mermaidInfo.show ? 1 : 0}"
+			/>
+		</template>
+	</view>
+</template>
+
+<script lang="uts" setup>
+type UniAiMsgMermaidProps = {
+	href?: string
+}
+
+const props = withDefaults(defineProps<UniAiMsgMermaidProps>(), {
+	href: null
+})
+
+type Mermaid = {
+	href: string
+	show: boolean
+	renderd: boolean
+}
+
+const mermaidInfos = reactive<Mermaid[]>([])
+
+function hasMermaidImage(href: string | null): boolean {
+	return href != null && href.length > 0
+}
+
+watch((): string | null => props.href, (href: string | null) => {
+	if (!hasMermaidImage(href)) return
+	const index = mermaidInfos.length
+	const imageHref = href as string
+	const mermaid: Mermaid = {
+		href: imageHref,
+		renderd: true,
+		show: index == 0 ? true : false
+	}
+	mermaidInfos.push(mermaid)
+	if (index != 0) {
+		setTimeout(() => {
+			mermaidInfos[index].show = true
+			mermaidInfos[index - 1].renderd = false
+		}, 300)
+	}
+}, {immediate: true})
+
+const previewMermaidImage = () => {
+	if (props.href != null) {
+		uni.previewImage({
+			urls: [props.href as string]
+		})
+	}
+}
+</script>
+
+<style lang="scss" scoped>
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.uni-code-msg-mermaid-image-box {
+	height: 400px;
+	background-color: #FFF;
+	align-items: center;
+}
+
+.uni-code-msg-not-support-tip {
+	font-size: 12px;
+	color: var(--warning-color);
+	margin-top: 10px;
+}
+
+.uni-code-msg-mermaid-image {
+	position: absolute;
+	top: 0;
+	height: 100%;
+}
+</style>

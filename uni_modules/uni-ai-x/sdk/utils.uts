@@ -12,8 +12,8 @@ class Utils {
 		})
 		return text
 	}
-	// 把 UTSAndroid.getDispatcher("io").async((_) => 封装成一个函数
-	uniGetDispatcher(taskName : string, fn : () => void) {
+	// Android 原生 UTS 可切换调度器；蒸汽模式 JS 引擎下回退为当前线程执行。
+	runOnDispatcher(taskName : string, fn : () => void) {
 		// #ifdef APP-ANDROID
 		try {
 			UTSAndroid.getDispatcher(taskName).async((_) => {

@@ -344,12 +344,10 @@ class UniAi {
 		requestAiWorker = new RequestAiWorker()
 		requestAiWorker?.postMessage(requestAiOptions)
 		requestAiWorker?.onMessage((message: OnMessageOptions) => {
-			// console.log('answerQuestion message', message)
 			const data = message.data
 			switch (message.type) {
 				case 'setMarkdownElList':
 					if (this.currentChat!.state == 'stop') {
-						console.log('setMarkdownElList 当前对话已停止，忽略消息')
 						return
 					}
 					const markdownElList = message.markdownElList

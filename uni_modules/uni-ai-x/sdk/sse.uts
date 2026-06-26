@@ -2,7 +2,7 @@ import { Chunk } from '@/uni_modules/uni-ai-x/types.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
 export function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
-	utils.uniGetDispatcher("io", () => {
+	utils.runOnDispatcher("io", () => {
 		const chunkText : string = new TextDecoder().decode(chunkData)
 		const normalizedChunkText = chunkText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 		const lines : string[] = normalizedChunkText.split('\n\n')

@@ -19,22 +19,19 @@ class ProxyWeb {
 	callMethod(param : UTSJSONObject, callback : OnMsgFn) {
 		// 先判断 isInit 是否为 true
 		if (this.isInit == false) {
-			// console.log('isInit false , wait 1s')
 			setTimeout(() => {
 				this.callMethod(param, callback)
 			}, 1000)
 			return
 		}
-		// console.log('callMethod', param)
 		const requestId = Date.now() + Math.random().toString(36).substring(2, 15)
 		param['requestId'] = requestId
 		const key = (param['action'] as string) + '_callback_' + requestId
 		this.callbackMap.set(key, callback)
 
 		const code = `onMessage("${encodeURIComponent(JSON.stringify(param))}")`;
-		// console.log('code', code)
 		// #ifdef APP
-		utils.uniGetDispatcher('main', () => {
+		utils.runOnDispatcher('main', () => {
 			(this.webviewContext as WebviewEvalTarget | null)?.evalJS(code)
 		})
 		// #endif
@@ -46,7 +43,6 @@ class ProxyWeb {
 		this.webviewContext = webviewContext
 	}
 	onWebMsg(e : UniWebViewMessageEvent) {
-		// console.log('onWebMsg', e)
 		const event = e.detail.data[0] as UTSJSONObject
 		const action = event['action'] as string
 		const param = event['param'] as UTSJSONObject
@@ -61,14 +57,13 @@ class ProxyWeb {
 			return
 		}
 		const funName = res['action']! as string
-		// console.log('funName', funName)
 		const callback = this.callbackMap.get(funName)
 		if (callback == null) {
 			console.error('callback is null', funName)
 			return
 		}
 		this.callbackMap.delete(funName)
-		utils.uniGetDispatcher('io',()=>{
+		utils.runOnDispatcher('io',()=>{
 			callback(res['param'] as UTSJSONObject)
 		})
 	}

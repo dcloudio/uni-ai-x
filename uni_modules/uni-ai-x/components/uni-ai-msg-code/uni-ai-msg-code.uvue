@@ -16,21 +16,7 @@
 		<view v-if="!showMermaidImage && shouldShowHorizontalHint" class="uni-code-msg-scroll-tip-row">
 			<text class="uni-code-msg-scroll-tip">左右滑动查看完整代码</text>
 		</view>
-		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box">
-			<!-- #ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN -->
-				<!-- #ifdef MP-WEIXIN -->
-				<text class="uni-code-msg-not-support-tip">小程序端不支持图表渲染</text>
-				<!-- #endif -->
-				<!-- #ifndef MP-WEIXIN -->
-				<text class="uni-code-msg-not-support-tip">当前 HBuilderX 版本低于 4.81，暂不支持图表渲染</text>
-				<!-- #endif -->
-			<!-- #endif -->
-			<template v-for="(mermaidInfo, i) in mermaidInfos" :key="i">
-				<image @click="previewMermaidImage" class="uni-code-msg-mermaid-image" mode="aspectFit" 
-					v-if="mermaidInfo.renderd" :src="mermaidInfo.href" :style="{opacity: mermaidInfo.show ? 1 : 0}"
-				/>
-			</template>
-		</view>
+		<uni-ai-msg-mermaid v-if="language == 'mermaid' && showMermaidImage" :href="href" />
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<text v-if="shouldUseOriginCode" class="uni-code-msg-origin-line" v-for="(lineText, lineIndex) in rawCodeLines" :key="'raw-' + lineIndex" :style="{width: maxLineWidth}">{{lineText}}</text>
 			<text v-else class="uni-code-msg-line" v-for="(tokens,index) in props.codeTokens" :key="index" :style="{width: maxLineWidth}">
@@ -44,6 +30,7 @@
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+import uniAiMsgMermaid from '@/uni_modules/uni-ai-x/components/uni-ai-msg-mermaid/uni-ai-msg-mermaid.uvue'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
@@ -69,34 +56,9 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	href: null
 })
 
-type Mermaid = {
-	href: string
-	show: boolean
-	renderd: boolean
-}
-const mermaidInfos = reactive<Mermaid[]>([])
-
 function hasMermaidImage(href: string | null): boolean {
 	return href != null && href.length > 0
 }
-
-watch((): string | null => props.href, (href: string | null) => {
-	if (!hasMermaidImage(href)) return
-	const index = mermaidInfos.length
-	const imageHref = href as string
-	const mermaid: Mermaid = {
-		href: imageHref,
-		renderd: true,
-		show: index == 0 ? true : false
-	}
-	mermaidInfos.push(mermaid)
-	if (index != 0) {
-		setTimeout(() => {
-			mermaidInfos[index].show = true
-			mermaidInfos[index - 1].renderd = false
-		}, 300)
-	}
-}, {immediate: true})
 
 const maxLineWidth = ref<string>('')
 const showMermaidImage = ref<boolean>(false)
@@ -229,13 +191,6 @@ const copyCode = () => {
 	})
 }
 
-const previewMermaidImage = () => {
-	if (props.href != null) {
-		uni.previewImage({
-			urls: [props.href]
-		})
-	}
-}
 </script>
 
 <style lang="scss" scoped>
@@ -346,24 +301,6 @@ const previewMermaidImage = () => {
 	font-size: 10px;
 	color: var(--text-primary);
 	margin-left: 2px;
-}
-
-.uni-code-msg-mermaid-image-box {
-	height: 400px;
-	background-color: #FFF;
-	align-items: center;
-}
-
-.uni-code-msg-not-support-tip {
-	font-size: 12px;
-	color: var(--warning-color);
-	margin-top: 10px;
-}
-
-.uni-code-msg-mermaid-image {
-	position: absolute;
-	top: 0;
-	height: 100%;
 }
 
 .uni-code-msg-code-scroll-view {

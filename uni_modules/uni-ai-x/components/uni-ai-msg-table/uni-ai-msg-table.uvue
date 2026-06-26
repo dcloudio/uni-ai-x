@@ -39,7 +39,7 @@
 		// 拿到所有表格宽度
 		const _columnWidths : number[] = []
 		// 总列数
-		const columnCount = tableData.value[0].tokens?.length ?? 0
+		const columnCount = tableData.value.length > 0 ? (tableData.value[0].tokens?.length ?? 0) : 0
 		for (let i = 0; i < columnCount; i++) {
 			const _columnWidth : number = tableData.value.map((row) : number => row.tokens?.[i].width ?? 0).reduce((max, width) => Math.max(max, width), 0)
 			_columnWidths.push(Math.min(_columnWidth + 16, 300))

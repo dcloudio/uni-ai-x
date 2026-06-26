@@ -39,10 +39,6 @@ export type ParseLineCodeRes = {
 	error: string | null
 }
 export type ParseLineCodeCallBack = (parseLineCodeRes: ParseLineCodeRes) => void
-type TmlFile = {
-	scopeName : string,
-	path : string
-}
 // #ifndef APP
 let uniCodeHighlighter = null as CreateHighLighter | null
 const grammarMap = {
@@ -90,24 +86,6 @@ function createPlainTextTokens(codeSource: string): MarkdownToken[] {
 		text: codeSource,
 		className: ''
 	}] as MarkdownToken[]
-}
-
-function getTmlFile(filePaths: TmlFile[]) {
-	let fileManager = uni.getFileSystemManager()
-	let res = {}
-	try {
-		filePaths.forEach(item => {
-			let content = fileManager.readFileSync(item.path, 'utf-8') as string
-			res[item.scopeName] = JSON.parse(content)
-		})
-	} catch (err) {
-		console.error('读取tml文件失败，请检查文件是否存在', err, filePaths)
-		uni.showToast({
-			title: '读取tml文件失败，请检查文件是否存在',
-			icon: 'none'
-		})
-	}
-	return res
 }
 
 function initUniCodeHighlighter(callBack: () => void){
@@ -180,8 +158,7 @@ export function parseLineCode(parseLineCodeCallBack: ParseLineCodeCallBack, code
 		initUniCodeHighlighter(() => {
 			// TODO: 第三个参数暂时传 0 即可，但下一个版本的 uni-highlight，需要将上一次解析返回的 state 传入 用于提升性能
 			uniCodeHighlighter!.tokenizeLine(language, codeSource, 0).then((iLineToken: ILineTokens | null) => {
-				utils.uniGetDispatcher("io", () => {
-					// console.log('代码解析耗时 ============', Date.now() - start)
+				utils.runOnDispatcher("io", () => {
 					const tokens = [] as MarkdownToken[]
 					iLineToken?.tokens.forEach((tk) => {
 						const token: MarkdownToken = {
@@ -190,11 +167,6 @@ export function parseLineCode(parseLineCodeCallBack: ParseLineCodeCallBack, code
 						}
 						tokens.push(token)
 					})
-					// tokens.push({
-					// 	text: "\n",
-					// 	className: "eol"
-					// });
-					// console.log('tokens',tokens)
 					const res: ParseLineCodeRes = {
 						tokens: tokens,
 						language: language,
