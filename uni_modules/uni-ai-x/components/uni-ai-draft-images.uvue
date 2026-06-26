@@ -1,0 +1,105 @@
+<template>
+	<scroll-view class="draft-images" direction="horizontal" v-show="uniAi.imgList.length > 0">
+		<view class="draft-image-item" v-for="(img, index) in uniAi.imgList" :key="img.path">
+			<view class="draft-image-content">
+				<image class="draft-image" :src="img.path" mode="aspectFill"></image>
+				<view class="draft-image-info">
+					<text class="draft-image-name">{{img.name}}</text>
+					<text class="draft-image-upload-percent" v-if="img.uploadPercent < 100">上传中：{{img.uploadPercent}}%</text>
+					<template v-else>
+						<text class="draft-image-type">{{img.type}}</text>
+						<text class="draft-image-size">{{img.size}}</text>
+					</template>
+				</view>
+			</view>
+			<view class="draft-image-close-btn">
+				<uni-icons type="closeempty" size="8" color="#FFF" @click="removeImg(index)"></uni-icons>
+			</view>
+		</view>
+	</scroll-view>
+</template>
+
+<script lang="uts" setup>
+	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+
+	function removeImg(index: number) {
+		uniAi.imgList.splice(index, 1)
+	}
+</script>
+
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.draft-images {
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+	overflow: visible;
+	margin: -15px -15px 0 -15px;
+	padding: 5px;
+	padding-top: 0;
+}
+
+.draft-image-item {
+	position: relative;
+	overflow: visible;
+}
+
+.draft-image-content {
+	margin-top: 5px;
+	margin-right: 10px;
+	border: 1px solid var(--border-secondary);
+	border-radius: 10px;
+	padding: 5px;
+	flex-direction: row;
+	align-items: center;
+}
+
+.draft-image {
+	width: 25px;
+	height: 25px;
+	border-radius: 10px;
+}
+
+.draft-image-info {
+	padding-left: 5px;
+	width: 100px;
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.draft-image-name,
+.draft-image-size,
+.draft-image-type,
+.draft-image-upload-percent {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 10px;
+	color: var(--text-secondary);
+}
+
+.draft-image-name {
+	font-size: 12px;
+	color: var(--text-primary);
+	width: 100%;
+}
+
+.draft-image-size,
+.draft-image-upload-percent {
+	margin-left: 5px;
+}
+
+.draft-image-close-btn {
+	position: absolute;
+	top: 3px;
+	right: 5px;
+	background-color: #ff5555;
+	justify-content: center;
+	align-items: center;
+	border-radius: 100px;
+	width: 12px;
+	height: 12px;
+}
+</style>

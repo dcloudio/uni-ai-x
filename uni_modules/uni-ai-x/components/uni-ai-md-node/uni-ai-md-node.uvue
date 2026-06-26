@@ -11,9 +11,11 @@
 	<view v-else-if="node.type == 'list' || node.type == 'tasklist'" class="uni-ai-md-node uni-ai-md-list">
 		<view v-for="(item, index) in listItems" :key="nodeKey(item, index)" class="uni-ai-md-list-item">
 			<text v-if="isOrderedList" class="uni-ai-md-list-marker">{{orderedMarker(index)}}</text>
-			<text v-else-if="isTaskList || item.task == 1" class="uni-ai-md-list-marker" :class="item.checked == 1 ? 'uni-ai-md-list-marker-checked' : ''">{{taskMarker(item)}}</text>
-			<view v-else class="uni-ai-md-list-bullet-box">
-				<view class="uni-ai-md-list-bullet"></view>
+			<view v-else-if="isTaskList || item.task == 1" class="uni-ai-md-list-icon-marker">
+				<uni-ai-icon :code="taskIcon(item)" :color="item.checked == 1 ? 'var(--text-primary)' : 'var(--text-secondary)'" size="16" />
+			</view>
+			<view v-else class="uni-ai-md-list-icon-marker">
+				<uni-ai-icon code="ec1e" color="var(--text-primary)" size="14" />
 			</view>
 			<view class="uni-ai-md-list-content">
 				<uni-ai-md-node v-for="(child, childIndex) in childrenOf(item)" :key="nodeKey(child, childIndex)" :node="child" />
@@ -65,8 +67,8 @@
 		return (start + index).toString() + '.'
 	}
 
-	function taskMarker(item: MarkdownToken): string {
-		return item.checked == 1 ? '[x]' : '[ ]'
+	function taskIcon(item: MarkdownToken): string {
+		return item.checked == 1 ? 'e607' : 'e608'
 	}
 </script>
 
@@ -131,23 +133,12 @@
 		color: var(--text-secondary);
 	}
 
-	.uni-ai-md-list-marker-checked {
-		color: var(--text-primary);
-	}
-
-	.uni-ai-md-list-bullet-box {
-		width: 14px;
+	.uni-ai-md-list-icon-marker {
+		width: 16px;
 		height: 28px;
-		margin-right: 8px;
+		margin-right: 6px;
 		align-items: center;
 		justify-content: center;
-	}
-
-	.uni-ai-md-list-bullet {
-		width: 5px;
-		height: 5px;
-		border-radius: 5px;
-		background-color: var(--text-primary);
 	}
 
 	.uni-ai-md-list-content {

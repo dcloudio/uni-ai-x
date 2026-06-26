@@ -298,7 +298,6 @@ class UniAi {
 		if (inputContent.length == 0) {
 			throw new Error('发给 AI 的消息不能为空');
 		}
-		console.log('send inputContent', inputContent);
 		// 生成用户提问的消息
 		let baseUserMsg: BaseMsgItem = {
 			body: inputContent,
@@ -342,7 +341,6 @@ class UniAi {
 			llm: this.llm as Llm,
 			chat_id: this.currentChat!.id
 		}
-		console.log('uni-ai-x-render send mode=simple')
 		requestAiWorker = new RequestAiWorker()
 		requestAiWorker?.postMessage(requestAiOptions)
 		requestAiWorker?.onMessage((message: OnMessageOptions) => {

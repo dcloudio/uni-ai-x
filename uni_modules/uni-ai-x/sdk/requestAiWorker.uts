@@ -5,6 +5,7 @@ import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
+import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 
 export type OnMessageOptions = {
 	type: string,
@@ -13,21 +14,21 @@ export type OnMessageOptions = {
 }
 
 type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
-type BailianOptionsOnChunkFn = (chunkObj : Chunk) => void
-type BailianOptionsOnErrorFn = (err : UTSJSONObject) => void
-type BailianOptionsOnDoneFn = (data : UTSJSONObject) => void
-type BailianOptionsOnSuccessFn = (chunkObj : Chunk) => void
-type BailianOptionsOnTaskCreateFn = (requestTask : RequestTask) => void
-type BailianOptions = {
+type RequestAiOnChunkFn = (chunkObj : Chunk) => void
+type RequestAiOnErrorFn = (err : UTSJSONObject) => void
+type RequestAiOnDoneFn = (data : UTSJSONObject) => void
+type RequestAiOnSuccessFn = (chunkObj : Chunk) => void
+type RequestAiOnTaskCreateFn = (requestTask : RequestTask) => void
+type RequestAiServerOptions = {
 	llm : Llm,
 	messages : RequestAiCoMessage[],
 	stream ?: boolean,
 	chat_id ?: string,
-	onChunk ?: BailianOptionsOnChunkFn,
-	onError ?: BailianOptionsOnErrorFn,
-	onDone ?: BailianOptionsOnDoneFn,
-	onSuccess ?: BailianOptionsOnSuccessFn,
-	onTaskCreate ?: BailianOptionsOnTaskCreateFn
+	onChunk ?: RequestAiOnChunkFn,
+	onError ?: RequestAiOnErrorFn,
+	onDone ?: RequestAiOnDoneFn,
+	onSuccess ?: RequestAiOnSuccessFn,
+	onTaskCreate ?: RequestAiOnTaskCreateFn
 }
 
 const SIMPLE_PARSE_INTERVAL = 120
@@ -111,7 +112,6 @@ class RequestAiWorker {
 		}
 	};
 	runMarkdownParse(isDone: boolean = false) {
-		console.log('uni-ai-x-render run mode=simple done=' + isDone)
 		this.parseMarkdownSimple!.msgReceiveDone = isDone
 		if (isDone) {
 			this.parseMarkdownSimple?.flush(this.msgBody)
@@ -120,7 +120,6 @@ class RequestAiWorker {
 		}
 	}
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
-		console.log('uni-ai-x-render request mode=simple')
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.currentChatState = ''
@@ -198,7 +197,7 @@ class RequestAiWorker {
 			this.runMarkdownParse(false)
 		}, DEMO_STREAM_INTERVAL)
 	}
-	async requestViaCustomProvider(options : BailianOptions) : Promise<UTSJSONObject> {
+	async requestViaCustomProvider(options : RequestAiServerOptions) : Promise<UTSJSONObject> {
 		const adapter = getCustomProvider(options.llm.provider)
 		if (adapter == null) {
 			const errInfo: UTSJSONObject = {
@@ -237,7 +236,7 @@ class RequestAiWorker {
 		}
 		return {} as UTSJSONObject
 	}
-	async requestAiServer(options : BailianOptions) : Promise<UTSJSONObject> {
+	async requestAiServer(options : RequestAiServerOptions) : Promise<UTSJSONObject> {
 		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
 		const config : Provider = llmModelMap.get(options.llm.provider)!
 
@@ -376,45 +375,3 @@ class RequestAiWorker {
 	}
 }
 export default RequestAiWorker;
-
-function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
-	utils.uniGetDispatcher("io", () => {
-		const chunkText : string = new TextDecoder().decode(chunkData)
-		const normalizedChunkText = chunkText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-		const lines : string[] = normalizedChunkText.split('\n\n')
-		lines.forEach((line : string) => {
-			if (line.length == 0) return
-			line.split('\n').forEach((lineItem : string) => {
-				if (lineItem.length == 0) return
-				const keyValue : string[] = lineItem.split(':')
-				const key : string = keyValue[0].trim()
-				const value : string = keyValue.slice(1).join(':')
-				const normalizedValue = value.trim()
-				if (key == 'data') {
-					if (normalizedValue == "[DONE]") {
-						doneCallback()
-						return
-					}
-					let chunk : Chunk | null = null
-					try {
-						chunk = JSON.parse<Chunk>(value.trimStart()) as Chunk
-					} catch (e) {
-						console.error('JSON.parse error', e, 'value:', value)
-					}
-					callback(chunk ?? {} as Chunk);
-				} else if (key == '{"error"') {
-					let info : UTSJSONObject = {}
-					try {
-						info = JSON.parse<UTSJSONObject>('{"error":' + value.trimStart()) as UTSJSONObject
-					} catch (e) {
-						console.error('JSON.parse error', e, 'value:', value)
-					}
-					errorCallback(info.error! as UTSJSONObject)
-					doneCallback()
-				} else {
-					callback({} as Chunk);
-				}
-			})
-		})
-	})
-}

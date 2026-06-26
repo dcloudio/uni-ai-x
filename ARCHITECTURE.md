@@ -7,6 +7,7 @@
 - 以 Vue 常规组件树表达界面，避免逻辑层拼接完整视图结构。
 - 开发期默认使用本地 `testMarkdownText.uts` 模拟流式回答，减少网络请求和调试成本。
 - 组件样式按 uni-app x 蒸汽模式样式隔离 2.0 编写，组件内部自带必要样式，不依赖页面穿透覆盖。
+- App 端 CSS 避免使用不支持的简写属性，例如文本修饰使用 `text-decoration-line`，不使用 `text-decoration`。
 - SDK 只负责状态、请求、解析调度；Markdown 节点怎么展示交给组件。
 
 ## 功能组成
@@ -16,7 +17,9 @@
 - Markdown 解析：`sdk/parseMarkdownSimple.uts` 将流式文本节流解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
 - Markdown 工具：`sdk/markdown-utils.uts` 放置数学公式预处理、表格宽度估算等纯函数，避免解析调度类继续膨胀。
 - Markdown 渲染：`components/uni-ai-md-node` 渲染块级节点，`components/uni-ai-md-inline` 渲染行内节点，代码和表格分别交给专用组件。
+- 聊天视图：`components/uni-ai-chat` 负责页面编排和滚动控制；顶部导航由 `uni-ai-chat-nav` 负责，用户消息气泡由 `uni-ai-user-msg` 负责，待发送图片由 `uni-ai-draft-images` 负责。
 - Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用 Markdown、代码高亮、KaTeX、Mermaid 等 Web 生态能力。
+- SSE 解析：`sdk/sse.uts` 只负责把流式接口返回的 chunk 文本解析为 `Chunk`、错误或完成事件。
 - 本地持久化：`sdk/storage-manager.uts` 封装聊天列表、消息列表和消息内容的存取，并保留旧缓存迁移入口。
 
 ## 消息主链路
@@ -32,6 +35,7 @@
 
 - 列表不再拍平成普通节点：`list`/`tasklist` 保持父子结构，组件负责显示数字、圆点和任务标记。
 - 列表 marker 与正文间距由组件样式控制，间距保持在约一个中文字宽以内，避免旧实现里固定宽度过大导致视觉断裂。
+- 无序列表和任务列表 marker 使用 `uni-ai-icon` 承接历史 iconfont 字符，但不再通过 `treeToList` 往文本 token 中注入图标。
 - 代码块渲染仍由 `uni-ai-msg-code` 负责，便于保留复制、换行、横向滚动等交互。
 - 表格渲染由 `uni-ai-msg-table` 负责，组件内维护表格样式，符合蒸汽模式组件样式隔离。
 - 数学公式和 Mermaid 在解析阶段生成可渲染结果，组件只消费 `html`、`href`、宽高等字段。
@@ -47,7 +51,14 @@
 - 可简化：代码高亮端的 grammar 映射已收敛为 `grammarMap`，避免新增语言时同时维护两份结构。
 - 已优化：`parseMarkdownSimple.uts` 不再直接承载数学预处理和表格宽度估算，相关逻辑移动到 `markdown-utils.uts`。
 - 已优化：开发期本地演示会话会在启动时自动重跑，便于每次验证都覆盖“流式输出 -> Markdown 解析 -> 组件渲染”全链路。
-- 可优化：`uni-ai-chat.uvue` 仍承担较多滚动、输入、图片、菜单逻辑，后续可继续拆为 `chat-scroll`、`chat-input` 等子组件。
+- 已优化：请求层类型命名去掉历史 `Bailian` 残留，统一使用 `RequestAiServerOptions` 等通用名称。
+- 已优化：常规流式解析日志已收敛，避免开源使用者调试时被内部性能日志干扰。
+- 已优化：SSE chunk 解析从 `requestAiWorker.uts` 拆到 `sse.uts`，请求 Worker 更聚焦于请求生命周期和消息状态。
+- 已优化：`uni-ai-chat.uvue` 已拆出用户消息和待发送图片组件，聊天页减少一百多行样式和图片预览/删除细节。
+- 已优化：聊天顶部导航拆为 `uni-ai-chat-nav`，标题计算和小程序导航适配不再堆在聊天主页面。
+- 已优化：输入工具栏不再维护独立输入副本，改为通过 computed 直接读写当前会话的 `inputContent`。
+- 已优化：图片选择、上传、进度和临时 URL 回写已从输入工具栏拆到 `sdk/image-upload.uts`，工具栏只负责触发动作。
+- 可优化：`uni-ai-chat.uvue` 仍承担较多滚动和输入区编排逻辑，后续可继续拆为 `chat-scroll`、`chat-input` 等子组件。
 
 ## 验证方式
 

@@ -117,7 +117,6 @@ export default class ParseMarkdownSimple {
 	}
 
 	private handleMd2jsonResult(newJsonList: MarkdownToken[], isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		console.log('uni-ai-x-render simple-parse tokens=' + newJsonList.length + ' done=' + isDone)
 		if (newJsonList.length == 0) {
 			md2JsonCallBack([])
 			return

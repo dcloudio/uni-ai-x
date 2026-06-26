@@ -1,0 +1,59 @@
+<template>
+	<view class="chat-nav">
+		<uni-ai-icon @click="changeMenu" code="e622" color="var(--text-primary)" size="20"></uni-ai-icon>
+		<text class="chat-nav-title">{{title}}</text>
+		<!-- #ifndef MP-WEIXIN -->
+		<add-chat></add-chat>
+		<!-- #endif -->
+		<!-- #ifdef MP-WEIXIN -->
+		<view></view>
+		<!-- #endif -->
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
+	import { uniAi, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk'
+
+	const emit = defineEmits<{
+		'change-menu': []
+	}>()
+
+	const title = computed<string>(() => {
+		if (isCustomProvider(uniAi.llm.provider)) {
+			return '与 ' + uniAi.llm.provider + ' 对话'
+		}
+		const chatTitle = uniAi.currentChat?.title ?? ''
+		if (chatTitle.length > 0) {
+			return chatTitle.length > 10 ? chatTitle.slice(0, 10) + '...' : chatTitle
+		}
+		return '新对话'
+	})
+
+	function changeMenu() {
+		emit('change-menu')
+	}
+</script>
+
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.chat-nav {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px;
+	background-color: var(--bg-primary);
+}
+
+.chat-nav-title {
+	font-size: 16px;
+	color: var(--text-primary);
+}
+
+/* #ifdef MP-WEIXIN */
+.chat-nav {
+	padding-top: calc(var(--status-bar-height) + 35px);
+}
+/* #endif */
+</style>

@@ -1,0 +1,44 @@
+import { Chunk } from '@/uni_modules/uni-ai-x/types.uts'
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+
+export function parseChunkData(chunkData : ArrayBuffer, callback : (chunkObj : Chunk) => void, errorCallback : (err : UTSJSONObject) => void, doneCallback : () => void) {
+	utils.uniGetDispatcher("io", () => {
+		const chunkText : string = new TextDecoder().decode(chunkData)
+		const normalizedChunkText = chunkText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+		const lines : string[] = normalizedChunkText.split('\n\n')
+		lines.forEach((line : string) => {
+			if (line.length == 0) return
+			line.split('\n').forEach((lineItem : string) => {
+				if (lineItem.length == 0) return
+				const keyValue : string[] = lineItem.split(':')
+				const key : string = keyValue[0].trim()
+				const value : string = keyValue.slice(1).join(':')
+				const normalizedValue = value.trim()
+				if (key == 'data') {
+					if (normalizedValue == "[DONE]") {
+						doneCallback()
+						return
+					}
+					let chunk : Chunk | null = null
+					try {
+						chunk = JSON.parse<Chunk>(value.trimStart()) as Chunk
+					} catch (e) {
+						console.error('JSON.parse error', e, 'value:', value)
+					}
+					callback(chunk ?? {} as Chunk);
+				} else if (key == '{"error"') {
+					let info : UTSJSONObject = {}
+					try {
+						info = JSON.parse<UTSJSONObject>('{"error":' + value.trimStart()) as UTSJSONObject
+					} catch (e) {
+						console.error('JSON.parse error', e, 'value:', value)
+					}
+					errorCallback(info.error! as UTSJSONObject)
+					doneCallback()
+				} else {
+					callback({} as Chunk);
+				}
+			})
+		})
+	})
+}

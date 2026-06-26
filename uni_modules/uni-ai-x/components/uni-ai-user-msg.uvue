@@ -1,0 +1,82 @@
+<template>
+	<view class="user-msg" :class="[`ui-theme-${uiTheme}`]">
+		<text class="user-msg-text" @longpress="emitLongpress">{{msg.body}}</text>
+		<view class="user-msg-img-group" v-if="msg.img_url_list != null">
+			<image class="user-msg-img" v-for="(img, index) in msg.img_url_list" @click="previewImage(index)" :key="index" :src="img" mode="aspectFill"></image>
+		</view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { MsgItem, uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+
+	type UniAiUserMsgProps = {
+		msg: MsgItem
+	}
+	const props = defineProps<UniAiUserMsgProps>()
+	const emit = defineEmits<{
+		'longpress': []
+	}>()
+
+	function emitLongpress() {
+		emit('longpress')
+	}
+
+	function previewImage(index: number) {
+		if (props.msg.img_url_list == null) return
+		uni.previewImage({
+			urls: props.msg.img_url_list!,
+			current: index
+		})
+	}
+</script>
+
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.ui-theme-light {
+	--user-msg-bg: #f9fbff;
+}
+
+.ui-theme-dark {
+	--user-msg-bg: #414158;
+}
+
+.user-msg {
+	align-items: flex-end;
+	padding: 10px;
+}
+
+.user-msg-text {
+	font-size: 16px;
+	max-width: 600rpx;
+	padding: 12px;
+	border-radius: 15px 15px 0 15px;
+	background-color: var(--user-msg-bg);
+	color: var(--text-primary);
+	/* #ifdef WEB */
+	user-select: text;
+	/* #endif */
+}
+
+.user-msg-img-group {
+	flex-direction: row;
+	flex-wrap: wrap;
+	margin: 5px;
+}
+
+.user-msg-img {
+	width: 20px;
+	height: 20px;
+	margin: 5px;
+	border-radius: 3px;
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.user-msg {
+		max-width: 90%;
+	}
+}
+/* #endif */
+</style>

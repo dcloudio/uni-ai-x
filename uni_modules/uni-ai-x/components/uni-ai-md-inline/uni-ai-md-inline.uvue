@@ -59,7 +59,7 @@
 	}
 
 	.uni-ai-md-inline-del {
-		text-decoration: line-through;
+		text-decoration-line: line-through;
 	}
 
 	.uni-ai-md-inline-code,
@@ -72,6 +72,6 @@
 
 	.uni-ai-md-inline-link {
 		color: #2979ff;
-		text-decoration: underline;
+		text-decoration-line: underline;
 	}
 </style>

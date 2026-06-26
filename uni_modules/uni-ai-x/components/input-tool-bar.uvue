@@ -23,20 +23,16 @@
     </view>
 </template>
 <script lang="uts" setup>
-import uniAi, { uiTheme, MsgItem, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
-import {llmModelMap, providerNameList, type LLMModel} from '../config';
-import { ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
+import uniAi, { uiTheme, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
+import {llmModelMap, type LLMModel} from '../config';
+import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 const canWebSearchLLmList: string[] = [];
-const canThinkingLLmList: string[] = [];
 let hasDeepseekR1Model = ref<boolean>(false);
 let hasDoubaoSeed16Model = ref<boolean>(false);
 llmModelMap.forEach((provider,providerName) => {
     provider.models.forEach(model => {
         if (model.webSearch == true) {
             canWebSearchLLmList.push(providerName + ' - ' + model.name);
-        }
-        if (model.thinking == true) {
-            canThinkingLLmList.push(providerName + ' - ' + model.name);
         }
         if (model.name == 'deepseek-r1') {
             hasDeepseekR1Model.value = true;
@@ -56,26 +52,19 @@ const aiState = computed<string>(() => {
     return uniAi.currentChat?.state ?? 'none'
 });
 
-const inputContent = ref<string>(uniAi.currentChat?.inputContent ?? '')
-
-watch(inputContent, (newValue: string) => {
-    if (uniAi.currentChat != null) {
-        uniAi.currentChat!.inputContent = newValue
+const inputContent = computed<string>({
+    get: (): string => {
+        return uniAi.currentChat?.inputContent ?? ''
+    },
+    set: (value: string) => {
+        if (uniAi.currentChat != null) {
+            uniAi.currentChat!.inputContent = value
+        }
     }
 })
 
-watch((): string => {
-    return uniAi.currentChat?.inputContent ?? ''
-}, (newValue: string) => {
-    inputContent.value = newValue
-})
-
 const canParseImg = computed<boolean>(() => {
-    return true// currentLLMModel.value.canParseImg ?? false;
-});
-
-const llmModel = computed<string>(() => {
-    return uniAi.llm.model
+    return true
 });
 
 const currentLLMModel = computed<LLMModel>(() => {
@@ -167,86 +156,7 @@ const setWebSearch = () => {
 };
 
 function uploadImage() {
-    // 判断当前大语言模型是否支持，如果不支持提示切换
-    if (currentLLMModel.value?.image != true) {
-        if (hasDoubaoSeed16Model.value) {
-            uni.showModal({
-                title: '提示',
-                content: '当前模型不支持图片理解，是否切换到 doubao-seed-1.6 模型？',
-                success: (res) => {
-                    if (res.confirm) {
-                        uniAi.llm.model = 'doubao-seed-1.6';
-                        uploadImage();
-                    }
-                }
-            });
-            return;
-        } else {
-            uni.showToast({
-                title: '请在 config.json 中配置支持图片理解的模型',
-                duration: 3000,
-                icon: 'none'
-            });
-            return;
-        }
-    }
-
-    if (uniAi.imgList.length >= 9) {
-        uni.showToast({
-            title: '最多上传9张图片',
-            duration: 3000,
-            icon: 'none'
-        });
-        return;
-    }
-	
-    uniCloud.chooseAndUploadFile({
-        sourceType: ['album','camera'],
-        count: 9 - uniAi.imgList.length,
-        sizeType: ['compressed'],
-        type: 'image',
-        onChooseFile(res: UniCloudChooseAndUploadFileResult) {
-            // console.log(res)
-            const imgList: ImgItem[] = res.tempFiles.map<ImgItem>((file: UniCloudChooseAndUploadFileItem): ImgItem=> {
-                return {
-                    path: file.path,
-                    name: file.name,
-                    size: '0B',
-                    type: 'image',
-                    uploadPercent: 0
-                }
-            });
-            uniAi.imgList.push(...imgList);
-        },
-        onUploadProgress(res: UniCloudChooseAndUploadFileProgressEvent) {
-            // 根据 tempFilePath 找到对应的 index
-            const index = uniAi.imgList.findIndex(img => img.path == res.tempFilePath);
-            if (index != -1) {
-                const currentImg = uniAi.imgList[index]!;
-                currentImg.size = res.total > 1024 ? Math.floor(res.total / 1024) + 'KB' : Math.floor(res.total / 1024) + 'B';
-                currentImg.uploadPercent = Math.floor(res.loaded / res.total * 100);
-            } else {
-                // console.error('上传图片进度设置失败，tempFilePath 不存在', res.tempFilePath, uniAi.imgList.length)
-            }
-        }
-    }).then((res: UniCloudChooseAndUploadFileResult) => {
-        // console.log('上传图片完成', res)
-        res.tempFiles.forEach((file: UniCloudChooseAndUploadFileItem) => {
-            // console.log(file)
-            const index = uniAi.imgList.findIndex(img => img.path == file.path);
-            if (index != -1) {
-                uniCloud.getTempFileURL({
-                    fileList: [file.url!],
-                }).then((res: UniCloudGetTempFileURLResult) => {
-                    // console.log(res.fileList[0].tempFileURL)
-                    uniAi.imgList[index]!.path = res.fileList[0].tempFileURL;
-                })
-            }
-        })
-    })
-		.catch((error)=>{
-			console.error('chooseAndUploadFile error', error)
-		})
+    uploadDraftImages(currentLLMModel.value, hasDoubaoSeed16Model.value)
 }
 
 onMounted(() => {
