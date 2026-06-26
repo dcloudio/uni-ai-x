@@ -103,16 +103,6 @@
             return { svg, bindFunctions, imageDataURL };
           }
 
-          parseMarkdown({ markdownText, requestId }) {
-            const result = window.unimarkProxy.md2json(markdownText);
-            this.postMessage({
-              action: "parseMarkdown_callback_" + requestId,
-              param: {
-                jsonString: JSON.stringify(result.data),
-                errorMsg: result.errorMsg
-              }
-            });
-          }
 
           highlightCodeLine({ language, codeSource, requestId }) {
             try {

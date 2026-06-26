@@ -1,4 +1,5 @@
-import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import { MarkdownToken, ParseMdRes } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import parser from '@/uni_modules/uni-cmark/utssdk/web/unimark.js'
 // #ifndef APP
 import { md2json } from '@/uni_modules/uni-cmark'
 // #endif
@@ -9,8 +10,15 @@ import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
 type Md2JsonCallBack = (markdownTokenList: MarkdownToken[]) => void
 type CallBack = () => void
+function markdownDebugLog(message: string) {
+	console.log(message)
+}
 
-export default class ParseMarkdownSimple {
+function markdownErrorLog(message: string) {
+	console.error(message)
+}
+
+export default class ParseMarkdown {
 	updateCallBack: ParseDone
 	parsing: boolean = false
 	pendingText: string | null = null
@@ -88,26 +96,13 @@ export default class ParseMarkdownSimple {
 	private md2jsonTask(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
 		markdownText = preprocessMathText(markdownText)
 		// #ifdef APP
-		proxyWeb.callMethod({
-			action: 'parseMarkdown',
-			markdownText
-		}, (param: UTSJSONObject) => {
-			const errorMsg = param['errorMsg'] as string | null
-			if (errorMsg != null && errorMsg.length > 0) {
-				md2JsonCallBack([])
-				return
-			}
-			const jsonString = param['jsonString'] as string | null
-			let newJsonList: MarkdownToken[] = []
-			if (jsonString != null && jsonString.length > 0) {
-				newJsonList = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
-			}
-			this.handleMd2jsonResult(newJsonList, isDone, md2JsonCallBack)
-		})
+		this.md2jsonDirect(markdownText, isDone, md2JsonCallBack)
 		return
 		// #endif
 		// #ifndef APP
+		const parseStart = Date.now()
 		const parseMdRes = md2json(markdownText)
+		markdownDebugLog('[uni-ai-x][Markdown解析] 直接JS解析耗时=' + (Date.now() - parseStart).toString() + 'ms，字符数=' + markdownText.length.toString())
 		if (parseMdRes.errorMsg.length > 0) {
 			md2JsonCallBack([])
 			return
@@ -115,6 +110,19 @@ export default class ParseMarkdownSimple {
 		this.handleMd2jsonResult(parseMdRes.data, isDone, md2JsonCallBack)
 		// #endif
 	}
+
+	private md2jsonDirect(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
+		const parseStart = Date.now()
+		const parseMdRes = parser.md2json(markdownText) as ParseMdRes
+		markdownDebugLog('[uni-ai-x][Markdown解析] 直接JS解析耗时=' + (Date.now() - parseStart).toString() + 'ms，字符数=' + markdownText.length.toString())
+		if (parseMdRes.errorMsg.length > 0) {
+			markdownErrorLog('[uni-ai-x][Markdown解析] 直接JS解析失败：' + parseMdRes.errorMsg)
+			md2JsonCallBack([])
+			return
+		}
+		this.handleMd2jsonResult(parseMdRes.data, isDone, md2JsonCallBack)
+	}
+
 
 	private handleMd2jsonResult(newJsonList: MarkdownToken[], isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
 		if (newJsonList.length == 0) {

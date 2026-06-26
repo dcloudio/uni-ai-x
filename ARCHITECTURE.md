@@ -14,7 +14,7 @@
 
 - 聊天会话：`sdk/index.uts` 管理会话、消息、输入内容、存储同步和发送流程。
 - 请求层：`sdk/requestAiRunner.uts` 负责请求生命周期编排；开发期本地流、远程请求、自定义 provider、chunk 绑定等逻辑以直接方法调用串联，不再保留历史伪 Worker 消息转发。
-- Markdown 解析：`sdk/parseMarkdownSimple.uts` 将流式文本节流解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
+- Markdown 解析：`sdk/parseMarkdown.uts` 将流式文本节流解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
 - Markdown 工具：`sdk/markdown-utils.uts` 放置数学公式预处理、表格宽度估算等纯函数，避免解析调度类继续膨胀。
 - Markdown 渲染：`components/uni-ai-md-node` 渲染块级节点，`components/uni-ai-md-inline` 渲染行内节点，代码和表格分别交给专用组件。
 - 聊天视图：`components/uni-ai-chat` 负责页面编排和滚动控制；顶部导航由 `uni-ai-chat-nav` 负责，用户消息气泡由 `uni-ai-user-msg` 负责，待发送图片由 `uni-ai-draft-images` 负责。
@@ -30,7 +30,7 @@
 1. `uni-ai-chat` 调用 `uniAi.sendMsg()`。
 2. `sdk/index.uts` 创建用户消息和 AI 占位消息，并创建 `RequestAiRunner`。
 3. 开发期如果 `testMarkdownText` 非空，页面启动时会创建一条新的本地演示会话，`RequestAiRunner.streamDemoMarkdown()` 按固定间隔模拟流式输出；否则请求配置的模型 provider。
-4. 每次正文变化调用 `ParseMarkdownSimple.runTask()`，结束时调用 `flush()`。
+4. 每次正文变化调用 `ParseMarkdown.runTask()`，结束时调用 `flush()`。
 5. 解析结果通过 `onMarkdownElList` 回调直接回写当前 AI 消息。
 6. `uni-ai-x-msg` 直接遍历 Markdown AST，并由 `uni-ai-md-node` 递归渲染。
 
@@ -52,7 +52,7 @@
 - 可删除：历史性能测试截图和日志不应作为源码长期提交，已经从 Git 跟踪中移除，后续只保留在历史记录或本地调试目录。
 - 可简化：请求层已将开发期本地流式逻辑独立为 `streamDemoMarkdown()`，避免和真实请求混在一起。
 - 可简化：代码高亮端的 grammar 映射已收敛为 `grammarMap`，避免新增语言时同时维护两份结构。
-- 已优化：`parseMarkdownSimple.uts` 不再直接承载数学预处理和表格宽度估算，相关逻辑移动到 `markdown-utils.uts`。
+- 已优化：`parseMarkdown.uts` 不再直接承载数学预处理和表格宽度估算，相关逻辑移动到 `markdown-utils.uts`。
 - 已优化：开发期本地演示会话会在启动时自动重跑，便于每次验证都覆盖“流式输出 -> Markdown 解析 -> 组件渲染”全链路。
 - 已优化：请求层类型命名去掉历史 `Bailian` 残留，统一使用 `RequestAiServerOptions` 等通用名称。
 - 已优化：常规流式解析日志已收敛，避免开源使用者调试时被内部性能日志干扰。

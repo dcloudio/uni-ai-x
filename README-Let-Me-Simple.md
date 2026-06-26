@@ -31,7 +31,7 @@
 
 核心文件：
 
-- `uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts`
+- `uni_modules/uni-ai-x/sdk/parseMarkdown.uts`
 - `uni_modules/uni-ai-x/sdk/requestAiWorker.uts`
 - `uni_modules/uni-ai-x/sdk/index.uts`
 - `uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg.uvue`
@@ -62,6 +62,6 @@
 
 ## 后续建议
 
-- 如果继续优化，优先在 `parseMarkdownSimple.uts` 内做局部增量优化
+- 如果继续优化，优先在 `parseMarkdown.uts` 内做局部增量优化
 - 如果继续做性能验证，建议新建独立脚本或临时分支，不再把多模式逻辑带回主运行时代码
 - 如果需要再次做 A/B，对比逻辑建议放在实验分支，而不是产品分支

@@ -2,7 +2,7 @@ import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts';
+import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 
@@ -39,7 +39,7 @@ type RequestAiServerOptions = {
 	onTaskCreate ?: RequestAiOnTaskCreateFn
 }
 
-const SIMPLE_PARSE_INTERVAL = 120
+const MARKDOWN_PARSE_INTERVAL = 120
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 100
 
@@ -47,7 +47,7 @@ class RequestAiRunner {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
-	parseMarkdownSimple : ParseMarkdownSimple | null = null
+	parseMarkdown : ParseMarkdown | null = null
 	private callbacks : RequestAiRunnerCallbacks | null = null
 	currentChatState : string = ''
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
@@ -66,7 +66,7 @@ class RequestAiRunner {
 		this.resetParser()
 	}
 	resetParser() {
-		this.parseMarkdownSimple = new ParseMarkdownSimple(this.beforeUpdateMdElList, SIMPLE_PARSE_INTERVAL)
+		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList, MARKDOWN_PARSE_INTERVAL)
 	}
 	onChunkFn(chunkObj : Chunk) {
 		let reasoningContent: null | string = null
@@ -98,11 +98,11 @@ class RequestAiRunner {
 		}
 	};
 	runMarkdownParse(isDone: boolean = false) {
-		this.parseMarkdownSimple!.msgReceiveDone = isDone
+		this.parseMarkdown!.msgReceiveDone = isDone
 		if (isDone) {
-			this.parseMarkdownSimple?.flush(this.msgBody)
+			this.parseMarkdown?.flush(this.msgBody)
 		} else {
-			this.parseMarkdownSimple?.runTask(this.msgBody)
+			this.parseMarkdown?.runTask(this.msgBody)
 		}
 	}
 	resetRequestState() {
@@ -357,7 +357,7 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
-		this.parseMarkdownSimple!.userAbort = true
+		this.parseMarkdown!.userAbort = true
 		this.userAbort = true
 		this.requestTask?.abort()
 		this.callbacks?.onState('stop')
