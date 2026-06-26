@@ -1,0 +1,95 @@
+<template>
+	<view class="chat-input" @click="markQA">
+		<uni-ai-draft-images />
+		<textarea class="chat-input-textarea" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
+			:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
+			@focus="scrollToLastMsg" :auto-height="true" :disabled="isDemo"
+		></textarea>
+		<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
+		<view class="chat-input-keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
+	import uniAiDraftImages from '@/uni_modules/uni-ai-x/components/uni-ai-draft-images.uvue'
+	import { demoPrompt, isDemoMarkdownEnabled } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
+
+	const emit = defineEmits<{
+		'scroll-to-last-msg': []
+	}>()
+
+	const keyboardHeight = ref<number>(0)
+	const isDemo = computed<boolean>(() => isDemoMarkdownEnabled())
+	const chatInputContent = computed<string>({
+		get: (): string => {
+			return uniAi.currentChat?.inputContent ?? ''
+		},
+		set: (value: string) => {
+			if (uniAi.currentChat != null) {
+				uniAi.currentChat!.inputContent = value
+			}
+		}
+	})
+
+	function scrollToLastMsg() {
+		emit('scroll-to-last-msg')
+	}
+
+	function markQA() {
+		if (!isDemo.value) {
+			return
+		}
+		chatInputContent.value = demoPrompt
+		uni.showModal({
+			content: '已生成演示专用问题，且无法修改。\n 请点击右下角的发送按钮体验效果',
+			showCancel: false
+		})
+	}
+
+	function onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent) {
+		keyboardHeight.value = res.detail.height
+	}
+</script>
+
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.chat-input {
+	flex-direction: column;
+	background-color: var(--bg-primary);
+	padding: 15px 15px 5px 15px;
+	border-radius: 15px 15px 0 0;
+	border: 1px solid var(--border-secondary);
+}
+
+.chat-input-textarea {
+	min-height: 50px;
+	max-height: 200px;
+	width: 100%;
+}
+
+.chat-input-placeholder {
+	color: var(--text-disabled);
+}
+
+.chat-input-keyboard-cover {
+	/* #ifdef APP-ANDROID */
+	margin-bottom: env(safe-area-inset-bottom);
+	/* #endif */
+	/* #ifndef APP-ANDROID */
+	padding-bottom: env(safe-area-inset-bottom);
+	/* #endif */
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.chat-input {
+		border-radius: 15px;
+		margin: 10px;
+		margin-top: 0;
+	}
+}
+/* #endif */
+</style>

@@ -1,0 +1,7 @@
+import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+
+export const demoPrompt = '给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面'
+
+export const isDemoMarkdownEnabled = (): boolean => {
+	return testMarkdownText.length > 0
+}

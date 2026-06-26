@@ -23,15 +23,7 @@
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
-			<view class="chat-box-bottom" @click="markQA">
-				<uni-ai-draft-images />
-				<textarea class="chat-box-chat-input" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
-					:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-box-chat-input-placeholder"
-					@focus="scrollToLastMsg(true)" :auto-height="true" :disabled="isDemo"
-				></textarea>
-				<input-tool-bar @scrollToLastMsg="scrollToLastMsg(true)" @click.stop />
-				<view class="chat-box-keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
-			</view>
+			<uni-ai-chat-input @scroll-to-last-msg="scrollToLastMsg(true)" />
 			<text class="chat-box-tip">内容由ai生成，仅供参考</text>
 		</view>
 		<view class="chat-box-mask" v-if="translateX != -260" @click="closeMenu" :style="{
@@ -42,12 +34,12 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, uiTheme, testMarkdownText} from '@/uni_modules/uni-ai-x/sdk/'
+	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
-	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
+	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
-	import uniAiDraftImages from '@/uni_modules/uni-ai-x/components/uni-ai-draft-images.uvue'
+	import { demoPrompt, isDemoMarkdownEnabled } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -64,7 +56,6 @@
 		'close-menu': []
 	}>()
 	
-	const keyboardHeight = ref<number>(0)
 	const scrollIntoView = ref<string>('')
 	const bottomAnchorId = ref<string>('last-msg-a')
 	const scrollInBottom = ref<boolean>(true)
@@ -87,17 +78,6 @@
 		return uniAi.currentChat?.msgList ?? []
 	})
 	
-	const chatInputContent = computed<string>({
-		get: (): string => {
-			return uniAi.currentChat?.inputContent ?? ''
-		},
-		set: (value: string) => {
-			if (uniAi.currentChat != null) {
-				uniAi.currentChat!.inputContent = value
-			}
-		}
-	})
-	
 	const lastMsg = computed<MsgItem | null>(() => {
 		return uniAi.lastAiMsg
 	})
@@ -116,19 +96,7 @@
 		})
 	}
 	
-	const isDemo = computed<boolean>(() => testMarkdownText.length > 0)
-	const demoPrompt = '给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面'
 	const autoDemoRequested = ref<boolean>(false)
-	
-	function markQA() {
-		if (isDemo.value) {
-			chatInputContent.value = demoPrompt
-			uni.showModal({
-				content: '已生成演示专用问题，且无法修改。\n 请点击右下角的发送按钮体验效果',
-				showCancel: false
-			});
-		}
-	}
 	
 	function syncScrollToBottomBtn() {
 		const shouldShow = !scrollInBottom.value && !scrolling.value
@@ -240,17 +208,15 @@
 							}
 						})
 					} else {
-						chatInputContent.value = item.body
+						if (uniAi.currentChat != null) {
+							uniAi.currentChat!.inputContent = item.body
+						}
 					}
 				}
 			},
 		})
 	}
 	
-	const onKeyboardheightchange = (res: UniInputKeyboardHeightChangeEvent) => {
-		keyboardHeight.value = res.detail.height
-	}
-
 	const changeMenu = () => {
 		emit('change-menu')
 	}
@@ -289,15 +255,19 @@
 	}
 
 	function startDemoChat() {
-		if (!isDemo.value || autoDemoRequested.value) return
+		if (!isDemoMarkdownEnabled() || autoDemoRequested.value) return
 		autoDemoRequested.value = true
 		if (msgList.value.length > 0 || state.value != 'none') {
 			uniAi.addChat(false)
 		}
-		chatInputContent.value = demoPrompt
+		if (uniAi.currentChat != null) {
+			uniAi.currentChat!.inputContent = demoPrompt
+		}
 		nextTick(() => {
 			uniAi.sendMsg(demoPrompt)
-			chatInputContent.value = ''
+			if (uniAi.currentChat != null) {
+				uniAi.currentChat!.inputContent = ''
+			}
 		})
 	}
 	
@@ -411,33 +381,6 @@
 	z-index: 10;
 }
 
-.chat-box-bottom {
-	flex-direction: column;
-	background-color: var(--bg-primary);
-	padding: 15px 15px 5px 15px;
-	border-radius: 15px 15px 0 0;
-	border: 1px solid var(--border-secondary);
-}
-
-.chat-box-chat-input {
-	min-height: 50px;
-	max-height: 200px;
-	width: 100%;
-}
-
-.chat-box-chat-input-placeholder {
-	color: var(--text-disabled);
-}
-
-.chat-box-keyboard-cover {
-	/* #ifdef APP-ANDROID */
-	margin-bottom: env(safe-area-inset-bottom);
-	/* #endif */
-	/* #ifndef APP-ANDROID */
-	padding-bottom: env(safe-area-inset-bottom);
-	/* #endif */
-}
-
 .chat-box-tip {
 	display: none;
 }
@@ -451,11 +394,6 @@
 		width: 100%;
 		max-width: 800px;
 		margin: 0 auto;
-	}
-	.chat-box-bottom {
-		border-radius: 15px;
-		margin: 10px;
-		margin-top: 0;
 	}
 	.chat-box-tip {
 		display: block;
