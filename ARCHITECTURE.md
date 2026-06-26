@@ -13,7 +13,7 @@
 ## 功能组成
 
 - 聊天会话：`sdk/index.uts` 管理会话、消息、输入内容、存储同步和发送流程。
-- 请求层：`sdk/requestAiWorker.uts` 负责请求生命周期编排；开发期本地流、远程请求、自定义 provider、chunk 绑定等逻辑已拆成独立方法，避免主流程继续膨胀。
+- 请求层：`sdk/requestAiRunner.uts` 负责请求生命周期编排；开发期本地流、远程请求、自定义 provider、chunk 绑定等逻辑以直接方法调用串联，不再保留历史伪 Worker 消息转发。
 - Markdown 解析：`sdk/parseMarkdownSimple.uts` 将流式文本节流解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
 - Markdown 工具：`sdk/markdown-utils.uts` 放置数学公式预处理、表格宽度估算等纯函数，避免解析调度类继续膨胀。
 - Markdown 渲染：`components/uni-ai-md-node` 渲染块级节点，`components/uni-ai-md-inline` 渲染行内节点，代码和表格分别交给专用组件。
@@ -28,10 +28,10 @@
 ## 消息主链路
 
 1. `uni-ai-chat` 调用 `uniAi.sendMsg()`。
-2. `sdk/index.uts` 创建用户消息和 AI 占位消息，并启动 `RequestAiWorker`。
-3. 开发期如果 `testMarkdownText` 非空，页面启动时会创建一条新的本地演示会话，`RequestAiWorker.streamDemoMarkdown()` 按固定间隔模拟流式输出；否则请求配置的模型 provider。
+2. `sdk/index.uts` 创建用户消息和 AI 占位消息，并创建 `RequestAiRunner`。
+3. 开发期如果 `testMarkdownText` 非空，页面启动时会创建一条新的本地演示会话，`RequestAiRunner.streamDemoMarkdown()` 按固定间隔模拟流式输出；否则请求配置的模型 provider。
 4. 每次正文变化调用 `ParseMarkdownSimple.runTask()`，结束时调用 `flush()`。
-5. 解析结果通过 `setMarkdownElList` 回写当前 AI 消息。
+5. 解析结果通过 `onMarkdownElList` 回调直接回写当前 AI 消息。
 6. `uni-ai-x-msg` 直接遍历 Markdown AST，并由 `uni-ai-md-node` 递归渲染。
 
 ## Markdown 渲染设计
@@ -56,7 +56,7 @@
 - 已优化：开发期本地演示会话会在启动时自动重跑，便于每次验证都覆盖“流式输出 -> Markdown 解析 -> 组件渲染”全链路。
 - 已优化：请求层类型命名去掉历史 `Bailian` 残留，统一使用 `RequestAiServerOptions` 等通用名称。
 - 已优化：常规流式解析日志已收敛，避免开源使用者调试时被内部性能日志干扰。
-- 已优化：SSE chunk 解析从 `requestAiWorker.uts` 拆到 `sse.uts`，请求 Worker 更聚焦于请求生命周期和消息状态。
+- 已优化：SSE chunk 解析从请求运行器拆到 `sse.uts`，请求层更聚焦于请求生命周期和消息状态。
 - 已优化：`uni-ai-chat.uvue` 已拆出用户消息和待发送图片组件，聊天页减少一百多行样式和图片预览/删除细节。
 - 已优化：聊天顶部导航拆为 `uni-ai-chat-nav`，标题计算和小程序导航适配不再堆在聊天主页面。
 - 已优化：输入工具栏不再维护独立输入副本，改为通过 computed 直接读写当前会话的 `inputContent`。
@@ -64,13 +64,13 @@
 - 已优化：聊天输入框也改为 computed 直接读写当前会话输入，移除本地副本和双向 watch 同步。
 - 已优化：底部输入区拆为 `uni-ai-chat-input`，聊天主组件不再维护键盘高度、演示问题点击提示和输入区样式。
 - 已优化：SDK 设置初始化、监听、Web 代理同步和本地保存拆为独立方法，构造函数只保留启动编排。
-- 已优化：请求 Worker 的状态重置、错误处理和完成收尾拆为独立方法，主请求流程更接近“准备 -> 选择本地/真实请求 -> 绑定回调”。
+- 已优化：请求运行器的状态重置、错误处理和完成收尾拆为独立方法，主请求流程更接近“准备 -> 选择本地/真实请求 -> 绑定回调”。
 - 已优化：会话消息到模型请求体的转换拆到 `message-builder.uts`，SDK 主类不再关心多模态结构拼装细节。
 - 已优化：代码块组件移除未使用的 token 缓存，并将旧版本行宽计算改为每次按当前文本直接计算，避免增量状态残留。
 - 已优化：输入工具栏的模型能力扫描拆到 `model-capabilities.uts`，组件不再在 setup 中遍历整份模型配置。
 - 已优化：表格和代码块宽度统一走 `text-width.uts`，删除旧的隐藏 DOM 异步测量入口，避免不同端宽度策略不一致。
 - 已优化：输入工具栏对异常 provider 增加兜底，不再在弹窗提示后继续强制解包导致潜在崩溃。
-- 已优化：`requestAiWorker.uts` 删除空 `entry()`，并把远程请求、provider 配置、token 获取、请求成功处理、stream chunk 绑定拆成独立方法。
+- 已优化：`requestAiRunner.uts` 删除历史伪 Worker 的 `postMessage/onMessage` 转发，改为 `start()` 和具名回调直接调用，并把远程请求、provider 配置、token 获取、请求成功处理、stream chunk 绑定拆成独立方法。
 - 已优化：`parseCode.uts` 删除未使用的旧 grammar 文件读取逻辑，减少二开时对历史实现的误解。
 - 已优化：`uni-ai-chat.uvue` 收敛滚动 timer 清理逻辑，保留当前滚动跟随行为但减少重复代码。
 - 已优化：`uni-ai-msg-code.uvue` 将 Mermaid 图片展示拆为子组件，代码块主组件更聚焦于代码文本展示和宽度计算。

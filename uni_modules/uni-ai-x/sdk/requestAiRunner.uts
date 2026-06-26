@@ -1,19 +1,26 @@
 import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
-import { Chunk, Provider, RequestAiCoMessage, MarkdownElItem, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
+import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import ParseMarkdownSimple from '@/uni_modules/uni-ai-x/sdk/parseMarkdownSimple.uts';
-import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 
-export type OnMessageOptions = {
-	type: string,
-	data?: string | boolean | number,
-	markdownElList?: MarkdownElItem[]
-}
-
 type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
+export type RequestAiRunnerCallbacks = {
+	onMarkdownElList: (markdownTokenList: MarkdownToken[]) => void,
+	onThinkContent: (thinkContent: string) => void,
+	onMsgBody: (msgBody: string) => void,
+	onState: (state: string) => void,
+	onErrorMsg: (errorMsg: string) => void,
+	onRendered: (rendered: boolean) => void,
+	onChatTitle: (title: string) => void
+}
+export type RequestAiStartOptions = {
+	messages: RequestAiCoMessage[],
+	llm: Llm,
+	chat_id: string
+}
 type RequestAiOnChunkFn = (chunkObj : Chunk) => void
 type RequestAiOnErrorFn = (err : UTSJSONObject) => void
 type RequestAiOnDoneFn = (data : UTSJSONObject) => void
@@ -36,39 +43,24 @@ const SIMPLE_PARSE_INTERVAL = 120
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 100
 
-// 消息类型
-export type RequestAiOptions = {
-	type: 'requestAi',
-	messages: RequestAiCoMessage[],
-	llm: Llm,
-	chat_id: string
-}
-
-type OnMessageFn = (message : OnMessageOptions) => void;
-class RequestAiWorker {
+class RequestAiRunner {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
 	parseMarkdownSimple : ParseMarkdownSimple | null = null
-	onMessageFnList : OnMessageFn[] = [];
+	private callbacks : RequestAiRunnerCallbacks | null = null
 	currentChatState : string = ''
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
-	constructor() {
-		this.onMessageFnList = []
+	constructor(callbacks: RequestAiRunnerCallbacks) {
+		this.callbacks = callbacks
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
-			this.emitOnMessage({
-				type: "setMarkdownElList",
-				markdownElList: newMarkdownTokenList
-			})
+			this.callbacks?.onMarkdownElList(newMarkdownTokenList)
 			if (isParseDone) {
 				this.currentChatState = 'completed'
-				this.emitOnMessage({
-					type: "setCurrentChatState",
-					data: 'completed'
-				})
-				this.emitOnMessage({type: "setRendered", data: true} as OnMessageOptions)
+				this.callbacks?.onState('completed')
+				this.callbacks?.onRendered(true)
 			}
 		}
 		this.resetParser()
@@ -95,16 +87,10 @@ class RequestAiWorker {
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		if (content != null && content.length > 0) {
 			this.msgBody += content
-			this.emitOnMessage({
-				type: "setMsgBody",
-				data: this.msgBody
-			})
+			this.callbacks?.onMsgBody(this.msgBody)
 		} else if (reasoningContent != null) {
 			this.thinkContent += reasoningContent
-			this.emitOnMessage({
-				type: "setThinkContent",
-				data: this.thinkContent.trim()
-			})
+			this.callbacks?.onThinkContent(this.thinkContent.trim())
 		}
 
 		if (content != null) {
@@ -135,16 +121,10 @@ class RequestAiWorker {
 			errMsg = '数据检查失败，疑似包含敏感信息'
 		}
 		if (this.userAbort == false) {
-			this.emitOnMessage({
-				type: "setErrorMsg",
-				data: errMsg
-			})
+			this.callbacks?.onErrorMsg(errMsg)
 		}
 		this.currentChatState = 'stop'
-		this.emitOnMessage({
-			type: "setCurrentChatState",
-			data: 'stop'
-		})
+		this.callbacks?.onState('stop')
 	}
 	finishRequest() {
 		if (this.currentChatState == 'stop') {
@@ -154,6 +134,9 @@ class RequestAiWorker {
 			this.msgBody += '\n'
 		}
 		this.runMarkdownParse(true)
+	}
+	start(options: RequestAiStartOptions) {
+		this.requestAi(options.messages, options.llm, options.chat_id)
 	}
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
 		this.resetRequestState()
@@ -199,10 +182,7 @@ class RequestAiWorker {
 			}
 			const endIndex = Math.min(index + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
 			this.msgBody += testMarkdownText.slice(index, endIndex)
-			this.emitOnMessage({
-				type: "setMsgBody",
-				data: this.msgBody
-			})
+			this.callbacks?.onMsgBody(this.msgBody)
 			index = endIndex
 			this.runMarkdownParse(false)
 		}, DEMO_STREAM_INTERVAL)
@@ -372,37 +352,16 @@ class RequestAiWorker {
 			},
 			onSuccess: (chunkObj: Chunk) => {
 				const newTitle = chunkObj.choices?.[0]?.message?.content
-				this.emitOnMessage({
-					type: "setChatTitle",
-					data: newTitle ?? '更新失败'
-				})
+				this.callbacks?.onChatTitle(newTitle ?? '更新失败')
 			}
 		})
-	}
-	postMessage(message : RequestAiOptions) {
-		utils.runOnDispatcher("io", () => {
-			this.requestAi(message.messages, message.llm, message.chat_id);
-		});
 	}
 	abortRequest() {
 		this.parseMarkdownSimple!.userAbort = true
 		this.userAbort = true
 		this.requestTask?.abort()
-		this.emitOnMessage({
-			type: "setCurrentChatState",
-			data: 'stop'
-		})
-		this.onMessageFnList.length = 0
-	}
-	emitOnMessage(message : OnMessageOptions) {
-		this.onMessageFnList.forEach(fn => {
-			utils.runOnDispatcher("main", () => {
-				fn(message);
-			});
-		});
-	}
-	onMessage(onMessageFn : OnMessageFn) {
-		this.onMessageFnList.push(onMessageFn);
+		this.callbacks?.onState('stop')
+		this.callbacks = null
 	}
 }
-export default RequestAiWorker;
+export default RequestAiRunner;

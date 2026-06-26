@@ -2,15 +2,14 @@ import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
-import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
-import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import RequestAiRunner from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
 import testMarkdownText from './testMarkdownText.uts';
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 export {testMarkdownText}
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
-let requestAiWorker: RequestAiWorker | null = null
+let requestAiRunner: RequestAiRunner | null = null
 type BeforeRequestAiFn = () => void
 class UniAi {
 	// 存储管理器
@@ -285,7 +284,7 @@ class UniAi {
 	}
 	
 	abortRequest() {
-		requestAiWorker?.abortRequest()
+		requestAiRunner?.abortRequest()
 	}
 	
 	async sendMsg(inputContent: string = ''): Promise<void> {
@@ -335,56 +334,43 @@ class UniAi {
 		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
-		const requestAiOptions: RequestAiOptions = {
-			type: 'requestAi',
+		requestAiRunner = new RequestAiRunner({
+			onMarkdownElList: (markdownElList: MarkdownElItem[]) => {
+				if (this.currentChat!.state == 'stop') return
+				aiMsgItem.markdownElList = markdownElList
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onThinkContent: (thinkContent: string) => {
+				aiMsgItem.thinkContent = thinkContent
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onMsgBody: (msgBody: string) => {
+				aiMsgItem.body = msgBody
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onState: (state: string) => {
+				this.currentChat!.state = state
+				if (state == 'stop') {
+					aiMsgItem.rendered = true
+				}
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onErrorMsg: (errorMsg: string) => {
+				aiMsgItem.error_msg = errorMsg
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onRendered: (rendered: boolean) => {
+				aiMsgItem.rendered = rendered
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onChatTitle: (title: string) => {
+				this.updateChatTitle(aiMsgItem.chat_id, title)
+			}
+		})
+		requestAiRunner.start({
 			messages,
 			llm: this.llm as Llm,
 			chat_id: this.currentChat!.id
-		}
-		requestAiWorker = new RequestAiWorker()
-		requestAiWorker?.postMessage(requestAiOptions)
-		requestAiWorker?.onMessage((message: OnMessageOptions) => {
-			const data = message.data
-			switch (message.type) {
-				case 'setMarkdownElList':
-					if (this.currentChat!.state == 'stop') {
-						return
-					}
-					const markdownElList = message.markdownElList
-					if (markdownElList != null) {
-						aiMsgItem.markdownElList = markdownElList!
-					}
-					break
-				case 'setThinkContent':
-					aiMsgItem.thinkContent = data as string
-					break
-				case 'setMsgBody':
-					aiMsgItem.body = data as string
-					break
-				case 'setMsgState':
-					this.currentChat!.state = data as string
-					break
-				case 'setErrorMsg':
-					aiMsgItem.error_msg = data as string
-					break
-				case 'setCurrentChatState':
-					this.currentChat!.state = data as string
-					if (data == 'stop') {
-						aiMsgItem.rendered = true
-					}
-					break
-				case 'setRendered':
-					aiMsgItem.rendered = data as boolean
-					break
-				case 'setChatTitle':
-					this.updateChatTitle(aiMsgItem.chat_id, data as string)
-					break
-				default:
-					console.error('other answerQuestion message', message)
-			}
-			if (message.type != 'setChatTitle'){
-				this.updateMsg2Storage(aiMsgItem)
-			}
 		})
 	}
 	

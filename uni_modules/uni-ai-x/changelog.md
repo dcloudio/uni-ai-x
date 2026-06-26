@@ -1,3 +1,5 @@
+## 2.1.4（2026-06-26）
+- 优化 蒸汽模式请求链路，移除历史 worker 风格转发，改为请求运行器直接回调，降低二次开发理解成本
 ## 2.1.3（2026-03-06）
 - 更新 抽离 openClaw 相关逻辑为独立的插件[uni-ai-x-openClaw](https://ext.dcloud.net.cn/plugin?name=uni-ai-x-openClaw) 实现与主体解耦
 ## 2.1.2（2026-02-11）
