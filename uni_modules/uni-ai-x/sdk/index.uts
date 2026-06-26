@@ -1,12 +1,13 @@
 import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts';
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
 import {default as RequestAiWorker, RequestAiOptions, OnMessageOptions} from '@/uni_modules/uni-ai-x/sdk/requestAiWorker.uts';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
 import testMarkdownText from './testMarkdownText.uts';
+import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 export {testMarkdownText}
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiWorker: RequestAiWorker | null = null
@@ -391,29 +392,7 @@ class UniAi {
 	
 	// 拿到消息列表，用于发给 AI 
 	getMsgToAi(chatItem: ChatItem): RequestAiCoMessage[] {
-		const messages: RequestAiCoMessage[] = [];
-		chatItem.msgList.forEach((item) => {
-			let content: string | MultiModalContent = item.body
-			if (item.from_uid != 'uni-ai' && (item.img_url_list?.length ?? 0) > 0) {
-				content = item.img_url_list!.map((url: string): ImgParse => {
-					return {
-						type: 'image_url',
-						image_url: {
-							url: url
-						}
-					}
-				})
-				content.push({
-					type: 'text',
-					text: item.body
-				})
-			}
-			messages.push({
-				role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
-				content
-			})
-		})
-		return messages
+		return buildAiMessages(chatItem)
 	}
 	
 	// 监听请求 AI 前的回调

@@ -20,6 +20,7 @@
 - 聊天视图：`components/uni-ai-chat` 负责页面编排和滚动控制；顶部导航由 `uni-ai-chat-nav` 负责，用户消息气泡由 `uni-ai-user-msg` 负责，待发送图片由 `uni-ai-draft-images` 负责。
 - Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用 Markdown、代码高亮、KaTeX、Mermaid 等 Web 生态能力。
 - SSE 解析：`sdk/sse.uts` 只负责把流式接口返回的 chunk 文本解析为 `Chunk`、错误或完成事件。
+- 消息转换：`sdk/message-builder.uts` 将会话消息转换为模型请求消息，集中处理图片多模态内容。
 - 本地持久化：`sdk/storage-manager.uts` 封装聊天列表、消息列表和消息内容的存取，并保留旧缓存迁移入口。
 
 ## 消息主链路
@@ -62,6 +63,7 @@
 - 已优化：底部输入区拆为 `uni-ai-chat-input`，聊天主组件不再维护键盘高度、演示问题点击提示和输入区样式。
 - 已优化：SDK 设置初始化、监听、Web 代理同步和本地保存拆为独立方法，构造函数只保留启动编排。
 - 已优化：请求 Worker 的状态重置、错误处理和完成收尾拆为独立方法，主请求流程更接近“准备 -> 选择本地/真实请求 -> 绑定回调”。
+- 已优化：会话消息到模型请求体的转换拆到 `message-builder.uts`，SDK 主类不再关心多模态结构拼装细节。
 - 可优化：`uni-ai-chat.uvue` 仍承担较多滚动和输入区编排逻辑，后续可继续拆为 `chat-scroll`、`chat-input` 等子组件。
 
 ## 验证方式

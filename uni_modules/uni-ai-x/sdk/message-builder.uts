@@ -1,0 +1,32 @@
+import { ChatItem, RequestAiCoMessage, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts'
+
+function buildMultimodalContent(body: string, imgUrlList: string[]): MultiModalContent {
+	const content = imgUrlList.map((url: string): ImgParse => {
+		return {
+			type: 'image_url',
+			image_url: {
+				url
+			}
+		}
+	})
+	content.push({
+		type: 'text',
+		text: body
+	})
+	return content
+}
+
+export function buildAiMessages(chatItem: ChatItem): RequestAiCoMessage[] {
+	const messages: RequestAiCoMessage[] = []
+	chatItem.msgList.forEach((item) => {
+		let content: string | MultiModalContent = item.body
+		if (item.from_uid != 'uni-ai' && (item.img_url_list?.length ?? 0) > 0) {
+			content = buildMultimodalContent(item.body, item.img_url_list!)
+		}
+		messages.push({
+			role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
+			content
+		})
+	})
+	return messages
+}
