@@ -97,8 +97,6 @@ watch((): string | null => props.href, (href: string | null) => {
 	}
 }, {immediate: true})
 
-const tokens = ref<Array<IToken>>([])
-const tokensLines = ref<IToken[][]>([])
 const maxLineWidth = ref<string>('')
 const showMermaidImage = ref<boolean>(false)
 const mermaidViewTouched = ref<boolean>(false)
@@ -190,23 +188,17 @@ onMounted(() => {
 })
 
 //#ifdef uniVersion < 4.81
-let lastDiffLineIndex = 0
-let lastMaxLineSize = 0
 watch((): string => props.codeText, (codeText: string) => {
 	const codeTextLines = codeText.split('\n')
-	for (let i = lastDiffLineIndex; i < codeTextLines.length; i++) {
-		const lineSize = codeTextLines[i].length
-		if (lastMaxLineSize < lineSize) {
-			lastMaxLineSize = lineSize
-		}
+	let maxLineSize = 1
+	for (let i = 0; i < codeTextLines.length; i++) {
+		maxLineSize = Math.max(maxLineSize, codeTextLines[i].length)
 	}
-	lastDiffLineIndex = codeTextLines.length - 1
 	if (forceFixedLineWidthOnAndroid.value) {
-		maxLineWidth.value = `${Math.max(1, lastMaxLineSize) * 16}px`
+		maxLineWidth.value = `${maxLineSize * 16}px`
 	} else if (props.codeTokens.length == 0 && codeText.length > 0) {
-		maxLineWidth.value = `${Math.max(1, lastMaxLineSize) * 16}px`
+		maxLineWidth.value = `${maxLineSize * 16}px`
 	}
-	tokensLines.value = props.codeTokens
 }, {immediate: true})
 // #endif
 // #ifdef uniVersion >= 4.81 || MP-WEIXIN
