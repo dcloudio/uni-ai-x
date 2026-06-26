@@ -1,0 +1,29 @@
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+
+export type ModelCapabilitySummary = {
+	webSearchModelNames: string[],
+	hasDeepseekR1Model: boolean,
+	hasDoubaoSeed16Model: boolean
+}
+
+export function getModelCapabilitySummary(): ModelCapabilitySummary {
+	const summary: ModelCapabilitySummary = {
+		webSearchModelNames: [],
+		hasDeepseekR1Model: false,
+		hasDoubaoSeed16Model: false
+	}
+	llmModelMap.forEach((provider, providerName) => {
+		provider.models.forEach(model => {
+			if (model.webSearch == true) {
+				summary.webSearchModelNames.push(providerName + ' - ' + model.name)
+			}
+			if (model.name == 'deepseek-r1') {
+				summary.hasDeepseekR1Model = true
+			}
+			if (model.name == 'doubao-seed-1.6') {
+				summary.hasDoubaoSeed16Model = true
+			}
+		})
+	})
+	return summary
+}

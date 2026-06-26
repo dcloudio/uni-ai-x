@@ -26,22 +26,12 @@
 import uniAi, { uiTheme, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
-const canWebSearchLLmList: string[] = [];
-let hasDeepseekR1Model = ref<boolean>(false);
-let hasDoubaoSeed16Model = ref<boolean>(false);
-llmModelMap.forEach((provider,providerName) => {
-    provider.models.forEach(model => {
-        if (model.webSearch == true) {
-            canWebSearchLLmList.push(providerName + ' - ' + model.name);
-        }
-        if (model.name == 'deepseek-r1') {
-            hasDeepseekR1Model.value = true;
-        }
-        if (model.name == 'doubao-seed-1.6') {
-            hasDoubaoSeed16Model.value = true;
-        }
-    });
-});
+import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts';
+
+const modelCapabilitySummary = getModelCapabilitySummary()
+const canWebSearchLLmList = modelCapabilitySummary.webSearchModelNames
+const hasDeepseekR1Model = modelCapabilitySummary.hasDeepseekR1Model
+const hasDoubaoSeed16Model = modelCapabilitySummary.hasDoubaoSeed16Model
 
 const isOpenClaw = computed<boolean>(() => {
     return isCustomProvider(uniAi.llm.provider);
@@ -131,7 +121,7 @@ const setThinking = () => {
         });
         return
     }
-    if (!hasDeepseekR1Model.value) {
+    if (!hasDeepseekR1Model) {
         uni.showToast({
             title: '请在 config.json 中配置 deepseek-r1 模型',
             duration: 3000,
@@ -156,7 +146,7 @@ const setWebSearch = () => {
 };
 
 function uploadImage() {
-    uploadDraftImages(currentLLMModel.value, hasDoubaoSeed16Model.value)
+    uploadDraftImages(currentLLMModel.value, hasDoubaoSeed16Model)
 }
 
 onMounted(() => {

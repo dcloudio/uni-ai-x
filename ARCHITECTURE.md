@@ -21,6 +21,8 @@
 - Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用 Markdown、代码高亮、KaTeX、Mermaid 等 Web 生态能力。
 - SSE 解析：`sdk/sse.uts` 只负责把流式接口返回的 chunk 文本解析为 `Chunk`、错误或完成事件。
 - 消息转换：`sdk/message-builder.uts` 将会话消息转换为模型请求消息，集中处理图片多模态内容。
+- 模型能力：`sdk/model-capabilities.uts` 扫描配置中的模型能力，供输入工具栏展示深度思考、联网搜索和图片理解入口。
+- 文字宽度：`sdk/text-width.uts` 提供统一的同步宽度估算，代码块和表格共用；uni-app x 也有 `createCanvasContextAsync` + `CanvasRenderingContext2D.measureText()`，但该能力依赖 canvas 生命周期，不适合放进流式 Markdown 解析主链路。
 - 本地持久化：`sdk/storage-manager.uts` 封装聊天列表、消息列表和消息内容的存取，并保留旧缓存迁移入口。
 
 ## 消息主链路
@@ -65,6 +67,8 @@
 - 已优化：请求 Worker 的状态重置、错误处理和完成收尾拆为独立方法，主请求流程更接近“准备 -> 选择本地/真实请求 -> 绑定回调”。
 - 已优化：会话消息到模型请求体的转换拆到 `message-builder.uts`，SDK 主类不再关心多模态结构拼装细节。
 - 已优化：代码块组件移除未使用的 token 缓存，并将旧版本行宽计算改为每次按当前文本直接计算，避免增量状态残留。
+- 已优化：输入工具栏的模型能力扫描拆到 `model-capabilities.uts`，组件不再在 setup 中遍历整份模型配置。
+- 已优化：表格和代码块宽度统一走 `text-width.uts`，删除旧的隐藏 DOM 异步测量入口，避免不同端宽度策略不一致。
 - 可优化：`uni-ai-chat.uvue` 仍承担较多滚动和输入区编排逻辑，后续可继续拆为 `chat-scroll`、`chat-input` 等子组件。
 
 ## 验证方式

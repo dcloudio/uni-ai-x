@@ -43,6 +43,7 @@
 <script lang="uts" setup>
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
+import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
@@ -102,7 +103,7 @@ const showMermaidImage = ref<boolean>(false)
 const mermaidViewTouched = ref<boolean>(false)
 const codeLineHeight = 22
 const codeVerticalPadding = 16
-const estimatedCodeCharWidth = 16
+const codeFontSize = 14
 const estimatedCodeHorizontalPadding = 30
 const estimatedCardHorizontalInset = 48
 const forceFixedLineWidthOnAndroid = ref<boolean>(false)
@@ -153,19 +154,16 @@ const rawCodeLines = computed<string[]>(() => {
 	return normalizeRawCodeLines(props.codeText)
 })
 
-const maxLineCharacterCount = computed<number>(() => {
-	let maxLineSize = 1
-	for (let i = 0; i < rawCodeLines.value.length; i++) {
-		maxLineSize = Math.max(maxLineSize, rawCodeLines.value[i].length)
-	}
-	return maxLineSize
-})
+function getCodeTextWidth(text: string): number {
+	const lines = normalizeCodeText(text).split('\n')
+	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono') + estimatedCodeHorizontalPadding
+}
 
 const shouldShowHorizontalHint = computed<boolean>(() => {
 	if (showMermaidImage.value) return false
 	const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
 	const visibleCodeWidth = Math.max(160, currentWindowWidth - estimatedCardHorizontalInset)
-	const requiredCodeWidth = maxLineCharacterCount.value * estimatedCodeCharWidth + estimatedCodeHorizontalPadding
+	const requiredCodeWidth = getCodeTextWidth(props.codeText)
 	return requiredCodeWidth > visibleCodeWidth
 })
 
@@ -189,27 +187,17 @@ onMounted(() => {
 
 //#ifdef uniVersion < 4.81
 watch((): string => props.codeText, (codeText: string) => {
-	const codeTextLines = codeText.split('\n')
-	let maxLineSize = 1
-	for (let i = 0; i < codeTextLines.length; i++) {
-		maxLineSize = Math.max(maxLineSize, codeTextLines[i].length)
-	}
 	if (forceFixedLineWidthOnAndroid.value) {
-		maxLineWidth.value = `${maxLineSize * 16}px`
+		maxLineWidth.value = `${getCodeTextWidth(codeText)}px`
 	} else if (props.codeTokens.length == 0 && codeText.length > 0) {
-		maxLineWidth.value = `${maxLineSize * 16}px`
+		maxLineWidth.value = `${getCodeTextWidth(codeText)}px`
 	}
 }, {immediate: true})
 // #endif
 // #ifdef uniVersion >= 4.81 || MP-WEIXIN
 if (forceFixedLineWidthOnAndroid.value) {
 	watch((): string => props.codeText, (codeText: string) => {
-		const codeTextLines = codeText.split('\n')
-		let maxLineSize = 1
-		for (let i = 0; i < codeTextLines.length; i++) {
-			maxLineSize = Math.max(maxLineSize, codeTextLines[i].length)
-		}
-		maxLineWidth.value = `${maxLineSize * 16}px`
+		maxLineWidth.value = `${getCodeTextWidth(codeText)}px`
 	}, {immediate: true})
 } else {
 	maxLineWidth.value = 'auto'

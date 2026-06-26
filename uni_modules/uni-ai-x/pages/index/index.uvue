@@ -3,12 +3,6 @@
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 		<fps v-if="showFps" />
-		<!-- 用于非 Android 端测量文字宽度的容器 -->
-		<!-- #ifndef APP-ANDROID -->
-		<view class="hidden" style="flex-direction: row; width: 1000%; height: 0;">
-			<text v-for="item in measureTextWidthInfos" :key="item.id" :id="item.id" :style="{fontSize: item.fontSize + 'px'}">{{item.text}}</text>
-		</view>
-		<!-- #endif -->
 		<!-- #ifndef MP-WEIXIN -->
 		<web-view class="hidden" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
 		<!-- #endif -->
@@ -21,7 +15,6 @@
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	import {uiTheme, testMarkdownText} from '@/uni_modules/uni-ai-x/sdk'
-	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
 	const startX = ref<number>(0)
 	const translateX = ref<number>(-260)
@@ -80,31 +73,6 @@
 	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
 		proxyWeb.onWebMsg(e)
 	}
-
-	type MeasureTextWidthInfo = {
-		id: string,
-		text: string,
-		fontSize?: number
-	}
-
-	// #ifndef APP-ANDROID
-	const proxy = getCurrentInstance()?.proxy
-	const measureTextWidthInfos = ref<MeasureTextWidthInfo[]>([])
-	utils.measureTextWidth = async (text: string, fontSize?: number) => {
-		fontSize = fontSize ?? 16
-		const id = `measure-text-width-${measureTextWidthInfos.value.length}`
-		measureTextWidthInfos.value.push({id, text, fontSize})
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				uni.createSelectorQuery().in(proxy).select(`#${id}`)
-					.boundingClientRect().exec((ret) => {
-						resolve(ret.length == 0 ? 0 : ret[0]?.width ?? 0)
-						measureTextWidthInfos.value = measureTextWidthInfos.value.filter((item) => item.id != id)
-					})
-			}, 1000)
-		})
-	}
-	// #endif
 
 	onMounted(() => {
 		// #ifdef WEB

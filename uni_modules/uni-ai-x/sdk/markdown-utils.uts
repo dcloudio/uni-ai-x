@@ -1,5 +1,6 @@
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import { estimateTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 
 type MathStart = {
 	index: number
@@ -62,8 +63,9 @@ export function setApproxTableContentWidth(tableData: MarkdownToken[]) {
 			for (let itemIndex = 0; itemIndex < (cell.tokens?.length ?? 0); itemIndex++) {
 				const cellItem = cell.tokens![itemIndex]
 				const text = cellItem.text ?? utils.getTokensText(cellItem.tokens)
-				const fontSize = rowIndex == 0 ? 16 : 14
-				cellItem.width = text.length == 0 ? 0 : text.length * fontSize * 0.6
+				const fontSize = rowIndex == 0 ? 14 : 13
+				const extraWidth = cellItem.type == 'code' ? 10 : 0
+				cellItem.width = estimateTextWidth(text, fontSize) + extraWidth
 				cell.width = (cell.width ?? 0) + cellItem.width
 			}
 		}
