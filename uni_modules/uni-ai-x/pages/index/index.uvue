@@ -101,7 +101,7 @@
 	flex: 1;
 }
 .uni-ai-page {
-	position: fixed;
+	position: absolute;	
 	// #ifdef H5
 	width: calc(100% + 260px);
 	// #endif
