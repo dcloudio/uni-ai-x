@@ -10,6 +10,16 @@ import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
 type Md2JsonCallBack = (markdownTokenList: MarkdownToken[]) => void
 type CallBack = () => void
+type ClosedSplitInfo = {
+	closedCount: number
+	closedText: string
+}
+type TokenOffset = {
+	start: number
+	end: number
+}
+const MARKDOWN_PARSE_SLOW_LOG_MS = 5
+
 function markdownDebugLog(message: string) {
 	console.log(message)
 }
@@ -29,6 +39,9 @@ export default class ParseMarkdown {
 	parseInterval: number
 	lastParseTime: number = 0
 	private cacheMap: Map<string, MarkdownToken> = new Map()
+	private committedTokenList: MarkdownToken[] = []
+	private committedMarkdownText: string = ''
+	private nextUniqueIndex: number = 0
 
 	constructor(updateCallBack: ParseDone, parseInterval: number = 180) {
 		this.updateCallBack = updateCallBack
@@ -95,50 +108,214 @@ export default class ParseMarkdown {
 
 	private md2jsonTask(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
 		markdownText = preprocessMathText(markdownText)
+		if (!markdownText.startsWith(this.committedMarkdownText)) {
+			this.resetIncrementalState()
+		}
+		const pendingMarkdownText = markdownText.slice(this.committedMarkdownText.length)
 		// #ifdef APP
-		this.md2jsonDirect(markdownText, isDone, md2JsonCallBack)
+		this.md2jsonDirect(pendingMarkdownText, isDone, md2JsonCallBack)
 		return
 		// #endif
 		// #ifndef APP
 		const parseStart = Date.now()
-		const parseMdRes = md2json(markdownText)
-		markdownDebugLog('[uni-ai-x][Markdown解析] 直接JS解析耗时=' + (Date.now() - parseStart).toString() + 'ms，字符数=' + markdownText.length.toString())
+		const parseMdRes = md2json(pendingMarkdownText)
+		this.logParseCost(parseStart, pendingMarkdownText)
 		if (parseMdRes.errorMsg.length > 0) {
-			md2JsonCallBack([])
+			md2JsonCallBack(this.committedTokenList)
 			return
 		}
-		this.handleMd2jsonResult(parseMdRes.data, isDone, md2JsonCallBack)
+		this.handleMd2jsonResult(parseMdRes.data, pendingMarkdownText, isDone, md2JsonCallBack)
 		// #endif
 	}
 
 	private md2jsonDirect(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
 		const parseStart = Date.now()
 		const parseMdRes = parser.md2json(markdownText) as ParseMdRes
-		markdownDebugLog('[uni-ai-x][Markdown解析] 直接JS解析耗时=' + (Date.now() - parseStart).toString() + 'ms，字符数=' + markdownText.length.toString())
+		this.logParseCost(parseStart, markdownText)
 		if (parseMdRes.errorMsg.length > 0) {
 			markdownErrorLog('[uni-ai-x][Markdown解析] 直接JS解析失败：' + parseMdRes.errorMsg)
-			md2JsonCallBack([])
+			md2JsonCallBack(this.committedTokenList)
 			return
 		}
-		this.handleMd2jsonResult(parseMdRes.data, isDone, md2JsonCallBack)
+		this.handleMd2jsonResult(parseMdRes.data, markdownText, isDone, md2JsonCallBack)
 	}
 
+	private logParseCost(parseStart: number, markdownText: string) {
+		const cost = Date.now() - parseStart
+		if (cost <= MARKDOWN_PARSE_SLOW_LOG_MS) return
+		markdownDebugLog('[uni-ai-x][Markdown解析] 直接JS解析耗时=' + cost.toString() + 'ms，字符数=' + markdownText.length.toString() + '，解析内容如下：\n' + markdownText)
+	}
 
-	private handleMd2jsonResult(newJsonList: MarkdownToken[], isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
+	private handleMd2jsonResult(newJsonList: MarkdownToken[], markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
 		if (newJsonList.length == 0) {
-			md2JsonCallBack([])
+			if (isDone && markdownText.length > 0) {
+				this.committedMarkdownText += markdownText
+			}
+			md2JsonCallBack(this.committedTokenList)
 			return
 		}
-		const beforeDone = this.createBeforeDone(newJsonList.length, () => md2JsonCallBack(newJsonList))
-		for (let i = 0; i < newJsonList.length; i++) {
-			const item = newJsonList[i]
-			item.uniqueId = 's' + i
-			item.isClose = 1
-			this.enrichToken(item, (nextToken: MarkdownToken | null) => {
-				if (nextToken != null) newJsonList[i] = nextToken
+		const splitInfo = this.getClosedSplitInfo(newJsonList, markdownText, isDone)
+		const closedList = newJsonList.slice(0, splitInfo.closedCount)
+		const openList = newJsonList.slice(splitInfo.closedCount)
+		this.prepareClosedTokenList(closedList)
+		this.prepareOpenTokenList(openList, isDone)
+		const totalCount = closedList.length + openList.length
+		const beforeDone = this.createBeforeDone(totalCount, () => {
+			if (closedList.length > 0 || splitInfo.closedText.length > 0) {
+				this.committedTokenList = this.committedTokenList.concat(closedList)
+				this.committedMarkdownText += splitInfo.closedText
+			}
+			md2JsonCallBack(this.committedTokenList.concat(openList))
+		})
+		for (let i = 0; i < closedList.length; i++) {
+			this.enrichToken(closedList[i], (nextToken: MarkdownToken | null) => {
+				if (nextToken != null) closedList[i] = nextToken
 				beforeDone()
 			})
 		}
+		for (let i = 0; i < openList.length; i++) {
+			this.enrichToken(openList[i], (nextToken: MarkdownToken | null) => {
+				if (nextToken != null) openList[i] = nextToken
+				beforeDone()
+			})
+		}
+	}
+
+	private resetIncrementalState() {
+		this.committedTokenList = []
+		this.committedMarkdownText = ''
+		this.nextUniqueIndex = 0
+	}
+
+	private prepareClosedTokenList(tokenList: MarkdownToken[]) {
+		for (let i = 0; i < tokenList.length; i++) {
+			const item = tokenList[i]
+			if (item.uniqueId == null) {
+				item.uniqueId = 's' + this.nextUniqueIndex.toString()
+				this.nextUniqueIndex++
+			}
+			item.isClose = 1
+		}
+	}
+
+	private prepareOpenTokenList(tokenList: MarkdownToken[], isClose: boolean) {
+		for (let i = 0; i < tokenList.length; i++) {
+			const item = tokenList[i]
+			item.uniqueId = 'o' + this.committedMarkdownText.length.toString() + '-' + i.toString()
+			item.isClose = isClose ? 1 : 0
+		}
+	}
+
+	private getClosedSplitInfo(tokenList: MarkdownToken[], markdownText: string, isDone: boolean): ClosedSplitInfo {
+		if (isDone) {
+			return {
+				closedCount: tokenList.length,
+				closedText: markdownText
+			} as ClosedSplitInfo
+		}
+		if (tokenList.length <= 1) {
+			const offsets = this.getTokenOffsets(tokenList, markdownText)
+			const firstOffset = offsets[0]
+			if (!this.hasReferenceLinkSyntax(tokenList[0]) && this.isTailTokenClosed(tokenList[0], markdownText.slice(firstOffset.end), markdownText)) {
+				return {
+					closedCount: 1,
+					closedText: markdownText
+				} as ClosedSplitInfo
+			}
+			return {
+				closedCount: 0,
+				closedText: ''
+			} as ClosedSplitInfo
+		}
+		const offsets = this.getTokenOffsets(tokenList, markdownText)
+		let closedCount = tokenList.length - 1
+		let closedTextEnd = offsets[closedCount].start
+		const lastToken = tokenList[tokenList.length - 1]
+		const lastOffset = offsets[offsets.length - 1]
+		if (this.isTailTokenClosed(lastToken, markdownText.slice(lastOffset.end), markdownText)) {
+			closedCount = tokenList.length
+			closedTextEnd = markdownText.length
+		}
+		const sensitiveIndex = this.findFutureSensitiveTokenIndex(tokenList, closedCount)
+		if (sensitiveIndex >= 0) {
+			closedCount = sensitiveIndex
+			closedTextEnd = offsets[sensitiveIndex].start
+		}
+		return {
+			closedCount,
+			closedText: markdownText.slice(0, closedTextEnd)
+		} as ClosedSplitInfo
+	}
+
+	private findFutureSensitiveTokenIndex(tokenList: MarkdownToken[], closedCount: number): number {
+		for (let i = 0; i < closedCount; i++) {
+			if (this.hasReferenceLinkSyntax(tokenList[i])) return i
+		}
+		return -1
+	}
+
+	private hasReferenceLinkSyntax(token: MarkdownToken): boolean {
+		const raw = token.raw ?? ''
+		if (/\[[^\]]+\]\[[^\]]*\]/.test(raw)) return true
+		const children = token.tokens ?? token.items ?? [] as MarkdownToken[]
+		for (let i = 0; i < children.length; i++) {
+			if (this.hasReferenceLinkSyntax(children[i])) return true
+		}
+		return false
+	}
+
+	private isTailTokenClosed(token: MarkdownToken, afterText: string, markdownText: string): boolean {
+		const type = token.type ?? ''
+		if (type == 'heading' || type == 'thematic_break') {
+			return markdownText.endsWith('\n') || afterText.length > 0
+		}
+		if (type == 'code_block') {
+			return this.hasClosedFence(token.raw ?? '')
+		}
+		if (type == 'paragraph') {
+			return this.hasBlankLine(afterText)
+		}
+		if (type == 'table') {
+			return this.hasBlankLine(afterText)
+		}
+		return false
+	}
+
+	private hasClosedFence(raw: string): boolean {
+		const lines = raw.split('\n')
+		if (lines.length < 2) return false
+		const firstLine = lines[0].trim()
+		const fence = firstLine.startsWith('~~~') ? '~~~' : (firstLine.startsWith('```') ? '```' : '')
+		if (fence.length == 0) return false
+		for (let i = lines.length - 1; i > 0; i--) {
+			const line = lines[i].trim()
+			if (line.startsWith(fence)) return true
+		}
+		return false
+	}
+
+	private hasBlankLine(text: string): boolean {
+		return /\n[ \t]*\n/.test(text)
+	}
+
+	private getTokenOffsets(tokenList: MarkdownToken[], markdownText: string): TokenOffset[] {
+		const offsets = [] as TokenOffset[]
+		let cursor = 0
+		for (let i = 0; i < tokenList.length; i++) {
+			const raw = tokenList[i].raw ?? tokenList[i].text ?? ''
+			let start = cursor
+			if (raw.length > 0) {
+				const found = markdownText.indexOf(raw, cursor)
+				if (found >= 0) start = found
+			}
+			const end = start + raw.length
+			offsets.push({
+				start,
+				end
+			} as TokenOffset)
+			cursor = end
+		}
+		return offsets
 	}
 
 	private enrichToken(item: MarkdownToken, callBack: (token: MarkdownToken | null) => void) {
