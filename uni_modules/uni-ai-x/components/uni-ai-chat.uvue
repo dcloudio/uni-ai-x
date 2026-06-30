@@ -3,21 +3,21 @@
 		<uni-ai-chat-nav @change-menu="changeMenu" />
 		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
 			<view class="chat-box-scroll-view-box">
-				<scroll-view direction="vertical" class="chat-box-msg-list" :scroll-into-view="scrollIntoView" id="msg-list"
+				<list-view direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
-					<template v-for="item in msgList" :key="item._id">
-						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @longpress="onlongTapMsg(item)" @changeThinkContent="changeThinkContent" :id="'msg-item-' + item._id"></uni-ai-x-msg>
+					<list-item v-for="item in msgList" :key="item._id" :id="'msg-item-' + item._id">
+						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @longpress="onlongTapMsg(item)" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="item" @longpress="onlongTapMsg(item)" />
-					</template>
-					<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0">
+					</list-item>
+					<list-item class="chat-box-welcome-msg-box" v-if="msgList.length == 0">
 						<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
 						<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
 						<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
-					</view>
-					<view style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></view>
-					<view style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></view>
-				</scroll-view>
+					</list-item>
+					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
+					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
+				</list-view>
 				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden', position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)'}"/>
 				<view :style="{visibility: showScrollToBottom ? 'visible' : 'hidden'}" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
@@ -56,7 +56,7 @@
 		'close-menu': []
 	}>()
 	
-	const scrollIntoView = ref<string>('')
+	const scrollTop = ref<number>(0)
 	const bottomAnchorId = ref<string>('last-msg-a')
 	const scrollInBottom = ref<boolean>(true)
 	const showScrollToBottom = ref<boolean>(false)
@@ -92,7 +92,7 @@
 		scrollWithAnimation.value = userClick
 		bottomAnchorId.value = bottomAnchorId.value == 'last-msg-a' ? 'last-msg-b' : 'last-msg-a'
 		nextTick(() => {
-			scrollIntoView.value = bottomAnchorId.value
+			scrollTop.value = scrollTop.value > 100000000 ? 100000 : scrollTop.value + 100000
 			scrollInBottom.value = true
 		})
 	}
