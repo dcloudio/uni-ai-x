@@ -16,7 +16,9 @@
 		<view v-if="!showMermaidImage && shouldShowHorizontalHint" class="uni-code-msg-scroll-tip-row">
 			<text class="uni-code-msg-scroll-tip">左右滑动查看完整代码</text>
 		</view>
-		<uni-ai-msg-mermaid v-if="language == 'mermaid' && showMermaidImage" :href="href" />
+		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box">
+			<image class="uni-code-msg-mermaid-image" :src="href" mode="aspectFit" @click="previewMermaidImage" />
+		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<text v-if="shouldUseOriginCode" class="uni-code-msg-origin-line" v-for="(lineText, lineIndex) in rawCodeLines" :key="'raw-' + lineIndex" :style="{width: maxLineWidth}">{{lineText}}</text>
 			<text v-else class="uni-code-msg-line" v-for="(tokens,index) in safeCodeTokens" :key="index" :style="{width: maxLineWidth}">
@@ -30,7 +32,6 @@
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
-import uniAiMsgMermaid from '@/uni_modules/uni-ai-x/components/uni-ai-msg-mermaid/uni-ai-msg-mermaid.uvue'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
@@ -79,6 +80,11 @@ forceFixedLineWidthOnAndroid.value = true
 function setMermaidView(showImage: boolean) {
 	mermaidViewTouched.value = true
 	showMermaidImage.value = showImage && hasMermaidImage(props.href)
+}
+
+const previewMermaidImage = () => {
+	if (props.href == null || props.href.length == 0) return
+	uni.previewImage({ urls: [props.href] as string[] })
 }
 
 function normalizeCodeText(text: string): string {
@@ -175,6 +181,7 @@ if (forceFixedLineWidthOnAndroid.value) {
 // #endif
 
 const scrollViewHeight = computed<string>(() => {
+	if (props.language == 'mermaid') return 'auto'
 	const rawLineCount = rawCodeLines.value.length
 	const renderedLineCount = props.codeTokens.length
 	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
@@ -375,6 +382,24 @@ const copyCode = () => {
 	color: var(--text-primary);
 	align-self: flex-start;
 	font-family: CodeFontFamily;
+}
+
+.uni-code-msg-mermaid-image-box {
+	width: 100%;
+	aspect-ratio: 5 / 4;
+	background-color: #ffffff;
+	overflow: hidden;
+}
+
+.uni-code-msg-mermaid-image {
+	width: 100%;
+	height: 100%;
+}
+
+.uni-code-msg-root-mermaid .uni-code-msg-code-scroll-view {
+	width: 100%;
+	aspect-ratio: 5 / 4;
+	overflow: auto;
 }
 
 </style>

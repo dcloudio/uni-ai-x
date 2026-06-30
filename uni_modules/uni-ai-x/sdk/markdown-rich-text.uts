@@ -5,6 +5,9 @@ const PARAGRAPH_STYLE = TEXT_STYLE + 'margin:4px 0;'
 const BLOCKQUOTE_STYLE = TEXT_STYLE + 'border-left:4px solid var(--border-primary);padding-left:10px;margin:6px 0;color:var(--text-tertiary);'
 const INLINE_CODE_STYLE = 'font-family:monospace;font-size:14px;background-color:var(--bg-secondary);border-radius:4px;padding:1px 4px;color:var(--text-primary);'
 const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#111827;color:#d1fae5;padding:10px 12px;border-radius:6px;'
+const MERMAID_FRAME_STYLE = 'width:100%;aspect-ratio:5/4;overflow:hidden;box-sizing:border-box;margin:5px 0;border-radius:6px;background-color:#ffffff;'
+const MERMAID_CODE_STYLE = CODE_STYLE + 'width:100%;aspect-ratio:5/4;overflow:auto;box-sizing:border-box;margin:5px 0;'
+const MERMAID_IMAGE_STYLE = 'width:100%;height:100%;object-fit:contain;display:block;background-color:#ffffff;'
 const TABLE_STYLE = 'border-collapse:collapse;margin:6px 0;'
 const TABLE_CELL_STYLE = 'border:1px solid var(--border-primary);padding:6px 8px;font-size:14px;line-height:22px;color:var(--text-primary);'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:var(--bg-secondary);'
@@ -266,7 +269,13 @@ function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
 }
 
 function codeBlockNode(token: MarkdownToken | null): UTSJSONObject {
-	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(CODE_STYLE))
+	const style = (token?.lang ?? '') == 'mermaid' ? MERMAID_CODE_STYLE : CODE_STYLE
+	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(style))
+}
+
+function mermaidImageNode(token: MarkdownToken): UTSJSONObject {
+	const imageAttrs = { src: token.href ?? '', alt: token.text ?? '', style: MERMAID_IMAGE_STYLE } as UTSJSONObject
+	return richNode('div', [richNode('img', [] as UTSJSONObject[], imageAttrs)] as UTSJSONObject[], styleAttrs(MERMAID_FRAME_STYLE))
 }
 
 function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
@@ -283,7 +292,7 @@ function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
 	if (type == 'table') return [tableNode(token)] as UTSJSONObject[]
 	if (type == 'code_block') {
 		if ((token.lang ?? '') == 'math' && (token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
-		if ((token.lang ?? '') == 'mermaid' && (token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
+		if ((token.lang ?? '') == 'mermaid' && (token.href ?? '').length > 0) return [mermaidImageNode(token)] as UTSJSONObject[]
 		return [codeBlockNode(token)] as UTSJSONObject[]
 	}
 	if (type == 'math') {
