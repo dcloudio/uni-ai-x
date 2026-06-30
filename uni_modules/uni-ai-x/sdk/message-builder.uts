@@ -1,13 +1,15 @@
 import { ChatItem, RequestAiCoMessage, MultiModalContent, ImgParse } from '@/uni_modules/uni-ai-x/types.uts'
 
 function buildMultimodalContent(body: string, imgUrlList: string[]): MultiModalContent {
-	const content = imgUrlList.map((url: string): ImgParse => {
-		return {
+	const content = [] as MultiModalContent
+	imgUrlList.forEach((url: string) => {
+		const imageContent: ImgParse = {
 			type: 'image_url',
 			image_url: {
 				url
 			}
 		}
+		content.push(imageContent)
 	})
 	content.push({
 		type: 'text',

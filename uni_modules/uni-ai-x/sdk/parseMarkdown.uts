@@ -12,9 +12,14 @@ const mathMarkMap = new Map<string, string>([
 	['$', '$'],
 	['$$', '$$'],
 	['\\[', '\\]'],
-	['\\(', '\\)'],
-	['\\begin{', '\\end{']
+	['\\(', '\\)']
 ])
+
+type MathRange = {
+	startIndex: number
+	endToken: string
+	contentStartIndex: number
+}
 
 function markdownErrorLog(message: string) {
 	console.error(message)
@@ -31,6 +36,8 @@ export default class ParseMarkdown {
 	parseInterval: number
 	lastParseTime: number = 0
 	private codeLineCacheMap: Map<string, MarkdownToken[]> = new Map()
+	private mathCacheMap: Map<string, MarkdownToken> = new Map()
+	private mathRenderingMap: Map<string, boolean> = new Map()
 	private segmentTokenList: MarkdownToken[] = []
 	private segmentStartLineIndex: number = 0
 	private segmentEndLineIndex: number = 1
@@ -171,26 +178,48 @@ export default class ParseMarkdown {
 		}
 		const lastCodeTagIndex = withFindMathText.lastIndexOf('```') + 3
 		withFindMathText = withFindMathText.slice(lastCodeTagIndex)
-		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
-		const mathStartIndex = withFindMathText.search(mathStartPattern)
-		if (mathStartIndex == -1) {
+		const mathRange = this.findMathRange(withFindMathText)
+		if (mathRange == null) {
 			return this.myMarkdownText
 		}
-		const startToken: string = withFindMathText.match(mathStartPattern)![0]!
-		const endToken: string = mathMarkMap.get(startToken) ?? ''
-		if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
-		const endIndex = withFindMathText.slice(mathStartIndex + startToken.length).indexOf(endToken)
+		const endIndex = withFindMathText.slice(mathRange.contentStartIndex).indexOf(mathRange.endToken)
 		if (endIndex == -1) {
-			return null
+			return this.createPendingMathMarkdown(withFindMathText, lastCodeTagIndex, mathRange)
 		}
-		const mathEndIndex = endIndex + mathStartIndex + startToken.length
-		const mathText = withFindMathText.slice(startToken.length + mathStartIndex, mathEndIndex)
+		const mathEndIndex = endIndex + mathRange.contentStartIndex
+		const mathText = withFindMathText.slice(mathRange.contentStartIndex, mathEndIndex)
 		const mathCodeText = '\n```math\n' + mathText + '\n```\n'
 		this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex + lastCodeTagIndex) +
-			withFindMathText.slice(0, mathStartIndex) + mathCodeText +
-			withFindMathText.slice(mathEndIndex + endToken.length)
-		this.lastMathEndIndex += lastCodeTagIndex + mathStartIndex + mathCodeText.length - 1
+			withFindMathText.slice(0, mathRange.startIndex) + mathCodeText +
+			withFindMathText.slice(mathEndIndex + mathRange.endToken.length)
+		this.lastMathEndIndex += lastCodeTagIndex + mathRange.startIndex + mathCodeText.length - 1
 		return this.myMarkdownText
+	}
+
+	private findMathRange(text: string): MathRange | null {
+		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
+		const mathStartIndex = text.search(mathStartPattern)
+		if (mathStartIndex == -1) return null
+		const startToken = text.match(mathStartPattern)![0]!
+		let endToken = mathMarkMap.get(startToken) ?? ''
+		if (startToken.startsWith('\\begin{')) {
+			const envName = startToken.slice('\\begin{'.length, startToken.length - 1)
+			endToken = '\\end{' + envName + '}'
+		}
+		if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
+		const range: MathRange = {
+			startIndex: mathStartIndex,
+			endToken,
+			contentStartIndex: mathStartIndex + startToken.length
+		}
+		return range
+	}
+
+	private createPendingMathMarkdown(withFindMathText: string, lastCodeTagIndex: number, mathRange: MathRange): string {
+		const pendingMathText = withFindMathText.slice(mathRange.contentStartIndex)
+		return this.myMarkdownText.slice(0, this.lastMathEndIndex + lastCodeTagIndex) +
+			withFindMathText.slice(0, mathRange.startIndex) +
+			'\n```math-pending\n' + pendingMathText + '\n```\n'
 	}
 
 	private md2jsonSegmented(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
@@ -321,7 +350,7 @@ export default class ParseMarkdown {
 		}
 		item.text = item.text ?? ''
 		const lang = item.lang ?? 'text'
-		if (item.isClose == 1 && lang == 'math') {
+		if (lang == 'math') {
 			this.parseMath(item, callBack)
 			return
 		}
@@ -389,23 +418,77 @@ export default class ParseMarkdown {
 		// #endif
 		// #ifndef MP-WEIXIN
 		mathToken.text = mathToken.text?.trim()
-		proxyWeb.callMethod({
-			action: 'katexRender',
-			pureMathText: mathToken.text!
-		}, (param: UTSJSONObject) => {
-			const latexEl: MarkdownToken = {
-				type: 'math',
-				text: mathToken.text!,
-				html: param['resultHtml'] as string | null,
-				href: param['imageDataURL'] as string | null,
-				width: param['width'] as number | null,
-				height: param['height'] as number | null,
-				isClose: 1,
-				uniqueId: mathToken.uniqueId!
-			}
-			callBack(latexEl)
+		const cacheKey = mathToken.text ?? ''
+		const cachedToken = this.mathCacheMap.get(cacheKey)
+		if (cachedToken != null) {
+			this.applyRenderedMathAttrs(mathToken, cachedToken)
+			callBack(null)
+			return
+		}
+		this.parseCodehighlight(mathToken, () => {
+			callBack(null)
+			this.ensureMathRenderStarted(cacheKey, mathToken.text ?? '', mathToken)
 		})
 		// #endif
+	}
+
+	private applyRenderedMathAttrs(target: MarkdownToken, rendered: MarkdownToken) {
+		target.href = rendered.href
+		target.html = rendered.html
+		target.width = rendered.width
+		target.height = rendered.height
+	}
+
+	private ensureMathRenderStarted(cacheKey: string, mathText: string, mathToken: MarkdownToken) {
+		if (cacheKey.length == 0) return
+		if (this.mathRenderingMap.get(cacheKey) == true) return
+		this.mathRenderingMap.set(cacheKey, true)
+		setTimeout(() => {
+			proxyWeb.callMethod({
+				action: 'katexRender',
+				pureMathText: mathText
+			}, (param: UTSJSONObject) => {
+				this.mathRenderingMap.delete(cacheKey)
+				const renderedToken: MarkdownToken = {
+					type: 'code_block',
+					lang: 'math',
+					text: mathText,
+					html: param['resultHtml'] as string | null,
+					href: param['imageDataURL'] as string | null,
+					width: param['width'] as number | null,
+					height: param['height'] as number | null,
+					isClose: 1
+				}
+				if ((renderedToken.href ?? '').length == 0) return
+				this.applyRenderedMathAttrs(mathToken, renderedToken)
+				this.mathCacheMap.set(cacheKey, renderedToken)
+				if (this.replaceRenderedMathToken(cacheKey, renderedToken)) {
+					this.updateCallBack(this.cloneTokenList(this.segmentTokenList), this.msgReceiveDone)
+					return
+				}
+				this.scheduleParse(this.latestMsgBody, this.msgReceiveDone, true)
+			})
+		}, 16)
+	}
+
+	private replaceRenderedMathToken(cacheKey: string, renderedToken: MarkdownToken): boolean {
+		return this.replaceRenderedMathInList(this.segmentTokenList, cacheKey, renderedToken)
+	}
+
+	private replaceRenderedMathInList(tokenList: MarkdownToken[] | null, cacheKey: string, renderedToken: MarkdownToken): boolean {
+		if (tokenList == null) return false
+		let replaced = false
+		for (let i = 0; i < tokenList.length; i++) {
+			const item = tokenList[i]
+			if (item == null) continue
+			if (item.type == 'code_block' && (item.lang ?? '') == 'math' && (item.text ?? '').trim() == cacheKey) {
+				this.applyRenderedMathAttrs(item, renderedToken)
+				replaced = true
+			}
+			if (this.replaceRenderedMathInList(item.tokens ?? null, cacheKey, renderedToken)) replaced = true
+			if (this.replaceRenderedMathInList(item.items ?? null, cacheKey, renderedToken)) replaced = true
+		}
+		return replaced
 	}
 
 	private createBeforeDone(totalCount: number, callBack: CallBack) {

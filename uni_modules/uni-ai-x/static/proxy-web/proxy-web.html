@@ -253,23 +253,29 @@
                 trust: true, // 允许一些不安全的命令
                 strict: 'ignore' // 是否严格模式
             });
-            // parentIsWeb = false 时，才需要转换为图片
-            const imageDataURL = parentIsWeb ? null : await this.html2Base64(resultHtml, 3, true);
+            const imageDataURL = await this.html2Base64(resultHtml, 3, true);
             const param = {
               imageDataURL,
               width: null,
               height: null,
-              resultHtml: parentIsWeb ? resultHtml : ''
+              resultHtml: ''
             }
-            // 非 web 平台，则返回图片的宽高
-            if (!parentIsWeb) {
+            // 返回图片宽高，方便 rich-text 按图片节点渲染公式。
+            if (imageDataURL) {
               const tmpImg = document.createElement('img');
-              tmpImg.src = imageDataURL;
-              document.body.appendChild(tmpImg);
               await new Promise(resolve => {
-                tmpImg.addEventListener('load', () => {
+                let settled = false;
+                const finish = () => {
+                  if (settled) return;
+                  settled = true;
                   resolve();
-                });
+                };
+                tmpImg.addEventListener('load', finish);
+                tmpImg.addEventListener('error', finish);
+                setTimeout(finish, 500);
+                tmpImg.src = imageDataURL;
+                document.body.appendChild(tmpImg);
+                if (tmpImg.complete) finish();
               });
               param.width = tmpImg.offsetWidth;
               param.height = tmpImg.offsetHeight;

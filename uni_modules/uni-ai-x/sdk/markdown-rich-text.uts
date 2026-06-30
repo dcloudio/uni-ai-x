@@ -1,0 +1,307 @@
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+
+const TEXT_STYLE = 'font-size:16px;line-height:26px;color:var(--text-primary);'
+const PARAGRAPH_STYLE = TEXT_STYLE + 'margin:4px 0;'
+const BLOCKQUOTE_STYLE = TEXT_STYLE + 'border-left:4px solid var(--border-primary);padding-left:10px;margin:6px 0;color:var(--text-tertiary);'
+const INLINE_CODE_STYLE = 'font-family:monospace;font-size:14px;background-color:var(--bg-secondary);border-radius:4px;padding:1px 4px;color:var(--text-primary);'
+const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#111827;color:#d1fae5;padding:10px 12px;border-radius:6px;'
+const TABLE_STYLE = 'border-collapse:collapse;margin:6px 0;'
+const TABLE_CELL_STYLE = 'border:1px solid var(--border-primary);padding:6px 8px;font-size:14px;line-height:22px;color:var(--text-primary);'
+const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:var(--bg-secondary);'
+
+function richNode(name: string, children: UTSJSONObject[] = [] as UTSJSONObject[], attrs: UTSJSONObject | null = null): UTSJSONObject {
+	const node = { name } as UTSJSONObject
+	if (attrs != null) node['attrs'] = attrs
+	if (children.length > 0) node['children'] = children
+	return node
+}
+
+function textNode(text: string): UTSJSONObject {
+	return { type: 'text', text } as UTSJSONObject
+}
+
+function styleAttrs(style: string): UTSJSONObject {
+	return { style } as UTSJSONObject
+}
+
+function emptyTokens(): MarkdownToken[] {
+	return [] as MarkdownToken[]
+}
+
+function emptyCodeLines(): MarkdownToken[][] {
+	return [] as MarkdownToken[][]
+}
+
+function emptyAligns(): string[] {
+	return [] as string[]
+}
+
+function childrenOf(token: MarkdownToken | null): MarkdownToken[] {
+	if (token == null) return emptyTokens()
+	if (token.tokens != null) return token.tokens!
+	if (token.items != null) return token.items!
+	return emptyTokens()
+}
+
+function codeLinesOf(token: MarkdownToken | null): MarkdownToken[][] {
+	if (token == null) return emptyCodeLines()
+	if (token.codeTokens != null) return token.codeTokens!
+	return emptyCodeLines()
+}
+
+function tokenText(token: MarkdownToken | null): string {
+	if (token == null) return ''
+	if (token.text != null) return token.text!
+	let text = ''
+	const children = childrenOf(token)
+	for (let i = 0; i < children.length; i++) {
+		if (children[i] != null) text += tokenText(children[i])
+	}
+	return text
+}
+
+function inlineChildren(token: MarkdownToken | null): UTSJSONObject[] {
+	if (token == null) return [] as UTSJSONObject[]
+	const children = childrenOf(token)
+	if (children.length == 0) return [textNode(token.text ?? '')] as UTSJSONObject[]
+	const result = [] as UTSJSONObject[]
+	for (let i = 0; i < children.length; i++) {
+		if (children[i] == null) continue
+		const node = inlineNode(children[i])
+		if (node != null) result.push(node)
+	}
+	return result
+}
+
+function inlineNode(token: MarkdownToken | null): UTSJSONObject | null {
+	if (token == null) return null
+	const type = token.type ?? 'text'
+	if (type == 'text' || type == 'escape') return textNode(token.text ?? '')
+	if (type == 'strong') return richNode('strong', inlineChildren(token))
+	if (type == 'em') return richNode('i', inlineChildren(token))
+	if (type == 'del') return richNode('del', inlineChildren(token))
+	if (type == 'codespan' || type == 'code') return richNode('span', [textNode(token.text ?? '')] as UTSJSONObject[], styleAttrs(INLINE_CODE_STYLE))
+	if (type == 'br') return richNode('br')
+	if (type == 'link') return richNode('a', inlineChildren(token), { href: token.href ?? '' } as UTSJSONObject)
+	if (type == 'image') return richNode('img', [] as UTSJSONObject[], imageAttrs(token))
+	if (type == 'html') return textNode(token.text ?? token.raw ?? '')
+	return textNode(tokenText(token))
+}
+
+function headingStyle(depth: number): string {
+	const safeDepth = Math.max(1, Math.min(depth, 6))
+	if (safeDepth == 1) return 'font-size:30px;line-height:36px;'
+	if (safeDepth == 2) return 'font-size:26px;line-height:34px;'
+	if (safeDepth == 3) return 'font-size:22px;line-height:32px;'
+	if (safeDepth == 4) return 'font-size:20px;line-height:30px;'
+	if (safeDepth == 5) return 'font-size:18px;line-height:28px;'
+	return 'font-size:16px;line-height:24px;color:var(--text-tertiary);'
+}
+
+function imageAttrs(token: MarkdownToken | null): UTSJSONObject {
+	if (token == null) return { src: '', alt: '' } as UTSJSONObject
+	const attrs = { src: token.href ?? token.text ?? '', alt: token.text ?? '', style: 'max-width:100%;height:auto;' } as UTSJSONObject
+	if ((token.width ?? 0) > 0) attrs['width'] = (token.width ?? 0).toString()
+	if ((token.height ?? 0) > 0) attrs['height'] = (token.height ?? 0).toString()
+	return attrs
+}
+
+function blockChildren(token: MarkdownToken | null): UTSJSONObject[] {
+	const result = [] as UTSJSONObject[]
+	const children = childrenOf(token)
+	for (let i = 0; i < children.length; i++) {
+		if (children[i] == null) continue
+		const nodes = tokenToNodes(children[i])
+		for (let j = 0; j < nodes.length; j++) result.push(nodes[j])
+	}
+	return result
+}
+
+function isTaskListToken(token: MarkdownToken | null): boolean {
+	return token != null && (token.type == 'tasklist' || token.task == 1)
+}
+
+function listItemChildren(item: MarkdownToken | null): UTSJSONObject[] {
+	const children = [] as UTSJSONObject[]
+	const itemChildren = childrenOf(item)
+	for (let i = 0; i < itemChildren.length; i++) {
+		const child = itemChildren[i]
+		if (child == null) continue
+		if (child.type == 'paragraph' || child.type == 'text') {
+			const inlines = inlineChildren(child)
+			for (let j = 0; j < inlines.length; j++) children.push(inlines[j])
+			continue
+		}
+		const nodes = tokenToNodes(child)
+		for (let j = 0; j < nodes.length; j++) children.push(nodes[j])
+	}
+	if (children.length == 0) children.push(textNode(tokenText(item)))
+	return children
+}
+
+function listNodeName(token: MarkdownToken): string {
+	return token.ordered == 1 ? 'ol' : 'ul'
+}
+
+function listStyle(): string {
+	return TEXT_STYLE + 'margin:4px 0 4px 20px;padding-left:18px;'
+}
+
+function listHasTaskItems(token: MarkdownToken): boolean {
+	if (token.type == 'tasklist') return true
+	const items = childrenOf(token)
+	for (let i = 0; i < items.length; i++) {
+		if (isTaskListToken(items[i])) return true
+	}
+	return false
+}
+
+function listItemPrefix(token: MarkdownToken, item: MarkdownToken | null): UTSJSONObject | null {
+	if (token.type != 'tasklist' && !isTaskListToken(item)) return null
+	const checked = item != null && item.checked == 1
+	return richNode('span', [textNode(checked ? '☑ ' : '☐ ')] as UTSJSONObject[], styleAttrs('display:inline-block;width:22px;color:var(--text-secondary);'))
+}
+
+function taskListNodes(token: MarkdownToken): UTSJSONObject[] {
+	const items = childrenOf(token)
+	const nodes = [] as UTSJSONObject[]
+	for (let i = 0; i < items.length; i++) {
+		const item = items[i]
+		if (item == null) continue
+		const children = [] as UTSJSONObject[]
+		const prefix = listItemPrefix(token, item)
+		if (prefix != null) children.push(prefix)
+		const itemChildren = listItemChildren(item)
+		for (let j = 0; j < itemChildren.length; j++) children.push(itemChildren[j])
+		nodes.push(richNode('p', children, styleAttrs(TEXT_STYLE + 'margin:2px 0;')))
+	}
+	return nodes
+}
+
+function listNodes(token: MarkdownToken): UTSJSONObject[] {
+	if (listHasTaskItems(token)) return taskListNodes(token)
+	const items = childrenOf(token)
+	const liNodes = [] as UTSJSONObject[]
+	for (let i = 0; i < items.length; i++) {
+		const item = items[i]
+		if (item == null) continue
+		const children = [] as UTSJSONObject[]
+		const itemChildren = listItemChildren(item)
+		for (let j = 0; j < itemChildren.length; j++) children.push(itemChildren[j])
+		liNodes.push(richNode('li', children, styleAttrs(TEXT_STYLE + 'margin:2px 0;')))
+	}
+	return [richNode(listNodeName(token), liNodes, styleAttrs(listStyle()))] as UTSJSONObject[]
+}
+
+function tableCellNode(cell: MarkdownToken | null, header: boolean, align: string, width: number): UTSJSONObject {
+	let style = (header ? TABLE_HEAD_STYLE : TABLE_CELL_STYLE) + 'text-align:' + align + ';'
+	if (width > 0) style += 'width:' + width.toString() + 'px;'
+	return richNode(header ? 'th' : 'td', inlineChildren(cell), styleAttrs(style))
+}
+
+function tableNode(token: MarkdownToken): UTSJSONObject {
+	const rows = token.tokens != null ? token.tokens! : emptyTokens()
+	const aligns = token.align != null ? token.align! : emptyAligns()
+	const trNodes = [] as UTSJSONObject[]
+	let tableWidth = 0
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		if (rows[rowIndex] == null) continue
+		const cells = rows[rowIndex].tokens != null ? rows[rowIndex].tokens! : emptyTokens()
+		const cellNodes = [] as UTSJSONObject[]
+		for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+			if (cells[cellIndex] == null) continue
+			const width = Math.max(80, Math.min((cells[cellIndex].width ?? 0) + 16, 320))
+			if (rowIndex == 0) tableWidth += width
+			const align = cellIndex < aligns.length && aligns[cellIndex] != null ? aligns[cellIndex] as string : 'left'
+			cellNodes.push(tableCellNode(cells[cellIndex], rowIndex == 0, align.length > 0 ? align : 'left', width))
+		}
+		trNodes.push(richNode('tr', cellNodes))
+	}
+	let style = TABLE_STYLE
+	if (tableWidth > 0) style += 'width:' + tableWidth.toString() + 'px;'
+	return richNode('table', trNodes, styleAttrs(style))
+}
+
+
+function codeColor(className: string): string {
+	if (className == 'keyword' || className == 'storage') return '#7dd3fc'
+	if (className == 'string') return '#fda4af'
+	if (className == 'comment') return '#98a2b3'
+	if (className == 'constant') return '#86efac'
+	if (className == 'function') return '#fde68a'
+	if (className == 'variable') return '#bfdbfe'
+	if (className == 'entity' || className == 'support') return '#67e8f9'
+	if (className == 'meta') return '#e9d5ff'
+	if (className == 'punctuation') return '#f9fafb'
+	return '#d1fae5'
+}
+
+function codeText(token: MarkdownToken | null): string {
+	if (token == null) return ''
+	if (token.text != null) return token.text!
+	const codeTokens = codeLinesOf(token)
+	let text = ''
+	for (let i = 0; i < codeTokens.length; i++) {
+		const line = codeTokens[i] != null ? codeTokens[i] : emptyTokens()
+		for (let j = 0; j < line.length; j++) text += line[j].text ?? ''
+		if (i < codeTokens.length - 1) text += '\n'
+	}
+	return text
+}
+
+function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
+	const codeTokens = codeLinesOf(token)
+	if (codeTokens.length == 0) return [textNode(codeText(token))] as UTSJSONObject[]
+	const children = [] as UTSJSONObject[]
+	for (let lineIndex = 0; lineIndex < codeTokens.length; lineIndex++) {
+		const line = codeTokens[lineIndex] != null ? codeTokens[lineIndex] : emptyTokens()
+		for (let tokenIndex = 0; tokenIndex < line.length; tokenIndex++) {
+			const item = line[tokenIndex]
+			if (item == null) continue
+			children.push(richNode('span', [textNode(item.text ?? '')] as UTSJSONObject[], styleAttrs('color:' + codeColor(item.className ?? '') + ';')))
+		}
+		if (lineIndex < codeTokens.length - 1) children.push(textNode('\n'))
+	}
+	return children
+}
+
+function codeBlockNode(token: MarkdownToken | null): UTSJSONObject {
+	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(CODE_STYLE))
+}
+
+function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
+	if (token == null) return [] as UTSJSONObject[]
+	const type = token.type ?? 'text'
+	if (type == 'heading') {
+		const depth = Math.max(1, Math.min(token.depth ?? 1, 6))
+		return [richNode('h' + depth.toString(), inlineChildren(token), styleAttrs(headingStyle(depth) + 'font-weight:700;margin:8px 0 6px;color:var(--text-primary);'))] as UTSJSONObject[]
+	}
+	if (type == 'paragraph') return [richNode('p', inlineChildren(token), styleAttrs(PARAGRAPH_STYLE))] as UTSJSONObject[]
+	if (type == 'text') return [richNode('p', inlineChildren(token), styleAttrs(PARAGRAPH_STYLE))] as UTSJSONObject[]
+	if (type == 'block_quote') return [richNode('blockquote', blockChildren(token), styleAttrs(BLOCKQUOTE_STYLE))] as UTSJSONObject[]
+	if (type == 'list' || type == 'tasklist') return listNodes(token)
+	if (type == 'table') return [tableNode(token)] as UTSJSONObject[]
+	if (type == 'code_block') {
+		if ((token.lang ?? '') == 'math' && (token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
+		if ((token.lang ?? '') == 'mermaid' && (token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
+		return [codeBlockNode(token)] as UTSJSONObject[]
+	}
+	if (type == 'math') {
+		if ((token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
+		return [richNode('p', [textNode(token.text ?? '')] as UTSJSONObject[], styleAttrs(PARAGRAPH_STYLE))] as UTSJSONObject[]
+	}
+	if (type == 'thematic_break') return [richNode('hr')] as UTSJSONObject[]
+	if (type == 'html') return [textNode(token.text ?? token.raw ?? '')] as UTSJSONObject[]
+	return [richNode('p', [inlineNode(token) ?? textNode(tokenText(token))] as UTSJSONObject[], styleAttrs(PARAGRAPH_STYLE))] as UTSJSONObject[]
+}
+
+export function markdownTokensToRichTextNodes(tokens: MarkdownToken[] | null): UTSJSONObject[] {
+	const nodes = [] as UTSJSONObject[]
+	if (tokens == null) return nodes
+	for (let i = 0; i < tokens.length; i++) {
+		if (tokens[i] == null) continue
+		const blockNodes = tokenToNodes(tokens[i])
+		for (let j = 0; j < blockNodes.length; j++) nodes.push(blockNodes[j])
+	}
+	return nodes
+}

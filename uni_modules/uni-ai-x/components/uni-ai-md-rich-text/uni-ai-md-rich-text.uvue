@@ -1,0 +1,43 @@
+<template>
+	<view class="uni-ai-md-rich-text" :class="[`ui-theme-${uiTheme}`]">
+		<rich-text class="uni-ai-md-rich-text-content" :nodes="richNodes" mode="native" @itemclick="onItemClick"></rich-text>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import { markdownTokensToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+
+	type UniAiMdRichTextProps = {
+		markdownElList: MarkdownToken[]
+	}
+
+	const props = defineProps<UniAiMdRichTextProps>()
+
+	const richNodes = computed<UTSJSONObject[]>(() => {
+		return markdownTokensToRichTextNodes(props.markdownElList)
+	})
+
+	function onItemClick(e: UniRichTextItemClickEvent) {
+		if (e.detail.href != null && e.detail.href!.length > 0) {
+			uni.navigateTo({
+				url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + e.detail.href!,
+				fail: (err) => {
+					console.error(err)
+				}
+			})
+			return
+		}
+		if (e.detail.src != null && e.detail.src!.length > 0) {
+			uni.previewImage({ urls: [e.detail.src!] as string[] })
+		}
+	}
+</script>
+
+<style>
+	.uni-ai-md-rich-text,
+	.uni-ai-md-rich-text-content {
+		width: 100%;
+	}
+</style>
