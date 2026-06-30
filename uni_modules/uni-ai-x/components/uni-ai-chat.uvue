@@ -272,7 +272,7 @@
 	}
 	
 	onMounted(() => {
-		startDemoChat()
+		// startDemoChat()
 		uniAi.onBeforeRequestAi(() => {
 			autoToLastMsg = true
 			needSetLockAutoToLastMsg = true

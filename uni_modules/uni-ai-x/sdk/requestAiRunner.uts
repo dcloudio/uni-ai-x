@@ -66,6 +66,7 @@ class RequestAiRunner {
 		this.resetParser()
 	}
 	resetParser() {
+		this.parseMarkdown?.dispose()
 		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList, MARKDOWN_PARSE_INTERVAL)
 	}
 	onChunkFn(chunkObj : Chunk) {
@@ -357,7 +358,7 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
-		this.parseMarkdown!.userAbort = true
+		this.parseMarkdown?.dispose()
 		this.userAbort = true
 		this.requestTask?.abort()
 		this.callbacks?.onState('stop')

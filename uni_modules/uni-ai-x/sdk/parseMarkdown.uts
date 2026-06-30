@@ -1,11 +1,15 @@
 import { MarkdownToken, ParseMdRes } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { md2json, initCmark } from '@/uni_modules/uni-cmark'
+// #ifdef APP-ANDROID
+import { asyncMd2json } from '@/uni_modules/uni-cmark'
+// #endif
 import { parseLineCode, ParseLineCodeRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import { setApproxTableContentWidth } from '@/uni_modules/uni-ai-x/sdk/markdown-utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 
 type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
 type Md2JsonCallBack = (markdownTokenList: MarkdownToken[], isParseDone: boolean | null) => void
+type UniCmarkCallback = (result: ParseMdRes) => void
 type CallBack = () => void
 let parseMarkdownInstanceIndex = 0
 const mathMarkMap = new Map<string, string>([
@@ -203,27 +207,41 @@ export default class ParseMarkdown {
 		}
 		const segmentText = lines.slice(this.segmentStartLineIndex, this.segmentEndLineIndex).join('\n')
 		const isSegmentDone = isDone && this.segmentEndLineIndex >= lines.length
-		const parseMdRes = this.parseWithUniCmark(segmentText)
-		if (parseMdRes.errorMsg.length > 0) {
-			markdownErrorLog('[uni-ai-x][Markdown解析] uni-CMark原生分段解析失败：' + parseMdRes.errorMsg)
-			this.segmentNeedContinue = false
-			md2JsonCallBack(this.segmentTokenList, isSegmentDone)
-			return
-		}
-		this.handleSegmentResult(parseMdRes.data, segmentText, lines.length, isSegmentDone, md2JsonCallBack)
+		this.parseWithUniCmark(segmentText, (parseMdRes: ParseMdRes) => {
+			if (this.userAbort) return
+			if (parseMdRes.errorMsg.length > 0) {
+				markdownErrorLog('[uni-ai-x][Markdown解析] uni-CMark原生分段解析失败：' + parseMdRes.errorMsg)
+				this.segmentNeedContinue = false
+				md2JsonCallBack(this.segmentTokenList, isSegmentDone)
+				return
+			}
+			this.handleSegmentResult(parseMdRes.data, segmentText, lines.length, isSegmentDone, md2JsonCallBack)
+		})
 	}
 
-	private parseWithUniCmark(markdownText: string): ParseMdRes {
+	/**
+	 * 调用 uni-cmark 解析 Markdown。
+	 * APP-ANDROID：通过原生子线程异步执行 md2json，释放主（UI）线程；
+	 * 其他平台：直接同步调用后触发回调。
+	 */
+	private parseWithUniCmark(markdownText: string, callback: UniCmarkCallback) {
+		// #ifdef APP-ANDROID
+		asyncMd2json(markdownText, (result: ParseMdRes) => {
+			callback(result)
+		})
+		return
+		// #endif
 		// #ifdef APP-IOS
 		const jsonString = md2json(markdownText) as string
 		const jsonArray = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
-		return {
+		callback({
 			data: jsonArray,
 			errorMsg: ''
-		} as ParseMdRes
+		} as ParseMdRes)
+		return
 		// #endif
-		// #ifndef APP-IOS
-		return md2json(markdownText) as ParseMdRes
+		// #ifndef APP
+		callback(md2json(markdownText) as ParseMdRes)
 		// #endif
 	}
 
@@ -418,5 +436,10 @@ export default class ParseMarkdown {
 			parseCount++
 			if (parseCount == totalCount) callBack()
 		}
+	}
+
+	/** 释放资源。在不再使用此实例时调用。 */
+	dispose() {
+		this.userAbort = true
 	}
 }

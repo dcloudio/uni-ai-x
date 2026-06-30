@@ -1,6 +1,9 @@
 import { MainActivity } from 'com.dcloud.cmark'
 export * from '../interface.uts'
 import { MarkdownToken, ParseMdRes } from '../interface.uts'
+import Thread from 'java.lang.Thread'
+import Handler from 'android.os.Handler'
+import Looper from 'android.os.Looper'
 
 // 创建 MainActivity 实例
 let cmarkInstance: MainActivity | null = null
@@ -10,6 +13,9 @@ function getCmarkInstance(): MainActivity {
 	}
 	return cmarkInstance!
 }
+
+// 主线程 Handler，用于将子线程结果回传到主线程
+const mainThreadHandler = new Handler(Looper.getMainLooper())
 
 export function md2json(markdown: string): ParseMdRes {
 	try {
@@ -30,6 +36,35 @@ export function md2json(markdown: string): ParseMdRes {
 			errorMsg: error.message as string
 		}
 	}
+}
+
+/**
+ * 在子线程中执行 md2json 解析，通过回调将结果返回到主线程。
+ * 用于将耗时的 Markdown 原生解析从主（UI）线程卸载到后台线程，避免界面卡顿。
+ */
+export function asyncMd2json(markdown: string, callback: (result: ParseMdRes) => void): void {
+	new Thread((): void => {
+		// 每次调用使用独立实例，避免多线程共享状态问题
+		const activity = new MainActivity()
+		let result: ParseMdRes
+		try {
+			const jsonString = activity.md2json(markdown)
+			const jsonArray = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
+			result = {
+				data: jsonArray,
+				errorMsg: ''
+			}
+		} catch (error) {
+			result = {
+				data: [] as MarkdownToken[],
+				errorMsg: error.message as string
+			}
+		}
+		const finalResult = result
+		mainThreadHandler.post((): void => {
+			callback(finalResult)
+		})
+	}).start()
 }
 
 export async function initCmark() {
