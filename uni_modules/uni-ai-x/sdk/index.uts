@@ -331,6 +331,7 @@ class UniAi {
 	answerQuestion(aiMsgItem: MsgItem) {
 		// 重新回答问题了，之前的回调需要清除
 		proxyWeb.callbackMap.clear()
+		requestAiRunner?.abortRequest()
 		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)

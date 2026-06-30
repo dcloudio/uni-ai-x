@@ -6,7 +6,7 @@
 	import { onLoad } from '@dcloudio/uni-app'
 
 	onLoad(() => {
-		console.log('test-cmark 页面已停用，Markdown 解析已迁移到 uni-ai-x 内部的纯 JS 管线')
+		console.log('test-cmark 页面已停用，Markdown 解析已统一迁移到 uni-cmark')
 	})
 </script>
 

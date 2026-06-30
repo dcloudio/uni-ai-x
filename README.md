@@ -69,5 +69,5 @@ web pc端：
 
 ## 声明
 本项目依赖以下作品
-1. markdown 语法解析依赖 [kux-marked](https://ext.dcloud.net.cn/plugin?name=kux-marked)
+1. markdown 语法解析依赖 [uni-cmark](https://ext.dcloud.net.cn/plugin?name=uni-cmark)，基于 cmark-gfm 的 C 语言库并在各端使用原生/wasm 实现
 2. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)

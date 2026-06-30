@@ -11,7 +11,7 @@
 	<view v-else-if="node.type == 'list' || node.type == 'tasklist'" class="uni-ai-md-node uni-ai-md-list">
 		<view v-for="(item, index) in listItems" :key="nodeKey(item, index)" class="uni-ai-md-list-item">
 			<text v-if="isOrderedList" class="uni-ai-md-list-marker">{{orderedMarker(index)}}</text>
-			<view v-else-if="isTaskList || item.task == 1" class="uni-ai-md-list-icon-marker">
+			<view v-else-if="isTaskList || isTaskItem(item)" class="uni-ai-md-list-icon-marker">
 				<uni-ai-icon :code="taskIcon(item)" :color="item.checked == 1 ? 'var(--text-primary)' : 'var(--text-secondary)'" size="16" />
 			</view>
 			<view v-else class="uni-ai-md-list-icon-marker">
@@ -69,6 +69,10 @@
 
 	function taskIcon(item: MarkdownToken): string {
 		return item.checked == 1 ? 'e607' : 'e608'
+	}
+
+	function isTaskItem(item: MarkdownToken): boolean {
+		return item.type == 'tasklist' || item.task == 1
 	}
 </script>
 

@@ -19,6 +19,7 @@
 	})
 
 	function tokenText(node: MarkdownToken): string {
+		if (node.type == 'softbreak' || node.type == 'linebreak' || node.type == 'br') return '\n'
 		if (node.text != null) return node.text!
 		let text = ''
 		const children = node.tokens ?? node.items ?? [] as MarkdownToken[]

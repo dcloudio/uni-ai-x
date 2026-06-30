@@ -19,7 +19,7 @@
 		<uni-ai-msg-mermaid v-if="language == 'mermaid' && showMermaidImage" :href="href" />
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<text v-if="shouldUseOriginCode" class="uni-code-msg-origin-line" v-for="(lineText, lineIndex) in rawCodeLines" :key="'raw-' + lineIndex" :style="{width: maxLineWidth}">{{lineText}}</text>
-			<text v-else class="uni-code-msg-line" v-for="(tokens,index) in props.codeTokens" :key="index" :style="{width: maxLineWidth}">
+			<text v-else class="uni-code-msg-line" v-for="(tokens,index) in safeCodeTokens" :key="index" :style="{width: maxLineWidth}">
 				<text v-for="(token, tokenIndex) in tokens" :key="index + '-' + tokenIndex + '-' + (token.className ?? '') + '-' + (token.text ?? '')" :class="'uni-code-msg-line-code uni-code-msg-code-' + (token.className ?? '')">{{token.text}}</text>
 			</text>
 		</scroll-view>
@@ -34,7 +34,7 @@ import uniAiMsgMermaid from '@/uni_modules/uni-ai-x/components/uni-ai-msg-mermai
 
 type UniAiMsgCodeProps = {
 	codeText?: string
-	codeTokens?: IToken[][]
+	codeTokens?: IToken[][] | null
 	language?: string
 	href?: string
 }
@@ -85,16 +85,24 @@ function normalizeCodeText(text: string): string {
 	return text.replace(/\r\n/g, '\n')
 }
 
+function normalizeCodeTokens(codeTokens: IToken[][] | null): IToken[][] {
+	return (codeTokens ?? [] as IToken[][]).map((lineTokens: IToken[] | null): IToken[] => lineTokens ?? [] as IToken[])
+}
+
 function buildRenderedCodeText(codeTokens: IToken[][]): string {
 	return codeTokens.map((lineTokens: IToken[]) => {
 		return lineTokens.map((token: IToken) => token.text ?? '').join('')
 	}).join('\n')
 }
 
+const safeCodeTokens = computed<IToken[][]>(() => {
+	return normalizeCodeTokens(props.codeTokens)
+})
+
 const showOriginCode = computed<boolean>(() => {
-	if (props.codeTokens.length == 0) return true
+	if (safeCodeTokens.value.length == 0) return true
 	const rawCode = normalizeCodeText(props.codeText)
-	const renderedCode = normalizeCodeText(buildRenderedCodeText(props.codeTokens))
+	const renderedCode = normalizeCodeText(buildRenderedCodeText(safeCodeTokens.value))
 	return rawCode != renderedCode
 })
 

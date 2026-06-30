@@ -1,28 +1,20 @@
 import { MarkdownToken, ParseMdRes } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import parser from '@/uni_modules/uni-cmark/utssdk/web/unimark.js'
-// #ifndef APP
-import { md2json } from '@/uni_modules/uni-cmark'
-// #endif
+import { md2json, initCmark } from '@/uni_modules/uni-cmark'
 import { parseLineCode, ParseLineCodeRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
-import { preprocessMathText, setApproxTableContentWidth } from '@/uni_modules/uni-ai-x/sdk/markdown-utils.uts'
+import { setApproxTableContentWidth } from '@/uni_modules/uni-ai-x/sdk/markdown-utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 
 type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
-type Md2JsonCallBack = (markdownTokenList: MarkdownToken[]) => void
+type Md2JsonCallBack = (markdownTokenList: MarkdownToken[], isParseDone: boolean | null) => void
 type CallBack = () => void
-type ClosedSplitInfo = {
-	closedCount: number
-	closedText: string
-}
-type TokenOffset = {
-	start: number
-	end: number
-}
-const MARKDOWN_PARSE_SLOW_LOG_MS = 5
-
-function markdownDebugLog(message: string) {
-	console.log(message)
-}
+let parseMarkdownInstanceIndex = 0
+const mathMarkMap = new Map<string, string>([
+	['$', '$'],
+	['$$', '$$'],
+	['\\[', '\\]'],
+	['\\(', '\\)'],
+	['\\begin{', '\\end{']
+])
 
 function markdownErrorLog(message: string) {
 	console.error(message)
@@ -38,14 +30,27 @@ export default class ParseMarkdown {
 	msgReceiveDone: boolean = false
 	parseInterval: number
 	lastParseTime: number = 0
-	private cacheMap: Map<string, MarkdownToken> = new Map()
-	private committedTokenList: MarkdownToken[] = []
-	private committedMarkdownText: string = ''
-	private nextUniqueIndex: number = 0
+	private codeLineCacheMap: Map<string, MarkdownToken[]> = new Map()
+	private segmentTokenList: MarkdownToken[] = []
+	private segmentStartLineIndex: number = 0
+	private segmentEndLineIndex: number = 1
+	private segmentNeedContinue: boolean = false
+	private oldMsgBodyLength: number = 0
+	private lastMathEndIndex: number = 0
+	private myMarkdownText: string = ''
+	private latestMsgBody: string = ''
+	private traceId: string = ''
+	private cmarkReady: boolean = false
+	private cmarkInitializing: boolean = false
 
-	constructor(updateCallBack: ParseDone, parseInterval: number = 180) {
+	constructor(updateCallBack: ParseDone, parseInterval: number = 180, traceId: string = '') {
 		this.updateCallBack = updateCallBack
 		this.parseInterval = parseInterval
+		parseMarkdownInstanceIndex++
+		this.traceId = traceId.length > 0 ? traceId : ('pm-' + parseMarkdownInstanceIndex.toString())
+		// #ifndef APP
+		this.ensureCmarkReady()
+		// #endif
 	}
 
 	runTask(msgBody: string) {
@@ -58,6 +63,8 @@ export default class ParseMarkdown {
 
 	private scheduleParse(msgBody: string, isDone: boolean, immediate: boolean = false) {
 		if (this.userAbort) return
+		if (msgBody.length < this.latestMsgBody.length) return
+		this.latestMsgBody = msgBody
 		this.pendingText = msgBody
 		this.pendingDone = this.pendingDone || isDone
 		if (immediate) {
@@ -84,6 +91,18 @@ export default class ParseMarkdown {
 
 	private parsePending() {
 		if (this.parsing || this.pendingText == null || this.userAbort) return
+		// #ifndef APP
+		if (!this.cmarkReady) {
+			this.ensureCmarkReady()
+			if (this.parseTimer == 0) {
+				this.parseTimer = setTimeout(() => {
+					this.parseTimer = 0
+					this.parsePending()
+				}, 50)
+			}
+			return
+		}
+		// #endif
 		if (this.parseTimer != 0) {
 			clearTimeout(this.parseTimer)
 			this.parseTimer = 0
@@ -94,228 +113,200 @@ export default class ParseMarkdown {
 		this.pendingDone = false
 		this.parsing = true
 		this.lastParseTime = Date.now()
-		this.md2jsonTask(text, isDone, (list: MarkdownToken[]) => {
+		this.md2jsonTask(text, isDone, (list: MarkdownToken[], parseDone: boolean | null) => {
 			this.parsing = false
 			if (this.userAbort) {
 				return
 			}
-			this.updateCallBack(list, isDone)
+			const callbackDone = parseDone ?? isDone
+			this.updateCallBack(list, callbackDone)
 			if (this.pendingText != null) {
-				this.scheduleParse(this.pendingText, this.pendingDone)
+				this.scheduleParse(this.pendingText, this.pendingDone || this.msgReceiveDone)
+			} else if (this.segmentNeedContinue) {
+				this.scheduleParse(this.latestMsgBody, isDone || this.msgReceiveDone)
+			} else if (this.msgReceiveDone && !callbackDone) {
+				this.scheduleParse(this.latestMsgBody, true)
 			}
+		})
+	}
+
+	private ensureCmarkReady() {
+		if (this.cmarkReady || this.cmarkInitializing) return
+		this.cmarkInitializing = true
+		initCmark().then(() => {
+			this.cmarkReady = true
+			this.cmarkInitializing = false
+			if (this.pendingText != null && this.parseTimer == 0 && !this.parsing && !this.userAbort) {
+				this.parseTimer = setTimeout(() => {
+					this.parseTimer = 0
+					this.parsePending()
+				}, 0)
+			}
+		}).catch((err) => {
+			this.cmarkInitializing = false
+			markdownErrorLog('[uni-ai-x][Markdown解析][' + this.traceId + '] uni-CMark初始化失败：' + JSON.stringify(err))
 		})
 	}
 
 	private md2jsonTask(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		markdownText = preprocessMathText(markdownText)
-		if (!markdownText.startsWith(this.committedMarkdownText)) {
-			this.resetIncrementalState()
+		const processedMarkdownText = this.prepareMarkdownText(markdownText)
+		if (processedMarkdownText == null) {
+			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), false)
+			return
 		}
-		const pendingMarkdownText = markdownText.slice(this.committedMarkdownText.length)
-		// #ifdef APP
-		this.md2jsonDirect(pendingMarkdownText, isDone, md2JsonCallBack)
+		this.md2jsonSegmented(processedMarkdownText, isDone, md2JsonCallBack)
 		return
-		// #endif
-		// #ifndef APP
-		const parseStart = Date.now()
-		const parseMdRes = md2json(pendingMarkdownText)
-		this.logParseCost(parseStart, pendingMarkdownText)
+	}
+
+	private prepareMarkdownText(msgBody: string): string | null {
+		if (msgBody.length < this.oldMsgBodyLength) {
+			return null
+		}
+		this.myMarkdownText = this.myMarkdownText + msgBody.slice(this.oldMsgBodyLength)
+		this.oldMsgBodyLength = msgBody.length
+		let withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
+		const codeTagIndex = withFindMathText.split('```').length - 1
+		if (codeTagIndex % 2 != 0) {
+			return this.myMarkdownText
+		}
+		const lastCodeTagIndex = withFindMathText.lastIndexOf('```') + 3
+		withFindMathText = withFindMathText.slice(lastCodeTagIndex)
+		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
+		const mathStartIndex = withFindMathText.search(mathStartPattern)
+		if (mathStartIndex == -1) {
+			return this.myMarkdownText
+		}
+		const startToken: string = withFindMathText.match(mathStartPattern)![0]!
+		const endToken: string = mathMarkMap.get(startToken) ?? ''
+		if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
+		const endIndex = withFindMathText.slice(mathStartIndex + startToken.length).indexOf(endToken)
+		if (endIndex == -1) {
+			return null
+		}
+		const mathEndIndex = endIndex + mathStartIndex + startToken.length
+		const mathText = withFindMathText.slice(startToken.length + mathStartIndex, mathEndIndex)
+		const mathCodeText = '\n```math\n' + mathText + '\n```\n'
+		this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex + lastCodeTagIndex) +
+			withFindMathText.slice(0, mathStartIndex) + mathCodeText +
+			withFindMathText.slice(mathEndIndex + endToken.length)
+		this.lastMathEndIndex += lastCodeTagIndex + mathStartIndex + mathCodeText.length - 1
+		return this.myMarkdownText
+	}
+
+	private md2jsonSegmented(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
+		const lines = markdownText.split('\n')
+		if (this.segmentEndLineIndex > lines.length) {
+			this.segmentEndLineIndex = lines.length
+		}
+		if (this.segmentEndLineIndex < this.segmentStartLineIndex + 1) {
+			this.segmentEndLineIndex = this.segmentStartLineIndex + 1
+		}
+		const segmentText = lines.slice(this.segmentStartLineIndex, this.segmentEndLineIndex).join('\n')
+		const isSegmentDone = isDone && this.segmentEndLineIndex >= lines.length
+		const parseMdRes = this.parseWithUniCmark(segmentText)
 		if (parseMdRes.errorMsg.length > 0) {
-			md2JsonCallBack(this.committedTokenList)
+			markdownErrorLog('[uni-ai-x][Markdown解析] uni-CMark原生分段解析失败：' + parseMdRes.errorMsg)
+			this.segmentNeedContinue = false
+			md2JsonCallBack(this.segmentTokenList, isSegmentDone)
 			return
 		}
-		this.handleMd2jsonResult(parseMdRes.data, pendingMarkdownText, isDone, md2JsonCallBack)
-		// #endif
+		this.handleSegmentResult(parseMdRes.data, segmentText, lines.length, isSegmentDone, md2JsonCallBack)
 	}
 
-	private md2jsonDirect(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		const parseStart = Date.now()
-		const parseMdRes = parser.md2json(markdownText) as ParseMdRes
-		this.logParseCost(parseStart, markdownText)
-		if (parseMdRes.errorMsg.length > 0) {
-			markdownErrorLog('[uni-ai-x][Markdown解析] 直接JS解析失败：' + parseMdRes.errorMsg)
-			md2JsonCallBack(this.committedTokenList)
-			return
-		}
-		this.handleMd2jsonResult(parseMdRes.data, markdownText, isDone, md2JsonCallBack)
-	}
-
-	private logParseCost(parseStart: number, markdownText: string) {
-		const cost = Date.now() - parseStart
-		if (cost <= MARKDOWN_PARSE_SLOW_LOG_MS) return
-		markdownDebugLog('[uni-ai-x][Markdown解析] 直接JS解析耗时=' + cost.toString() + 'ms，字符数=' + markdownText.length.toString() + '，解析内容如下：\n' + markdownText)
-	}
-
-	private handleMd2jsonResult(newJsonList: MarkdownToken[], markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		if (newJsonList.length == 0) {
-			if (isDone && markdownText.length > 0) {
-				this.committedMarkdownText += markdownText
-			}
-			md2JsonCallBack(this.committedTokenList)
-			return
-		}
-		const splitInfo = this.getClosedSplitInfo(newJsonList, markdownText, isDone)
-		const closedList = newJsonList.slice(0, splitInfo.closedCount)
-		const openList = newJsonList.slice(splitInfo.closedCount)
-		this.prepareClosedTokenList(closedList)
-		this.prepareOpenTokenList(openList, isDone)
-		const totalCount = closedList.length + openList.length
-		const beforeDone = this.createBeforeDone(totalCount, () => {
-			if (closedList.length > 0 || splitInfo.closedText.length > 0) {
-				this.committedTokenList = this.committedTokenList.concat(closedList)
-				this.committedMarkdownText += splitInfo.closedText
-			}
-			md2JsonCallBack(this.committedTokenList.concat(openList))
-		})
-		for (let i = 0; i < closedList.length; i++) {
-			this.enrichToken(closedList[i], (nextToken: MarkdownToken | null) => {
-				if (nextToken != null) closedList[i] = nextToken
-				beforeDone()
-			})
-		}
-		for (let i = 0; i < openList.length; i++) {
-			this.enrichToken(openList[i], (nextToken: MarkdownToken | null) => {
-				if (nextToken != null) openList[i] = nextToken
-				beforeDone()
-			})
-		}
-	}
-
-	private resetIncrementalState() {
-		this.committedTokenList = []
-		this.committedMarkdownText = ''
-		this.nextUniqueIndex = 0
-	}
-
-	private prepareClosedTokenList(tokenList: MarkdownToken[]) {
-		for (let i = 0; i < tokenList.length; i++) {
-			const item = tokenList[i]
-			if (item.uniqueId == null) {
-				item.uniqueId = 's' + this.nextUniqueIndex.toString()
-				this.nextUniqueIndex++
-			}
-			item.isClose = 1
-		}
-	}
-
-	private prepareOpenTokenList(tokenList: MarkdownToken[], isClose: boolean) {
-		for (let i = 0; i < tokenList.length; i++) {
-			const item = tokenList[i]
-			item.uniqueId = 'o' + this.committedMarkdownText.length.toString() + '-' + i.toString()
-			item.isClose = isClose ? 1 : 0
-		}
-	}
-
-	private getClosedSplitInfo(tokenList: MarkdownToken[], markdownText: string, isDone: boolean): ClosedSplitInfo {
-		if (isDone) {
-			return {
-				closedCount: tokenList.length,
-				closedText: markdownText
-			} as ClosedSplitInfo
-		}
-		if (tokenList.length <= 1) {
-			const offsets = this.getTokenOffsets(tokenList, markdownText)
-			const firstOffset = offsets[0]
-			if (!this.hasReferenceLinkSyntax(tokenList[0]) && this.isTailTokenClosed(tokenList[0], markdownText.slice(firstOffset.end), markdownText)) {
-				return {
-					closedCount: 1,
-					closedText: markdownText
-				} as ClosedSplitInfo
-			}
-			return {
-				closedCount: 0,
-				closedText: ''
-			} as ClosedSplitInfo
-		}
-		const offsets = this.getTokenOffsets(tokenList, markdownText)
-		let closedCount = tokenList.length - 1
-		let closedTextEnd = offsets[closedCount].start
-		const lastToken = tokenList[tokenList.length - 1]
-		const lastOffset = offsets[offsets.length - 1]
-		if (this.isTailTokenClosed(lastToken, markdownText.slice(lastOffset.end), markdownText)) {
-			closedCount = tokenList.length
-			closedTextEnd = markdownText.length
-		}
-		const sensitiveIndex = this.findFutureSensitiveTokenIndex(tokenList, closedCount)
-		if (sensitiveIndex >= 0) {
-			closedCount = sensitiveIndex
-			closedTextEnd = offsets[sensitiveIndex].start
-		}
+	private parseWithUniCmark(markdownText: string): ParseMdRes {
+		// #ifdef APP-IOS
+		const jsonString = md2json(markdownText) as string
+		const jsonArray = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
 		return {
-			closedCount,
-			closedText: markdownText.slice(0, closedTextEnd)
-		} as ClosedSplitInfo
+			data: jsonArray,
+			errorMsg: ''
+		} as ParseMdRes
+		// #endif
+		// #ifndef APP-IOS
+		return md2json(markdownText) as ParseMdRes
+		// #endif
 	}
 
-	private findFutureSensitiveTokenIndex(tokenList: MarkdownToken[], closedCount: number): number {
-		for (let i = 0; i < closedCount; i++) {
-			if (this.hasReferenceLinkSyntax(tokenList[i])) return i
-		}
-		return -1
-	}
-
-	private hasReferenceLinkSyntax(token: MarkdownToken): boolean {
-		const raw = token.raw ?? ''
-		if (/\[[^\]]+\]\[[^\]]*\]/.test(raw)) return true
-		const children = token.tokens ?? token.items ?? [] as MarkdownToken[]
-		for (let i = 0; i < children.length; i++) {
-			if (this.hasReferenceLinkSyntax(children[i])) return true
-		}
-		return false
-	}
-
-	private isTailTokenClosed(token: MarkdownToken, afterText: string, markdownText: string): boolean {
-		const type = token.type ?? ''
-		if (type == 'heading' || type == 'thematic_break') {
-			return markdownText.endsWith('\n') || afterText.length > 0
-		}
-		if (type == 'code_block') {
-			return this.hasClosedFence(token.raw ?? '')
-		}
-		if (type == 'paragraph') {
-			return this.hasBlankLine(afterText)
-		}
-		if (type == 'table') {
-			return this.hasBlankLine(afterText)
-		}
-		return false
-	}
-
-	private hasClosedFence(raw: string): boolean {
-		const lines = raw.split('\n')
-		if (lines.length < 2) return false
-		const firstLine = lines[0].trim()
-		const fence = firstLine.startsWith('~~~') ? '~~~' : (firstLine.startsWith('```') ? '```' : '')
-		if (fence.length == 0) return false
-		for (let i = lines.length - 1; i > 0; i--) {
-			const line = lines[i].trim()
-			if (line.startsWith(fence)) return true
-		}
-		return false
-	}
-
-	private hasBlankLine(text: string): boolean {
-		return /\n[ \t]*\n/.test(text)
-	}
-
-	private getTokenOffsets(tokenList: MarkdownToken[], markdownText: string): TokenOffset[] {
-		const offsets = [] as TokenOffset[]
-		let cursor = 0
-		for (let i = 0; i < tokenList.length; i++) {
-			const raw = tokenList[i].raw ?? tokenList[i].text ?? ''
-			let start = cursor
-			if (raw.length > 0) {
-				const found = markdownText.indexOf(raw, cursor)
-				if (found >= 0) start = found
+	private handleSegmentResult(newJsonList: MarkdownToken[], segmentText: string, lineCount: number, isSegmentDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
+		if (newJsonList.length == 0) {
+			if (this.segmentEndLineIndex < lineCount) {
+				this.segmentEndLineIndex++
+				this.segmentNeedContinue = true
+			} else {
+				this.segmentNeedContinue = false
 			}
-			const end = start + raw.length
-			offsets.push({
-				start,
-				end
-			} as TokenOffset)
-			cursor = end
+			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), isSegmentDone)
+			return
 		}
-		return offsets
+		const tableHasBoundary = newJsonList[0].type == 'table' && this.hasLeadingTableBoundary(segmentText)
+		const foundNextBlock = newJsonList.length > 1 && (tableHasBoundary || !(newJsonList[0].type == 'table' && newJsonList[1].isClose != 1))
+		this.prepareSegmentTokenList(newJsonList, isSegmentDone, foundNextBlock)
+		if (foundNextBlock) {
+			this.segmentEndLineIndex--
+			if (this.segmentEndLineIndex < this.segmentStartLineIndex + 1) {
+				this.segmentEndLineIndex = this.segmentStartLineIndex + 1
+			}
+			this.segmentStartLineIndex = this.segmentEndLineIndex
+			newJsonList[0].isClose = 1
+		} else if (this.segmentEndLineIndex < lineCount) {
+			this.segmentEndLineIndex++
+		}
+		if (this.segmentEndLineIndex > lineCount) {
+			this.segmentEndLineIndex = lineCount
+		}
+		const beforeDone = this.createBeforeDone(newJsonList.length, () => {
+			this.mergeSegmentTokenList(newJsonList)
+			this.segmentNeedContinue = !isSegmentDone && this.segmentEndLineIndex < lineCount && !this.userAbort
+			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), isSegmentDone)
+		})
+		for (let i = 0; i < newJsonList.length; i++) {
+			this.enrichToken(newJsonList[i], (nextToken: MarkdownToken | null) => {
+				if (nextToken != null) newJsonList[i] = nextToken
+				beforeDone()
+			})
+		}
+	}
+
+	private prepareSegmentTokenList(tokenList: MarkdownToken[], isSegmentDone: boolean, foundNextBlock: boolean) {
+		const closedCount = this.segmentTokenList.filter((item: MarkdownToken): boolean => item.isClose == 1).length
+		for (let i = 0; i < tokenList.length; i++) {
+			const item = tokenList[i]
+			item.uniqueId = 'u' + (closedCount + i).toString()
+			item.isClose = (isSegmentDone || i != tokenList.length - 1) ? 1 : 0
+			if (item.type == 'table' && !isSegmentDone && !foundNextBlock) {
+				item.isClose = 0
+			}
+		}
+	}
+
+	private hasLeadingTableBoundary(markdownText: string): boolean {
+		const lines = markdownText.split('\n')
+		let tableLineCount = 0
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i].trim()
+			const isTableLine = line.startsWith('|') && line.endsWith('|')
+			if (isTableLine) {
+				tableLineCount++
+				continue
+			}
+			if (tableLineCount >= 2 && line.length == 0) return true
+			if (tableLineCount >= 2 && !isTableLine) return true
+			if (tableLineCount > 0 && !isTableLine) return false
+		}
+		return false
+	}
+
+	private mergeSegmentTokenList(newJsonList: MarkdownToken[]) {
+		const lastUnCloseTokenIndex = this.segmentTokenList.findIndex((item: MarkdownToken): boolean => item.isClose == 0)
+		if (lastUnCloseTokenIndex != -1) {
+			this.segmentTokenList.splice(lastUnCloseTokenIndex, this.segmentTokenList.length - lastUnCloseTokenIndex, ...newJsonList)
+		} else {
+			this.segmentTokenList.push(...newJsonList)
+		}
+	}
+
+	private cloneTokenList(tokenList: MarkdownToken[]): MarkdownToken[] {
+		return JSON.parseArray<MarkdownToken>(JSON.stringify(tokenList)) as MarkdownToken[]
 	}
 
 	private enrichToken(item: MarkdownToken, callBack: (token: MarkdownToken | null) => void) {
@@ -330,46 +321,48 @@ export default class ParseMarkdown {
 		}
 		item.text = item.text ?? ''
 		const lang = item.lang ?? 'text'
-		if (lang == 'math') {
+		if (item.isClose == 1 && lang == 'math') {
 			this.parseMath(item, callBack)
 			return
 		}
-		if (lang == 'mermaid') {
+		if (item.isClose == 1 && lang == 'mermaid') {
 			this.parseMermaid(item, () => callBack(null))
 			return
 		}
-		// 流式阶段也尽量做代码高亮，避免闭合后的代码块要等整条消息结束才变成正确样式。
 		this.parseCodehighlight(item, () => callBack(null))
 	}
 
-	private tokenCacheKey(codeToken: MarkdownToken): string {
-		return (codeToken.lang ?? 'text') + '\n' + (codeToken.text ?? '')
+	private codeLineCacheKey(language: string, lineText: string): string {
+		return language + '\n' + lineText
 	}
 
 	private parseCodehighlight(codeToken: MarkdownToken, callBack: CallBack) {
-		const key = this.tokenCacheKey(codeToken)
-		const cached = this.cacheMap.get(key)
-		if (cached != null && cached.codeTokens != null) {
-			codeToken.codeTokens = cached.codeTokens
-			callBack()
-			return
-		}
+		const language = codeToken.lang ?? 'text'
 		const codeTextArr = codeToken.text?.split('\n') ?? []
 		const codeTokens = [] as MarkdownToken[][]
 		let lineIndex = 0
 		const parseNext = () => {
 			if (lineIndex >= codeTextArr.length) {
 				codeToken.codeTokens = codeTokens
-				this.cacheMap.set(key, codeToken)
 				callBack()
 				return
 			}
 			const lineCodeText = codeTextArr[lineIndex]
-			parseLineCode((parseCodeRes: ParseLineCodeRes) => {
-				codeTokens.push(parseCodeRes.error == null ? parseCodeRes.tokens : [{ text: lineCodeText, className: '' }] as MarkdownToken[])
+			const cacheKey = this.codeLineCacheKey(language, lineCodeText)
+			const cachedTokens = this.codeLineCacheMap.get(cacheKey)
+			if (cachedTokens != null) {
+				codeTokens.push(cachedTokens)
 				lineIndex++
 				parseNext()
-			}, lineCodeText, codeToken.lang ?? 'text')
+				return
+			}
+			parseLineCode((parseCodeRes: ParseLineCodeRes) => {
+				const lineTokens = parseCodeRes.error == null ? (parseCodeRes.tokens ?? [] as MarkdownToken[]) : [{ text: lineCodeText, className: '' }] as MarkdownToken[]
+				this.codeLineCacheMap.set(cacheKey, lineTokens)
+				codeTokens.push(lineTokens)
+				lineIndex++
+				parseNext()
+			}, lineCodeText, language)
 		}
 		parseNext()
 	}

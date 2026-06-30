@@ -1,0 +1,23 @@
+import { ParseMdRes, MarkdownToken } from '../interface.uts'
+import cmark from 'libcmark.so'
+
+export function md2json(markdown: string): ParseMdRes {
+  try {
+    const jsonString: string = cmark.md2json(markdown)
+    const jsonArray = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
+    return {
+      data: jsonArray,
+      errorMsg: ''
+    }
+  } catch (e) {
+    console.error('md2json failed:', e)
+    return {
+      data: [],
+      errorMsg: e.toString()
+    }
+  }
+}
+
+export async function initCmark() {
+  cmark.initCmark()
+}

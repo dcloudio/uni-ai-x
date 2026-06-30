@@ -89,8 +89,14 @@
             }
           },
           "app": {
-            "android": "-",
-            "ios": "-",
+            "android": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            },
+            "ios": {
+                "extVersion": "1.0.0",
+                "minVersion": ""
+            },
             "harmony": "-"
           },
           "mp": {
