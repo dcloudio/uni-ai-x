@@ -32,7 +32,7 @@ class OpenClawAdapter extends CustomProviderAdapter {
  * 在应用入口处调用此函数，完成以下工作：
  * 1. 将 openClaw Provider 注册到 llmModelMap（供 UI 展示用）
  * 2. 初始化 WebSocket 连接
- * 3. 注册请求适配器（供 requestAiWorker 调度）
+ * 3. 注册请求适配器（供 requestAiRunner 调度）
  *
  * 使用方式（在 App.uvue 或页面 onLoad 中调用）：
  * ```

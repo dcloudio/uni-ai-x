@@ -16,7 +16,7 @@
 - 请求层：`sdk/requestAiRunner.uts` 负责请求生命周期编排；开发期本地流、远程请求、自定义 provider、chunk 绑定等逻辑以直接方法调用串联，不再保留历史伪 Worker 消息转发。
 - Markdown 解析：`sdk/parseMarkdown.uts` 将流式文本节流解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
 - Markdown 工具：`sdk/markdown-utils.uts` 放置数学公式预处理、表格宽度估算等纯函数，避免解析调度类继续膨胀。
-- Markdown 渲染：`components/uni-ai-md-node` 渲染块级节点，`components/uni-ai-md-inline` 渲染行内节点，代码和表格分别交给专用组件。
+- Markdown 渲染：`sdk/markdown-rich-text.uts` 将 Markdown AST 转为 rich-text nodes，`components/uni-ai-md-rich-text` 使用 `rich-text mode="native"` 统一渲染。
 - 聊天视图：`components/uni-ai-chat` 负责页面编排和滚动控制；顶部导航由 `uni-ai-chat-nav` 负责，用户消息气泡由 `uni-ai-user-msg` 负责，待发送图片由 `uni-ai-draft-images` 负责。
 - Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用 Markdown、代码高亮、KaTeX、Mermaid 等 Web 生态能力。
 - SSE 解析：`sdk/sse.uts` 只负责把流式接口返回的 chunk 文本解析为 `Chunk`、错误或完成事件。
@@ -32,16 +32,16 @@
 3. 开发期如果 `testMarkdownText` 非空，页面启动时会创建一条新的本地演示会话，`RequestAiRunner.streamDemoMarkdown()` 按固定间隔模拟流式输出；否则请求配置的模型 provider。
 4. 每次正文变化调用 `ParseMarkdown.runTask()`，结束时调用 `flush()`。
 5. 解析结果通过 `onMarkdownElList` 回调直接回写当前 AI 消息。
-6. `uni-ai-x-msg` 直接遍历 Markdown AST，并由 `uni-ai-md-node` 递归渲染。
+6. `uni-ai-x-msg` 将 Markdown AST 交给 `uni-ai-md-rich-text`，由原生 `rich-text mode="native"` 渲染。
 
 ## Markdown 渲染设计
 
-- 列表不再拍平成普通节点：`list`/`tasklist` 保持父子结构，组件负责显示数字、圆点和任务标记。
-- 列表 marker 与正文间距由组件样式控制，间距保持在约一个中文字宽以内，避免旧实现里固定宽度过大导致视觉断裂。
-- 无序列表和任务列表 marker 使用 `uni-ai-icon` 承接历史 iconfont 字符，但不再通过 `treeToList` 往文本 token 中注入图标。
-- 代码块渲染仍由 `uni-ai-msg-code` 负责，便于保留复制、换行、横向滚动等交互；Mermaid 图片预览拆到 `uni-ai-msg-mermaid`，避免代码块组件继续膨胀。
-- 表格渲染由 `uni-ai-msg-table` 负责，组件内维护表格样式，符合蒸汽模式组件样式隔离。
-- 数学公式和 Mermaid 在解析阶段生成可渲染结果，组件只消费 `html`、`href`、宽高等字段。
+- 页面层只保留一条 native 富文本渲染链路，不再维护块级节点、行内节点、代码块、表格等多套自绘组件。
+- `sdk/parseMarkdown.uts` 仍负责把流式文本解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
+- `sdk/markdown-rich-text.uts` 是唯一的展示适配层，负责把 `MarkdownToken[]` 转为 `rich-text` 可消费的 nodes。
+- 列表在适配层输出为普通段落加文本 marker，不直接使用 `ul/ol/li`，避免流式追加列表项时 native rich-text 列表区域整块闪烁。
+- `components/uni-ai-md-rich-text` 只负责调用 `rich-text mode="native"` 和处理链接、图片点击，不做高度测量或滚动容器重建。
+- 数学公式和 Mermaid 如果在解析阶段生成了图片地址，则在 native rich-text 中按 `img` 节点展示；否则降级为文本或代码块。
 
 ## 开发期本地 Markdown
 
@@ -73,7 +73,7 @@
 - 已优化：`requestAiRunner.uts` 删除历史伪 Worker 的 `postMessage/onMessage` 转发，改为 `start()` 和具名回调直接调用，并把远程请求、provider 配置、token 获取、请求成功处理、stream chunk 绑定拆成独立方法。
 - 已优化：`parseCode.uts` 删除未使用的旧 grammar 文件读取逻辑，减少二开时对历史实现的误解。
 - 已优化：`uni-ai-chat.uvue` 收敛滚动 timer 清理逻辑，保留当前滚动跟随行为但减少重复代码。
-- 已优化：`uni-ai-msg-code.uvue` 将 Mermaid 图片展示拆为子组件，代码块主组件更聚焦于代码文本展示和宽度计算。
+- 已优化：Markdown 展示层收敛为 `rich-text mode="native"`，删除旧的块级/行内/代码/表格自绘组件，避免二开时面对两套渲染链路。
 - 可优化：`uni-ai-chat.uvue` 仍承担较多滚动编排逻辑，后续若继续拆分，建议先补足 Android 截图和滚动回归验证。
 
 ## 验证方式

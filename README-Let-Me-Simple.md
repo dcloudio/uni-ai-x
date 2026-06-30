@@ -10,7 +10,7 @@
 
 - 单一 `simple` Markdown 流式解析链路
 - 流式过程中尽快上屏，而不是等整条消息结束再统一渲染
-- 代码块、数学公式、 Mermaid 的 simple 增强渲染
+- 通过 `rich-text mode="native"` 渲染 Markdown、代码块、数学公式和 Mermaid 图片结果
 - 当结构列表尚未生成时，先回退显示纯文本，避免流式空白
 - Mermaid 图片尚未生成时，先显示代码内容，避免空白图表面板
 
@@ -27,15 +27,16 @@
 
 目标结构已经回到更直接的模型：
 
-`Markdown -> simple parser -> MarkdownElList -> 页面 v-for 渲染`
+`Markdown -> simple parser -> MarkdownElList -> rich-text nodes -> rich-text mode="native"`
 
 核心文件：
 
 - `uni_modules/uni-ai-x/sdk/parseMarkdown.uts`
-- `uni_modules/uni-ai-x/sdk/requestAiWorker.uts`
+- `uni_modules/uni-ai-x/sdk/requestAiRunner.uts`
 - `uni_modules/uni-ai-x/sdk/index.uts`
+- `uni_modules/uni-ai-x/sdk/markdown-rich-text.uts`
+- `uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue`
 - `uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg.uvue`
-- `uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue`
 
 ## 当前实现原则
 
@@ -43,6 +44,7 @@
 - 保留流式体验，不能为了简化结构而牺牲“边到边渲染”
 - 复杂块增强仍然尽量提前执行，但页面层只消费一份最终列表
 - 页面不再承担链路选择、对比展示、模式控制等实验性职责
+- 页面层不再维护 Markdown 自绘组件，统一交给 native rich-text
 
 ## 当前性能结论
 
