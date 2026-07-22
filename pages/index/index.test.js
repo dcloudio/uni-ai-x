@@ -24,6 +24,31 @@ describe('UNI-AI-X', () => {
 		}
 		return await navBarEl.$('.add-chat');
 	}
+
+	async function openMenu() {
+		chatBoxEl = await page.$('.chat-box');
+		leftNavbarEl = await chatBoxEl.$('.chat-box-nav-bar');
+		const leftEl = await leftNavbarEl.$('.uni-ai-icon');
+		await leftEl.tap();
+		await page.waitFor(2000);
+		const menuBoxEl = await page.$('.menu-box');
+		expect(menuBoxEl).toBeTruthy();
+		return menuBoxEl;
+	}
+
+	async function switchToHistoryChat(menuBoxEl) {
+		const chatList = await menuBoxEl.$$('.menu-box-chat-item');
+		for (let i = 0; i < chatList.length; i++) {
+			const titleEl = await chatList[i].$('.menu-box-chat-item-title');
+			const title = await titleEl.text();
+			if (title !== '新对话') {
+				await chatList[i].tap();
+				await page.waitFor(2000);
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	describe('页面基本结构测试', () => {
 		
@@ -196,16 +221,15 @@ describe('UNI-AI-X', () => {
         }
         
 		it('左侧抽屉开启',async ()=>{
-			leftNavbarEl = await chatBoxEl.$('.chat-box-nav-bar');
-			leftEl = await leftNavbarEl.$('.uni-ai-icon');
-			// 点击菜单按钮
-			await leftEl.tap();
-			// 等待菜单显示
-			await page.waitFor(2000);
-			// 验证菜单标题
-			const menuBoxEl = await page.$('.menu-box');
+			let menuBoxEl = await openMenu();
 			// 验证开启新对话
-			const addChatEl = await menuBoxEl.$('.add-chat');
+			let addChatEl = await menuBoxEl.$('.add-chat');
+			if (!addChatEl) {
+				const switched = await switchToHistoryChat(menuBoxEl);
+				expect(switched).toBeTruthy();
+				menuBoxEl = await openMenu();
+				addChatEl = await menuBoxEl.$('.add-chat');
+			}
 			expect(addChatEl).toBeTruthy();
 			const addChatTextEl = await addChatEl.$('.add-chat-box-text');
 			expect(await addChatTextEl.text()).toEqual('开启新对话');
