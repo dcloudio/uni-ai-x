@@ -175,10 +175,11 @@
 	function markQA() {
 		if (isDemo.value) {
 			chatInputContent.value = demoPrompt
-			uni.showModal({
-				content: '已生成演示专用问题，且无法修改。\n 请点击右下角的发送按钮体验效果',
-				showCancel: false
-			});
+			// 跑测试不弹框
+			// uni.showModal({
+			// 	content: '已生成演示专用问题，且无法修改。\n 请点击右下角的发送按钮体验效果',
+			// 	showCancel: false
+			// });
 		}
 	}
 	
