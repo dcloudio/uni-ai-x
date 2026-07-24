@@ -206,6 +206,21 @@
               console.log(action + '方法执行失败', error);
             }
           }
+          resolveRasterScale(element, maxScale = 3) {
+            const deviceScale = Math.max(1, Number(window.devicePixelRatio) || 1);
+            let renderScale = Math.min(deviceScale, Math.max(1, Number(maxScale) || 1));
+            const width = Math.max(1, element.scrollWidth, element.getBoundingClientRect().width);
+            const height = Math.max(1, element.scrollHeight, element.getBoundingClientRect().height);
+            const maxDimension = 3072;
+            const maxPixels = 2 * 1024 * 1024;
+            renderScale = Math.min(
+              renderScale,
+              maxDimension / Math.max(width, height),
+              Math.sqrt(maxPixels / (width * height))
+            );
+            return Math.max(0.1, renderScale);
+          }
+
           async html2Base64(htmlString, scale = 3, setTheme = false) {
             const markImgContainer = document.getElementById('markImgContainer');
             markImgContainer.innerHTML = htmlString;
@@ -214,10 +229,11 @@
             }
             return new Promise((resolve, reject) => {
               document.fonts.ready.then(() => {
-								  // 转化为PNG格式图片
+                  // 限制输出像素密度，避免公式和流程图生成超大位图。
+                  const renderScale = this.resolveRasterScale(markImgContainer, scale);
                   html2canvas(markImgContainer, {
                     allowTaint: true,
-                    scale: window.devicePixelRatio * scale,
+                    scale: renderScale,
                     imageTimeout: 300,
                     logging: false, // 关闭日志减少内存占用
                     foreignObjectRendering: false, // 减少内存占用
