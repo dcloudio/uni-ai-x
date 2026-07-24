@@ -256,6 +256,7 @@ class UniAi {
 			create_time: Date.now(),
 			state: 0,
 			markdownElList: [] as MarkdownElItem[],
+			renderVersion: 0,
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)
@@ -324,6 +325,7 @@ class UniAi {
 		msg.error_msg = null
 		msg.thinkContent = null
 		msg.markdownElList = []
+		msg.renderVersion = (msg.renderVersion ?? 0) + 1
 		this.updateMsg2Storage(msg)
 	}
 	
@@ -336,17 +338,19 @@ class UniAi {
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
 		requestAiRunner = new RequestAiRunner({
-			onMarkdownElList: (markdownElList: MarkdownElItem[]) => {
+			onContent: (msgBody: string, markdownElList: MarkdownElItem[], isParseDone: boolean) => {
 				if (this.currentChat!.state == 'stop') return
+				aiMsgItem.body = msgBody
 				aiMsgItem.markdownElList = markdownElList
+				aiMsgItem.renderVersion = (aiMsgItem.renderVersion ?? 0) + 1
+				if (isParseDone) {
+					this.currentChat!.state = 'completed'
+					aiMsgItem.rendered = true
+				}
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {
 				aiMsgItem.thinkContent = thinkContent
-				this.updateMsg2Storage(aiMsgItem)
-			},
-			onMsgBody: (msgBody: string) => {
-				aiMsgItem.body = msgBody
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onState: (state: string) => {
@@ -358,10 +362,6 @@ class UniAi {
 			},
 			onErrorMsg: (errorMsg: string) => {
 				aiMsgItem.error_msg = errorMsg
-				this.updateMsg2Storage(aiMsgItem)
-			},
-			onRendered: (rendered: boolean) => {
-				aiMsgItem.rendered = rendered
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onChatTitle: (title: string) => {

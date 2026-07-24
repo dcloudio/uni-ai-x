@@ -86,6 +86,15 @@
 	const chatActiveId = computed<string>(() => {
 		return uniAi.chat.activeId
 	})
+
+	const lastMsgRenderSignal = computed<string>(() => {
+		const msg = lastMsg.value
+		if (msg == null) return state.value
+		const thinkContentLength = msg.thinkContent?.length ?? 0
+		const errorMessageLength = msg.error_msg?.length ?? 0
+		return msg._id + ':' + (msg.renderVersion ?? 0) + ':' + thinkContentLength + ':' +
+			(msg.rendered ? 1 : 0) + ':' + errorMessageLength + ':' + state.value
+	})
 	
 	function scrollToLastMsg(userClick: boolean){
 		autoToLastMsg = true
@@ -156,7 +165,7 @@
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
 		})
-	}, { deep: true, immediate: true })
+	}, { immediate: true })
 	
 	const lockAutoToLastMsg = () => {
 		if (!needSetLockAutoToLastMsg) return
@@ -169,14 +178,14 @@
 		}
 	}
 	
-	watch(lastMsg, async () => {
+	watch(lastMsgRenderSignal, async () => {
 		setIsInScrollBottom()
 		lockAutoToLastMsg()
 		if (!scrollTouch.value && autoToLastMsg) {
 			await nextTick()
 			scrollToLastMsg(false)
 		}
-	}, { deep: true })
+	})
 	
 	const changeThinkContent = (_hideThinkContent: boolean) => {
 		setIsInScrollBottom()

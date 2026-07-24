@@ -232,6 +232,7 @@ export default class ParseMarkdown {
 		}
 		const segmentText = lines.slice(this.segmentStartLineIndex, this.segmentEndLineIndex).join('\n')
 		const isSegmentDone = isDone && this.segmentEndLineIndex >= lines.length
+		const isTrailingLineComplete = this.segmentEndLineIndex < lines.length || markdownText.endsWith('\n') || isSegmentDone
 		const parseMdRes = this.parseWithUniCmark(segmentText)
 		if (parseMdRes.errorMsg.length > 0) {
 			markdownErrorLog('[uni-ai-x][Markdown解析] uni-CMark原生分段解析失败：' + parseMdRes.errorMsg)
@@ -239,7 +240,7 @@ export default class ParseMarkdown {
 			md2JsonCallBack(this.segmentTokenList, isSegmentDone)
 			return
 		}
-		this.handleSegmentResult(parseMdRes.data, segmentText, lines.length, isSegmentDone, md2JsonCallBack)
+		this.handleSegmentResult(parseMdRes.data, segmentText, lines.length, isSegmentDone, isTrailingLineComplete, md2JsonCallBack)
 	}
 
 	private parseWithUniCmark(markdownText: string): ParseMdRes {
@@ -256,7 +257,7 @@ export default class ParseMarkdown {
 		// #endif
 	}
 
-	private handleSegmentResult(newJsonList: MarkdownToken[], segmentText: string, lineCount: number, isSegmentDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
+	private handleSegmentResult(newJsonList: MarkdownToken[], segmentText: string, lineCount: number, isSegmentDone: boolean, isTrailingLineComplete: boolean, md2JsonCallBack: Md2JsonCallBack) {
 		if (newJsonList.length == 0) {
 			if (this.segmentEndLineIndex < lineCount) {
 				this.segmentEndLineIndex++
@@ -267,7 +268,7 @@ export default class ParseMarkdown {
 			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), isSegmentDone)
 			return
 		}
-		const tableHasBoundary = newJsonList[0].type == 'table' && this.hasLeadingTableBoundary(segmentText)
+		const tableHasBoundary = newJsonList[0].type == 'table' && this.hasLeadingTableBoundary(segmentText, isTrailingLineComplete)
 		const foundNextBlock = newJsonList.length > 1 && (tableHasBoundary || !(newJsonList[0].type == 'table' && newJsonList[1].isClose != 1))
 		this.prepareSegmentTokenList(newJsonList, isSegmentDone, foundNextBlock)
 		if (foundNextBlock) {
@@ -308,7 +309,7 @@ export default class ParseMarkdown {
 		}
 	}
 
-	private hasLeadingTableBoundary(markdownText: string): boolean {
+	private hasLeadingTableBoundary(markdownText: string, isTrailingLineComplete: boolean): boolean {
 		const lines = markdownText.split('\n')
 		let tableLineCount = 0
 		for (let i = 0; i < lines.length; i++) {
@@ -318,6 +319,7 @@ export default class ParseMarkdown {
 				tableLineCount++
 				continue
 			}
+			if (i == lines.length - 1 && !isTrailingLineComplete) return false
 			if (tableLineCount >= 2 && line.length == 0) return true
 			if (tableLineCount >= 2 && !isTableLine) return true
 			if (tableLineCount > 0 && !isTableLine) return false

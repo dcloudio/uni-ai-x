@@ -8,12 +8,10 @@ import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 
 type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
 export type RequestAiRunnerCallbacks = {
-	onMarkdownElList: (markdownTokenList: MarkdownToken[]) => void,
+	onContent: (msgBody: string, markdownTokenList: MarkdownToken[], isParseDone: boolean) => void,
 	onThinkContent: (thinkContent: string) => void,
-	onMsgBody: (msgBody: string) => void,
 	onState: (state: string) => void,
 	onErrorMsg: (errorMsg: string) => void,
-	onRendered: (rendered: boolean) => void,
 	onChatTitle: (title: string) => void
 }
 export type RequestAiStartOptions = {
@@ -53,17 +51,24 @@ class RequestAiRunner {
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
+	private lastMarkdownTokenList : MarkdownToken[] = [] as MarkdownToken[]
+	private lastPublishedBodyLength : number = 0
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
-			this.callbacks?.onMarkdownElList(newMarkdownTokenList)
+			this.lastMarkdownTokenList = newMarkdownTokenList
+			this.lastPublishedBodyLength = this.msgBody.length
 			if (isParseDone) {
 				this.currentChatState = 'completed'
-				this.callbacks?.onState('completed')
-				this.callbacks?.onRendered(true)
 			}
+			this.callbacks?.onContent(this.msgBody, newMarkdownTokenList, isParseDone)
 		}
 		this.resetParser()
+	}
+	private publishLatestBody() {
+		if (this.lastPublishedBodyLength == this.msgBody.length) return
+		this.lastPublishedBodyLength = this.msgBody.length
+		this.callbacks?.onContent(this.msgBody, this.lastMarkdownTokenList, false)
 	}
 	resetParser() {
 		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList, MARKDOWN_PARSE_INTERVAL)
@@ -87,7 +92,6 @@ class RequestAiRunner {
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		if (content != null && content.length > 0) {
 			this.msgBody += content
-			this.callbacks?.onMsgBody(this.msgBody)
 		} else if (reasoningContent != null) {
 			this.thinkContent += reasoningContent
 			this.callbacks?.onThinkContent(this.thinkContent.trim())
@@ -111,6 +115,8 @@ class RequestAiRunner {
 		this.currentChatState = ''
 		this.userAbort = false
 		this.hasThinkContent = false
+		this.lastMarkdownTokenList = [] as MarkdownToken[]
+		this.lastPublishedBodyLength = 0
 		this.resetParser()
 	}
 	handleRequestError(errRes: UTSJSONObject) {
@@ -121,6 +127,7 @@ class RequestAiRunner {
 			errMsg = '数据检查失败，疑似包含敏感信息'
 		}
 		if (this.userAbort == false) {
+			this.publishLatestBody()
 			this.callbacks?.onErrorMsg(errMsg)
 		}
 		this.currentChatState = 'stop'
@@ -182,7 +189,6 @@ class RequestAiRunner {
 			}
 			const endIndex = Math.min(index + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
 			this.msgBody += testMarkdownText.slice(index, endIndex)
-			this.callbacks?.onMsgBody(this.msgBody)
 			index = endIndex
 			this.runMarkdownParse(false)
 		}, DEMO_STREAM_INTERVAL)
@@ -357,6 +363,7 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
+		this.publishLatestBody()
 		this.parseMarkdown!.userAbort = true
 		this.userAbort = true
 		this.requestTask?.abort()

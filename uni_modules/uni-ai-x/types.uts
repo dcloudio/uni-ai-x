@@ -85,6 +85,7 @@ export type MsgItem = {
 	// 所属对话id
 	chat_id: string,
 	markdownElList: MarkdownElItem[]
+	renderVersion?: number
 	error_msg?: string
 	rendered: boolean
 }
