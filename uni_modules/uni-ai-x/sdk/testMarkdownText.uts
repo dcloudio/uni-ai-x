@@ -1,5 +1,22 @@
 let testMarkdownText = `# Markdown 示例文档
 
+## 横向滚动测试
+
+### 八列表格
+
+| 时间 | 会话编号 | 模型名称 | 输入 Token | 输出 Token | 首字耗时 | 总耗时 | 状态 |
+|------|----------|----------|------------|------------|----------|--------|------|
+| 10:30:01 | conversation-000001 | native-richtext-model | 1280 | 4096 | 120ms | 3850ms | 流式输出中 |
+| 10:31:18 | conversation-000002 | native-richtext-model | 2048 | 8192 | 98ms | 6210ms | 已完成 |
+
+### 超长单行代码
+
+\`\`\`javascript
+const horizontalScrollPayload = { conversationId: 'conversation-20260721-000001', requestEndpoint: 'https://api.example.com/v1/chat/completions?stream=true&renderer=native-richtext&platform=harmony', columns: ['timestamp', 'conversationId', 'model', 'inputTokens', 'outputTokens', 'firstTokenLatency', 'totalLatency', 'status'] };
+\`\`\`
+
+---
+
 ## 二级标题
 ### 三级标题
 #### 四级标题
@@ -54,6 +71,8 @@ let testMarkdownText = `# Markdown 示例文档
 function greet(name) {
   return \`Hello, \${name}!\`;
 }
+
+const veryLongEndpoint = 'https://example.com/api/v1/stream/messages?conversation=richtext-horizontal-scroll&include=formulas,tables,images,code';
 
 alert(greet('World'));
 \`\`\`

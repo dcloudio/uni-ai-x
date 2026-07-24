@@ -4,10 +4,16 @@ const TEXT_STYLE = 'font-size:16px;line-height:26px;color:var(--text-primary);'
 const PARAGRAPH_STYLE = TEXT_STYLE + 'margin:4px 0;'
 const BLOCKQUOTE_STYLE = TEXT_STYLE + 'border-left:4px solid var(--border-primary);padding-left:10px;margin:6px 0;color:var(--text-tertiary);'
 const INLINE_CODE_STYLE = 'font-family:monospace;font-size:14px;background-color:var(--bg-secondary);border-radius:4px;padding:1px 4px;color:var(--text-primary);'
-const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#111827;color:#d1fae5;padding:10px 12px;border-radius:6px;'
-const MERMAID_FRAME_STYLE = 'width:100%;aspect-ratio:5/4;overflow:hidden;box-sizing:border-box;margin:5px 0;border-radius:6px;background-color:#ffffff;'
+const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#0d0d0d;color:#f4f4f4;padding:10px 16px 16px;border-radius:8px;'
+const COPYABLE_CODE_CONTAINER_STYLE = 'width:100%;overflow:hidden;box-sizing:border-box;margin:8px 0;border:1px solid #3a3a3a;border-radius:8px;background-color:#0d0d0d;'
+const COPYABLE_CODE_STYLE = CODE_STYLE + 'width:100%;overflow:auto;box-sizing:border-box;margin:0;border-radius:0;'
+const CODE_TOOLBAR_STYLE = 'position:relative;height:42px;background-color:#0d0d0d;box-sizing:border-box;'
+const CODE_LANGUAGE_STYLE = 'position:absolute;left:14px;top:0;display:block;height:42px;line-height:42px;color:#b4b4b4;font-family:sans-serif;font-size:12px;font-weight:600;white-space:nowrap;letter-spacing:0;'
+const COPY_CODE_ACTION_STYLE = 'position:absolute;right:8px;top:4px;display:block;width:56px;height:34px;line-height:34px;padding:0 4px;box-sizing:border-box;border:0;border-radius:4px;background-color:transparent;color:#f4f4f4;font-family:sans-serif;font-size:12px;font-weight:500;text-align:center;text-decoration:none;white-space:nowrap;letter-spacing:0;user-select:none;'
+const COPY_CODE_ACTION_PREFIX = 'uni-ai-action://copy-code/'
+const MERMAID_FRAME_STYLE = 'width:100%;overflow:hidden;box-sizing:border-box;margin:5px 0;border-radius:6px;background-color:#ffffff;'
 const MERMAID_CODE_STYLE = CODE_STYLE + 'width:100%;aspect-ratio:5/4;overflow:auto;box-sizing:border-box;margin:5px 0;'
-const MERMAID_IMAGE_STYLE = 'width:100%;height:100%;object-fit:contain;display:block;background-color:#ffffff;'
+const MERMAID_IMAGE_STYLE = 'max-width:100%;height:auto;display:block;background-color:#ffffff;'
 const TABLE_STYLE = 'border-collapse:collapse;margin:6px 0;'
 const TABLE_CELL_STYLE = 'border:1px solid var(--border-primary);padding:6px 8px;font-size:14px;line-height:22px;color:var(--text-primary);'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:var(--bg-secondary);'
@@ -236,7 +242,7 @@ function codeColor(className: string): string {
 	if (className == 'entity' || className == 'support') return '#67e8f9'
 	if (className == 'meta') return '#e9d5ff'
 	if (className == 'punctuation') return '#f9fafb'
-	return '#d1fae5'
+	return '#f4f4f4'
 }
 
 function codeText(token: MarkdownToken | null): string {
@@ -268,9 +274,57 @@ function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
 	return children
 }
 
+function isCopyableCodeBlock(token: MarkdownToken | null): boolean {
+	if (token == null || (token.uniqueId ?? '').length == 0) return false
+	const language = token.lang ?? ''
+	return language != 'math' && language != 'mermaid'
+}
+
+function codeLanguageLabel(token: MarkdownToken): string {
+	const language = (token.lang ?? '').trim()
+	const normalizedLanguage = language.toLowerCase()
+	if (normalizedLanguage.length == 0 || normalizedLanguage == 'text' || normalizedLanguage == 'txt' || normalizedLanguage == 'plaintext') return '纯文本'
+	if (normalizedLanguage == 'js' || normalizedLanguage == 'javascript') return 'JavaScript'
+	if (normalizedLanguage == 'ts' || normalizedLanguage == 'typescript') return 'TypeScript'
+	if (normalizedLanguage == 'uts') return 'UTS'
+	if (normalizedLanguage == 'json') return 'JSON'
+	if (normalizedLanguage == 'html') return 'HTML'
+	if (normalizedLanguage == 'css') return 'CSS'
+	if (normalizedLanguage == 'sh' || normalizedLanguage == 'bash' || normalizedLanguage == 'shell') return 'Shell'
+	if (normalizedLanguage == 'py' || normalizedLanguage == 'python') return 'Python'
+	if (normalizedLanguage == 'c') return 'C'
+	if (normalizedLanguage == 'cpp' || normalizedLanguage == 'c++') return 'C++'
+	if (normalizedLanguage == 'objc' || normalizedLanguage == 'objective-c') return 'Objective-C'
+	if (normalizedLanguage == 'java') return 'Java'
+	if (normalizedLanguage == 'kt' || normalizedLanguage == 'kotlin') return 'Kotlin'
+	if (normalizedLanguage == 'swift') return 'Swift'
+	if (normalizedLanguage == 'sql') return 'SQL'
+	if (normalizedLanguage == 'yml' || normalizedLanguage == 'yaml') return 'YAML'
+	if (normalizedLanguage == 'xml') return 'XML'
+	return language
+}
+
+function copyCodeActionNode(token: MarkdownToken): UTSJSONObject {
+	const attrs = {
+		href: COPY_CODE_ACTION_PREFIX + token.uniqueId!,
+		style: COPY_CODE_ACTION_STYLE
+	} as UTSJSONObject
+	return richNode('a', [textNode('复制')] as UTSJSONObject[], attrs)
+}
+
+function codeToolbarNode(token: MarkdownToken): UTSJSONObject {
+	const languageNode = richNode('span', [textNode(codeLanguageLabel(token))] as UTSJSONObject[], styleAttrs(CODE_LANGUAGE_STYLE))
+	return richNode('div', [languageNode, copyCodeActionNode(token)] as UTSJSONObject[], styleAttrs(CODE_TOOLBAR_STYLE))
+}
+
 function codeBlockNode(token: MarkdownToken | null): UTSJSONObject {
+	const codeNode = richNode('code', codeChildren(token))
+	if (isCopyableCodeBlock(token)) {
+		const codeBodyNode = richNode('pre', [codeNode] as UTSJSONObject[], styleAttrs(COPYABLE_CODE_STYLE))
+		return richNode('div', [codeToolbarNode(token!), codeBodyNode] as UTSJSONObject[], styleAttrs(COPYABLE_CODE_CONTAINER_STYLE))
+	}
 	const style = (token?.lang ?? '') == 'mermaid' ? MERMAID_CODE_STYLE : CODE_STYLE
-	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(style))
+	return richNode('pre', [codeNode] as UTSJSONObject[], styleAttrs(style))
 }
 
 function mermaidImageNode(token: MarkdownToken): UTSJSONObject {
@@ -313,4 +367,28 @@ export function markdownTokensToRichTextNodes(tokens: MarkdownToken[] | null): U
 		for (let j = 0; j < blockNodes.length; j++) nodes.push(blockNodes[j])
 	}
 	return nodes
+}
+
+export function isCopyCodeActionHref(href: string): boolean {
+	return href.startsWith(COPY_CODE_ACTION_PREFIX)
+}
+
+function findCodeTextByUniqueId(tokens: MarkdownToken[], uniqueId: string): string | null {
+	for (let i = 0; i < tokens.length; i++) {
+		const token = tokens[i]
+		if (token == null) continue
+		if (token.type == 'code_block' && token.uniqueId == uniqueId) return codeText(token)
+		const children = childrenOf(token)
+		if (children.length == 0) continue
+		const childCodeText = findCodeTextByUniqueId(children, uniqueId)
+		if (childCodeText != null) return childCodeText
+	}
+	return null
+}
+
+export function resolveCopyCodeActionText(tokens: MarkdownToken[], href: string): string | null {
+	if (!isCopyCodeActionHref(href)) return null
+	const uniqueId = href.substring(COPY_CODE_ACTION_PREFIX.length)
+	if (uniqueId.length == 0) return null
+	return findCodeTextByUniqueId(tokens, uniqueId)
 }

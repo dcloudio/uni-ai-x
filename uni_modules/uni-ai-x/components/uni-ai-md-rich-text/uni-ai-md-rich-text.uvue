@@ -7,7 +7,7 @@
 <script lang="uts" setup>
 	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
-	import { markdownTokensToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+	import { isCopyCodeActionHref, markdownTokensToRichTextNodes, resolveCopyCodeActionText } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 
 	type UniAiMdRichTextProps = {
 		markdownElList: MarkdownToken[]
@@ -21,8 +21,26 @@
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
 		if (e.detail.href != null && e.detail.href!.length > 0) {
+			const href = e.detail.href!
+			if (isCopyCodeActionHref(href)) {
+				const codeText = resolveCopyCodeActionText(props.markdownElList, href)
+				if (codeText == null || codeText.length == 0) {
+					uni.showToast({ title: '暂无可复制内容', icon: 'none' })
+					return
+				}
+				uni.setClipboardData({
+					data: codeText,
+					success: () => {
+						uni.showToast({ title: '代码已复制到剪贴板', icon: 'success' })
+					},
+					fail: () => {
+						uni.showToast({ title: '复制失败', icon: 'none' })
+					}
+				})
+				return
+			}
 			uni.navigateTo({
-				url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + e.detail.href!,
+				url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + href,
 				fail: (err) => {
 					console.error(err)
 				}
