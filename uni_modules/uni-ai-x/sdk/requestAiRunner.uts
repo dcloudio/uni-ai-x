@@ -319,9 +319,10 @@ class RequestAiRunner {
 		resolveFn({} as UTSJSONObject)
 	}
 	bindStreamChunks(requestTask: RequestTask, options: RequestAiServerOptions, rejectFn: RequestPromiseFn) {
+		const textDecoder = new TextDecoder()
 		// @ts-ignore
 		requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
-			parseChunkData(chunk.data as ArrayBuffer, (chunkObj : Chunk) => {
+			parseChunkData(chunk.data as ArrayBuffer, textDecoder, (chunkObj : Chunk) => {
 				options.onChunk?.(chunkObj)
 			},
 				(err : UTSJSONObject) => {
