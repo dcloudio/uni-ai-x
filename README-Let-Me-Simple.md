@@ -27,7 +27,7 @@
 
 目标结构已经回到更直接的模型：
 
-`Markdown -> simple parser -> MarkdownElList -> block dispatcher -> RichText / native wrapper / native image`
+`Markdown -> simple parser -> MarkdownElList -> block dispatcher -> RichText / native wrapper + RichText / SVG image exception`
 
 核心文件：
 
@@ -48,8 +48,9 @@
 - 保留流式体验，不能为了简化结构而牺牲“边到边渲染”
 - 页面层只消费一份最终列表，展示层按块类型显式分发
 - 页面不再承担链路选择、对比展示、模式控制等实验性职责
-- RichText 只排版内容；横向滚动、复制、选项卡、加载状态和图片预览由原生组件负责
-- 代码和表格使用“原生外壳 + RichText 内容”，公式和 Mermaid 使用原生 `image` 展示自包含 SVG
+- RichText 负责所有简单 Markdown 内容，包括标题、段落、列表、引用、分隔线、链接和普通图片；相邻简单 token 合并成一个 RichText
+- 表格和代码使用“原生外壳 + 单个完整 RichText 内容块”；横向滚动、复制、选项卡和加载状态由原生外壳负责
+- 原生 `image` 只有一个明确例外：RichText 不支持 SVG，因此数学公式和 Mermaid 的最终 SVG 用组件展示；其他 Markdown 图片都进入 RichText
 - 公式 SVG 到达后立即替换源码并按自然尺寸横向滚动；Mermaid SVG 到达后自动切到流程图一次，之后保留用户手动选择
 
 ## 当前性能结论

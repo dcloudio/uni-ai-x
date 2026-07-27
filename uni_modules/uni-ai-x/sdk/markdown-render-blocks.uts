@@ -1,18 +1,11 @@
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 
-export type MarkdownRenderKind = 'rich' | 'list' | 'quote' | 'table' | 'code' | 'mermaid' | 'math' | 'image' | 'divider'
+export type MarkdownRenderKind = 'rich' | 'table' | 'code' | 'mermaid' | 'math'
 
 export type MarkdownRenderBlock = {
 	kind: MarkdownRenderKind
 	key: string
 	tokens: MarkdownToken[]
-}
-
-function isStandaloneImageParagraph(token: MarkdownToken): boolean {
-	if (token.type == 'image') return true
-	if (token.type != 'paragraph') return false
-	const children = token.tokens ?? [] as MarkdownToken[]
-	return children.length == 1 && children[0].type == 'image'
 }
 
 export function markdownRenderKind(token: MarkdownToken): MarkdownRenderKind {
@@ -25,10 +18,6 @@ export function markdownRenderKind(token: MarkdownToken): MarkdownRenderKind {
 	}
 	if (type == 'math') return 'math'
 	if (type == 'table') return 'table'
-	if (type == 'list' || type == 'tasklist') return 'list'
-	if (type == 'block_quote') return 'quote'
-	if (type == 'thematic_break') return 'divider'
-	if (isStandaloneImageParagraph(token)) return 'image'
 	return 'rich'
 }
 
@@ -56,10 +45,4 @@ export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPre
 		} as MarkdownRenderBlock)
 	}
 	return blocks
-}
-
-export function standaloneImageToken(token: MarkdownToken): MarkdownToken {
-	if (token.type == 'image') return token
-	const children = token.tokens ?? [] as MarkdownToken[]
-	return children.length > 0 ? children[0] : token
 }

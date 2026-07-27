@@ -6,9 +6,7 @@ const BLOCKQUOTE_STYLE = TEXT_STYLE + 'border-left:4px solid var(--border-primar
 const INLINE_CODE_STYLE = 'font-family:monospace;font-size:14px;background-color:var(--bg-secondary);border-radius:4px;padding:1px 4px;color:var(--text-primary);'
 const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#111827;color:#d1fae5;padding:10px 12px;border-radius:6px;'
 const CODE_CONTENT_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;color:#d1fae5;margin:0;padding:8px 14px;'
-const MERMAID_FRAME_STYLE = 'width:100%;aspect-ratio:5/4;overflow:hidden;box-sizing:border-box;margin:5px 0;border-radius:6px;background-color:#ffffff;'
 const MERMAID_CODE_STYLE = CODE_STYLE + 'width:100%;aspect-ratio:5/4;overflow:auto;box-sizing:border-box;margin:5px 0;'
-const MERMAID_IMAGE_STYLE = 'width:100%;height:100%;object-fit:contain;display:block;background-color:#ffffff;'
 const TABLE_STYLE = 'border-collapse:collapse;margin:6px 0;'
 const TABLE_CELL_STYLE = 'border:1px solid var(--border-primary);padding:6px 8px;font-size:14px;line-height:22px;color:var(--text-primary);'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:var(--bg-secondary);'
@@ -82,13 +80,14 @@ function inlineNode(token: MarkdownToken | null): UTSJSONObject | null {
 	const type = token.type ?? 'text'
 	if (type == 'text' || type == 'escape') return textNode(token.text ?? '')
 	if (type == 'strong') return richNode('strong', inlineChildren(token))
-	if (type == 'em') return richNode('i', inlineChildren(token))
-	if (type == 'del') return richNode('del', inlineChildren(token))
+	if (type == 'em' || type == 'emph') return richNode('i', inlineChildren(token))
+	if (type == 'del' || type == 'strikethrough') return richNode('del', inlineChildren(token))
 	if (type == 'codespan' || type == 'code') return richNode('span', [textNode(token.text ?? '')] as UTSJSONObject[], styleAttrs(INLINE_CODE_STYLE))
-	if (type == 'br') return richNode('br')
+	if (type == 'br' || type == 'linebreak') return richNode('br')
+	if (type == 'softbreak') return textNode('\n')
 	if (type == 'link') return richNode('a', inlineChildren(token), { href: token.href ?? '' } as UTSJSONObject)
 	if (type == 'image') return richNode('img', [] as UTSJSONObject[], imageAttrs(token))
-	if (type == 'html') return textNode(token.text ?? token.raw ?? '')
+	if (type == 'html' || type == 'html_inline' || type == 'custom_inline') return textNode(token.html ?? token.text ?? token.raw ?? '')
 	return textNode(tokenText(token))
 }
 
@@ -104,7 +103,7 @@ function headingStyle(depth: number): string {
 
 function imageAttrs(token: MarkdownToken | null): UTSJSONObject {
 	if (token == null) return { src: '', alt: '' } as UTSJSONObject
-	const attrs = { src: token.href ?? token.text ?? '', alt: token.text ?? '', style: 'max-width:100%;height:auto;' } as UTSJSONObject
+	const attrs = { src: token.href ?? token.text ?? '', alt: tokenText(token), style: 'max-width:100%;height:auto;' } as UTSJSONObject
 	if ((token.width ?? 0) > 0) attrs['width'] = (token.width ?? 0).toString()
 	if ((token.height ?? 0) > 0) attrs['height'] = (token.height ?? 0).toString()
 	return attrs
@@ -248,13 +247,6 @@ export function markdownTableContentWidth(token: MarkdownToken | null): number {
 	return markdownTableColumnWidths(token).reduce((sum: number, width: number): number => sum + width, 0)
 }
 
-export function markdownTableCellTokenToRichTextNodes(cell: MarkdownToken | null, header: boolean, align: string): UTSJSONObject[] {
-	let children = inlineChildren(cell)
-	if (header) children = [richNode('strong', children)] as UTSJSONObject[]
-	const safeAlign = align == 'center' || align == 'right' ? align : 'left'
-	return [richNode('p', children, styleAttrs('font-size:14px;line-height:22px;text-align:' + safeAlign + ';margin:0;'))] as UTSJSONObject[]
-}
-
 function tableCellContentWidth(cell: MarkdownToken | null): number {
 	if (cell == null) return 0
 	const measuredWidth = cell.width ?? 0
@@ -262,7 +254,7 @@ function tableCellContentWidth(cell: MarkdownToken | null): number {
 	return tokenText(cell).length * 14
 }
 
-export function markdownTableRowContentHeight(row: MarkdownToken | null, columnWidths: number[], isHeader: boolean): number {
+function markdownTableRowContentHeight(row: MarkdownToken | null, columnWidths: number[], isHeader: boolean): number {
 	if (row == null) return 0
 	const cells = row.tokens ?? emptyTokens()
 	let maxLineCount = 1
@@ -340,11 +332,6 @@ function codeContentNode(token: MarkdownToken | null): UTSJSONObject {
 	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(CODE_CONTENT_STYLE))
 }
 
-function mermaidImageNode(token: MarkdownToken): UTSJSONObject {
-	const imageAttrs = { src: token.href ?? '', alt: token.text ?? '', style: MERMAID_IMAGE_STYLE } as UTSJSONObject
-	return richNode('div', [richNode('img', [] as UTSJSONObject[], imageAttrs)] as UTSJSONObject[], styleAttrs(MERMAID_FRAME_STYLE))
-}
-
 function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
 	if (token == null) return [] as UTSJSONObject[]
 	const type = token.type ?? 'text'
@@ -357,17 +344,12 @@ function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
 	if (type == 'block_quote') return [richNode('blockquote', blockChildren(token), styleAttrs(BLOCKQUOTE_STYLE))] as UTSJSONObject[]
 	if (type == 'list' || type == 'tasklist') return listNodes(token)
 	if (type == 'table') return [tableNode(token)] as UTSJSONObject[]
-	if (type == 'code_block') {
-		if ((token.lang ?? '') == 'math' && (token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
-		if ((token.lang ?? '') == 'mermaid' && (token.href ?? '').length > 0) return [mermaidImageNode(token)] as UTSJSONObject[]
-		return [codeBlockNode(token)] as UTSJSONObject[]
-	}
+	if (type == 'code_block') return [codeBlockNode(token)] as UTSJSONObject[]
 	if (type == 'math') {
-		if ((token.href ?? '').length > 0) return [richNode('img', [] as UTSJSONObject[], imageAttrs(token))] as UTSJSONObject[]
 		return [richNode('p', [textNode(token.text ?? '')] as UTSJSONObject[], styleAttrs(PARAGRAPH_STYLE))] as UTSJSONObject[]
 	}
 	if (type == 'thematic_break') return [richNode('hr')] as UTSJSONObject[]
-	if (type == 'html') return [textNode(token.text ?? token.raw ?? '')] as UTSJSONObject[]
+	if (type == 'html' || type == 'html_block' || type == 'custom_block') return [textNode(token.html ?? token.text ?? token.raw ?? '')] as UTSJSONObject[]
 	return [richNode('p', [inlineNode(token) ?? textNode(tokenText(token))] as UTSJSONObject[], styleAttrs(PARAGRAPH_STYLE))] as UTSJSONObject[]
 }
 

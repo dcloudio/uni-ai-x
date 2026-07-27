@@ -36,27 +36,40 @@
 
 ## Markdown 组合渲染设计
 
-RichText 只承担文本内容排版，不承担滚动、工具栏、复制、选项卡、生成状态或图片生命周期。页面仍只消费一份 `MarkdownToken[]`，但展示层按 token 类型组合组件。
+分类原则是先判断内容能否由一个 RichText 完成。能完成的都是简单类，连续简单 token 必须合并进同一个 RichText；只有需要横向滚动、工具栏、选项卡、异步状态或 RichText 不支持的 SVG 时，才使用“原生外壳 + RichText 内容”的复杂组合。普通位图仍属于 RichText 内容，原生 `image` 只用于数学公式和 Mermaid 生成的 SVG。
 
-| Markdown 类型 | 内容渲染 | 原生外层与交互 |
+### 简单类：完整进入 RichText
+
+| 层级 | 解析器 token | RichText 表达 |
 | --- | --- | --- |
-| 标题、段落、强调、删除线、行内代码、链接、普通 HTML | `uni-ai-md-rich-text` | 无 |
-| 有序、无序、任务列表 | 递归 `uni-ai-md-renderer`，列表项正文仍是 RichText | 原生 marker 和列表布局，允许列表项中嵌套复杂块 |
-| 引用 | 递归 `uni-ai-md-renderer` | 原生引用边框和背景，允许内部嵌套复杂块 |
-| 表格 | 原生行列布局中的单元格 RichText | `uni-ai-msg-table` 用原生 `view` 负责表格布局和边框，外层横向 `scroll-view` 负责宽表滚动 |
-| 普通代码块 | RichText `pre/code` nodes | `uni-ai-msg-code` 提供语言栏、复制按钮和横向 `scroll-view` |
-| Mermaid 源码 | RichText `pre/code` nodes | `uni-ai-msg-code` 永久保留“流程图/代码”选项卡、复制按钮和生成状态 |
-| Mermaid 图片 | 不使用 RichText，原生 `image` | 固定为 `5:4` 画框，长边完整显示、短边留白；未生成时默认代码，图片到达后自动切图一次，之后尊重用户选择 |
-| 数学公式源码 | RichText `pre/code` nodes | `uni-ai-msg-math` 提供横向 `scroll-view` |
-| 数学公式 SVG | 不使用 RichText，原生 `image` | `href` 到达后立即卸载源码 RichText，按自然尺寸展示，超宽时横向滚动，不响应点击预览 |
-| 独占一段的图片 | 不使用 RichText，原生 `image` | 宽度约束和图片预览 |
-| 分隔线 | 不使用 RichText | 原生 1px 分隔视图 |
+| 文档块 | `heading`、`paragraph`、`text` | `h1` 到 `h6`、`p` 和文本节点 |
+| 引用 | `block_quote` | 一个 `blockquote` 内容树 |
+| 列表 | `list`、`tasklist` | 一个 `ol`、`ul` 或任务列表内容树，嵌套列表仍在同一棵树中 |
+| 分隔线 | `thematic_break` | `hr` node |
+| 行内文本 | `text`、`escape`、`softbreak`、`linebreak` | 文本、换行和 `br` node |
+| 行内格式 | `emph`、`strong`、`strikethrough`、`code` | `i`、`strong`、`del`、行内代码 `span` |
+| 链接和普通图片 | `link`、`image` | `a`、`img` node；图片无论行内或独占段落都不拆出原生组件 |
+| 原始扩展 | `html_block`、`html_inline`、`custom_block`、`custom_inline` | 进入同一个 RichText；当前按原始文本显示，不执行 HTML 语义解析 |
 
-- `sdk/markdown-render-blocks.uts` 是唯一的块分类入口；连续简单 token 会合并后交给一个 RichText，减少流式更新时的组件数量。
-- `components/uni-ai-md-renderer` 使用显式 `v-if` 分发，并递归处理列表和引用，所以嵌套表格、代码、公式或 Mermaid 不会退回普通文本。
-- `sdk/markdown-rich-text.uts` 负责生成 RichText nodes；代码和表格分别暴露内容级转换函数，由原生外壳调用。
+`document` 是 AST 根容器，不单独产生视图。`item`、`table_header`、`table_row`、`table_cell` 是父 token 的结构子节点，也不独立分发组件。
+
+### 复杂类：原生能力与 RichText 组合
+
+| Markdown 类型 | RichText 内容 | 必要的原生能力 |
+| --- | --- | --- |
+| 表格 `table` | 整张表是一个 RichText `table` 内容树，不按单元格拆分 | 一个横向 `scroll-view` 处理宽表滚动 |
+| 普通代码块 `code_block` | 全部源码和高亮 span 位于一个 RichText `pre/code` 内容树 | 语言栏、复制按钮和横向 `scroll-view` |
+| Mermaid 代码块 | 源码位于一个 RichText `pre/code` 内容树 | “流程图/代码”选项卡、复制、生成状态；最终 SVG 因 RichText 不支持而使用原生 `image` |
+| 数学公式 `math` / `math-pending` | 图片未生成时，公式源码位于一个 RichText 内容树 | 生成后的 SVG 因 RichText 不支持而使用原生 `image`，外层负责自然尺寸和横向滚动 |
+
+不存在完全用原生 `view/text` 重画 Markdown 内容的类别。复杂类的原生部分只承担 RichText 无法提供的容器、交互和 SVG 展示。
+
+- `sdk/markdown-render-blocks.uts` 是唯一的块分类入口，最终只允许 `rich / table / code / mermaid / math` 五种渲染类别。
+- 除四种复杂类别外，其余根 token 一律归为 `rich`；构建块时若上一个块也是 `rich`，直接把当前 token 追加到上一个块中。
+- `components/uni-ai-md-renderer` 只负责五类显式分发，不再单独分发列表、引用、分隔线或普通图片。
+- `sdk/markdown-rich-text.uts` 统一生成 RichText nodes；代码和表格暴露整块内容转换函数供原生外壳调用。
 - `components/uni-ai-msg-code` 不再逐行创建原生 `<text>`，语法高亮 span 全部属于同一个 RichText 内容树。
-- `sdk/parseMarkdown.uts` 继续负责流式 AST、代码高亮、表格宽度估算和异步公式/Mermaid 图片生成，展示组件只根据 token 当前字段切换状态。
+- `sdk/parseMarkdown.uts` 继续负责流式 AST、代码高亮、表格宽度估算和异步公式/Mermaid SVG 生成，展示组件只根据 token 当前字段切换状态。
 - 隐藏 WebView 只负责把 Mermaid 源码和 TeX 公式转换为自包含 SVG，不再通过 `html2canvas` 做位图截图；公式使用本地 MathJax 3.2.2 `tex-svg-full` 构建，运行时不依赖网络资源。
 
 ## 开发期本地 Markdown
