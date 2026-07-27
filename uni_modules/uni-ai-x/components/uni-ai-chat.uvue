@@ -3,17 +3,17 @@
 		<uni-ai-chat-nav @change-menu="changeMenu" />
 		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
 			<view class="chat-box-scroll-view-box">
-				<list-view direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
+				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0">
+					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
+					<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
+					<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
+				</view>
+				<list-view v-show="msgList.length > 0" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="item in msgList" :key="item._id" :id="'msg-item-' + item._id">
 						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @longpress="onlongTapMsg(item)" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="item" @longpress="onlongTapMsg(item)" />
-					</list-item>
-					<list-item class="chat-box-welcome-msg-box" v-if="msgList.length == 0">
-						<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
-						<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
-						<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
 					</list-item>
 					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
@@ -88,6 +88,14 @@
 	})
 	
 	function scrollToLastMsg(userClick: boolean){
+		if (msgList.value.length == 0) {
+			autoToLastMsg = false
+			scrollWithAnimation.value = false
+			scrollTop.value = 0
+			scrollInBottom.value = true
+			showScrollToBottom.value = false
+			return
+		}
 		autoToLastMsg = true
 		scrollWithAnimation.value = userClick
 		bottomAnchorId.value = bottomAnchorId.value == 'last-msg-a' ? 'last-msg-b' : 'last-msg-a'
@@ -337,7 +345,10 @@
 }
 
 .chat-box-welcome-msg-box {
-	margin: auto 20px;
+	flex: 1;
+	width: 100%;
+	padding: 0 20px;
+	box-sizing: border-box;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
