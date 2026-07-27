@@ -445,7 +445,7 @@ export default class ParseMarkdown {
 		this.mathRenderingMap.set(cacheKey, true)
 		setTimeout(() => {
 			proxyWeb.callMethod({
-				action: 'katexRender',
+				action: 'mathSvgRender',
 				pureMathText: mathText
 			}, (param: UTSJSONObject) => {
 				this.mathRenderingMap.delete(cacheKey)
@@ -453,7 +453,7 @@ export default class ParseMarkdown {
 					type: 'code_block',
 					lang: 'math',
 					text: mathText,
-					html: param['resultHtml'] as string | null,
+					html: null,
 					href: param['imageDataURL'] as string | null,
 					width: param['width'] as number | null,
 					height: param['height'] as number | null,

@@ -3,55 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="./libs/katex.min.css">
     <title></title>
-    <!-- KaTeX 全量字体 base64 内联，消除 WebView 慢速网络/CORS 警告 -->
-    <script src="./libs/katex-fonts-inline.js"></script>
+    <script>
+      window.MathJax = {
+        startup: {
+          typeset: false
+        },
+        svg: {
+          fontCache: 'local'
+        },
+        options: {
+          enableMenu: false
+        }
+      };
+    </script>
+    <script defer src="./libs/mathjax/tex-svg-full.3.2.2.js"></script>
   </head>
   <body>
-    <div id="markImgContainer"></div>
     <script type="text/javascript" src="./libs/uni.webview.1.5.5.js"></script>
-
-    <!-- 引入 katex 数学公式渲染库 -->
-    <script type="text/javascript" src="./libs/katex.min.js"></script>
-    <!-- 引入 mhchem 扩展 -->
-    <script defer src="./libs/mhchem.min.js"></script>
-
-    <script type="text/javascript" src="./libs/html2canvas1.4.1.js"></script>
     <script type="text/javascript" src="./libs/mermaid.min.js"></script>
     <script type="text/javascript" src="./libs/highlight.min.js"></script>
 
     <script type="text/javascript">
-        let parentIsWeb = false;
-        let setting = null;
-        uni.getEnv(envObj=>{
-          parentIsWeb = envObj.h5
-        })
-
-        // const isInHarmonyWeb = window.arkWeb != undefined
-
-			
         class ProxyWebHandler {
           setting = {}
+          mathRenderQueue = Promise.resolve()
           constructor() {
-            // window.addEventListener('storage', (e) => {
-            //   console.log('storage change', e);
-            // });
-            // this.mermaidText = `
-            //   graph TD
-            //     A[员工提交请假申请] --> B{经理审批}
-            //     B -->|通过| C[HR备案]
-            //     B -->|拒绝| D[通知员工修改]
-            //     C --> E[流程结束]
-            //     D --> A
-            // `;
-            // document.addEventListener('DOMContentLoaded', () => {
-            //   this.renderMermaid({
-            //     mermaidText: this.mermaidText,
-            //     uniqueId: 'mermaid' + Date.now() + Math.random().toString(36).substring(2, 15)
-            //   });
-            // });
-						
+            mermaid.initialize({
+              startOnLoad: false,
+              securityLevel: 'strict',
+              flowchart: {
+                htmlLabels: false
+              }
+            });
             // 监听当前 web 初始化完成
             document.addEventListener('DOMContentLoaded', () => {
               this.postMessage({
@@ -60,12 +44,153 @@
               });
             });
           }
-          setSetting(e) {
-            this.setting = e.data;
+          setSetting({ data, requestId }) {
+            this.setting = data;
+            this.postMessage({
+              action: "setSetting_callback_" + requestId,
+              param: {}
+            });
+          }
+
+          svgDataURL(svgText) {
+            return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
+          }
+
+          parseSvgLength(value, em = 16, ex = 8) {
+            if (!value) return null;
+            const match = value.trim().match(/^([+-]?(?:\d+\.?\d*|\.\d+))(px|em|ex)?$/i);
+            if (!match) return null;
+            const numberValue = Number(match[1]);
+            if (!Number.isFinite(numberValue)) return null;
+            const unit = (match[2] || 'px').toLowerCase();
+            if (unit === 'em') return numberValue * em;
+            if (unit === 'ex') return numberValue * ex;
+            return numberValue;
+          }
+
+          svgViewBox(svgElement) {
+            const values = (svgElement.getAttribute('viewBox') || '')
+              .trim()
+              .split(/[\s,]+/)
+              .map(value => Number(value));
+            if (values.length !== 4 || values.some(value => !Number.isFinite(value))) return null;
+            if (values[2] <= 0 || values[3] <= 0) return null;
+            return values;
+          }
+
+          svgNaturalSize(svgElement, em = 16, ex = 8) {
+            const viewBox = this.svgViewBox(svgElement);
+            let width = this.parseSvgLength(svgElement.getAttribute('width'), em, ex);
+            let height = this.parseSvgLength(svgElement.getAttribute('height'), em, ex);
+            if (viewBox != null) {
+              const ratio = viewBox[2] / viewBox[3];
+              if (width == null && height != null) width = height * ratio;
+              if (height == null && width != null) height = width / ratio;
+              if (width == null && height == null) {
+                width = viewBox[2] / 1000 * ex;
+                height = viewBox[3] / 1000 * ex;
+              }
+            }
+            return {
+              width: Math.max(1, width || 1),
+              height: Math.max(1, height || 1)
+            };
+          }
+
+          normalizeSvg(svgText, options = {}) {
+            const normalizedBreaks = svgText.replace(/<br\s*>/gi, '<br/>');
+            const documentNode = new DOMParser().parseFromString(normalizedBreaks, 'image/svg+xml');
+            if (documentNode.querySelector('parsererror')) throw new Error('SVG 解析失败');
+            const svgElement = documentNode.documentElement;
+            if (svgElement == null || svgElement.tagName.toLowerCase() !== 'svg') throw new Error('SVG 根节点无效');
+
+            svgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            svgElement.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            documentNode.querySelectorAll('script').forEach(node => node.remove());
+            documentNode.querySelectorAll('*').forEach(node => {
+              Array.from(node.attributes).forEach(attribute => {
+                const attributeName = attribute.name.toLowerCase();
+                const attributeValue = attribute.value.trim().toLowerCase();
+                if (attributeName.startsWith('on') ||
+                    ((attributeName === 'href' || attributeName === 'xlink:href') && attributeValue.startsWith('javascript:'))) {
+                  node.removeAttribute(attribute.name);
+                  return;
+                }
+                if (options.foreground && attributeValue === 'currentcolor') {
+                  node.setAttribute(attribute.name, options.foreground);
+                }
+              });
+            });
+
+            let viewBox = this.svgViewBox(svgElement);
+            const frameAspectRatio = Number(options.frameAspectRatio || 0);
+            if (viewBox != null && Number.isFinite(frameAspectRatio) && frameAspectRatio > 0) {
+              const contentAspectRatio = viewBox[2] / viewBox[3];
+              if (contentAspectRatio < frameAspectRatio) {
+                const frameWidth = viewBox[3] * frameAspectRatio;
+                viewBox[0] -= (frameWidth - viewBox[2]) / 2;
+                viewBox[2] = frameWidth;
+              } else if (contentAspectRatio > frameAspectRatio) {
+                const frameHeight = viewBox[2] / frameAspectRatio;
+                viewBox[1] -= (frameHeight - viewBox[3]) / 2;
+                viewBox[3] = frameHeight;
+              }
+              svgElement.setAttribute('viewBox', viewBox.join(' '));
+            }
+            const size = this.svgNaturalSize(svgElement, options.em || 16, options.ex || 8);
+            if (options.naturalSize === true) {
+              svgElement.setAttribute('width', size.width.toFixed(2) + 'px');
+              svgElement.setAttribute('height', size.height.toFixed(2) + 'px');
+            } else if (viewBox != null) {
+              svgElement.setAttribute('width', viewBox[2].toString());
+              svgElement.setAttribute('height', viewBox[3].toString());
+            }
+            svgElement.setAttribute('preserveAspectRatio', options.preserveAspectRatio || 'xMidYMid meet');
+
+            if (options.styleText) {
+              let defs = svgElement.querySelector('defs');
+              if (defs == null) {
+                defs = documentNode.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                svgElement.insertBefore(defs, svgElement.firstChild);
+              }
+              const style = documentNode.createElementNS('http://www.w3.org/2000/svg', 'style');
+              style.textContent = options.styleText;
+              defs.appendChild(style);
+            }
+
+            if (options.background) {
+              const background = documentNode.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              if (viewBox != null) {
+                background.setAttribute('x', viewBox[0].toString());
+                background.setAttribute('y', viewBox[1].toString());
+                background.setAttribute('width', viewBox[2].toString());
+                background.setAttribute('height', viewBox[3].toString());
+              } else {
+                background.setAttribute('x', '0');
+                background.setAttribute('y', '0');
+                background.setAttribute('width', '100%');
+                background.setAttribute('height', '100%');
+              }
+              background.setAttribute('fill', options.background);
+              background.setAttribute('data-uni-ai-background', 'true');
+              const defs = svgElement.querySelector('defs');
+              if (defs != null && defs.nextSibling != null) {
+                svgElement.insertBefore(background, defs.nextSibling);
+              } else {
+                svgElement.appendChild(background);
+                svgElement.insertBefore(background, svgElement.firstChild);
+              }
+            }
+
+            return {
+              svgText: new XMLSerializer().serializeToString(svgElement),
+              width: size.width,
+              height: size.height
+            };
           }
 
           async renderMermaid({ mermaidText, requestId }) {
-            const mermaidId = 'fixed-mermaid' // 复用一个元素，传固定的 id 值
+            const mermaidId = 'mermaid-' + requestId.replace(/[^a-zA-Z0-9_-]/g, '');
             let mermaidRenderResult = null;
             try {
               mermaidRenderResult = await mermaid.render(mermaidId, mermaidText)
@@ -79,26 +204,28 @@
               // console.error('mermaid render error', error);
               return;
             }
-            let { svg, bindFunctions } = mermaidRenderResult;
-            let imageDataURL = ""
-            if (parentIsWeb) {
-              // 修改不规范的 svg ，把 svg 中的 <br/> 替换为 <br/>
-              svg = svg.replace(/<br>/g, '<br/>')
-              // 加个白色背景
-              svg = svg.replace(`<style>
-#fixed-mermaid{font-family:`, `<style>#fixed-mermaid{background-color: #FFFFFF;font-family:`)
-              imageDataURL = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-            } else {
-              imageDataURL = await this.html2Base64(svg);
+            try {
+              const normalized = this.normalizeSvg(mermaidRenderResult.svg, {
+                background: '#ffffff',
+                frameAspectRatio: 5 / 4
+              });
+              const imageDataURL = this.svgDataURL(normalized.svgText);
+              this.postMessage({
+                action: "renderMermaid_callback_" + requestId,
+                param: {
+                  imageDataURL
+                }
+              });
+              return { svg: normalized.svgText, imageDataURL };
+            } catch (error) {
+              this.postMessage({
+                action: "renderMermaid_callback_" + requestId,
+                param: {
+                  imageDataURL: '',
+                  error: error.message || String(error)
+                }
+              });
             }
-            // console.log('imageDataURL', imageDataURL);
-            this.postMessage({
-              action: "renderMermaid_callback_" + requestId,
-              param: {
-                imageDataURL
-              }
-            });
-            return { svg, bindFunctions, imageDataURL };
           }
 
 
@@ -206,84 +333,61 @@
               console.log(action + '方法执行失败', error);
             }
           }
-          async html2Base64(htmlString, scale = 3, setTheme = false) {
-            const markImgContainer = document.getElementById('markImgContainer');
-            markImgContainer.innerHTML = htmlString;
-            if (setTheme) {
-              markImgContainer.style.color = this.setting.theme == 'light' ? '#25282c' : '#ffffff';
-            }
-            return new Promise((resolve, reject) => {
-              document.fonts.ready.then(() => {
-								  // 转化为PNG格式图片
-                  html2canvas(markImgContainer, {
-                    allowTaint: true,
-                    scale: window.devicePixelRatio * scale,
-                    imageTimeout: 300,
-                    logging: false, // 关闭日志减少内存占用
-                    foreignObjectRendering: false, // 减少内存占用
-                    removeContainer: true,
-                    useCORS: true,
-                    backgroundColor: setTheme ? (this.setting.theme == 'light' ? '#ffffff' : '#25282c') : '#FFFFFF'
-                  }).then(canvas => {
-                    // 清理容器内容
-                    markImgContainer.innerHTML = '';
-                    // blob 刷新后会丢失，所以不使用
-                    // if(parentIsWeb) {
-                    //   canvas.toBlob((blob) => {
-                    //     resolve(URL.createObjectURL(blob))
-                    //   })
-                    // } else {
-                      resolve(canvas.toDataURL('image/webp'));
-                    // }
-                  }).catch(error => {
-                    console.log('html2canvas error', error)
-                    resolve('')
-                  })
-							});
+          async createMathSvg(pureMathText) {
+            if (window.MathJax == null) throw new Error('MathJax 未加载');
+            await window.MathJax.startup.promise;
+            const mathNode = await window.MathJax.tex2svgPromise(pureMathText, {
+              display: true,
+              em: 16,
+              ex: 8,
+              containerWidth: Math.max(320, window.innerWidth || 320)
+            });
+            const svgElement = mathNode.querySelector('svg');
+            if (svgElement == null) throw new Error('MathJax 未生成 SVG');
+            const isDark = this.setting.theme === 'dark';
+            const foreground = isDark ? '#ffffff' : '#25282c';
+            const background = isDark ? '#25282c' : '#ffffff';
+            return this.normalizeSvg(svgElement.outerHTML, {
+              background,
+              foreground,
+              naturalSize: true,
+              preserveAspectRatio: 'xMinYMid meet',
+              em: 16,
+              ex: 8,
+              styleText: [
+                'svg a{fill:#0066cc;stroke:#0066cc}',
+                '[data-mml-node="merror"]>g{fill:#cc0000;stroke:#cc0000}',
+                '[data-mml-node="merror"]>rect[data-background]{fill:#ffff88;stroke:none}',
+                '[data-frame],[data-line]{stroke-width:70px;fill:none}',
+                '.mjx-dashed{stroke-dasharray:140}',
+                '.mjx-dotted{stroke-linecap:round;stroke-dasharray:0,140}',
+                'use[data-c]{stroke-width:3px}'
+              ].join('')
             });
           }
 
-          async katexRender({ pureMathText, requestId }) {
-            // 把 \\ 替换为 \
-            pureMathText = pureMathText.replace(/\\\\/g, '\\');
-            const resultHtml = katex.renderToString(pureMathText, {
-                throwOnError: false,
-                displayMode: true, // true 为块级公式 \[ \]，false 为行内公式 \( \)
-                output: 'html',
-                trust: true, // 允许一些不安全的命令
-                strict: 'ignore' // 是否严格模式
-            });
-            const imageDataURL = await this.html2Base64(resultHtml, 3, true);
+          async mathSvgRender({ pureMathText, requestId }) {
+            const renderTask = this.mathRenderQueue.then(
+              () => this.createMathSvg(pureMathText),
+              () => this.createMathSvg(pureMathText)
+            );
+            this.mathRenderQueue = renderTask.then(() => undefined, () => undefined);
             const param = {
-              imageDataURL,
+              imageDataURL: '',
               width: null,
               height: null,
-              resultHtml: ''
-            }
-            // 返回图片宽高，方便 rich-text 按图片节点渲染公式。
-            if (imageDataURL) {
-              const tmpImg = document.createElement('img');
-              await new Promise(resolve => {
-                let settled = false;
-                const finish = () => {
-                  if (settled) return;
-                  settled = true;
-                  resolve();
-                };
-                tmpImg.addEventListener('load', finish);
-                tmpImg.addEventListener('error', finish);
-                setTimeout(finish, 500);
-                tmpImg.src = imageDataURL;
-                document.body.appendChild(tmpImg);
-                if (tmpImg.complete) finish();
-              });
-              param.width = tmpImg.offsetWidth;
-              param.height = tmpImg.offsetHeight;
-              // console.log('katexRender width', param.width, 'height', param.height)
-              document.body.removeChild(tmpImg);
+              error: ''
+            };
+            try {
+              const normalized = await renderTask;
+              param.imageDataURL = this.svgDataURL(normalized.svgText);
+              param.width = normalized.width;
+              param.height = normalized.height;
+            } catch (error) {
+              param.error = error.message || String(error);
             }
             this.postMessage({
-              action: "katexRender_callback_" + requestId,
+              action: "mathSvgRender_callback_" + requestId,
               param
             });
           }
@@ -294,18 +398,5 @@
         // 兼容原有全局 onMessage 调用方式
         window.onMessage = (...args) => window.proxyWebHandler.onMessage(...args);
     </script>
-    <style>
-      #markImgContainer {
-        padding: 1px;
-        display: flex;
-        justify-content: center;
-        min-width: 100%;
-      }
-      @media (min-width: 960px) {
-        #markImgContainer {
-          min-width: 400px;
-        }
-      }
-    </style>
   </body>
 </html>

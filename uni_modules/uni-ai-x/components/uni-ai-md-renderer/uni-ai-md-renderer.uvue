@@ -10,7 +10,7 @@
 				:href="blockToken(block).href"
 				:is-close="blockToken(block).isClose ?? 0"
 			/>
-			<katex-el v-else-if="block.kind == 'math'"
+			<uni-ai-msg-math v-else-if="block.kind == 'math'"
 				:href="blockToken(block).href"
 				:width="blockToken(block).width"
 				:height="blockToken(block).height"
@@ -46,7 +46,7 @@
 	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table.uvue'
-	import katexEl from '@/uni_modules/uni-ai-x/components/katex-el/katex-el.uvue'
+	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
 
 	defineOptions({
 		name: 'uni-ai-md-renderer'

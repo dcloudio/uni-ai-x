@@ -88,6 +88,25 @@ $$
 - 二次方程求根公式：$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$
 - 欧拉公式：$e^{i\\pi} + 1 = 0$
 
+矩阵公式：
+$$
+\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}
+\\begin{bmatrix} x \\\\ y \\end{bmatrix}
+=
+\\begin{bmatrix} ax + by \\\\ cx + dy \\end{bmatrix}
+$$
+
+化学公式：
+$$
+\\ce{2H2 + O2 -> 2H2O}
+$$
+
+超宽公式：
+$$
+\\prod_{k=1}^{n} \\left(1 + \\frac{x}{k}\\right)
+= 1 + \\sum_{r=1}^{n} \\left(\\sum_{1 \\le i_1 < \\cdots < i_r \\le n} \\frac{x^r}{i_1 \\cdots i_r}\\right)
+$$
+
 ---
 
 ## 流程图示例

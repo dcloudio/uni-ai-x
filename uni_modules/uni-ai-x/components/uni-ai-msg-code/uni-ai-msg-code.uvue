@@ -17,13 +17,13 @@
 				<text class="uni-code-msg-copy-text">复制代码</text>
 			</view>
 		</view>
-		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
-			<image v-if="hasMermaidImage(href)" class="uni-code-msg-mermaid-image" :src="href" mode="aspectFit" @click="previewMermaidImage" />
-			<view v-else class="uni-code-msg-mermaid-status">
+		<template v-if="language == 'mermaid' && showMermaidImage">
+			<image v-if="hasMermaidImage(href)" class="uni-code-msg-mermaid-image" :src="href" mode="widthFix" @click="previewMermaidImage" />
+			<view v-else class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
 				<text class="uni-code-msg-mermaid-status-text">{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
 			</view>
-		</view>
+		</template>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<rich-text class="uni-code-msg-rich-text" :style="{width: codeContentWidth}" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
 		</scroll-view>
@@ -279,14 +279,7 @@ const copyCode = () => {
 
 .uni-code-msg-mermaid-image {
 	width: 100%;
-	height: 100%;
-}
-
-.uni-code-msg-mermaid-status {
-	width: 100%;
-	height: 100%;
-	justify-content: center;
-	align-items: center;
+	background-color: #ffffff;
 }
 
 .uni-code-msg-mermaid-loading {

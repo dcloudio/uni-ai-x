@@ -1,10 +1,10 @@
 <template>
-    <view class="katex-el" :class="[`ui-theme-${uiTheme}`, hasImage ? 'katex-el-image-ready' : 'katex-el-source-pending']">
-        <scroll-view class="katex-el-scroll" direction="horizontal" :show-scrollbar="false">
-            <image v-if="hasImage" :src="href" class="katex-el-katex-image" mode="heightFix"
-                :style="{'height': katexHeight}" @click="previewFormula"
+    <view class="math-el" :class="[`ui-theme-${uiTheme}`, hasImage ? 'math-el-image-ready' : 'math-el-source-pending']">
+        <scroll-view class="math-el-scroll" :class="hasImage ? 'math-el-scroll-image-ready' : ''" direction="horizontal" :show-scrollbar="false">
+            <image v-if="hasImage" :src="href" class="math-el-image" mode="scaleToFill"
+                :style="{'width': mathWidth, 'height': mathHeight}"
             />
-            <rich-text v-else class="katex-el-source" :style="{width: sourceContentWidth}" :nodes="sourceRichNodes" mode="native" :selectable="true"></rich-text>
+            <rich-text v-else class="math-el-source" :style="{width: sourceContentWidth}" :nodes="sourceRichNodes" mode="native" :selectable="true"></rich-text>
         </scroll-view>
     </view>
 </template>
@@ -41,23 +41,19 @@
         return Math.max(1, sourceWidth).toString() + 'px'
     })
 
-    const katexHeight = computed(() => {
-        if (props.height == null || props.width == null) return 'auto'
-        // 比例
-        const ratio = props.height / props.width
-        // 减去 90 的边距，90 = 45 * 2
-        return uni.rpx2px(ratio * 750) - (90 * ratio) + 'px'
+    const mathWidth = computed<string>(() => {
+        return Math.max(1, Math.ceil(props.width ?? 1)).toString() + 'px'
     })
 
-    function previewFormula() {
-        if (!hasImage.value) return
-        uni.previewImage({ urls: [props.href!] as string[] })
-    }
+    const mathHeight = computed<string>(() => {
+        return Math.max(1, Math.ceil(props.height ?? 1)).toString() + 'px'
+    })
+
 </script>
 
 <style lang="scss" scoped>
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-    .katex-el {
+    .math-el {
         width: 100%;
         min-height: 44px;
         margin: 6px 0;
@@ -65,25 +61,29 @@
         overflow: hidden;
     }
 
-    .katex-el-source-pending {
+    .math-el-source-pending {
         background-color: #111827;
     }
 
-    .katex-el-image-ready {
-        background-color: #ffffff;
+    .math-el-image-ready {
+        background-color: var(--bg-primary);
     }
 
-    .katex-el-scroll {
+    .math-el-scroll {
         width: 100%;
         min-height: 44px;
     }
 
-    .katex-el-katex-image {
-        align-self: flex-start;
-        background-color: #ffffff;
+    .math-el-scroll-image-ready {
+        padding: 10px 12px;
     }
 
-    .katex-el-source {
+    .math-el-image {
+        align-self: flex-start;
+        flex-shrink: 0;
+    }
+
+    .math-el-source {
         align-self: flex-start;
     }
 </style>

@@ -18,7 +18,7 @@
 - Markdown 工具：`sdk/markdown-utils.uts` 放置数学公式预处理、表格宽度估算等纯函数，避免解析调度类继续膨胀。
 - Markdown 渲染：`sdk/markdown-render-blocks.uts` 将 Markdown AST 分组成可组合块，`uni-ai-md-renderer` 按块分发；简单正文使用 RichText，复杂块由原生组件提供滚动、工具栏、状态和图片能力。
 - 聊天视图：`components/uni-ai-chat` 负责页面编排和滚动控制；顶部导航由 `uni-ai-chat-nav` 负责，用户消息气泡由 `uni-ai-user-msg` 负责，待发送图片由 `uni-ai-draft-images` 负责。
-- Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用 Markdown、代码高亮、KaTeX、Mermaid 等 Web 生态能力。
+- Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用代码高亮、MathJax、Mermaid 等 Web 生态能力；MathJax 和 Mermaid 都返回自包含 SVG Data URL，原生层不再接收 WebP 截图。
 - SSE 解析：`sdk/sse.uts` 只负责把流式接口返回的 chunk 文本解析为 `Chunk`、错误或完成事件。
 - 消息转换：`sdk/message-builder.uts` 将会话消息转换为模型请求消息，集中处理图片多模态内容。
 - 模型能力：`sdk/model-capabilities.uts` 扫描配置中的模型能力，供输入工具栏展示深度思考、联网搜索和图片理解入口。
@@ -46,9 +46,9 @@ RichText 只承担文本内容排版，不承担滚动、工具栏、复制、�
 | 表格 | 原生行列布局中的单元格 RichText | `uni-ai-msg-table` 用原生 `view` 负责表格布局和边框，外层横向 `scroll-view` 负责宽表滚动 |
 | 普通代码块 | RichText `pre/code` nodes | `uni-ai-msg-code` 提供语言栏、复制按钮和横向 `scroll-view` |
 | Mermaid 源码 | RichText `pre/code` nodes | `uni-ai-msg-code` 永久保留“流程图/代码”选项卡、复制按钮和生成状态 |
-| Mermaid 图片 | 不使用 RichText，原生 `image` | 未生成时默认代码；用户强切流程图时显示“图片正在生成中”；图片到达后自动切图一次，之后尊重用户选择 |
-| 数学公式源码 | RichText `pre/code` nodes | `katex-el` 提供横向 `scroll-view` |
-| 数学公式图片 | 不使用 RichText，原生 `image` | `href` 到达后立即卸载源码 RichText，并支持图片预览 |
+| Mermaid 图片 | 不使用 RichText，原生 `image` | 固定为 `5:4` 画框，长边完整显示、短边留白；未生成时默认代码，图片到达后自动切图一次，之后尊重用户选择 |
+| 数学公式源码 | RichText `pre/code` nodes | `uni-ai-msg-math` 提供横向 `scroll-view` |
+| 数学公式 SVG | 不使用 RichText，原生 `image` | `href` 到达后立即卸载源码 RichText，按自然尺寸展示，超宽时横向滚动，不响应点击预览 |
 | 独占一段的图片 | 不使用 RichText，原生 `image` | 宽度约束和图片预览 |
 | 分隔线 | 不使用 RichText | 原生 1px 分隔视图 |
 
@@ -57,6 +57,7 @@ RichText 只承担文本内容排版，不承担滚动、工具栏、复制、�
 - `sdk/markdown-rich-text.uts` 负责生成 RichText nodes；代码和表格分别暴露内容级转换函数，由原生外壳调用。
 - `components/uni-ai-msg-code` 不再逐行创建原生 `<text>`，语法高亮 span 全部属于同一个 RichText 内容树。
 - `sdk/parseMarkdown.uts` 继续负责流式 AST、代码高亮、表格宽度估算和异步公式/Mermaid 图片生成，展示组件只根据 token 当前字段切换状态。
+- 隐藏 WebView 只负责把 Mermaid 源码和 TeX 公式转换为自包含 SVG，不再通过 `html2canvas` 做位图截图；公式使用本地 MathJax 3.2.2 `tex-svg-full` 构建，运行时不依赖网络资源。
 
 ## 开发期本地 Markdown
 
