@@ -18,7 +18,9 @@
 					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
 				</list-view>
-				<add-chat-btn :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden', position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)'}"/>
+				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
+					<add-chat-btn />
+				</view>
 				<view :style="{visibility: showScrollToBottom ? 'visible' : 'hidden'}" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
@@ -342,6 +344,16 @@
 
 .chat-box-msg-list {
 	flex: 1;
+}
+
+.chat-box-add-chat {
+	position: absolute;
+	bottom: 5px;
+	left: 0;
+	width: 100%;
+	flex-direction: row;
+	justify-content: center;
+	z-index: 20;
 }
 
 .chat-box-welcome-msg-box {

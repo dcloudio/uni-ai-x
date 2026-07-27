@@ -1,9 +1,7 @@
 <template>
-	<view class="add-chat-box" v-if="msgListLength > 1">
-		<add-chat size="16">
-			<text class="add-chat-box-text">开启新对话</text>
-		</add-chat>
-	</view>
+	<add-chat class="add-chat-box" v-if="msgListLength > 1" size="16">
+		<text class="add-chat-box-text">开启新对话</text>
+	</add-chat>
 </template>
 
 <script lang="uts" setup>
