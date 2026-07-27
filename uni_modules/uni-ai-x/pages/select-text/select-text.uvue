@@ -20,13 +20,24 @@
 	})
 	
 	const text = ref<string>("加载中...")
-	const richTextHeight = ref<number>(1000)
-	const richTextElement = ref<UniElement | null>(null)
+
+	function escapeHtmlText(content: string): string {
+		return content
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;')
+	}
+
+	function plainTextHtml(content: string): string {
+		return '<div style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;">' + escapeHtmlText(content) + '</div>'
+	}
 	
 	onMounted(() => {
 		const msg = uniAi.currentChat?.msgList.find((item: MsgItem) => item._id == props.msgId)
 		const textContent = msg?.body ?? '没有数据'
-		text.value = "<span>" + textContent + "</span>"
+		text.value = plainTextHtml(textContent)
 	})
 </script>
 
