@@ -1,0 +1,192 @@
+<template>
+	<view class="uni-ai-md-renderer" :class="[`ui-theme-${uiTheme}`]">
+		<template v-for="block in renderBlocks" :key="block.key">
+			<uni-ai-md-rich-text v-if="block.kind == 'rich'" :markdown-el-list="block.tokens" />
+			<uni-ai-msg-table v-else-if="block.kind == 'table'" :table-node="blockToken(block)" />
+			<uni-ai-msg-code v-else-if="block.kind == 'code' || block.kind == 'mermaid'"
+				:code-tokens="codeTokensOf(blockToken(block))"
+				:code-text="blockToken(block).text ?? ''"
+				:language="blockToken(block).lang ?? 'text'"
+				:href="blockToken(block).href"
+				:is-close="blockToken(block).isClose ?? 0"
+			/>
+			<katex-el v-else-if="block.kind == 'math'"
+				:href="blockToken(block).href"
+				:width="blockToken(block).width"
+				:height="blockToken(block).height"
+				:text="blockToken(block).text ?? ''"
+				:code-tokens="codeTokensOf(blockToken(block))"
+			/>
+			<view v-else-if="block.kind == 'quote'" class="uni-ai-md-quote">
+				<uni-ai-md-renderer :markdown-el-list="childrenOf(blockToken(block))" :key-prefix="block.key + '-quote-'" />
+			</view>
+			<view v-else-if="block.kind == 'list'" class="uni-ai-md-list">
+				<view v-for="(item, itemIndex) in listItems(blockToken(block))" :key="listItemKey(block.key, item, itemIndex)" class="uni-ai-md-list-item">
+					<text v-if="blockToken(block).ordered == 1" class="uni-ai-md-list-number">{{orderedMarker(blockToken(block), itemIndex)}}</text>
+					<view v-else-if="isTaskItem(blockToken(block), item)" class="uni-ai-md-task-marker" :class="item.checked == 1 ? 'uni-ai-md-task-marker-checked' : ''">
+						<text v-if="item.checked == 1" class="uni-ai-md-task-check">✓</text>
+					</view>
+					<view v-else class="uni-ai-md-list-bullet"></view>
+					<view class="uni-ai-md-list-content">
+						<uni-ai-md-renderer :markdown-el-list="childrenOf(item)" :key-prefix="block.key + '-item-' + itemIndex.toString() + '-'" />
+					</view>
+				</view>
+			</view>
+			<image v-else-if="block.kind == 'image'" class="uni-ai-md-image" :src="imageSource(block)" mode="widthFix" @click="previewImage(block)" />
+			<view v-else-if="block.kind == 'divider'" class="uni-ai-md-divider"></view>
+			<uni-ai-md-rich-text v-else :markdown-el-list="block.tokens" />
+		</template>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import { buildMarkdownRenderBlocks, MarkdownRenderBlock, standaloneImageToken } from '@/uni_modules/uni-ai-x/sdk/markdown-render-blocks.uts'
+	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
+	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
+	import uniAiMsgTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table.uvue'
+	import katexEl from '@/uni_modules/uni-ai-x/components/katex-el/katex-el.uvue'
+
+	defineOptions({
+		name: 'uni-ai-md-renderer'
+	})
+
+	type UniAiMdRendererProps = {
+		markdownElList: MarkdownToken[]
+		keyPrefix?: string
+	}
+
+	const props = withDefaults(defineProps<UniAiMdRendererProps>(), {
+		keyPrefix: ''
+	})
+
+	const renderBlocks = computed<MarkdownRenderBlock[]>(() => {
+		return buildMarkdownRenderBlocks(props.markdownElList, props.keyPrefix)
+	})
+
+	function blockToken(block: MarkdownRenderBlock): MarkdownToken {
+		return block.tokens[0]
+	}
+
+	function childrenOf(token: MarkdownToken): MarkdownToken[] {
+		if (token.tokens != null && token.tokens!.length > 0) return token.tokens!
+		if (token.items != null && token.items!.length > 0) return token.items!
+		if ((token.text ?? '').length == 0) return [] as MarkdownToken[]
+		return [{ type: 'text', text: token.text }] as MarkdownToken[]
+	}
+
+	function listItems(token: MarkdownToken): MarkdownToken[] {
+		return token.items ?? token.tokens ?? [] as MarkdownToken[]
+	}
+
+	function codeTokensOf(token: MarkdownToken): MarkdownToken[][] {
+		return token.codeTokens ?? [] as MarkdownToken[][]
+	}
+
+	function listItemKey(blockKey: string, item: MarkdownToken, index: number): string {
+		return blockKey + '-' + (item.uniqueId ?? index.toString())
+	}
+
+	function orderedMarker(token: MarkdownToken, index: number): string {
+		const start = typeof token.start == 'number' ? token.start as number : 1
+		return (start + index).toString() + '.'
+	}
+
+	function isTaskItem(listToken: MarkdownToken, item: MarkdownToken): boolean {
+		return listToken.type == 'tasklist' || item.type == 'tasklist' || item.task == 1
+	}
+
+	function imageSource(block: MarkdownRenderBlock): string {
+		const token = standaloneImageToken(blockToken(block))
+		return token.href ?? token.text ?? ''
+	}
+
+	function previewImage(block: MarkdownRenderBlock) {
+		const src = imageSource(block)
+		if (src.length == 0) return
+		uni.previewImage({ urls: [src] as string[] })
+	}
+</script>
+
+<style lang="scss" scoped>
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.uni-ai-md-renderer {
+	width: 100%;
+}
+
+.uni-ai-md-quote {
+	width: 100%;
+	margin: 6px 0;
+	padding: 4px 0 4px 10px;
+	border-left: 4px solid var(--border-primary);
+	background-color: var(--bg-secondary);
+}
+
+.uni-ai-md-list {
+	width: 100%;
+	margin: 4px 0;
+}
+
+.uni-ai-md-list-item {
+	width: 100%;
+	flex-direction: row;
+	align-items: flex-start;
+}
+
+.uni-ai-md-list-number {
+	min-width: 24px;
+	margin-right: 6px;
+	font-size: 16px;
+	line-height: 26px;
+	color: var(--text-secondary);
+}
+
+.uni-ai-md-list-bullet {
+	width: 6px;
+	height: 6px;
+	margin: 10px 12px 0 5px;
+	border-radius: 3px;
+	background-color: var(--text-secondary);
+}
+
+.uni-ai-md-task-marker {
+	width: 16px;
+	height: 16px;
+	margin: 5px 8px 0 1px;
+	border: 1px solid var(--text-secondary);
+	border-radius: 3px;
+	align-items: center;
+	justify-content: center;
+}
+
+.uni-ai-md-task-marker-checked {
+	border-color: var(--text-primary);
+	background-color: var(--text-primary);
+}
+
+.uni-ai-md-task-check {
+	font-size: 11px;
+	line-height: 14px;
+	color: var(--bg-primary);
+}
+
+.uni-ai-md-list-content {
+	min-width: 0;
+	flex: 1;
+}
+
+.uni-ai-md-image {
+	width: 100%;
+	margin: 6px 0;
+	border-radius: 6px;
+}
+
+.uni-ai-md-divider {
+	width: 100%;
+	height: 1px;
+	margin: 10px 0;
+	background-color: var(--border-primary);
+}
+</style>

@@ -13,7 +13,7 @@
 				</view>
 			</view>
 			<text v-if="showPlainText" class="msg-root-plain-text">{{msg.body}}</text>
-			<uni-ai-md-rich-text v-else :markdown-el-list="msg.markdownElList" />
+			<uni-ai-md-renderer v-else :markdown-el-list="msg.markdownElList" />
 			<template v-if="isLastAiMsg && msg.body == ''">
 				<text v-if="state == 'stop'" class="msg-root-stop-text">回答被终止</text>
 				<text v-if="state == 'none'" class="msg-root-need-try">错误：未回复</text>
@@ -27,7 +27,7 @@
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
-	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
+	import uniAiMdRenderer from '@/uni_modules/uni-ai-x/components/uni-ai-md-renderer/uni-ai-md-renderer.uvue'
 
 	type UniAiXMsgProps = {
 		msg: MsgItem
@@ -149,26 +149,8 @@
 	padding: 10px;
 }
 
-.msg-root-table-box,
-.msg-root-code-box,
-.msg-root-hr-box,
-.msg-root-think-content,
-.msg-root-block-quote-box {
+.msg-root-think-content {
 	width: 100%;
 	margin: 5px 0;
-}
-
-.msg-root-hr-box {
-	height: 1px;
-	background: var(--border-primary);
-	margin: 10px 0;
-}
-
-.msg-root-block-quote-box {
-	border-left: 4px solid var(--border-primary);
-	width: 100%;
-	padding: 5px;
-	background: var(--bg-secondary);
-	margin-bottom: 10px;
 }
 </style>

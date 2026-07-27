@@ -39,6 +39,12 @@ let testMarkdownText = `# Markdown 示例文档
 | 李四李四李四李四 | 32   | 设计师 |
 | 王五 | 25   | 学生 |
 
+### 宽表格横向滚动
+
+| 模型 | 提供商 | 上下文窗口 | 输入价格 | 输出价格 | 多模态 | 工具调用 | 备注 |
+|------|--------|------------|----------|----------|--------|----------|------|
+| 示例模型 Alpha | 示例云服务 | 128K tokens | 0.50 / M | 1.50 / M | 图片、文本 | 支持 | 这一列用于验证窄屏下不会压缩到无法阅读，而是由原生 ScrollView 横向滚动 |
+
 ---
 
 ## 引用示例
@@ -56,6 +62,8 @@ function greet(name) {
 }
 
 alert(greet('World'));
+
+const veryLongLine = "这是一条专门用于验证代码块横向滚动的超长单行内容：abcdefghijklmnopqrstuvwxyz-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 \`\`\`
 
 ---

@@ -1,0 +1,166 @@
+<template>
+	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
+		<scroll-view class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableContentHeight}">
+			<view class="uni-ai-msg-table-grid" :style="{width: tableContentWidth, height: tableContentHeight}">
+				<view v-for="row in tableViewRows" :key="row.key" class="uni-ai-msg-table-row" :style="row.style">
+					<view v-for="cell in row.cells" :key="cell.key"
+						class="uni-ai-msg-table-cell"
+						:class="[cell.header ? 'uni-ai-msg-table-cell-header' : '', cell.lastColumn ? 'uni-ai-msg-table-cell-last-column' : '', cell.lastRow ? 'uni-ai-msg-table-cell-last-row' : '']"
+						:style="cell.style">
+						<rich-text class="uni-ai-msg-table-cell-content"
+							:class="uiTheme == 'dark' ? 'uni-ai-msg-table-cell-content-dark' : 'uni-ai-msg-table-cell-content-light'"
+							:nodes="cell.nodes" mode="native" :selectable="true" @itemclick="onItemClick"></rich-text>
+					</view>
+				</view>
+			</view>
+		</scroll-view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import { markdownTableCellTokenToRichTextNodes, markdownTableColumnWidths, markdownTableContentHeight, markdownTableContentWidth, markdownTableRowContentHeight } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+
+	const props = defineProps<{
+		tableNode: MarkdownToken
+	}>()
+
+	type TableCellViewModel = {
+		key: string
+		nodes: UTSJSONObject[]
+		style: UTSJSONObject
+		header: boolean
+		lastColumn: boolean
+		lastRow: boolean
+	}
+
+	type TableRowViewModel = {
+		key: string
+		style: UTSJSONObject
+		cells: TableCellViewModel[]
+	}
+
+	const tableContentWidth = computed<string>(() => {
+		return Math.max(1, markdownTableContentWidth(props.tableNode)).toString() + 'px'
+	})
+
+	const tableContentHeight = computed<string>(() => {
+		return markdownTableContentHeight(props.tableNode).toString() + 'px'
+	})
+
+	const tableViewRows = computed<TableRowViewModel[]>(() => {
+		const rows = props.tableNode.tokens ?? [] as MarkdownToken[]
+		const columnWidths = markdownTableColumnWidths(props.tableNode)
+		const aligns = props.tableNode.align
+		const tableWidth = Math.max(1, markdownTableContentWidth(props.tableNode)).toString() + 'px'
+		const viewRows = [] as TableRowViewModel[]
+		for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+			const row = rows[rowIndex]
+			const cells = row.tokens ?? [] as MarkdownToken[]
+			const rowHeight = markdownTableRowContentHeight(row, columnWidths, rowIndex == 0).toString() + 'px'
+			const viewCells = [] as TableCellViewModel[]
+			for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+				const cell = cells[cellIndex]
+				const width = cellIndex < columnWidths.length ? columnWidths[cellIndex] : 80
+				let align = 'left'
+				if (aligns != null && cellIndex < aligns!.length && aligns![cellIndex] != null) align = aligns![cellIndex] as string
+				viewCells.push({
+					key: rowIndex.toString() + '-' + cellIndex.toString() + '-' + JSON.stringify(cell),
+					nodes: markdownTableCellTokenToRichTextNodes(cell, rowIndex == 0, align),
+					style: {
+						width: width.toString() + 'px',
+						height: rowHeight
+					} as UTSJSONObject,
+					header: rowIndex == 0,
+					lastColumn: cellIndex == cells.length - 1,
+					lastRow: rowIndex == rows.length - 1
+				} as TableCellViewModel)
+			}
+			viewRows.push({
+				key: 'row-' + (row.uniqueId ?? rowIndex.toString()),
+				style: {
+					width: tableWidth,
+					height: rowHeight
+				} as UTSJSONObject,
+				cells: viewCells
+			} as TableRowViewModel)
+		}
+		return viewRows
+	})
+
+	function onItemClick(e: UniRichTextItemClickEvent) {
+		if (e.detail.href != null && e.detail.href!.length > 0) {
+			uni.navigateTo({
+				url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + e.detail.href!,
+				fail: (err) => {
+					console.error(err)
+				}
+			})
+			return
+		}
+		if (e.detail.src != null && e.detail.src!.length > 0) {
+			uni.previewImage({ urls: [e.detail.src!] as string[] })
+		}
+	}
+</script>
+
+<style lang="scss" scoped>
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.uni-ai-msg-table {
+	width: 100%;
+	margin: 6px 0;
+	border: 1px solid var(--border-primary);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.uni-ai-msg-table-scroll {
+	width: 100%;
+	background-color: var(--bg-primary);
+}
+
+.uni-ai-msg-table-grid {
+	align-self: flex-start;
+}
+
+.uni-ai-msg-table-row {
+	flex-direction: row;
+}
+
+.uni-ai-msg-table-cell {
+	box-sizing: border-box;
+	padding: 6px 8px;
+	justify-content: center;
+	border-right: 1px solid var(--border-primary);
+	border-bottom: 1px solid var(--border-primary);
+	background-color: var(--bg-primary);
+}
+
+.uni-ai-msg-table-cell-header {
+	background-color: var(--bg-secondary);
+}
+
+.uni-ai-msg-table-cell-last-column {
+	border-right-width: 0;
+}
+
+.uni-ai-msg-table-cell-last-row {
+	border-bottom-width: 0;
+}
+
+.uni-ai-msg-table-cell-content {
+	width: 100%;
+	font-size: 14px;
+	line-height: 22px;
+}
+
+.uni-ai-msg-table-cell-content-light {
+	color: #333333;
+}
+
+.uni-ai-msg-table-cell-content-dark {
+	color: #ffffff;
+}
+</style>

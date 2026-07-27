@@ -1,0 +1,65 @@
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+
+export type MarkdownRenderKind = 'rich' | 'list' | 'quote' | 'table' | 'code' | 'mermaid' | 'math' | 'image' | 'divider'
+
+export type MarkdownRenderBlock = {
+	kind: MarkdownRenderKind
+	key: string
+	tokens: MarkdownToken[]
+}
+
+function isStandaloneImageParagraph(token: MarkdownToken): boolean {
+	if (token.type == 'image') return true
+	if (token.type != 'paragraph') return false
+	const children = token.tokens ?? [] as MarkdownToken[]
+	return children.length == 1 && children[0].type == 'image'
+}
+
+export function markdownRenderKind(token: MarkdownToken): MarkdownRenderKind {
+	const type = token.type ?? 'text'
+	if (type == 'code_block') {
+		const language = (token.lang ?? '').toLowerCase()
+		if (language == 'mermaid') return 'mermaid'
+		if (language == 'math' || language == 'math-pending') return 'math'
+		return 'code'
+	}
+	if (type == 'math') return 'math'
+	if (type == 'table') return 'table'
+	if (type == 'list' || type == 'tasklist') return 'list'
+	if (type == 'block_quote') return 'quote'
+	if (type == 'thematic_break') return 'divider'
+	if (isStandaloneImageParagraph(token)) return 'image'
+	return 'rich'
+}
+
+function tokenKey(token: MarkdownToken, index: number, keyPrefix: string): string {
+	const id = token.uniqueId ?? ((token.type ?? 'node') + '-' + index.toString())
+	return keyPrefix + id
+}
+
+export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPrefix: string = ''): MarkdownRenderBlock[] {
+	const blocks = [] as MarkdownRenderBlock[]
+	if (tokens == null) return blocks
+	for (let i = 0; i < tokens.length; i++) {
+		const token = tokens[i]
+		if (token == null) continue
+		const kind = markdownRenderKind(token)
+		const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null
+		if (kind == 'rich' && lastBlock != null && lastBlock.kind == 'rich') {
+			lastBlock.tokens.push(token)
+			continue
+		}
+		blocks.push({
+			kind,
+			key: tokenKey(token, i, keyPrefix),
+			tokens: [token] as MarkdownToken[]
+		} as MarkdownRenderBlock)
+	}
+	return blocks
+}
+
+export function standaloneImageToken(token: MarkdownToken): MarkdownToken {
+	if (token.type == 'image') return token
+	const children = token.tokens ?? [] as MarkdownToken[]
+	return children.length > 0 ? children[0] : token
+}

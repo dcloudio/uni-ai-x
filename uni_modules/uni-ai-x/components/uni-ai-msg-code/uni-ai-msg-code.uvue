@@ -1,29 +1,31 @@
 <template>
-	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`, language == 'mermaid' ? 'uni-code-msg-root-mermaid' : '']">
+	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]">
 		<view class="uni-code-msg-code-header">
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
-				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(true)">图表</text>
+				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(true)">流程图</text>
 				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(false)">代码</text>
 			</view>
-			<template v-if="!showMermaidImage">
+			<template v-if="language != 'mermaid'">
 				<text class="uni-code-msg-language">{{language}}</text>
-				<view class="uni-code-msg-copy-btn" @click="copyCode">
-					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="var(--text-primary)"/>
+				<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
+					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
 					<text class="uni-code-msg-copy-text">复制代码</text>
 				</view>
 			</template>
+			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode">
+				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
+				<text class="uni-code-msg-copy-text">复制代码</text>
+			</view>
 		</view>
-		<view v-if="!showMermaidImage && shouldShowHorizontalHint" class="uni-code-msg-scroll-tip-row">
-			<text class="uni-code-msg-scroll-tip">左右滑动查看完整代码</text>
-		</view>
-		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box">
-			<image class="uni-code-msg-mermaid-image" :src="href" mode="aspectFit" @click="previewMermaidImage" />
+		<view v-if="language == 'mermaid' && showMermaidImage" class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
+			<image v-if="hasMermaidImage(href)" class="uni-code-msg-mermaid-image" :src="href" mode="aspectFit" @click="previewMermaidImage" />
+			<view v-else class="uni-code-msg-mermaid-status">
+				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
+				<text class="uni-code-msg-mermaid-status-text">{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
+			</view>
 		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<text v-if="shouldUseOriginCode" class="uni-code-msg-origin-line" v-for="(lineText, lineIndex) in rawCodeLines" :key="'raw-' + lineIndex" :style="{width: maxLineWidth}">{{lineText}}</text>
-			<text v-else class="uni-code-msg-line" v-for="(tokens,index) in safeCodeTokens" :key="index" :style="{width: maxLineWidth}">
-				<text v-for="(token, tokenIndex) in tokens" :key="index + '-' + tokenIndex + '-' + (token.className ?? '') + '-' + (token.text ?? '')" :class="'uni-code-msg-line-code uni-code-msg-code-' + (token.className ?? '')">{{token.text}}</text>
-			</text>
+			<rich-text class="uni-code-msg-rich-text" :style="{width: codeContentWidth}" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
 		</scroll-view>
 	</view>
 </template>
@@ -32,54 +34,39 @@
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
-	codeTokens?: IToken[][] | null
+	codeTokens?: IToken[][]
 	language?: string
 	href?: string
+	isClose?: number
 }
 
 const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
-	codeText: `
-	import App from './App.uvue'
-	// 注释：这是注释的内容
-	import { createSSRApp } from 'vue'
-	export function createApp() {
-		const app = createSSRApp(App)
-		return {
-			app
-		}
-	}
-`,
+	codeText: '',
 	codeTokens: () => [] as IToken[][],
 	language: 'text',
-	href: null
+	href: '',
+	isClose: 0
 })
 
 function hasMermaidImage(href: string | null): boolean {
 	return href != null && href.length > 0
 }
 
-const maxLineWidth = ref<string>('')
 const showMermaidImage = ref<boolean>(false)
-const mermaidViewTouched = ref<boolean>(false)
+const autoSwitchedMermaidHref = ref<string>('')
 const codeLineHeight = 22
 const codeVerticalPadding = 16
 const codeFontSize = 14
 const estimatedCodeHorizontalPadding = 30
 const estimatedCardHorizontalInset = 48
-const forceFixedLineWidthOnAndroid = ref<boolean>(false)
 const windowWidth = ref<number>(0)
 
-// Android 继续保留显式宽度修复，避免长代码行被错误裁切。
-// #ifdef APP-ANDROID
-forceFixedLineWidthOnAndroid.value = true
-// #endif
-
 function setMermaidView(showImage: boolean) {
-	mermaidViewTouched.value = true
-	showMermaidImage.value = showImage && hasMermaidImage(props.href)
+	showMermaidImage.value = showImage
 }
 
 const previewMermaidImage = () => {
@@ -91,7 +78,7 @@ function normalizeCodeText(text: string): string {
 	return text.replace(/\r\n/g, '\n')
 }
 
-function normalizeCodeTokens(codeTokens: IToken[][] | null): IToken[][] {
+function normalizeCodeTokens(codeTokens: IToken[][]): IToken[][] {
 	return (codeTokens ?? [] as IToken[][]).map((lineTokens: IToken[] | null): IToken[] => lineTokens ?? [] as IToken[])
 }
 
@@ -116,6 +103,16 @@ const shouldUseOriginCode = computed<boolean>(() => {
 	return showOriginCode.value
 })
 
+const codeRichNodes = computed<UTSJSONObject[]>(() => {
+	const token: IToken = {
+		type: 'code_block',
+		lang: props.language,
+		text: props.codeText,
+		codeTokens: shouldUseOriginCode.value ? [] as IToken[][] : safeCodeTokens.value
+	}
+	return markdownCodeTokenToRichTextNodes(token)
+})
+
 function normalizeRawCodeLines(text: string): string[] {
 	const normalizedText = normalizeCodeText(text)
 	const lines = normalizedText.split('\n')
@@ -135,24 +132,30 @@ function getCodeTextWidth(text: string): number {
 	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono') + estimatedCodeHorizontalPadding
 }
 
-const shouldShowHorizontalHint = computed<boolean>(() => {
-	if (showMermaidImage.value) return false
+function visibleCodeWidth(): number {
 	const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
-	const visibleCodeWidth = Math.max(160, currentWindowWidth - estimatedCardHorizontalInset)
-	const requiredCodeWidth = getCodeTextWidth(props.codeText)
-	return requiredCodeWidth > visibleCodeWidth
+	return Math.max(160, Math.min(currentWindowWidth, 800) - estimatedCardHorizontalInset)
+}
+
+const codeContentWidth = computed<string>(() => {
+	return Math.max(1, getCodeTextWidth(props.codeText)).toString() + 'px'
+})
+
+const mermaidGenerationFailed = computed<boolean>(() => {
+	return props.language == 'mermaid' && props.isClose == 1 && !hasMermaidImage(props.href)
 })
 
 watch((): string => props.language, (language: string) => {
-	mermaidViewTouched.value = false
 	showMermaidImage.value = language == 'mermaid' && hasMermaidImage(props.href)
+	autoSwitchedMermaidHref.value = hasMermaidImage(props.href) ? (props.href ?? '') : ''
 	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
 	showMermaidImage.value = false
 	//#endif
 }, {immediate: true})
 
 watch((): string | null => props.href, (href: string | null) => {
-	if (props.language == 'mermaid' && hasMermaidImage(href) && !mermaidViewTouched.value) {
+	if (props.language == 'mermaid' && hasMermaidImage(href) && autoSwitchedMermaidHref.value != href) {
+		autoSwitchedMermaidHref.value = href as string
 		showMermaidImage.value = true
 	}
 })
@@ -161,31 +164,16 @@ onMounted(() => {
 	updateWindowWidth()
 })
 
-//#ifdef uniVersion < 4.81
-watch((): string => props.codeText, (codeText: string) => {
-	if (forceFixedLineWidthOnAndroid.value) {
-		maxLineWidth.value = `${getCodeTextWidth(codeText)}px`
-	} else if (props.codeTokens.length == 0 && codeText.length > 0) {
-		maxLineWidth.value = `${getCodeTextWidth(codeText)}px`
-	}
-}, {immediate: true})
-// #endif
-// #ifdef uniVersion >= 4.81 || MP-WEIXIN
-if (forceFixedLineWidthOnAndroid.value) {
-	watch((): string => props.codeText, (codeText: string) => {
-		maxLineWidth.value = `${getCodeTextWidth(codeText)}px`
-	}, {immediate: true})
-} else {
-	maxLineWidth.value = 'auto'
-}
-// #endif
-
 const scrollViewHeight = computed<string>(() => {
-	if (props.language == 'mermaid') return 'auto'
+	if (props.language == 'mermaid') return mermaidContentHeight.value
 	const rawLineCount = rawCodeLines.value.length
-	const renderedLineCount = props.codeTokens.length
+	const renderedLineCount = safeCodeTokens.value.length
 	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
 	return `${lineCount * codeLineHeight + codeVerticalPadding}px`
+})
+
+const mermaidContentHeight = computed<string>(() => {
+	return Math.round(visibleCodeWidth() * 4 / 5).toString() + 'px'
 })
 
 const copyCode = () => {
@@ -210,185 +198,83 @@ const copyCode = () => {
 
 <style lang="scss" scoped>
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-@font-face {
-	// #ifdef WEB
-	font-display: swap;
-	// #endif
-	font-family: CodeFontFamily;
-	// #ifndef MP-WEIXIN
-	src: url('/uni_modules/uni-ai-x/static/font/FiraCode-Regular.ttf') format('truetype');
-	// #endif
-}
-// 浅色主题类
-.ui-theme-light {
-  /* 代码高亮颜色 - 浅色主题 */
-  --code-keyword: #1a237e;
-  --code-string: #b71c1c;
-  --code-comment: #757575;
-  --code-meta: #ad1457;
-  --code-storage: #1976d2;
-  --code-entity: #00897b;
-  --code-support: #00897b;
-  --code-constant: #388e3c;
-  --code-variable: #1565c0;
-  --code-punctuation: #333;
-  --code-function: #fbc02d;
-}
 
-// 深色主题类
-.ui-theme-dark {
-  /* 代码高亮颜色 - 深色主题 */
-  --code-keyword: #4fc1ff;
-  --code-string: #ff8a80;
-  --code-comment: #81c784;
-  --code-meta: #e1bee7;
-  --code-storage: #4fc1ff;
-  --code-entity: #80deea;
-  --code-support: #80deea;
-  --code-constant: #81d4fa;
-  --code-variable: #b3e5fc;
-  --code-punctuation: #f5f5f5;
-  --code-function: #fff59d;
-}
 .uni-code-msg-root {
 	width: 100%;
-	margin-bottom: 5px;
-	background-color: var(--bg-secondary);
+	margin: 6px 0;
+	background-color: #111827;
+	border: 1px solid #374151;
 	border-radius: 6px;
-	border: 1px solid var(--border-color);
+	overflow: hidden;
 }
 
 .uni-code-msg-code-header {
 	width: 100%;
+	height: 38px;
 	flex-direction: row;
 	justify-content: space-between;
 	align-items: center;
 	padding: 4px 10px;
-	background-color: var(--bg-tertiary);
-}
-
-.uni-code-msg-scroll-tip-row {
-	padding: 4px 12px 0;
-	flex-direction: row;
-	justify-content: flex-end;
-	background-color: var(--bg-secondary);
-}
-
-.uni-code-msg-scroll-tip {
-	font-size: 10px;
-	line-height: 14px;
-	color: var(--text-secondary);
+	background-color: #0d0d0d;
 }
 
 .uni-code-msg-mermaid-switch {
+	height: 30px;
 	flex-direction: row;
-	border-radius: 6px;
-	padding: 2px 0;
-	background-color: var(--border-color);
+	padding: 2px;
+	border-radius: 5px;
+	background-color: #262626;
 }
 
 .uni-code-msg-mermaid-item {
-	padding: 4px 10px;
-	margin: 0 1px;
-	border-radius: 6px;
+	height: 26px;
+	line-height: 26px;
+	padding: 0 10px;
+	border-radius: 4px;
 	font-size: 12px;
-	color: var(--text-secondary);
+	color: #a3a3a3;
 }
 
 .uni-code-msg-mermaid-item-active {
-	background-color: var(--bg-primary);
-	color: var(--text-primary);
+	background-color: #f5f5f5;
+	color: #171717;
 }
 
 .uni-code-msg-language {
 	font-size: 12px;
-	color: var(--text-primary);
+	color: #b4b4b4;
 }
 
 .uni-code-msg-copy-btn {
+	height: 30px;
 	flex-direction: row;
 	align-items: center;
-	padding: 2px 4px;
+	padding: 0 5px;
 	border-radius: 4px;
 }
 
 .uni-code-msg-copy-text {
-	font-size: 10px;
-	color: var(--text-primary);
-	margin-left: 2px;
+	font-size: 11px;
+	color: #f4f4f4;
+	margin-left: 3px;
 }
 
 .uni-code-msg-code-scroll-view {
-	padding: 8px 0;
-	height: auto;
 	width: 100%;
-	transition: height 0.2s linear;
+	height: auto;
+	background-color: #111827;
 }
 
-.uni-code-msg-line,
-.uni-code-msg-origin-code,
-.uni-code-msg-origin-line {
-	padding: 0 15px;
-}
-
-.uni-code-msg-line {
-	height: 22px;
-	white-space: nowrap;
+.uni-code-msg-rich-text {
 	align-self: flex-start;
-}
-
-.uni-code-msg-line-code {
-	white-space: pre;
-	font-family: CodeFontFamily;
-	font-size: 14px;
-	color: var(--text-primary);
-}
-
-/* #ifdef APP-ANDROID */
-.uni-code-msg-line-code,
-.uni-code-msg-origin-code {
-	font-family: monospace;
-}
-/* #endif */
-
-.uni-code-msg-code-keyword { color: var(--code-keyword); }
-.uni-code-msg-code-string { color: var(--code-string); }
-.uni-code-msg-code-comment { color: var(--code-comment); }
-.uni-code-msg-code-meta { color: var(--code-meta); }
-.uni-code-msg-code-storage { color: var(--code-storage); }
-.uni-code-msg-code-entity { color: var(--code-entity); }
-.uni-code-msg-code-support { color: var(--code-support); }
-.uni-code-msg-code-constant { color: var(--code-constant); }
-.uni-code-msg-code-variable { color: var(--code-variable); }
-.uni-code-msg-code-punctuation { color: var(--code-punctuation); }
-.uni-code-msg-code-function { color: var(--code-function); }
-
-.uni-code-msg-origin-code {
-	color: var(--text-primary);
-	height: 100%;
-	font-size: 14px;
-	align-self: flex-start;
-	line-height: 22px;
-	white-space: pre;
-	font-family: CodeFontFamily;
-	overflow: visible;
-}
-
-.uni-code-msg-origin-line {
-	height: 22px;
-	line-height: 22px;
-	white-space: pre;
-	font-size: 14px;
-	color: var(--text-primary);
-	align-self: flex-start;
-	font-family: CodeFontFamily;
 }
 
 .uni-code-msg-mermaid-image-box {
 	width: 100%;
-	aspect-ratio: 5 / 4;
-	background-color: #ffffff;
 	overflow: hidden;
+	background-color: #ffffff;
+	justify-content: center;
+	align-items: center;
 }
 
 .uni-code-msg-mermaid-image {
@@ -396,10 +282,21 @@ const copyCode = () => {
 	height: 100%;
 }
 
-.uni-code-msg-root-mermaid .uni-code-msg-code-scroll-view {
+.uni-code-msg-mermaid-status {
 	width: 100%;
-	aspect-ratio: 5 / 4;
-	overflow: auto;
+	height: 100%;
+	justify-content: center;
+	align-items: center;
 }
 
+.uni-code-msg-mermaid-loading {
+	width: 18px;
+	height: 18px;
+	margin-bottom: 10px;
+}
+
+.uni-code-msg-mermaid-status-text {
+	font-size: 13px;
+	color: #666666;
+}
 </style>

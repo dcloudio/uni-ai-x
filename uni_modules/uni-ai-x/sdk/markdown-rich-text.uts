@@ -5,6 +5,7 @@ const PARAGRAPH_STYLE = TEXT_STYLE + 'margin:4px 0;'
 const BLOCKQUOTE_STYLE = TEXT_STYLE + 'border-left:4px solid var(--border-primary);padding-left:10px;margin:6px 0;color:var(--text-tertiary);'
 const INLINE_CODE_STYLE = 'font-family:monospace;font-size:14px;background-color:var(--bg-secondary);border-radius:4px;padding:1px 4px;color:var(--text-primary);'
 const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#111827;color:#d1fae5;padding:10px 12px;border-radius:6px;'
+const CODE_CONTENT_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;color:#d1fae5;margin:0;padding:8px 14px;'
 const MERMAID_FRAME_STYLE = 'width:100%;aspect-ratio:5/4;overflow:hidden;box-sizing:border-box;margin:5px 0;border-radius:6px;background-color:#ffffff;'
 const MERMAID_CODE_STYLE = CODE_STYLE + 'width:100%;aspect-ratio:5/4;overflow:auto;box-sizing:border-box;margin:5px 0;'
 const MERMAID_IMAGE_STYLE = 'width:100%;height:100%;object-fit:contain;display:block;background-color:#ffffff;'
@@ -202,19 +203,37 @@ function tableCellNode(cell: MarkdownToken | null, header: boolean, align: strin
 	return richNode(header ? 'th' : 'td', inlineChildren(cell), styleAttrs(style))
 }
 
+export function markdownTableColumnWidths(token: MarkdownToken | null): number[] {
+	const widths = [] as number[]
+	if (token == null) return widths
+	const rows = token.tokens ?? emptyTokens()
+	if (rows.length == 0) return widths
+	const firstRowCells = rows[0].tokens ?? emptyTokens()
+	for (let cellIndex = 0; cellIndex < firstRowCells.length; cellIndex++) {
+		let columnWidth = 80
+		for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+			const cells = rows[rowIndex].tokens ?? emptyTokens()
+			if (cellIndex >= cells.length) continue
+			columnWidth = Math.max(columnWidth, Math.min((cells[cellIndex].width ?? 0) + 16, 320))
+		}
+		widths.push(columnWidth)
+	}
+	return widths
+}
+
 function tableNode(token: MarkdownToken): UTSJSONObject {
 	const rows = token.tokens != null ? token.tokens! : emptyTokens()
 	const aligns = token.align != null ? token.align! : emptyAligns()
+	const columnWidths = markdownTableColumnWidths(token)
 	const trNodes = [] as UTSJSONObject[]
-	let tableWidth = 0
+	let tableWidth = columnWidths.reduce((sum: number, width: number): number => sum + width, 0)
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
 		if (rows[rowIndex] == null) continue
 		const cells = rows[rowIndex].tokens != null ? rows[rowIndex].tokens! : emptyTokens()
 		const cellNodes = [] as UTSJSONObject[]
 		for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
 			if (cells[cellIndex] == null) continue
-			const width = Math.max(80, Math.min((cells[cellIndex].width ?? 0) + 16, 320))
-			if (rowIndex == 0) tableWidth += width
+			const width = cellIndex < columnWidths.length ? columnWidths[cellIndex] : 80
 			const align = cellIndex < aligns.length && aligns[cellIndex] != null ? aligns[cellIndex] as string : 'left'
 			cellNodes.push(tableCellNode(cells[cellIndex], rowIndex == 0, align.length > 0 ? align : 'left', width))
 		}
@@ -223,6 +242,50 @@ function tableNode(token: MarkdownToken): UTSJSONObject {
 	let style = TABLE_STYLE
 	if (tableWidth > 0) style += 'width:' + tableWidth.toString() + 'px;'
 	return richNode('table', trNodes, styleAttrs(style))
+}
+
+export function markdownTableContentWidth(token: MarkdownToken | null): number {
+	return markdownTableColumnWidths(token).reduce((sum: number, width: number): number => sum + width, 0)
+}
+
+export function markdownTableCellTokenToRichTextNodes(cell: MarkdownToken | null, header: boolean, align: string): UTSJSONObject[] {
+	let children = inlineChildren(cell)
+	if (header) children = [richNode('strong', children)] as UTSJSONObject[]
+	const safeAlign = align == 'center' || align == 'right' ? align : 'left'
+	return [richNode('p', children, styleAttrs('font-size:14px;line-height:22px;text-align:' + safeAlign + ';margin:0;'))] as UTSJSONObject[]
+}
+
+function tableCellContentWidth(cell: MarkdownToken | null): number {
+	if (cell == null) return 0
+	const measuredWidth = cell.width ?? 0
+	if (measuredWidth > 0) return measuredWidth
+	return tokenText(cell).length * 14
+}
+
+export function markdownTableRowContentHeight(row: MarkdownToken | null, columnWidths: number[], isHeader: boolean): number {
+	if (row == null) return 0
+	const cells = row.tokens ?? emptyTokens()
+	let maxLineCount = 1
+	const renderWidthScale = isHeader ? 1 : 14 / 13
+	for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+		const columnWidth = cellIndex < columnWidths.length ? columnWidths[cellIndex] : 80
+		const availableTextWidth = Math.max(1, columnWidth - 16)
+		const renderedTextWidth = tableCellContentWidth(cells[cellIndex]) * renderWidthScale
+		const lineCount = Math.max(1, Math.ceil(renderedTextWidth / availableTextWidth))
+		maxLineCount = Math.max(maxLineCount, lineCount)
+	}
+	return maxLineCount * 22 + 12
+}
+
+export function markdownTableContentHeight(token: MarkdownToken | null): number {
+	if (token == null) return 1
+	const rows = token.tokens ?? emptyTokens()
+	const columnWidths = markdownTableColumnWidths(token)
+	let height = 0
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		height += markdownTableRowContentHeight(rows[rowIndex], columnWidths, rowIndex == 0)
+	}
+	return Math.max(1, height)
 }
 
 
@@ -273,6 +336,10 @@ function codeBlockNode(token: MarkdownToken | null): UTSJSONObject {
 	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(style))
 }
 
+function codeContentNode(token: MarkdownToken | null): UTSJSONObject {
+	return richNode('pre', [richNode('code', codeChildren(token))] as UTSJSONObject[], styleAttrs(CODE_CONTENT_STYLE))
+}
+
 function mermaidImageNode(token: MarkdownToken): UTSJSONObject {
 	const imageAttrs = { src: token.href ?? '', alt: token.text ?? '', style: MERMAID_IMAGE_STYLE } as UTSJSONObject
 	return richNode('div', [richNode('img', [] as UTSJSONObject[], imageAttrs)] as UTSJSONObject[], styleAttrs(MERMAID_FRAME_STYLE))
@@ -313,4 +380,14 @@ export function markdownTokensToRichTextNodes(tokens: MarkdownToken[] | null): U
 		for (let j = 0; j < blockNodes.length; j++) nodes.push(blockNodes[j])
 	}
 	return nodes
+}
+
+export function markdownCodeTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
+	if (token == null) return [] as UTSJSONObject[]
+	return [codeContentNode(token)] as UTSJSONObject[]
+}
+
+export function markdownTableTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
+	if (token == null) return [] as UTSJSONObject[]
+	return [tableNode(token)] as UTSJSONObject[]
 }
