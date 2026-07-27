@@ -7,7 +7,7 @@ const INLINE_CODE_STYLE = 'font-family:monospace;font-size:14px;background-color
 const CODE_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;background-color:#111827;color:#d1fae5;padding:10px 12px;border-radius:6px;'
 const CODE_CONTENT_STYLE = 'font-family:monospace;white-space:pre;line-height:22px;font-size:14px;color:#d1fae5;margin:0;padding:8px 14px;'
 const MERMAID_CODE_STYLE = CODE_STYLE + 'width:100%;aspect-ratio:5/4;overflow:auto;box-sizing:border-box;margin:5px 0;'
-const TABLE_STYLE = 'border-collapse:collapse;margin:6px 0;'
+const TABLE_STYLE = 'border-collapse:collapse;margin:0;'
 const TABLE_CELL_STYLE = 'border:1px solid var(--border-primary);padding:6px 8px;font-size:14px;line-height:22px;color:var(--text-primary);'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:var(--bg-secondary);'
 
@@ -273,9 +273,9 @@ export function markdownTableContentHeight(token: MarkdownToken | null): number 
 	if (token == null) return 1
 	const rows = token.tokens ?? emptyTokens()
 	const columnWidths = markdownTableColumnWidths(token)
-	let height = 0
+	let height = 1
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-		height += markdownTableRowContentHeight(rows[rowIndex], columnWidths, rowIndex == 0)
+		height += markdownTableRowContentHeight(rows[rowIndex], columnWidths, rowIndex == 0) + 1
 	}
 	return Math.max(1, height)
 }
