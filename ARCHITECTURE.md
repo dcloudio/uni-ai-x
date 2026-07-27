@@ -16,7 +16,7 @@
 - 请求层：`sdk/requestAiRunner.uts` 负责请求生命周期编排；开发期本地流、远程请求、自定义 provider、chunk 绑定等逻辑以直接方法调用串联，不再保留历史伪 Worker 消息转发。
 - Markdown 解析：`sdk/parseMarkdown.uts` 将流式文本节流解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
 - Markdown 工具：`sdk/markdown-utils.uts` 放置数学公式预处理、表格宽度估算等纯函数，避免解析调度类继续膨胀。
-- Markdown 渲染：`sdk/markdown-rich-text.uts` 将 Markdown AST 转为 rich-text nodes，`components/uni-ai-md-rich-text` 使用 `rich-text mode="native"` 统一渲染。
+- Markdown 渲染：`sdk/markdown-render-blocks.uts` 将 Markdown AST 分组成可组合块，`uni-ai-md-renderer` 按块分发；简单正文使用 RichText，复杂块由原生组件提供滚动、工具栏、状态和图片能力。
 - 聊天视图：`components/uni-ai-chat` 负责页面编排和滚动控制；顶部导航由 `uni-ai-chat-nav` 负责，用户消息气泡由 `uni-ai-user-msg` 负责，待发送图片由 `uni-ai-draft-images` 负责。
 - Web 能力代理：`sdk/proxy-web.uts` 让 App 端通过隐藏 WebView 调用 Markdown、代码高亮、KaTeX、Mermaid 等 Web 生态能力。
 - SSE 解析：`sdk/sse.uts` 只负责把流式接口返回的 chunk 文本解析为 `Chunk`、错误或完成事件。
@@ -32,16 +32,31 @@
 3. 开发期如果 `testMarkdownText` 非空，页面启动时会创建一条新的本地演示会话，`RequestAiRunner.streamDemoMarkdown()` 按固定间隔模拟流式输出；否则请求配置的模型 provider。
 4. 每次正文变化调用 `ParseMarkdown.runTask()`，结束时调用 `flush()`。
 5. 解析结果通过 `onMarkdownElList` 回调直接回写当前 AI 消息。
-6. `uni-ai-x-msg` 将 Markdown AST 交给 `uni-ai-md-rich-text`，由原生 `rich-text mode="native"` 渲染。
+6. `uni-ai-x-msg` 将 Markdown AST 交给 `uni-ai-md-renderer`，渲染器按块组合 RichText 与原生组件。
 
-## Markdown 渲染设计
+## Markdown 组合渲染设计
 
-- 页面层只保留一条 native 富文本渲染链路，不再维护块级节点、行内节点、代码块、表格等多套自绘组件。
-- `sdk/parseMarkdown.uts` 仍负责把流式文本解析为 Markdown AST，并补充代码高亮、表格宽度、数学公式和 Mermaid 渲染结果。
-- `sdk/markdown-rich-text.uts` 是唯一的展示适配层，负责把 `MarkdownToken[]` 转为 `rich-text` 可消费的 nodes。
-- 列表在适配层输出为普通段落加文本 marker，不直接使用 `ul/ol/li`，避免流式追加列表项时 native rich-text 列表区域整块闪烁。
-- `components/uni-ai-md-rich-text` 只负责调用 `rich-text mode="native"` 和处理链接、图片点击，不做高度测量或滚动容器重建。
-- 数学公式和 Mermaid 如果在解析阶段生成了图片地址，则在 native rich-text 中按 `img` 节点展示；否则降级为文本或代码块。
+RichText 只承担文本内容排版，不承担滚动、工具栏、复制、选项卡、生成状态或图片生命周期。页面仍只消费一份 `MarkdownToken[]`，但展示层按 token 类型组合组件。
+
+| Markdown 类型 | 内容渲染 | 原生外层与交互 |
+| --- | --- | --- |
+| 标题、段落、强调、删除线、行内代码、链接、普通 HTML | `uni-ai-md-rich-text` | 无 |
+| 有序、无序、任务列表 | 递归 `uni-ai-md-renderer`，列表项正文仍是 RichText | 原生 marker 和列表布局，允许列表项中嵌套复杂块 |
+| 引用 | 递归 `uni-ai-md-renderer` | 原生引用边框和背景，允许内部嵌套复杂块 |
+| 表格 | 原生行列布局中的单元格 RichText | `uni-ai-msg-table` 用原生 `view` 负责表格布局和边框，外层横向 `scroll-view` 负责宽表滚动 |
+| 普通代码块 | RichText `pre/code` nodes | `uni-ai-msg-code` 提供语言栏、复制按钮和横向 `scroll-view` |
+| Mermaid 源码 | RichText `pre/code` nodes | `uni-ai-msg-code` 永久保留“流程图/代码”选项卡、复制按钮和生成状态 |
+| Mermaid 图片 | 不使用 RichText，原生 `image` | 未生成时默认代码；用户强切流程图时显示“图片正在生成中”；图片到达后自动切图一次，之后尊重用户选择 |
+| 数学公式源码 | RichText `pre/code` nodes | `katex-el` 提供横向 `scroll-view` |
+| 数学公式图片 | 不使用 RichText，原生 `image` | `href` 到达后立即卸载源码 RichText，并支持图片预览 |
+| 独占一段的图片 | 不使用 RichText，原生 `image` | 宽度约束和图片预览 |
+| 分隔线 | 不使用 RichText | 原生 1px 分隔视图 |
+
+- `sdk/markdown-render-blocks.uts` 是唯一的块分类入口；连续简单 token 会合并后交给一个 RichText，减少流式更新时的组件数量。
+- `components/uni-ai-md-renderer` 使用显式 `v-if` 分发，并递归处理列表和引用，所以嵌套表格、代码、公式或 Mermaid 不会退回普通文本。
+- `sdk/markdown-rich-text.uts` 负责生成 RichText nodes；代码和表格分别暴露内容级转换函数，由原生外壳调用。
+- `components/uni-ai-msg-code` 不再逐行创建原生 `<text>`，语法高亮 span 全部属于同一个 RichText 内容树。
+- `sdk/parseMarkdown.uts` 继续负责流式 AST、代码高亮、表格宽度估算和异步公式/Mermaid 图片生成，展示组件只根据 token 当前字段切换状态。
 
 ## 开发期本地 Markdown
 
@@ -73,12 +88,18 @@
 - 已优化：`requestAiRunner.uts` 删除历史伪 Worker 的 `postMessage/onMessage` 转发，改为 `start()` 和具名回调直接调用，并把远程请求、provider 配置、token 获取、请求成功处理、stream chunk 绑定拆成独立方法。
 - 已优化：`parseCode.uts` 删除未使用的旧 grammar 文件读取逻辑，减少二开时对历史实现的误解。
 - 已优化：`uni-ai-chat.uvue` 收敛滚动 timer 清理逻辑，保留当前滚动跟随行为但减少重复代码。
-- 已优化：Markdown 展示层收敛为 `rich-text mode="native"`，删除旧的块级/行内/代码/表格自绘组件，避免二开时面对两套渲染链路。
+- 已优化：Markdown 展示层收敛为一条组合渲染链路；删除旧块级/行内自绘组件，代码和表格只保留“原生外壳 + RichText 内容”。
 - 可优化：`uni-ai-chat.uvue` 仍承担较多滚动编排逻辑，后续若继续拆分，建议先补足 Android 截图和滚动回归验证。
 
 ## 验证方式
 
-修改后应从项目根目录运行 Android：
+没有设备时可先执行 Android 仅编译：
+
+```sh
+/Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android --project /Users/json/Desktop/code/uni-ai-x --compile true
+```
+
+连接设备后再运行：
 
 ```sh
 /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android --project /Users/json/Desktop/code/uni-ai-x --ui true
