@@ -3,7 +3,7 @@
 		:class="uiTheme == 'dark' ? 'select-text-scroll-view-dark' : 'select-text-scroll-view-light'">
 		<rich-text id="richtext" class="select-text-richtext"
 			:style="richTextStyle" :selectable="true" :nodes="text"
-			mode="web"
+			mode="native"
 		></rich-text>
 	</scroll-view>
 </template>
@@ -38,7 +38,11 @@
 	}
 
 	function plainTextHtml(content: string): string {
-		return '<div style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;">' + escapeHtmlText(content) + '</div>'
+		const escapedContent = escapeHtmlText(content)
+			.replace(/\r\n/g, '\n')
+			.replace(/\r/g, '\n')
+			.replace(/\n/g, '<br/>')
+		return '<p>' + escapedContent + '</p>'
 	}
 	
 	onMounted(() => {
