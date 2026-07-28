@@ -34,7 +34,7 @@
 	}
 
 	const props = defineProps<UniAiXMsgProps>()
-	const msg = ref<MsgItem>(props.msg as MsgItem)
+	const msg = computed<MsgItem>(() => props.msg)
 	const emit = defineEmits<{
 		'changeThinkContent': [hideThinkContent: boolean]
 	}>()

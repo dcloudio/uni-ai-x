@@ -76,6 +76,7 @@
             themedImageTheme.value = ''
             return
         }
+		if ((props.href ?? '').length == 0) return
         const mathText = (props.text ?? '').trim()
         if (mathText.length == 0) return
         const requestKey = theme + '\n' + mathText

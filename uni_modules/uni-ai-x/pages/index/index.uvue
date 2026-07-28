@@ -14,14 +14,14 @@
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
-	import {uiTheme, testMarkdownText} from '@/uni_modules/uni-ai-x/sdk'
+	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 
 	const startX = ref<number>(0)
 	const translateX = ref<number>(-260)
 	const isDragging = ref<boolean>(false)
 	const isMoveing = ref<boolean>(false)
 	const showMenu = ref<boolean>(false)
-	const showFps = computed<boolean>(() => testMarkdownText.length > 0)
+	const showFps: boolean = false
 
 	const setMenu = (show: boolean) => {
 		showMenu.value = show

@@ -26,7 +26,15 @@ function tokenKey(token: MarkdownToken, index: number, keyPrefix: string): strin
 	return keyPrefix + id
 }
 
-export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPrefix: string = ''): MarkdownRenderBlock[] {
+function blockTokensMatch(left: MarkdownToken[], right: MarkdownToken[]): boolean {
+	if (left.length != right.length) return false
+	for (let i = 0; i < left.length; i++) {
+		if (left[i] !== right[i]) return false
+	}
+	return true
+}
+
+export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPrefix: string = '', previousBlocks: MarkdownRenderBlock[] | null = null): MarkdownRenderBlock[] {
 	const blocks = [] as MarkdownRenderBlock[]
 	if (tokens == null) return blocks
 	for (let i = 0; i < tokens.length; i++) {
@@ -43,6 +51,15 @@ export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPre
 			key: tokenKey(token, i, keyPrefix),
 			tokens: [token] as MarkdownToken[]
 		} as MarkdownRenderBlock)
+	}
+	if (previousBlocks != null) {
+		for (let i = 0; i < blocks.length && i < previousBlocks.length; i++) {
+			const block = blocks[i]
+			const previousBlock = previousBlocks[i]
+			if (block.kind == previousBlock.kind && block.key == previousBlock.key && blockTokensMatch(block.tokens, previousBlock.tokens)) {
+				blocks[i] = previousBlock
+			}
+		}
 	}
 	return blocks
 }

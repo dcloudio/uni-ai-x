@@ -46,8 +46,11 @@
 		keyPrefix: ''
 	})
 
+	let previousRenderBlocks = [] as MarkdownRenderBlock[]
 	const renderBlocks = computed<MarkdownRenderBlock[]>(() => {
-		return buildMarkdownRenderBlocks(props.markdownElList, props.keyPrefix)
+		const blocks = buildMarkdownRenderBlocks(props.markdownElList, props.keyPrefix, previousRenderBlocks)
+		previousRenderBlocks = blocks
+		return blocks
 	})
 
 	function blockToken(block: MarkdownRenderBlock): MarkdownToken {
