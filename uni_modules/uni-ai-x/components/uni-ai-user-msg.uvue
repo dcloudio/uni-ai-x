@@ -1,6 +1,6 @@
 <template>
 	<view class="user-msg" :class="[`ui-theme-${uiTheme}`]">
-		<text class="user-msg-text" @longpress="emitLongpress">{{msg.body}}</text>
+		<text class="user-msg-text">{{msg.body}}</text>
 		<view class="user-msg-img-group" v-if="msg.img_url_list != null">
 			<image class="user-msg-img" v-for="(img, index) in msg.img_url_list" @click="previewImage(index)" :key="index" :src="img" mode="aspectFill"></image>
 		</view>
@@ -14,14 +14,6 @@
 		msg: MsgItem
 	}
 	const props = defineProps<UniAiUserMsgProps>()
-	const emit = defineEmits<{
-		'longpress': []
-	}>()
-
-	function emitLongpress() {
-		emit('longpress')
-	}
-
 	function previewImage(index: number) {
 		if (props.msg.img_url_list == null) return
 		uni.previewImage({

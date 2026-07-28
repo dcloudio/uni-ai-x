@@ -11,9 +11,9 @@
 				<list-view v-show="msgList.length > 0" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
-					<list-item v-for="item in msgList" :key="item._id" :id="'msg-item-' + item._id">
-						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @longpress="onlongTapMsg(item)" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
-						<uni-ai-user-msg v-else :msg="item" @longpress="onlongTapMsg(item)" />
+					<list-item v-for="item in msgList" :key="item._id" :id="'msg-item-' + item._id" @longpress="onlongTapMsg(item)">
+						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
+						<uni-ai-user-msg v-else :msg="item" />
 					</list-item>
 					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>

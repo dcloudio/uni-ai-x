@@ -4,7 +4,7 @@
         <image v-if="hasImage" :src="imageHref" class="math-el-image" mode="scaleToFill" flatten
             :style="{'width': mathWidth, 'height': mathHeight}"
         />
-        <rich-text v-else class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native" :selectable="true"></rich-text>
+        <rich-text v-else class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
     </scroll-view>
 </template>
 

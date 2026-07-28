@@ -26,7 +26,7 @@
 		</template>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
 			<view class="uni-code-msg-code-content" :style="{width: codeContentWidth}" flatten>
-				<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
+				<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
 			</view>
 		</scroll-view>
 	</view>
