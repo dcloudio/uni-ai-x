@@ -12,6 +12,7 @@ type Md2JsonCallBack = (markdownTokenList: MarkdownToken[], isParseDone: boolean
 type UniCmarkCallback = (result: ParseMdRes) => void
 type CallBack = () => void
 let parseMarkdownInstanceIndex = 0
+const TOKEN_PUBLISH_DELAY = 48
 const mathMarkMap = new Map<string, string>([
 	['$', '$'],
 	['$$', '$$'],
@@ -45,6 +46,13 @@ export default class ParseMarkdown {
 	private pendingMathRenderMap: Map<string, MarkdownToken> = new Map()
 	private pendingMathRenderKeys: string[] = []
 	private mathPublishTimer: number = 0
+	private tokenPublishTimer: number = 0
+	private pendingPublishList: MarkdownToken[] | null = null
+	private pendingPublishDone: boolean = false
+	private lastPublishedList: MarkdownToken[] = [] as MarkdownToken[]
+	private lastPublishedDone: boolean = false
+	private lastParsedText: string = ''
+	private lastParsedDone: boolean = false
 	private segmentTokenList: MarkdownToken[] = []
 	private oldMsgBodyLength: number = 0
 	private lastMathEndIndex: number = 0
@@ -137,6 +145,7 @@ export default class ParseMarkdown {
 		const isDone = this.pendingDone
 		this.pendingText = null
 		this.pendingDone = false
+		if (text == this.lastParsedText && (this.lastParsedDone || !isDone)) return
 		this.parsing = true
 		this.lastParseTime = Date.now()
 		this.md2jsonTask(text, isDone, (list: MarkdownToken[], parseDone: boolean | null) => {
@@ -145,7 +154,9 @@ export default class ParseMarkdown {
 				return
 			}
 			const callbackDone = parseDone ?? isDone
-			this.updateCallBack(list, callbackDone)
+			this.lastParsedText = text
+			this.lastParsedDone = callbackDone
+			this.queueTokenPublish(list, callbackDone)
 			if (this.pendingText != null) {
 				this.scheduleParse(this.pendingText, this.pendingDone || this.msgReceiveDone)
 			} else if (this.msgReceiveDone && !callbackDone) {
@@ -332,6 +343,36 @@ export default class ParseMarkdown {
 		return this.segmentTokenList.slice()
 	}
 
+	private tokenListsMatch(left: MarkdownToken[], right: MarkdownToken[]): boolean {
+		if (left.length != right.length) return false
+		for (let i = 0; i < left.length; i++) {
+			if (left[i] !== right[i]) return false
+		}
+		return true
+	}
+
+	private queueTokenPublish(list: MarkdownToken[], isDone: boolean) {
+		this.pendingPublishList = list
+		this.pendingPublishDone = this.pendingPublishDone || isDone
+		if (this.tokenPublishTimer != 0) return
+		this.tokenPublishTimer = setTimeout(() => {
+			this.tokenPublishTimer = 0
+			this.flushTokenPublish()
+		}, TOKEN_PUBLISH_DELAY)
+	}
+
+	private flushTokenPublish() {
+		if (this.userAbort || this.pendingPublishList == null) return
+		const list = this.pendingPublishList!
+		const isDone = this.pendingPublishDone
+		this.pendingPublishList = null
+		this.pendingPublishDone = false
+		if (this.tokenListsMatch(list, this.lastPublishedList) && (!isDone || this.lastPublishedDone)) return
+		this.lastPublishedList = list
+		this.lastPublishedDone = isDone
+		this.updateCallBack(list, isDone)
+	}
+
 	private enrichToken(item: MarkdownToken, callBack: (token: MarkdownToken | null) => void) {
 		if (item.type == 'table') {
 			setApproxTableContentWidth(item.tokens ?? [])
@@ -488,7 +529,7 @@ export default class ParseMarkdown {
 		const renderedToken = this.pendingMathRenderMap.get(cacheKey)
 		this.pendingMathRenderMap.delete(cacheKey)
 		if (renderedToken != null && this.replaceRenderedMathToken(cacheKey, renderedToken)) {
-			this.updateCallBack(this.publishTokenList(), this.msgReceiveDone)
+			this.queueTokenPublish(this.publishTokenList(), this.msgReceiveDone)
 		}
 		if (this.pendingMathRenderKeys.length == 0) return
 		this.mathPublishTimer = setTimeout(() => {
@@ -558,9 +599,13 @@ export default class ParseMarkdown {
 		this.userAbort = true
 		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
 		if (this.mathPublishTimer != 0) clearTimeout(this.mathPublishTimer)
+		if (this.tokenPublishTimer != 0) clearTimeout(this.tokenPublishTimer)
 		this.parseTimer = 0
 		this.mathPublishTimer = 0
+		this.tokenPublishTimer = 0
 		this.pendingText = null
+		this.pendingPublishList = null
+		this.pendingPublishDone = false
 		this.pendingMathRenderKeys = []
 		this.pendingMathRenderMap.clear()
 	}
