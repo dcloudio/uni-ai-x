@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-md-renderer" :class="[`ui-theme-${uiTheme}`]">
+	<view class="uni-ai-md-renderer" :class="[`ui-theme-${uiTheme}`]" flatten>
 		<template v-for="block in renderBlocks" :key="block.key">
 			<uni-ai-md-rich-text v-if="block.kind == 'rich'" :markdown-el-list="block.tokens" />
 			<uni-ai-msg-table v-else-if="block.kind == 'table'" :table-node="blockToken(block)" />

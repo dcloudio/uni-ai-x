@@ -1,31 +1,31 @@
 <template>
-	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]">
-		<view class="uni-code-msg-code-header">
-			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
-				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(true)">流程图</text>
-				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(false)">代码</text>
+	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]" flatten>
+		<view class="uni-code-msg-code-header" flatten>
+			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'" flatten>
+				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(true)" flatten>流程图</text>
+				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(false)" flatten>代码</text>
 			</view>
 			<template v-if="language != 'mermaid'">
-				<text class="uni-code-msg-language">{{language}}</text>
-				<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
-					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
-					<text class="uni-code-msg-copy-text">复制代码</text>
+				<text class="uni-code-msg-language" flatten>{{language}}</text>
+				<view class="uni-code-msg-copy-btn" @click.stop="copyCode" flatten>
+					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4" flatten/>
+					<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 				</view>
 			</template>
-			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode">
-				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
-				<text class="uni-code-msg-copy-text">复制代码</text>
+			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode" flatten>
+				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4" flatten/>
+				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
 		<template v-if="language == 'mermaid' && showMermaidImage">
-			<image v-if="hasMermaidImage(mermaidHref)" class="uni-code-msg-mermaid-image" :src="mermaidHref" mode="widthFix" @click="previewMermaidImage" />
-			<view v-else class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
+			<image v-if="hasMermaidImage(mermaidHref)" class="uni-code-msg-mermaid-image" :src="mermaidHref" mode="widthFix" @click="previewMermaidImage" flatten />
+			<view v-else class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}" flatten>
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
-				<text class="uni-code-msg-mermaid-status-text">{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
+				<text class="uni-code-msg-mermaid-status-text" flatten>{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
 			</view>
 		</template>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<view class="uni-code-msg-code-content" :style="{width: codeContentWidth}">
+			<view class="uni-code-msg-code-content" :style="{width: codeContentWidth}" flatten>
 				<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
 			</view>
 		</scroll-view>

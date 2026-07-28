@@ -1,8 +1,6 @@
 <template>
-	<view class="uni-ai-md-rich-text" :class="[`ui-theme-${uiTheme}`]">
-		<rich-text class="uni-ai-md-rich-text-content" :style="richTextStyle"
-			:nodes="richNodes" mode="native" @itemclick="onItemClick"></rich-text>
-	</view>
+	<rich-text class="uni-ai-md-rich-text-content" :style="richTextStyle"
+		:nodes="richNodes" mode="native" @itemclick="onItemClick"></rich-text>
 </template>
 
 <script lang="uts" setup>
@@ -22,7 +20,8 @@
 
 	const richTextStyle = computed<string>(() => {
 		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
-		return 'font-size:16px;line-height:26px;color:' + color + ';'
+		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+		return 'font-size:16px;line-height:26px;color:' + color + ';background-color:' + backgroundColor + ';'
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
@@ -42,12 +41,7 @@
 </script>
 
 <style>
-	.uni-ai-md-rich-text,
 	.uni-ai-md-rich-text-content {
 		width: 100%;
-	}
-
-	.uni-ai-md-rich-text {
-		background-color: var(--bg-primary);
 	}
 </style>

@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]">
+	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]" flatten>
 		<scroll-view class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableContentHeight}">
 			<rich-text class="uni-ai-msg-table-content" :style="tableRichTextStyle"
 				:nodes="tableRichNodes" mode="web" :selectable="true" @itemclick="onItemClick"></rich-text>

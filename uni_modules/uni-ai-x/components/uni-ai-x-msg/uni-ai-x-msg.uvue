@@ -1,22 +1,22 @@
 <template>
-	<view class="msg-root" :class="[`ui-theme-${uiTheme}`]">
-		<image class="msg-root-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
-		<text v-if="msg.error_msg != null" class="msg-root-error-msg">{{msg.error_msg}}</text>
+	<view class="msg-root" :class="[`ui-theme-${uiTheme}`]" flatten>
+		<image class="msg-root-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
+		<text v-if="msg.error_msg != null" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
 		<template v-else>
-			<view class="msg-root-think-content" v-if="msg.thinkContent != null && msg.thinkContent!.length > 0">
-				<view class="msg-root-think-content-header" @click="changeThinkContent">
-					<text class="msg-root-think-content-title">深度思考 &nbsp;</text>
+			<view class="msg-root-think-content" v-if="msg.thinkContent != null && msg.thinkContent!.length > 0" flatten>
+				<view class="msg-root-think-content-header" @click="changeThinkContent" flatten>
+					<text class="msg-root-think-content-title" flatten>深度思考 &nbsp;</text>
 					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
 				</view>
-				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
-					<text class="msg-root-think-content-text">{{msg.thinkContent}}</text>
+				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''" flatten>
+					<text class="msg-root-think-content-text" flatten>{{msg.thinkContent}}</text>
 				</view>
 			</view>
-			<text v-if="showPlainText" class="msg-root-plain-text">{{msg.body}}</text>
+			<text v-if="showPlainText" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 			<uni-ai-md-renderer v-else :markdown-el-list="msg.markdownElList" />
 			<template v-if="isLastAiMsg && msg.body == ''">
-				<text v-if="state == 'stop'" class="msg-root-stop-text">回答被终止</text>
-				<text v-if="state == 'none'" class="msg-root-need-try">错误：未回复</text>
+				<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
+				<text v-if="state == 'none'" class="msg-root-need-try" flatten>错误：未回复</text>
 				<uni-rotate-icon v-if="state == 'processing'" class="msg-root-loging-icon" />
 			</template>
 		</template>
