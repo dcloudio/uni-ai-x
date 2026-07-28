@@ -1,24 +1,24 @@
 <template>
 	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]" flatten>
 		<view class="uni-code-msg-code-header" flatten>
-			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'" flatten>
-				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(true)" flatten>流程图</text>
-				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click="setMermaidView(false)" flatten>代码</text>
+			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
+				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">流程图</text>
+				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(false)">代码</text>
 			</view>
 			<template v-if="language != 'mermaid'">
 				<text class="uni-code-msg-language" flatten>{{language}}</text>
-				<view class="uni-code-msg-copy-btn" @click.stop="copyCode" flatten>
+				<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
 					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4" flatten/>
 					<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 				</view>
 			</template>
-			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode" flatten>
+			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode">
 				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4" flatten/>
 				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
 		<template v-if="language == 'mermaid' && showMermaidImage">
-			<image v-if="hasMermaidImage(mermaidHref)" class="uni-code-msg-mermaid-image" :src="mermaidHref" mode="widthFix" @click="previewMermaidImage" flatten />
+			<image v-if="hasMermaidImage(mermaidHref)" class="uni-code-msg-mermaid-image" :src="mermaidHref" mode="widthFix" @click.stop="previewMermaidImage" />
 			<view v-else class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}" flatten>
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
 				<text class="uni-code-msg-mermaid-status-text" flatten>{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
@@ -62,6 +62,7 @@ function hasMermaidImage(href: string | null): boolean {
 }
 
 const showMermaidImage = ref<boolean>(false)
+const mermaidViewSelectedByUser = ref<boolean>(false)
 const autoSwitchedMermaidHref = ref<string>('')
 const themedMermaidHref = ref<string>('')
 const themedMermaidTheme = ref<string>('')
@@ -79,6 +80,7 @@ const mermaidHref = computed<string>(() => {
 })
 
 function setMermaidView(showImage: boolean) {
+	mermaidViewSelectedByUser.value = true
 	showMermaidImage.value = showImage
 }
 
@@ -188,6 +190,7 @@ watch((): string => {
 }, { immediate: true })
 
 watch((): string => props.language, (language: string) => {
+	mermaidViewSelectedByUser.value = false
 	showMermaidImage.value = language == 'mermaid' && hasMermaidImage(mermaidHref.value)
 	autoSwitchedMermaidHref.value = hasMermaidImage(mermaidHref.value) ? mermaidHref.value : ''
 	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
@@ -196,7 +199,7 @@ watch((): string => props.language, (language: string) => {
 }, {immediate: true})
 
 watch((): string => mermaidHref.value, (href: string) => {
-	if (props.language == 'mermaid' && hasMermaidImage(href) && autoSwitchedMermaidHref.value != href) {
+	if (props.language == 'mermaid' && hasMermaidImage(href) && autoSwitchedMermaidHref.value != href && !mermaidViewSelectedByUser.value) {
 		autoSwitchedMermaidHref.value = href as string
 		showMermaidImage.value = true
 	}
