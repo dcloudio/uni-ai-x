@@ -1,6 +1,7 @@
 <template>
 	<view class="uni-ai-md-rich-text" :class="[`ui-theme-${uiTheme}`]">
-		<rich-text class="uni-ai-md-rich-text-content" :nodes="richNodes" mode="native" @itemclick="onItemClick"></rich-text>
+		<rich-text class="uni-ai-md-rich-text-content" :style="richTextStyle"
+			:nodes="richNodes" mode="native" @itemclick="onItemClick"></rich-text>
 	</view>
 </template>
 
@@ -17,6 +18,11 @@
 
 	const richNodes = computed<UTSJSONObject[]>(() => {
 		return markdownTokensToRichTextNodes(props.markdownElList)
+	})
+
+	const richTextStyle = computed<string>(() => {
+		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
+		return 'font-size:16px;line-height:26px;color:' + color + ';'
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
@@ -39,5 +45,9 @@
 	.uni-ai-md-rich-text,
 	.uni-ai-md-rich-text-content {
 		width: 100%;
+	}
+
+	.uni-ai-md-rich-text {
+		background-color: var(--bg-primary);
 	}
 </style>
