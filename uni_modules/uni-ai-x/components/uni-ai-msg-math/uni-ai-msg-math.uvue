@@ -1,10 +1,10 @@
 <template>
     <view class="math-el" :class="[`ui-theme-${uiTheme}`, hasImage ? 'math-el-image-ready' : 'math-el-source-pending']">
         <scroll-view class="math-el-scroll" :class="hasImage ? 'math-el-scroll-image-ready' : ''" direction="horizontal" :show-scrollbar="false">
-            <image v-if="hasImage" :src="href" class="math-el-image" mode="scaleToFill"
+            <image v-if="hasImage" :src="imageHref" class="math-el-image" mode="scaleToFill"
                 :style="{'width': mathWidth, 'height': mathHeight}"
             />
-            <rich-text v-else class="math-el-source" :style="{width: sourceContentWidth}" :nodes="sourceRichNodes" mode="native" :selectable="true"></rich-text>
+            <rich-text v-else class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native" :selectable="true"></rich-text>
         </scroll-view>
     </view>
 </template>
@@ -14,16 +14,29 @@
     import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
     import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
     import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+    import { renderMathSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
     const props = defineProps<{
         href?: string
         width?: number
         height?: number
         text?: string
         codeTokens?: MarkdownToken[][]
+        renderTheme?: string
     }>()
 
+    const themedHref = ref<string>('')
+    const themedWidth = ref<number>(0)
+    const themedHeight = ref<number>(0)
+    const themedImageTheme = ref<string>('')
+    let mathRenderRequestKey = ''
+
+    const imageHref = computed<string>(() => {
+        if (themedImageTheme.value == uiTheme.value && themedHref.value.length > 0) return themedHref.value
+        return props.href ?? ''
+    })
+
     const hasImage = computed<boolean>(() => {
-        return props.href != null && props.href!.length > 0
+        return imageHref.value.length > 0
     })
 
     const sourceRichNodes = computed<UTSJSONObject[]>(() => {
@@ -41,13 +54,47 @@
         return Math.max(1, sourceWidth).toString() + 'px'
     })
 
+    const sourceRichTextStyle = computed<string>(() => {
+        return 'width:' + sourceContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
+    })
+
     const mathWidth = computed<string>(() => {
-        return Math.max(1, Math.ceil(props.width ?? 1)).toString() + 'px'
+        const width = themedImageTheme.value == uiTheme.value && themedWidth.value > 0 ? themedWidth.value : (props.width ?? 1)
+        return Math.max(1, Math.ceil(width)).toString() + 'px'
     })
 
     const mathHeight = computed<string>(() => {
-        return Math.max(1, Math.ceil(props.height ?? 1)).toString() + 'px'
+        const height = themedImageTheme.value == uiTheme.value && themedHeight.value > 0 ? themedHeight.value : (props.height ?? 1)
+        return Math.max(1, Math.ceil(height)).toString() + 'px'
     })
+
+    function syncMathImageTheme() {
+        const theme = uiTheme.value
+        if ((props.renderTheme ?? '') == theme && (props.href ?? '').length > 0) {
+            themedHref.value = ''
+            themedWidth.value = 0
+            themedHeight.value = 0
+            themedImageTheme.value = ''
+            return
+        }
+        const mathText = (props.text ?? '').trim()
+        if (mathText.length == 0) return
+        const requestKey = theme + '\n' + mathText
+        mathRenderRequestKey = requestKey
+        renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
+            if (mathRenderRequestKey != requestKey || uiTheme.value != theme || result.imageDataURL.length == 0) return
+            themedHref.value = result.imageDataURL
+            themedWidth.value = result.width
+            themedHeight.value = result.height
+            themedImageTheme.value = result.theme
+        })
+    }
+
+    watch((): string => {
+        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
+    }, () => {
+        syncMathImageTheme()
+    }, { immediate: true })
 
 </script>
 

@@ -406,7 +406,10 @@ export default class ParseMarkdown {
 			mermaidText: mermaidToken.text
 		}, (param: UTSJSONObject) => {
 			const imageDataURL: string = param['imageDataURL'] as string
-			if (imageDataURL.length > 0) mermaidToken.href = imageDataURL
+			if (imageDataURL.length > 0) {
+				mermaidToken.href = imageDataURL
+				mermaidToken.renderTheme = (param['theme'] as string | null) ?? ''
+			}
 			callBack()
 		})
 		// #endif
@@ -437,6 +440,7 @@ export default class ParseMarkdown {
 		target.html = rendered.html
 		target.width = rendered.width
 		target.height = rendered.height
+		target.renderTheme = rendered.renderTheme
 	}
 
 	private ensureMathRenderStarted(cacheKey: string, mathText: string, mathToken: MarkdownToken) {
@@ -457,6 +461,7 @@ export default class ParseMarkdown {
 					href: param['imageDataURL'] as string | null,
 					width: param['width'] as number | null,
 					height: param['height'] as number | null,
+					renderTheme: (param['theme'] as string | null) ?? '',
 					isClose: 1
 				}
 				if ((renderedToken.href ?? '').length == 0) return

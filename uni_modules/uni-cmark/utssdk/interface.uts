@@ -37,4 +37,5 @@ export type MarkdownToken = {
 	end_column?: number;
 	width?: number;
 	height?: number;
+	renderTheme?: string;
 };

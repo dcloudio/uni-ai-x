@@ -28,14 +28,9 @@
         class ProxyWebHandler {
           setting = {}
           mathRenderQueue = Promise.resolve()
+          mermaidRenderQueue = Promise.resolve()
           constructor() {
-            mermaid.initialize({
-              startOnLoad: false,
-              securityLevel: 'strict',
-              flowchart: {
-                htmlLabels: false
-              }
-            });
+            mermaid.initialize(this.mermaidConfig('light'));
             // 监听当前 web 初始化完成
             document.addEventListener('DOMContentLoaded', () => {
               this.postMessage({
@@ -43,6 +38,39 @@
                 param: {}
               });
             });
+          }
+          resolveTheme(theme) {
+            if (theme === 'dark') return 'dark';
+            if (theme === 'light') return 'light';
+            return this.setting.theme === 'dark' ? 'dark' : 'light';
+          }
+          mermaidConfig(theme) {
+            const isDark = theme === 'dark';
+            return {
+              startOnLoad: false,
+              securityLevel: 'strict',
+              theme: isDark ? 'dark' : 'default',
+              themeVariables: isDark ? {
+                background: 'transparent',
+                primaryColor: '#1f2937',
+                primaryTextColor: '#f9fafb',
+                primaryBorderColor: '#9ca3af',
+                secondaryColor: '#374151',
+                tertiaryColor: '#111827',
+                lineColor: '#d1d5db',
+                textColor: '#f9fafb',
+                mainBkg: '#1f2937',
+                nodeBorder: '#9ca3af',
+                clusterBkg: '#111827',
+                clusterBorder: '#6b7280',
+                edgeLabelBackground: '#25282c'
+              } : {
+                background: 'transparent'
+              },
+              flowchart: {
+                htmlLabels: false
+              }
+            };
           }
           setSetting({ data, requestId }) {
             this.setting = data;
@@ -106,6 +134,8 @@
 
             svgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
             svgElement.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            if (options.foreground) svgElement.setAttribute('color', options.foreground);
+            if (options.theme) svgElement.setAttribute('data-uni-ai-theme', options.theme);
             documentNode.querySelectorAll('script').forEach(node => node.remove());
             documentNode.querySelectorAll('*').forEach(node => {
               Array.from(node.attributes).forEach(attribute => {
@@ -189,31 +219,30 @@
             };
           }
 
-          async renderMermaid({ mermaidText, requestId }) {
+          async renderMermaid({ mermaidText, theme, requestId }) {
+            const renderTheme = this.resolveTheme(theme);
             const mermaidId = 'mermaid-' + requestId.replace(/[^a-zA-Z0-9_-]/g, '');
-            let mermaidRenderResult = null;
+            const renderTask = this.mermaidRenderQueue.then(async () => {
+              mermaid.initialize(this.mermaidConfig(renderTheme));
+              return await mermaid.render(mermaidId, mermaidText);
+            }, async () => {
+              mermaid.initialize(this.mermaidConfig(renderTheme));
+              return await mermaid.render(mermaidId, mermaidText);
+            });
+            this.mermaidRenderQueue = renderTask.then(() => undefined, () => undefined);
             try {
-              mermaidRenderResult = await mermaid.render(mermaidId, mermaidText)
-            } catch (error) {
-              this.postMessage({
-                action: "renderMermaid_callback_" + requestId,
-                param: {
-                  imageDataURL: ''
-                }
-              });
-              // console.error('mermaid render error', error);
-              return;
-            }
-            try {
+              const mermaidRenderResult = await renderTask;
               const normalized = this.normalizeSvg(mermaidRenderResult.svg, {
-                background: '#ffffff',
-                frameAspectRatio: 5 / 4
+                frameAspectRatio: 5 / 4,
+                theme: renderTheme,
+                styleText: 'svg{background:transparent!important}'
               });
               const imageDataURL = this.svgDataURL(normalized.svgText);
               this.postMessage({
                 action: "renderMermaid_callback_" + requestId,
                 param: {
-                  imageDataURL
+                  imageDataURL,
+                  theme: renderTheme
                 }
               });
               return { svg: normalized.svgText, imageDataURL };
@@ -222,6 +251,7 @@
                 action: "renderMermaid_callback_" + requestId,
                 param: {
                   imageDataURL: '',
+                  theme: renderTheme,
                   error: error.message || String(error)
                 }
               });
@@ -333,7 +363,7 @@
               console.log(action + '方法执行失败', error);
             }
           }
-          async createMathSvg(pureMathText) {
+          async createMathSvg(pureMathText, theme) {
             if (window.MathJax == null) throw new Error('MathJax 未加载');
             await window.MathJax.startup.promise;
             const mathNode = await window.MathJax.tex2svgPromise(pureMathText, {
@@ -344,17 +374,17 @@
             });
             const svgElement = mathNode.querySelector('svg');
             if (svgElement == null) throw new Error('MathJax 未生成 SVG');
-            const isDark = this.setting.theme === 'dark';
+            const isDark = theme === 'dark';
             const foreground = isDark ? '#ffffff' : '#25282c';
-            const background = isDark ? '#25282c' : '#ffffff';
             return this.normalizeSvg(svgElement.outerHTML, {
-              background,
               foreground,
+              theme,
               naturalSize: true,
               preserveAspectRatio: 'xMinYMid meet',
               em: 16,
               ex: 8,
               styleText: [
+                'svg{background:transparent!important;color:' + foreground + '}',
                 'svg a{fill:#0066cc;stroke:#0066cc}',
                 '[data-mml-node="merror"]>g{fill:#cc0000;stroke:#cc0000}',
                 '[data-mml-node="merror"]>rect[data-background]{fill:#ffff88;stroke:none}',
@@ -366,16 +396,18 @@
             });
           }
 
-          async mathSvgRender({ pureMathText, requestId }) {
+          async mathSvgRender({ pureMathText, theme, requestId }) {
+            const renderTheme = this.resolveTheme(theme);
             const renderTask = this.mathRenderQueue.then(
-              () => this.createMathSvg(pureMathText),
-              () => this.createMathSvg(pureMathText)
+              () => this.createMathSvg(pureMathText, renderTheme),
+              () => this.createMathSvg(pureMathText, renderTheme)
             );
             this.mathRenderQueue = renderTask.then(() => undefined, () => undefined);
             const param = {
               imageDataURL: '',
               width: null,
               height: null,
+              theme: renderTheme,
               error: ''
             };
             try {

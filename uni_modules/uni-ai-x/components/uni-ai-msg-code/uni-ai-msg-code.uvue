@@ -18,14 +18,14 @@
 			</view>
 		</view>
 		<template v-if="language == 'mermaid' && showMermaidImage">
-			<image v-if="hasMermaidImage(href)" class="uni-code-msg-mermaid-image" :src="href" mode="widthFix" @click="previewMermaidImage" />
+			<image v-if="hasMermaidImage(mermaidHref)" class="uni-code-msg-mermaid-image" :src="mermaidHref" mode="widthFix" @click="previewMermaidImage" />
 			<view v-else class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
 				<text class="uni-code-msg-mermaid-status-text">{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
 			</view>
 		</template>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<rich-text class="uni-code-msg-rich-text" :style="{width: codeContentWidth}" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
+			<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
 		</scroll-view>
 	</view>
 </template>
@@ -35,12 +35,14 @@ import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interfac
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
 	codeTokens?: IToken[][]
 	language?: string
 	href?: string
+	renderTheme?: string
 	isClose?: number
 }
 
@@ -49,6 +51,7 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	codeTokens: () => [] as IToken[][],
 	language: 'text',
 	href: '',
+	renderTheme: '',
 	isClose: 0
 })
 
@@ -58,6 +61,9 @@ function hasMermaidImage(href: string | null): boolean {
 
 const showMermaidImage = ref<boolean>(false)
 const autoSwitchedMermaidHref = ref<string>('')
+const themedMermaidHref = ref<string>('')
+const themedMermaidTheme = ref<string>('')
+let mermaidRenderRequestKey = ''
 const codeLineHeight = 22
 const codeVerticalPadding = 16
 const codeFontSize = 14
@@ -65,13 +71,18 @@ const estimatedCodeHorizontalPadding = 30
 const estimatedCardHorizontalInset = 48
 const windowWidth = ref<number>(0)
 
+const mermaidHref = computed<string>(() => {
+	if (themedMermaidTheme.value == uiTheme.value && themedMermaidHref.value.length > 0) return themedMermaidHref.value
+	return props.href ?? ''
+})
+
 function setMermaidView(showImage: boolean) {
 	showMermaidImage.value = showImage
 }
 
 const previewMermaidImage = () => {
-	if (props.href == null || props.href.length == 0) return
-	uni.previewImage({ urls: [props.href] as string[] })
+	if (mermaidHref.value.length == 0) return
+	uni.previewImage({ urls: [mermaidHref.value] as string[] })
 }
 
 function normalizeCodeText(text: string): string {
@@ -141,19 +152,48 @@ const codeContentWidth = computed<string>(() => {
 	return Math.max(1, getCodeTextWidth(props.codeText)).toString() + 'px'
 })
 
-const mermaidGenerationFailed = computed<boolean>(() => {
-	return props.language == 'mermaid' && props.isClose == 1 && !hasMermaidImage(props.href)
+const codeRichTextStyle = computed<string>(() => {
+	return 'width:' + codeContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
 })
 
+const mermaidGenerationFailed = computed<boolean>(() => {
+	return props.language == 'mermaid' && props.isClose == 1 && !hasMermaidImage(mermaidHref.value)
+})
+
+function syncMermaidImageTheme() {
+	if (props.language != 'mermaid' || props.isClose != 1) return
+	const theme = uiTheme.value
+	if ((props.renderTheme ?? '') == theme && (props.href ?? '').length > 0) {
+		themedMermaidHref.value = ''
+		themedMermaidTheme.value = ''
+		return
+	}
+	const mermaidText = props.codeText
+	if (mermaidText.trim().length == 0) return
+	const requestKey = theme + '\n' + mermaidText
+	mermaidRenderRequestKey = requestKey
+	renderMermaidSvgForTheme(mermaidText, theme, (result: ThemedSvgResult) => {
+		if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme || result.imageDataURL.length == 0) return
+		themedMermaidHref.value = result.imageDataURL
+		themedMermaidTheme.value = result.theme
+	})
+}
+
+watch((): string => {
+	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language + '\n' + props.isClose.toString() + '\n' + props.codeText
+}, () => {
+	syncMermaidImageTheme()
+}, { immediate: true })
+
 watch((): string => props.language, (language: string) => {
-	showMermaidImage.value = language == 'mermaid' && hasMermaidImage(props.href)
-	autoSwitchedMermaidHref.value = hasMermaidImage(props.href) ? (props.href ?? '') : ''
+	showMermaidImage.value = language == 'mermaid' && hasMermaidImage(mermaidHref.value)
+	autoSwitchedMermaidHref.value = hasMermaidImage(mermaidHref.value) ? mermaidHref.value : ''
 	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
 	showMermaidImage.value = false
 	//#endif
 }, {immediate: true})
 
-watch((): string | null => props.href, (href: string | null) => {
+watch((): string => mermaidHref.value, (href: string) => {
 	if (props.language == 'mermaid' && hasMermaidImage(href) && autoSwitchedMermaidHref.value != href) {
 		autoSwitchedMermaidHref.value = href as string
 		showMermaidImage.value = true
@@ -272,14 +312,14 @@ const copyCode = () => {
 .uni-code-msg-mermaid-image-box {
 	width: 100%;
 	overflow: hidden;
-	background-color: #ffffff;
+	background-color: var(--bg-primary);
 	justify-content: center;
 	align-items: center;
 }
 
 .uni-code-msg-mermaid-image {
 	width: 100%;
-	background-color: #ffffff;
+	background-color: var(--bg-primary);
 }
 
 .uni-code-msg-mermaid-loading {
@@ -290,6 +330,6 @@ const copyCode = () => {
 
 .uni-code-msg-mermaid-status-text {
 	font-size: 13px;
-	color: #666666;
+	color: var(--text-secondary);
 }
 </style>

@@ -8,6 +8,7 @@
 				:code-text="blockToken(block).text ?? ''"
 				:language="blockToken(block).lang ?? 'text'"
 				:href="blockToken(block).href"
+				:render-theme="blockToken(block).renderTheme"
 				:is-close="blockToken(block).isClose ?? 0"
 			/>
 			<uni-ai-msg-math v-else-if="block.kind == 'math'"
@@ -15,6 +16,7 @@
 				:width="blockToken(block).width"
 				:height="blockToken(block).height"
 				:text="blockToken(block).text ?? ''"
+				:render-theme="blockToken(block).renderTheme"
 				:code-tokens="codeTokensOf(blockToken(block))"
 			/>
 			<uni-ai-md-rich-text v-else :markdown-el-list="block.tokens" />
