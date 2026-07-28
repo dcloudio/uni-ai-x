@@ -1,10 +1,13 @@
 <template>
-    <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, hasImage ? 'math-el-image-ready math-el-scroll-image-ready' : 'math-el-source-pending']"
+    <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, imageReady ? 'math-el-image-ready math-el-scroll-image-ready' : 'math-el-source-pending']"
         direction="horizontal" :show-scrollbar="false">
-        <image v-if="hasImage" :src="imageHref" class="math-el-image" mode="scaleToFill" flatten
-            :style="{'width': mathWidth, 'height': mathHeight}"
-        />
-        <rich-text v-else class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
+        <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
+            <image :src="imageHref" class="math-el-image" mode="scaleToFill" flatten
+                :style="{'width': mathWidth, 'height': mathHeight, 'opacity': imageReady ? 1 : 0}"
+                @load="onMathImageLoad"
+            />
+            <rich-text v-if="!imageReady" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
+        </view>
     </scroll-view>
 </template>
 
@@ -27,6 +30,8 @@
     const themedWidth = ref<number>(0)
     const themedHeight = ref<number>(0)
     const themedImageTheme = ref<string>('')
+    const loadedImageHref = ref<string>('')
+    const windowWidth = ref<number>(0)
     let mathRenderRequestKey = ''
 
     const imageHref = computed<string>(() => {
@@ -36,6 +41,10 @@
 
     const hasImage = computed<boolean>(() => {
         return imageHref.value.length > 0
+    })
+
+    const imageReady = computed<boolean>(() => {
+        return hasImage.value && loadedImageHref.value == imageHref.value
     })
 
     const sourceRichNodes = computed<UTSJSONObject[]>(() => {
@@ -48,9 +57,28 @@
         return markdownCodeTokenToRichTextNodes(token)
     })
 
-    const sourceContentWidth = computed<string>(() => {
+    function visibleMathWidth(): number {
+        const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
+        return Math.max(160, Math.min(currentWindowWidth, 800) - 90)
+    }
+
+    const sourceContentWidthValue = computed<number>(() => {
         const sourceWidth = estimateMaxLineTextWidth((props.text ?? '').split('\n'), 14, 'mono') + 28
-        return Math.max(1, sourceWidth).toString() + 'px'
+        return Math.max(1, Math.min(sourceWidth, visibleMathWidth()))
+    })
+
+    const sourceContentWidth = computed<string>(() => {
+        return sourceContentWidthValue.value.toString() + 'px'
+    })
+
+    const sourceContentHeight = computed<string>(() => {
+        const lines = (props.text ?? '').split('\n')
+        let visualLineCount = 0
+        for (let i = 0; i < lines.length; i++) {
+            const lineWidth = estimateMaxLineTextWidth([lines[i]] as string[], 14, 'mono') + 28
+            visualLineCount += Math.max(1, Math.ceil(lineWidth / sourceContentWidthValue.value))
+        }
+        return Math.max(44, visualLineCount * 22).toString() + 'px'
     })
 
     const sourceRichTextStyle = computed<string>(() => {
@@ -66,6 +94,18 @@
         const height = themedImageTheme.value == uiTheme.value && themedHeight.value > 0 ? themedHeight.value : (props.height ?? 1)
         return Math.max(1, Math.ceil(height)).toString() + 'px'
     })
+
+    const mathContentWidth = computed<string>(() => {
+        return imageReady.value ? mathWidth.value : sourceContentWidth.value
+    })
+
+    const mathContentHeight = computed<string>(() => {
+        return imageReady.value ? mathHeight.value : sourceContentHeight.value
+    })
+
+    function onMathImageLoad(_event: ImageLoadEvent) {
+        if (imageHref.value.length > 0) loadedImageHref.value = imageHref.value
+    }
 
     function syncMathImageTheme() {
         const theme = uiTheme.value
@@ -96,6 +136,14 @@
         syncMathImageTheme()
     }, { immediate: true })
 
+    watch((): string => imageHref.value, (href: string) => {
+        if (loadedImageHref.value != href) loadedImageHref.value = ''
+    })
+
+    onMounted(() => {
+        windowWidth.value = uni.getWindowInfo().windowWidth
+    })
+
 </script>
 
 <style lang="scss" scoped>
@@ -120,12 +168,24 @@
         padding: 10px 12px;
     }
 
+    .math-el-content {
+        position: relative;
+        align-self: flex-start;
+        flex-shrink: 0;
+    }
+
     .math-el-image {
+        position: absolute;
+        left: 0;
+        top: 0;
         align-self: flex-start;
         flex-shrink: 0;
     }
 
     .math-el-source {
+        position: absolute;
+        left: 0;
+        top: 0;
         align-self: flex-start;
     }
 </style>
