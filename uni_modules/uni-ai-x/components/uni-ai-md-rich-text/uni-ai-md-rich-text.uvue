@@ -21,7 +21,7 @@
 	const richTextStyle = computed<string>(() => {
 		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
 		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-		return 'font-size:16px;line-height:26px;color:' + color + ';background-color:' + backgroundColor + ';'
+		return 'font-size:16px;line-height:1.625;color:' + color + ';background-color:' + backgroundColor + ';'
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
