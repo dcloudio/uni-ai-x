@@ -39,7 +39,7 @@ type RequestAiServerOptions = {
 	onTaskCreate ?: RequestAiOnTaskCreateFn
 }
 
-const MARKDOWN_PARSE_INTERVAL = 120
+const MARKDOWN_PARSE_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 100
 
@@ -53,6 +53,8 @@ class RequestAiRunner {
 	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
+	private bodyEmitTimer: number = 0
+	private lastBodyEmitTime: number = 0
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
@@ -66,7 +68,29 @@ class RequestAiRunner {
 		this.resetParser()
 	}
 	resetParser() {
+		this.parseMarkdown?.dispose()
 		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList, MARKDOWN_PARSE_INTERVAL)
+	}
+	private emitMsgBody(force: boolean = false) {
+		if (force) {
+			if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
+			this.bodyEmitTimer = 0
+			this.lastBodyEmitTime = Date.now()
+			this.callbacks?.onMsgBody(this.msgBody)
+			return
+		}
+		const elapsed = this.lastBodyEmitTime == 0 ? MARKDOWN_PARSE_INTERVAL : Date.now() - this.lastBodyEmitTime
+		if (elapsed >= MARKDOWN_PARSE_INTERVAL) {
+			this.lastBodyEmitTime = Date.now()
+			this.callbacks?.onMsgBody(this.msgBody)
+			return
+		}
+		if (this.bodyEmitTimer != 0) return
+		this.bodyEmitTimer = setTimeout(() => {
+			this.bodyEmitTimer = 0
+			this.lastBodyEmitTime = Date.now()
+			this.callbacks?.onMsgBody(this.msgBody)
+		}, MARKDOWN_PARSE_INTERVAL - elapsed)
 	}
 	onChunkFn(chunkObj : Chunk) {
 		let reasoningContent: null | string = null
@@ -87,7 +111,7 @@ class RequestAiRunner {
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		if (content != null && content.length > 0) {
 			this.msgBody += content
-			this.callbacks?.onMsgBody(this.msgBody)
+			this.emitMsgBody()
 		} else if (reasoningContent != null) {
 			this.thinkContent += reasoningContent
 			this.callbacks?.onThinkContent(this.thinkContent.trim())
@@ -106,6 +130,9 @@ class RequestAiRunner {
 		}
 	}
 	resetRequestState() {
+		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
+		this.bodyEmitTimer = 0
+		this.lastBodyEmitTime = 0
 		this.msgBody = ''
 		this.thinkContent = ''
 		this.currentChatState = ''
@@ -133,6 +160,7 @@ class RequestAiRunner {
 		if (!this.msgBody.endsWith('\n')) {
 			this.msgBody += '\n'
 		}
+		this.emitMsgBody(true)
 		this.runMarkdownParse(true)
 	}
 	start(options: RequestAiStartOptions) {
@@ -177,12 +205,13 @@ class RequestAiRunner {
 		timer = setInterval(() => {
 			if (this.userAbort || index >= testMarkdownText.length) {
 				clearInterval(timer)
+				this.emitMsgBody(true)
 				this.runMarkdownParse(true)
 				return
 			}
 			const endIndex = Math.min(index + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
 			this.msgBody += testMarkdownText.slice(index, endIndex)
-			this.callbacks?.onMsgBody(this.msgBody)
+			this.emitMsgBody()
 			index = endIndex
 			this.runMarkdownParse(false)
 		}, DEMO_STREAM_INTERVAL)
@@ -358,7 +387,9 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
-		this.parseMarkdown!.userAbort = true
+		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
+		this.bodyEmitTimer = 0
+		this.parseMarkdown?.dispose()
 		this.userAbort = true
 		this.requestTask?.abort()
 		this.callbacks?.onState('stop')

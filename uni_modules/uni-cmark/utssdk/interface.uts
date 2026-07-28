@@ -39,3 +39,4 @@ export type MarkdownToken = {
 	height?: number;
 	renderTheme?: string;
 };
+export type AsyncMd2JsonCallback = (result: ParseMdRes) => void;

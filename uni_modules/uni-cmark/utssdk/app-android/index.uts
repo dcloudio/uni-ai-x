@@ -1,6 +1,9 @@
 import { MainActivity } from 'com.dcloud.cmark'
 export * from '../interface.uts'
-import { MarkdownToken, ParseMdRes } from '../interface.uts'
+import { AsyncMd2JsonCallback, MarkdownToken, ParseMdRes } from '../interface.uts'
+import Thread from 'java.lang.Thread'
+import Handler from 'android.os.Handler'
+import Looper from 'android.os.Looper'
 
 // 创建 MainActivity 实例
 let cmarkInstance: MainActivity | null = null
@@ -10,6 +13,8 @@ function getCmarkInstance(): MainActivity {
 	}
 	return cmarkInstance!
 }
+
+const mainThreadHandler = new Handler(Looper.getMainLooper())
 
 export function md2json(markdown: string): ParseMdRes {
 	try {
@@ -30,6 +35,30 @@ export function md2json(markdown: string): ParseMdRes {
 			errorMsg: error.message as string
 		}
 	}
+}
+
+export function asyncMd2json(markdown: string, callback: AsyncMd2JsonCallback): void {
+	new Thread((): void => {
+		const activity = new MainActivity()
+		let result: ParseMdRes
+		try {
+			const jsonString = activity.md2json(markdown)
+			const jsonArray = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
+			result = {
+				data: jsonArray,
+				errorMsg: ''
+			}
+		} catch (error) {
+			result = {
+				data: [] as MarkdownToken[],
+				errorMsg: error.message as string
+			}
+		}
+		const finalResult = result
+		mainThreadHandler.post((): void => {
+			callback(finalResult)
+		})
+	}).start()
 }
 
 export async function initCmark() {

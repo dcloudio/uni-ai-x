@@ -1,11 +1,15 @@
 import { MarkdownToken, ParseMdRes } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { md2json, initCmark } from '@/uni_modules/uni-cmark'
+// #ifdef APP-ANDROID
+import { asyncMd2json } from '@/uni_modules/uni-cmark'
+// #endif
 import { parseLineCode, ParseLineCodeRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import { setApproxTableContentWidth } from '@/uni_modules/uni-ai-x/sdk/markdown-utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 
 type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
 type Md2JsonCallBack = (markdownTokenList: MarkdownToken[], isParseDone: boolean | null) => void
+type UniCmarkCallback = (result: ParseMdRes) => void
 type CallBack = () => void
 let parseMarkdownInstanceIndex = 0
 const mathMarkMap = new Map<string, string>([
@@ -38,10 +42,10 @@ export default class ParseMarkdown {
 	private codeLineCacheMap: Map<string, MarkdownToken[]> = new Map()
 	private mathCacheMap: Map<string, MarkdownToken> = new Map()
 	private mathRenderingMap: Map<string, boolean> = new Map()
+	private pendingMathRenderMap: Map<string, MarkdownToken> = new Map()
+	private pendingMathRenderKeys: string[] = []
+	private mathPublishTimer: number = 0
 	private segmentTokenList: MarkdownToken[] = []
-	private segmentStartLineIndex: number = 0
-	private segmentEndLineIndex: number = 1
-	private segmentNeedContinue: boolean = false
 	private oldMsgBodyLength: number = 0
 	private lastMathEndIndex: number = 0
 	private myMarkdownText: string = ''
@@ -129,8 +133,6 @@ export default class ParseMarkdown {
 			this.updateCallBack(list, callbackDone)
 			if (this.pendingText != null) {
 				this.scheduleParse(this.pendingText, this.pendingDone || this.msgReceiveDone)
-			} else if (this.segmentNeedContinue) {
-				this.scheduleParse(this.latestMsgBody, isDone || this.msgReceiveDone)
 			} else if (this.msgReceiveDone && !callbackDone) {
 				this.scheduleParse(this.latestMsgBody, true)
 			}
@@ -156,13 +158,77 @@ export default class ParseMarkdown {
 	}
 
 	private md2jsonTask(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		const processedMarkdownText = this.prepareMarkdownText(markdownText)
+		const processedMarkdownText = isDone
+			? this.prepareFinalMarkdownText(markdownText)
+			: this.prepareMarkdownText(markdownText)
 		if (processedMarkdownText == null) {
-			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), false)
+			md2JsonCallBack(this.publishTokenList(), false)
 			return
 		}
-		this.md2jsonSegmented(processedMarkdownText, isDone, md2JsonCallBack)
+		this.md2jsonCurrent(processedMarkdownText, isDone, md2JsonCallBack)
 		return
+	}
+
+	private md2jsonCurrent(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
+		this.parseWithUniCmark(markdownText, (parseMdRes: ParseMdRes) => {
+			if (this.userAbort) return
+			if (parseMdRes.errorMsg.length > 0) {
+				markdownErrorLog('[uni-ai-x][Markdown解析] uni-CMark原生解析失败：' + parseMdRes.errorMsg)
+				md2JsonCallBack(this.publishTokenList(), isDone)
+				return
+			}
+			const nextTokenList = parseMdRes.data
+			for (let i = 0; i < nextTokenList.length; i++) {
+				const nextToken = nextTokenList[i]
+				nextToken.uniqueId = 'u' + i.toString()
+				nextToken.isClose = (isDone || i < nextTokenList.length - 1) ? 1 : 0
+				const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
+				if (previousToken != null && this.canReusePublishedToken(previousToken, nextToken)) {
+					nextTokenList[i] = previousToken
+				}
+			}
+			const beforeDone = this.createBeforeDone(nextTokenList.length, () => {
+				this.segmentTokenList = nextTokenList
+				md2JsonCallBack(this.publishTokenList(), isDone)
+			})
+			for (let i = 0; i < nextTokenList.length; i++) {
+				const token = nextTokenList[i]
+				const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
+				if (previousToken != null && token === previousToken) {
+					beforeDone()
+					continue
+				}
+				this.enrichToken(token, (nextToken: MarkdownToken | null) => {
+					if (nextToken != null) nextTokenList[i] = nextToken
+					beforeDone()
+				})
+			}
+		})
+	}
+
+	private canReusePublishedToken(previousToken: MarkdownToken, nextToken: MarkdownToken): boolean {
+		if (previousToken.isClose != 1 || nextToken.isClose != 1) return false
+		if ((previousToken.type ?? '') != (nextToken.type ?? '')) return false
+		const previousRaw = previousToken.raw ?? ''
+		const nextRaw = nextToken.raw ?? ''
+		if (previousRaw.length > 0 || nextRaw.length > 0) return previousRaw == nextRaw
+		return (previousToken.text ?? '') == (nextToken.text ?? '') &&
+			(previousToken.lang ?? '') == (nextToken.lang ?? '') &&
+			(previousToken.depth ?? 0) == (nextToken.depth ?? 0)
+	}
+
+	private prepareFinalMarkdownText(msgBody: string): string | null {
+		let processedMarkdownText = this.prepareMarkdownText(msgBody)
+		if (processedMarkdownText == null) return null
+		let previousMathEndIndex = -1
+		let passCount = 0
+		while (previousMathEndIndex != this.lastMathEndIndex && passCount < 1000) {
+			previousMathEndIndex = this.lastMathEndIndex
+			const nextMarkdownText = this.prepareMarkdownText(msgBody)
+			if (nextMarkdownText != null) processedMarkdownText = nextMarkdownText
+			passCount++
+		}
+		return processedMarkdownText
 	}
 
 	private prepareMarkdownText(msgBody: string): string | null {
@@ -222,120 +288,29 @@ export default class ParseMarkdown {
 			'\n```math-pending\n' + pendingMathText + '\n```\n'
 	}
 
-	private md2jsonSegmented(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		const lines = markdownText.split('\n')
-		if (this.segmentEndLineIndex > lines.length) {
-			this.segmentEndLineIndex = lines.length
-		}
-		if (this.segmentEndLineIndex < this.segmentStartLineIndex + 1) {
-			this.segmentEndLineIndex = this.segmentStartLineIndex + 1
-		}
-		const segmentText = lines.slice(this.segmentStartLineIndex, this.segmentEndLineIndex).join('\n')
-		const isSegmentDone = isDone && this.segmentEndLineIndex >= lines.length
-		const parseMdRes = this.parseWithUniCmark(segmentText)
-		if (parseMdRes.errorMsg.length > 0) {
-			markdownErrorLog('[uni-ai-x][Markdown解析] uni-CMark原生分段解析失败：' + parseMdRes.errorMsg)
-			this.segmentNeedContinue = false
-			md2JsonCallBack(this.segmentTokenList, isSegmentDone)
-			return
-		}
-		this.handleSegmentResult(parseMdRes.data, segmentText, lines.length, isSegmentDone, md2JsonCallBack)
-	}
-
-	private parseWithUniCmark(markdownText: string): ParseMdRes {
+	private parseWithUniCmark(markdownText: string, callback: UniCmarkCallback) {
+		// #ifdef APP-ANDROID
+		asyncMd2json(markdownText, (result: ParseMdRes) => {
+			callback(result)
+		})
+		return
+		// #endif
 		// #ifdef APP-IOS
 		const jsonString = md2json(markdownText) as string
 		const jsonArray = JSON.parseArray<MarkdownToken>(jsonString) as MarkdownToken[]
-		return {
+		callback({
 			data: jsonArray,
 			errorMsg: ''
-		} as ParseMdRes
+		} as ParseMdRes)
+		return
 		// #endif
-		// #ifndef APP-IOS
-		return md2json(markdownText) as ParseMdRes
+		// #ifndef APP
+		callback(md2json(markdownText) as ParseMdRes)
 		// #endif
 	}
 
-	private handleSegmentResult(newJsonList: MarkdownToken[], segmentText: string, lineCount: number, isSegmentDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		if (newJsonList.length == 0) {
-			if (this.segmentEndLineIndex < lineCount) {
-				this.segmentEndLineIndex++
-				this.segmentNeedContinue = true
-			} else {
-				this.segmentNeedContinue = false
-			}
-			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), isSegmentDone)
-			return
-		}
-		const tableHasBoundary = newJsonList[0].type == 'table' && this.hasLeadingTableBoundary(segmentText)
-		const foundNextBlock = newJsonList.length > 1 && (tableHasBoundary || !(newJsonList[0].type == 'table' && newJsonList[1].isClose != 1))
-		this.prepareSegmentTokenList(newJsonList, isSegmentDone, foundNextBlock)
-		if (foundNextBlock) {
-			this.segmentEndLineIndex--
-			if (this.segmentEndLineIndex < this.segmentStartLineIndex + 1) {
-				this.segmentEndLineIndex = this.segmentStartLineIndex + 1
-			}
-			this.segmentStartLineIndex = this.segmentEndLineIndex
-			newJsonList[0].isClose = 1
-		} else if (this.segmentEndLineIndex < lineCount) {
-			this.segmentEndLineIndex++
-		}
-		if (this.segmentEndLineIndex > lineCount) {
-			this.segmentEndLineIndex = lineCount
-		}
-		const beforeDone = this.createBeforeDone(newJsonList.length, () => {
-			this.mergeSegmentTokenList(newJsonList)
-			this.segmentNeedContinue = !isSegmentDone && this.segmentEndLineIndex < lineCount && !this.userAbort
-			md2JsonCallBack(this.cloneTokenList(this.segmentTokenList), isSegmentDone)
-		})
-		for (let i = 0; i < newJsonList.length; i++) {
-			this.enrichToken(newJsonList[i], (nextToken: MarkdownToken | null) => {
-				if (nextToken != null) newJsonList[i] = nextToken
-				beforeDone()
-			})
-		}
-	}
-
-	private prepareSegmentTokenList(tokenList: MarkdownToken[], isSegmentDone: boolean, foundNextBlock: boolean) {
-		const closedCount = this.segmentTokenList.filter((item: MarkdownToken): boolean => item.isClose == 1).length
-		for (let i = 0; i < tokenList.length; i++) {
-			const item = tokenList[i]
-			item.uniqueId = 'u' + (closedCount + i).toString()
-			item.isClose = (isSegmentDone || i != tokenList.length - 1) ? 1 : 0
-			if (item.type == 'table' && !isSegmentDone && !foundNextBlock) {
-				item.isClose = 0
-			}
-		}
-	}
-
-	private hasLeadingTableBoundary(markdownText: string): boolean {
-		const lines = markdownText.split('\n')
-		let tableLineCount = 0
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i].trim()
-			const isTableLine = line.startsWith('|') && line.endsWith('|')
-			if (isTableLine) {
-				tableLineCount++
-				continue
-			}
-			if (tableLineCount >= 2 && line.length == 0) return true
-			if (tableLineCount >= 2 && !isTableLine) return true
-			if (tableLineCount > 0 && !isTableLine) return false
-		}
-		return false
-	}
-
-	private mergeSegmentTokenList(newJsonList: MarkdownToken[]) {
-		const lastUnCloseTokenIndex = this.segmentTokenList.findIndex((item: MarkdownToken): boolean => item.isClose == 0)
-		if (lastUnCloseTokenIndex != -1) {
-			this.segmentTokenList.splice(lastUnCloseTokenIndex, this.segmentTokenList.length - lastUnCloseTokenIndex, ...newJsonList)
-		} else {
-			this.segmentTokenList.push(...newJsonList)
-		}
-	}
-
-	private cloneTokenList(tokenList: MarkdownToken[]): MarkdownToken[] {
-		return JSON.parseArray<MarkdownToken>(JSON.stringify(tokenList)) as MarkdownToken[]
+	private publishTokenList(): MarkdownToken[] {
+		return this.segmentTokenList.slice()
 	}
 
 	private enrichToken(item: MarkdownToken, callBack: (token: MarkdownToken | null) => void) {
@@ -430,7 +405,7 @@ export default class ParseMarkdown {
 		}
 		this.parseCodehighlight(mathToken, () => {
 			callBack(null)
-			this.ensureMathRenderStarted(cacheKey, mathToken.text ?? '', mathToken)
+			this.ensureMathRenderStarted(cacheKey, mathToken.text ?? '')
 		})
 		// #endif
 	}
@@ -443,7 +418,7 @@ export default class ParseMarkdown {
 		target.renderTheme = rendered.renderTheme
 	}
 
-	private ensureMathRenderStarted(cacheKey: string, mathText: string, mathToken: MarkdownToken) {
+	private ensureMathRenderStarted(cacheKey: string, mathText: string) {
 		if (cacheKey.length == 0) return
 		if (this.mathRenderingMap.get(cacheKey) == true) return
 		this.mathRenderingMap.set(cacheKey, true)
@@ -453,6 +428,7 @@ export default class ParseMarkdown {
 				pureMathText: mathText
 			}, (param: UTSJSONObject) => {
 				this.mathRenderingMap.delete(cacheKey)
+				if (this.userAbort) return
 				const renderedToken: MarkdownToken = {
 					type: 'code_block',
 					lang: 'math',
@@ -465,19 +441,70 @@ export default class ParseMarkdown {
 					isClose: 1
 				}
 				if ((renderedToken.href ?? '').length == 0) return
-				this.applyRenderedMathAttrs(mathToken, renderedToken)
 				this.mathCacheMap.set(cacheKey, renderedToken)
-				if (this.replaceRenderedMathToken(cacheKey, renderedToken)) {
-					this.updateCallBack(this.cloneTokenList(this.segmentTokenList), this.msgReceiveDone)
-					return
-				}
-				this.scheduleParse(this.latestMsgBody, this.msgReceiveDone, true)
+				this.enqueueRenderedMath(cacheKey, renderedToken)
 			})
 		}, 16)
 	}
 
+	private enqueueRenderedMath(cacheKey: string, renderedToken: MarkdownToken) {
+		this.pendingMathRenderMap.set(cacheKey, renderedToken)
+		if (this.pendingMathRenderKeys.indexOf(cacheKey) == -1) this.pendingMathRenderKeys.push(cacheKey)
+		if (this.mathPublishTimer != 0) return
+		this.mathPublishTimer = setTimeout(() => {
+			this.mathPublishTimer = 0
+			this.publishNextRenderedMath()
+		}, 0)
+	}
+
+	private publishNextRenderedMath() {
+		if (this.userAbort) {
+			this.pendingMathRenderKeys = []
+			this.pendingMathRenderMap.clear()
+			return
+		}
+		if (this.pendingMathRenderKeys.length == 0) return
+		const cacheKey = this.pendingMathRenderKeys[0]
+		this.pendingMathRenderKeys.splice(0, 1)
+		const renderedToken = this.pendingMathRenderMap.get(cacheKey)
+		this.pendingMathRenderMap.delete(cacheKey)
+		if (renderedToken != null && this.replaceRenderedMathToken(cacheKey, renderedToken)) {
+			this.updateCallBack(this.publishTokenList(), this.msgReceiveDone)
+		}
+		if (this.pendingMathRenderKeys.length == 0) return
+		this.mathPublishTimer = setTimeout(() => {
+			this.mathPublishTimer = 0
+			this.publishNextRenderedMath()
+		}, 80)
+	}
+
 	private replaceRenderedMathToken(cacheKey: string, renderedToken: MarkdownToken): boolean {
-		return this.replaceRenderedMathInList(this.segmentTokenList, cacheKey, renderedToken)
+		let replaced = false
+		for (let i = 0; i < this.segmentTokenList.length; i++) {
+			const item = this.segmentTokenList[i]
+			if (!this.containsMathTokenNeedingRender(item, cacheKey, renderedToken)) continue
+			const clonedList = JSON.parseArray<MarkdownToken>(JSON.stringify([item])) as MarkdownToken[]
+			if (clonedList.length == 0) continue
+			const clonedItem = clonedList[0]
+			if (this.replaceRenderedMathInList([clonedItem] as MarkdownToken[], cacheKey, renderedToken)) {
+				this.segmentTokenList[i] = clonedItem
+				replaced = true
+			}
+		}
+		return replaced
+	}
+
+	private containsMathTokenNeedingRender(item: MarkdownToken, cacheKey: string, renderedToken: MarkdownToken): boolean {
+		if (item.type == 'code_block' && (item.lang ?? '') == 'math' && (item.text ?? '').trim() == cacheKey && item.href != renderedToken.href) return true
+		const tokens = item.tokens ?? [] as MarkdownToken[]
+		for (let i = 0; i < tokens.length; i++) {
+			if (this.containsMathTokenNeedingRender(tokens[i], cacheKey, renderedToken)) return true
+		}
+		const items = item.items ?? [] as MarkdownToken[]
+		for (let i = 0; i < items.length; i++) {
+			if (this.containsMathTokenNeedingRender(items[i], cacheKey, renderedToken)) return true
+		}
+		return false
 	}
 
 	private replaceRenderedMathInList(tokenList: MarkdownToken[] | null, cacheKey: string, renderedToken: MarkdownToken): boolean {
@@ -506,5 +533,16 @@ export default class ParseMarkdown {
 			parseCount++
 			if (parseCount == totalCount) callBack()
 		}
+	}
+
+	dispose() {
+		this.userAbort = true
+		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
+		if (this.mathPublishTimer != 0) clearTimeout(this.mathPublishTimer)
+		this.parseTimer = 0
+		this.mathPublishTimer = 0
+		this.pendingText = null
+		this.pendingMathRenderKeys = []
+		this.pendingMathRenderMap.clear()
 	}
 }
