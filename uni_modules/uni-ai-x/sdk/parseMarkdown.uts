@@ -62,6 +62,9 @@ export default class ParseMarkdown {
 		// #ifndef APP
 		this.ensureCmarkReady()
 		// #endif
+		// #ifdef APP-HARMONY
+		this.ensureCmarkReady()
+		// #endif
 	}
 
 	runTask(msgBody: string) {
@@ -103,6 +106,18 @@ export default class ParseMarkdown {
 	private parsePending() {
 		if (this.parsing || this.pendingText == null || this.userAbort) return
 		// #ifndef APP
+		if (!this.cmarkReady) {
+			this.ensureCmarkReady()
+			if (this.parseTimer == 0) {
+				this.parseTimer = setTimeout(() => {
+					this.parseTimer = 0
+					this.parsePending()
+				}, 50)
+			}
+			return
+		}
+		// #endif
+		// #ifdef APP-HARMONY
 		if (!this.cmarkReady) {
 			this.ensureCmarkReady()
 			if (this.parseTimer == 0) {
@@ -302,6 +317,10 @@ export default class ParseMarkdown {
 			data: jsonArray,
 			errorMsg: ''
 		} as ParseMdRes)
+		return
+		// #endif
+		// #ifdef APP-HARMONY
+		callback(md2json(markdownText) as ParseMdRes)
 		return
 		// #endif
 		// #ifndef APP
