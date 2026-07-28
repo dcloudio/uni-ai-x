@@ -25,7 +25,9 @@
 			</view>
 		</template>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :style="{height: scrollViewHeight}">
-			<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
+			<view class="uni-code-msg-code-content" :style="{width: codeContentWidth}">
+				<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native" :selectable="true"></rich-text>
+			</view>
 		</scroll-view>
 	</view>
 </template>
@@ -67,7 +69,7 @@ let mermaidRenderRequestKey = ''
 const codeLineHeight = 22
 const codeVerticalPadding = 16
 const codeFontSize = 14
-const estimatedCodeHorizontalPadding = 30
+const codeHorizontalPadding = 14
 const estimatedCardHorizontalInset = 48
 const windowWidth = ref<number>(0)
 
@@ -140,7 +142,7 @@ const rawCodeLines = computed<string[]>(() => {
 
 function getCodeTextWidth(text: string): number {
 	const lines = normalizeCodeText(text).split('\n')
-	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono') + estimatedCodeHorizontalPadding
+	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono') + codeHorizontalPadding * 2
 }
 
 function visibleCodeWidth(): number {
@@ -153,7 +155,7 @@ const codeContentWidth = computed<string>(() => {
 })
 
 const codeRichTextStyle = computed<string>(() => {
-	return 'width:' + codeContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
+	return 'font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
 })
 
 const mermaidGenerationFailed = computed<boolean>(() => {
@@ -305,7 +307,16 @@ const copyCode = () => {
 	background-color: #111827;
 }
 
+.uni-code-msg-code-content {
+	align-self: flex-start;
+	flex-shrink: 0;
+	padding-left: 14px;
+	padding-right: 14px;
+	box-sizing: border-box;
+}
+
 .uni-code-msg-rich-text {
+	width: 100%;
 	align-self: flex-start;
 }
 
