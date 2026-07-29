@@ -263,29 +263,46 @@ export default class ParseMarkdown {
 		}
 		this.myMarkdownText = this.myMarkdownText + msgBody.slice(this.oldMsgBodyLength)
 		this.oldMsgBodyLength = msgBody.length
-		let withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
-		const codeTagIndex = withFindMathText.split('```').length - 1
-		if (codeTagIndex % 2 != 0) {
-			return this.myMarkdownText
-		}
-		const lastCodeTagIndex = withFindMathText.lastIndexOf('```') + 3
-		withFindMathText = withFindMathText.slice(lastCodeTagIndex)
-		const mathRange = this.findMathRange(withFindMathText)
+		const withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
+		const mathRange = this.findMathRangeOutsideFencedCode(withFindMathText)
 		if (mathRange == null) {
 			return this.myMarkdownText
 		}
 		const endIndex = withFindMathText.slice(mathRange.contentStartIndex).indexOf(mathRange.endToken)
 		if (endIndex == -1) {
-			return this.createPendingMathMarkdown(withFindMathText, lastCodeTagIndex, mathRange)
+			return this.createPendingMathMarkdown(withFindMathText, mathRange)
 		}
 		const mathEndIndex = endIndex + mathRange.contentStartIndex
 		const mathText = withFindMathText.slice(mathRange.contentStartIndex, mathEndIndex)
 		const mathCodeText = '\n```math\n' + mathText + '\n```\n'
-		this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex + lastCodeTagIndex) +
+		this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex) +
 			withFindMathText.slice(0, mathRange.startIndex) + mathCodeText +
 			withFindMathText.slice(mathEndIndex + mathRange.endToken.length)
-		this.lastMathEndIndex += lastCodeTagIndex + mathRange.startIndex + mathCodeText.length - 1
+		this.lastMathEndIndex += mathRange.startIndex + mathCodeText.length - 1
 		return this.myMarkdownText
+	}
+
+	private findMathRangeOutsideFencedCode(text: string): MathRange | null {
+		let cursor = 0
+		let inCodeBlock = false
+		while (cursor < text.length) {
+			const fenceIndex = text.indexOf('```', cursor)
+			const segmentEnd = fenceIndex == -1 ? text.length : fenceIndex
+			if (!inCodeBlock) {
+				const mathRange = this.findMathRange(text.slice(cursor, segmentEnd))
+				if (mathRange != null) {
+					return {
+						startIndex: cursor + mathRange.startIndex,
+						endToken: mathRange.endToken,
+						contentStartIndex: cursor + mathRange.contentStartIndex
+					} as MathRange
+				}
+			}
+			if (fenceIndex == -1) return null
+			inCodeBlock = !inCodeBlock
+			cursor = fenceIndex + 3
+		}
+		return null
 	}
 
 	private findMathRange(text: string): MathRange | null {
@@ -307,9 +324,9 @@ export default class ParseMarkdown {
 		return range
 	}
 
-	private createPendingMathMarkdown(withFindMathText: string, lastCodeTagIndex: number, mathRange: MathRange): string {
+	private createPendingMathMarkdown(withFindMathText: string, mathRange: MathRange): string {
 		const pendingMathText = withFindMathText.slice(mathRange.contentStartIndex)
-		return this.myMarkdownText.slice(0, this.lastMathEndIndex + lastCodeTagIndex) +
+		return this.myMarkdownText.slice(0, this.lastMathEndIndex) +
 			withFindMathText.slice(0, mathRange.startIndex) +
 			'\n```math-pending\n' + pendingMathText + '\n```\n'
 	}
