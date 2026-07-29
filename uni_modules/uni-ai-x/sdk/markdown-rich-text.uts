@@ -18,6 +18,13 @@ function textNode(text: string): UTSJSONObject {
 	return { type: 'text', text } as UTSJSONObject
 }
 
+function codeTextNode(text: string): UTSJSONObject {
+	const preservedText = text
+		.replace(/\t/g, '\u00A0\u00A0\u00A0\u00A0')
+		.replace(/ /g, '\u00A0')
+	return textNode(preservedText)
+}
+
 function styleAttrs(style: string): UTSJSONObject {
 	return { style } as UTSJSONObject
 }
@@ -282,7 +289,7 @@ function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
 	if (codeTokens.length == 0) {
 		const lines = codeText(token).replace(/\r\n/g, '\n').split('\n')
 		for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-			children.push(textNode(lines[lineIndex]))
+			children.push(codeTextNode(lines[lineIndex]))
 			if (lineIndex < lines.length - 1) children.push(richNode('br'))
 		}
 		return children
@@ -292,7 +299,7 @@ function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
 		for (let tokenIndex = 0; tokenIndex < line.length; tokenIndex++) {
 			const item = line[tokenIndex]
 			if (item == null) continue
-			children.push(richNode('span', [textNode(item.text ?? '')] as UTSJSONObject[], styleAttrs('color:' + codeColor(item.className ?? '') + ';')))
+			children.push(richNode('span', [codeTextNode(item.text ?? '')] as UTSJSONObject[], styleAttrs('color:' + codeColor(item.className ?? '') + ';')))
 		}
 		if (lineIndex < codeTokens.length - 1) children.push(richNode('br'))
 	}
