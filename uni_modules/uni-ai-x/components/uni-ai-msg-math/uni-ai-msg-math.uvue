@@ -1,6 +1,6 @@
 <template>
     <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, imageReady ? 'math-el-image-ready math-el-scroll-image-ready' : 'math-el-source-pending']"
-        direction="horizontal" :show-scrollbar="false">
+        direction="horizontal" :show-scrollbar="false" @touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
         <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
             <image :src="imageHref" class="math-el-image" mode="scaleToFill" flatten
                 :style="{'width': mathWidth, 'height': mathHeight, 'opacity': imageReady ? 1 : 0}"
@@ -106,6 +106,8 @@
     function onMathImageLoad(_event: ImageLoadEvent) {
         if (imageHref.value.length > 0) loadedImageHref.value = imageHref.value
     }
+
+    function stopDrawerGesture(_event: TouchEvent) {}
 
     function syncMathImageTheme() {
         const theme = uiTheme.value

@@ -1,6 +1,7 @@
 <template>
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]" flatten>
-		<scroll-view ref="tableScroll" class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableViewportHeight}">
+		<scroll-view ref="tableScroll" class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true"
+			:style="{height: tableViewportHeight}" @touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
 			<rich-text class="uni-ai-msg-table-content" :style="tableRichTextStyle"
 				:nodes="tableRichNodes" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
@@ -46,6 +47,8 @@
 		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
 		return 'width:' + tableContentWidth.value + ';height:' + tableContentHeight.value + ';color:' + color + ';background-color:' + backgroundColor + ';'
 	})
+
+	function stopDrawerGesture(_event: TouchEvent) {}
 
 	onMounted(() => {
 		nextTick(() => {
