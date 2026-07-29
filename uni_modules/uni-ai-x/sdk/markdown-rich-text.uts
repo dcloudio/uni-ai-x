@@ -2,7 +2,14 @@ import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 
 // Theme colors belong on the rich-text root so theme switches do not rebuild nodes.
 const INLINE_CODE_STYLE = 'background-color:rgba(127,127,127,0.18);'
-const MUTED_MARKER_STYLE = 'color:rgba(127,127,127,0.78);'
+const LIST_STYLE = 'margin:4px 0;padding-left:24px;'
+const NESTED_LIST_STYLE = 'margin:2px 0;padding-left:22px;'
+const LIST_ITEM_STYLE = 'margin:2px 0;line-height:26px;'
+const TASK_LIST_STYLE = 'margin:4px 0;padding-left:0;list-style-type:none;'
+const NESTED_TASK_LIST_STYLE = 'margin:2px 0;padding-left:22px;list-style-type:none;'
+const TASK_ITEM_STYLE = 'margin:2px 0;line-height:26px;list-style-type:none;'
+const TASK_MARKER_STYLE = 'color:rgba(127,127,127,0.82);font-size:17px;font-weight:400;'
+const CHECKED_TASK_MARKER_STYLE = 'color:#3478f6;font-size:17px;font-weight:700;'
 const TABLE_STYLE = 'border-collapse:collapse;margin:0;'
 const TABLE_CELL_STYLE = 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;font-size:14px;line-height:22px;'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:rgba(127,127,127,0.14);'
@@ -103,7 +110,7 @@ function imageAttrs(token: MarkdownToken | null): UTSJSONObject {
 }
 
 function isTaskListToken(token: MarkdownToken | null): boolean {
-	return token != null && (token.type == 'tasklist' || token.task == 1)
+	return token != null && (token.type == 'tasklist' || token.task == 1 || token.checked != null)
 }
 
 function listItemInlineChildren(item: MarkdownToken | null): UTSJSONObject[] {
@@ -124,37 +131,50 @@ function listItemInlineChildren(item: MarkdownToken | null): UTSJSONObject[] {
 	return children
 }
 
-function listIndent(depth: number): string {
-	let indent = ''
-	for (let i = 0; i < depth; i++) indent += '\u00a0\u00a0\u00a0'
-	return indent
-}
-
-function listMarker(token: MarkdownToken, item: MarkdownToken | null, index: number): string {
-	if (token.type == 'tasklist' || isTaskListToken(item)) return item != null && item.checked == 1 ? '☑ ' : '☐ '
-	if (token.ordered == 1) return (index + 1).toString() + '. '
-	return '• '
-}
-
-function listNodes(token: MarkdownToken, depth: number = 0): UTSJSONObject[] {
+function isTaskList(token: MarkdownToken): boolean {
+	if (isTaskListToken(token)) return true
 	const items = childrenOf(token)
-	const nodes = [] as UTSJSONObject[]
+	for (let i = 0; i < items.length; i++) {
+		if (isTaskListToken(items[i])) return true
+	}
+	return false
+}
+
+function taskMarkerNode(checked: boolean): UTSJSONObject {
+	return richNode('span', [textNode((checked ? '▣' : '□') + '\u00a0')] as UTSJSONObject[],
+		styleAttrs(checked ? CHECKED_TASK_MARKER_STYLE : TASK_MARKER_STYLE))
+}
+
+function listNode(token: MarkdownToken, nested: boolean): UTSJSONObject {
+	const taskList = isTaskList(token)
+	const ordered = !taskList && token.ordered == 1
+	const items = childrenOf(token)
+	const itemNodes = [] as UTSJSONObject[]
 	for (let i = 0; i < items.length; i++) {
 		const item = items[i]
 		if (item == null) continue
-		const children = [richNode('span', [textNode(listIndent(depth) + listMarker(token, item, i))] as UTSJSONObject[], styleAttrs(MUTED_MARKER_STYLE))] as UTSJSONObject[]
+		const taskItem = taskList || isTaskListToken(item)
+		const children = [] as UTSJSONObject[]
+		if (taskItem) children.push(taskMarkerNode(item.checked == 1))
 		const itemChildren = listItemInlineChildren(item)
 		for (let j = 0; j < itemChildren.length; j++) children.push(itemChildren[j])
-		nodes.push(richNode('p', children))
 		const rawChildren = childrenOf(item)
 		for (let j = 0; j < rawChildren.length; j++) {
 			const child = rawChildren[j]
 			if (child == null || (child.type != 'list' && child.type != 'tasklist')) continue
-			const nestedNodes = listNodes(child, depth + 1)
-			for (let k = 0; k < nestedNodes.length; k++) nodes.push(nestedNodes[k])
+			children.push(listNode(child, true))
 		}
+		itemNodes.push(richNode('li', children, styleAttrs(taskItem ? TASK_ITEM_STYLE : LIST_ITEM_STYLE)))
 	}
-	return nodes
+	let listStyle = nested ? NESTED_LIST_STYLE : LIST_STYLE
+	if (taskList) listStyle = nested ? NESTED_TASK_LIST_STYLE : TASK_LIST_STYLE
+	const attrs = styleAttrs(listStyle)
+	if (ordered && token.start != null) attrs['start'] = token.start!.toString()
+	return richNode(ordered ? 'ol' : 'ul', itemNodes, attrs)
+}
+
+function listNodes(token: MarkdownToken): UTSJSONObject[] {
+	return [listNode(token, false)] as UTSJSONObject[]
 }
 
 function blockquoteNodes(token: MarkdownToken): UTSJSONObject[] {
