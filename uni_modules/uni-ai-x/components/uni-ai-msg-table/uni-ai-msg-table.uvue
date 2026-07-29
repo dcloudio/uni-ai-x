@@ -4,6 +4,8 @@
 			<rich-text class="uni-ai-msg-table-content" :style="tableRichTextStyle"
 				:nodes="tableRichNodes" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
+		<view class="uni-ai-msg-table-scroll-vertical-border uni-ai-msg-table-scroll-left-border"></view>
+		<view class="uni-ai-msg-table-scroll-vertical-border uni-ai-msg-table-scroll-right-border"></view>
 	</view>
 </template>
 
@@ -82,6 +84,23 @@
 	box-sizing: border-box;
 	border: 1px solid var(--border-primary);
 	background-color: var(--bg-primary);
+}
+
+.uni-ai-msg-table-scroll-vertical-border {
+	position: absolute;
+	top: 0;
+	width: 1px;
+	height: 100%;
+	z-index: 1;
+	background-color: var(--border-primary);
+}
+
+.uni-ai-msg-table-scroll-left-border {
+	left: 0;
+}
+
+.uni-ai-msg-table-scroll-right-border {
+	right: 0;
 }
 
 .uni-ai-msg-table-content {
