@@ -3,7 +3,7 @@ import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 // Theme colors belong on the rich-text root so theme switches do not rebuild nodes.
 const INLINE_CODE_STYLE = 'background-color:rgba(127,127,127,0.18);'
 const MUTED_MARKER_STYLE = 'color:rgba(127,127,127,0.78);'
-const TABLE_STYLE = 'border-collapse:collapse;table-layout:fixed;margin:0;'
+const TABLE_STYLE = 'border-collapse:collapse;margin:0;'
 const TABLE_CELL_STYLE = 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;font-size:14px;line-height:22px;'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:rgba(127,127,127,0.14);'
 
@@ -186,8 +186,7 @@ function tableCellNode(cell: MarkdownToken | null, header: boolean, align: strin
 	if (rowIndex == rowCount - 1) style += 'border-bottom-width:0;'
 	if (cellIndex == 0) style += 'border-left-width:0;'
 	if (cellIndex == cellCount - 1) style += 'border-right-width:0;'
-	if (cellCount > 0) style += 'width:' + (100 / cellCount).toString() + '%;'
-	if (width > 0) style += 'min-width:' + width.toString() + 'px;'
+	if (width > 0) style += 'width:' + width.toString() + 'px;'
 	return richNode(header ? 'th' : 'td', inlineChildren(cell), styleAttrs(style))
 }
 
@@ -209,11 +208,23 @@ export function markdownTableColumnWidths(token: MarkdownToken | null): number[]
 	return widths
 }
 
-function webTableNode(token: MarkdownToken): UTSJSONObject {
+function markdownTableRenderColumnWidths(token: MarkdownToken | null, minimumTableWidth: number): number[] {
+	const widths = markdownTableColumnWidths(token)
+	if (widths.length == 0 || minimumTableWidth <= 0) return widths
+	const naturalWidth = widths.reduce((sum: number, width: number): number => sum + width, 0)
+	if (naturalWidth >= minimumTableWidth) return widths
+	const equalWidth = minimumTableWidth / widths.length
+	const expandedWidths = [] as number[]
+	for (let i = 0; i < widths.length; i++) expandedWidths.push(equalWidth)
+	return expandedWidths
+}
+
+function webTableNode(token: MarkdownToken, minimumTableWidth: number): UTSJSONObject {
 	const rows = token.tokens != null ? token.tokens! : emptyTokens()
 	const aligns = token.align != null ? token.align! : emptyAligns()
-	const columnWidths = markdownTableColumnWidths(token)
+	const columnWidths = markdownTableRenderColumnWidths(token, minimumTableWidth)
 	const trNodes = [] as UTSJSONObject[]
+	const tableWidth = columnWidths.reduce((sum: number, width: number): number => sum + width, 0)
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
 		if (rows[rowIndex] == null) continue
 		const cells = rows[rowIndex].tokens != null ? rows[rowIndex].tokens! : emptyTokens()
@@ -227,11 +238,11 @@ function webTableNode(token: MarkdownToken): UTSJSONObject {
 		}
 		trNodes.push(richNode('tr', cellNodes))
 	}
-	return richNode('table', trNodes, styleAttrs(TABLE_STYLE + 'width:100%;'))
+	return richNode('table', trNodes, styleAttrs(TABLE_STYLE + 'width:' + tableWidth.toString() + 'px;'))
 }
 
-export function markdownTableContentWidth(token: MarkdownToken | null): number {
-	return markdownTableColumnWidths(token).reduce((sum: number, width: number): number => sum + width, 0)
+export function markdownTableContentWidth(token: MarkdownToken | null, minimumTableWidth: number = 0): number {
+	return markdownTableRenderColumnWidths(token, minimumTableWidth).reduce((sum: number, width: number): number => sum + width, 0)
 }
 
 function tableCellContentWidth(cell: MarkdownToken | null): number {
@@ -256,10 +267,10 @@ function markdownTableRowContentHeight(row: MarkdownToken | null, columnWidths: 
 	return maxLineCount * 22 + 12
 }
 
-export function markdownTableContentHeight(token: MarkdownToken | null): number {
+export function markdownTableContentHeight(token: MarkdownToken | null, minimumTableWidth: number = 0): number {
 	if (token == null) return 1
 	const rows = token.tokens ?? emptyTokens()
-	const columnWidths = markdownTableColumnWidths(token)
+	const columnWidths = markdownTableRenderColumnWidths(token, minimumTableWidth)
 	let height = 0
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
 		height += markdownTableRowContentHeight(rows[rowIndex], columnWidths, rowIndex == 0)
@@ -367,7 +378,7 @@ export function markdownBlockquoteTokenToRichTextNodes(token: MarkdownToken | nu
 	return blockquoteNodes(token)
 }
 
-export function markdownTableTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
+export function markdownTableTokenToRichTextNodes(token: MarkdownToken | null, minimumTableWidth: number = 0): UTSJSONObject[] {
 	if (token == null) return [] as UTSJSONObject[]
-	return [webTableNode(token)] as UTSJSONObject[]
+	return [webTableNode(token, minimumTableWidth)] as UTSJSONObject[]
 }

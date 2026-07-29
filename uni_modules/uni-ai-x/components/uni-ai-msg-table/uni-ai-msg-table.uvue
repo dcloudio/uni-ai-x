@@ -1,6 +1,6 @@
 <template>
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]" flatten>
-		<scroll-view class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableViewportHeight}">
+		<scroll-view ref="tableScroll" class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableViewportHeight}">
 			<rich-text class="uni-ai-msg-table-content" :style="tableRichTextStyle"
 				:nodes="tableRichNodes" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
@@ -16,26 +16,41 @@
 		tableNode: MarkdownToken
 	}>()
 
+	const tableScroll = ref<UniScrollViewElement | null>(null)
+	const tableViewportContentWidth = ref(0)
+
+	const tableContentWidthValue = computed<number>(() => {
+		return Math.max(1, markdownTableContentWidth(props.tableNode, tableViewportContentWidth.value))
+	})
+
 	const tableContentWidth = computed<string>(() => {
-		return Math.max(1, markdownTableContentWidth(props.tableNode)).toString() + 'px'
+		return tableContentWidthValue.value.toString() + 'px'
 	})
 
 	const tableContentHeight = computed<string>(() => {
-		return markdownTableContentHeight(props.tableNode).toString() + 'px'
+		return markdownTableContentHeight(props.tableNode, tableViewportContentWidth.value).toString() + 'px'
 	})
 
 	const tableViewportHeight = computed<string>(() => {
-		return (markdownTableContentHeight(props.tableNode) + 2).toString() + 'px'
+		return (markdownTableContentHeight(props.tableNode, tableViewportContentWidth.value) + 3).toString() + 'px'
 	})
 
 	const tableRichNodes = computed<UTSJSONObject[]>(() => {
-		return markdownTableTokenToRichTextNodes(props.tableNode)
+		return markdownTableTokenToRichTextNodes(props.tableNode, tableViewportContentWidth.value)
 	})
 
 	const tableRichTextStyle = computed<string>(() => {
 		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
 		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-		return 'width:100%;min-width:' + tableContentWidth.value + ';height:' + tableContentHeight.value + ';color:' + color + ';background-color:' + backgroundColor + ';'
+		return 'width:' + tableContentWidth.value + ';height:' + tableContentHeight.value + ';color:' + color + ';background-color:' + backgroundColor + ';'
+	})
+
+	onMounted(() => {
+		nextTick(() => {
+			tableScroll.value?.getBoundingClientRectAsync()?.then((rect: DOMRect) => {
+				tableViewportContentWidth.value = Math.max(1, rect.width - 2)
+			})
+		})
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
