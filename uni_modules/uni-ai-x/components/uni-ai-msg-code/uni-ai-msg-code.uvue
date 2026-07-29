@@ -289,7 +289,6 @@ const copyCode = () => {
 	margin: 6px 0;
 	background-color: #111827;
 	border: 1px solid #374151;
-	border-radius: 6px;
 	overflow: hidden;
 }
 
