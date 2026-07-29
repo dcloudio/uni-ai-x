@@ -329,9 +329,7 @@ function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
 	if (type == 'math') {
 		return [richNode('p', [textNode(token.text ?? '')] as UTSJSONObject[])] as UTSJSONObject[]
 	}
-	if (type == 'thematic_break') {
-		return [richNode('p', [richNode('span', [textNode('──────────────────')] as UTSJSONObject[], styleAttrs(MUTED_MARKER_STYLE))] as UTSJSONObject[])] as UTSJSONObject[]
-	}
+	if (type == 'thematic_break') return [] as UTSJSONObject[]
 	if (type == 'html' || type == 'html_block' || type == 'custom_block') return [textNode(token.html ?? token.text ?? token.raw ?? '')] as UTSJSONObject[]
 	return [richNode('p', [inlineNode(token) ?? textNode(tokenText(token))] as UTSJSONObject[])] as UTSJSONObject[]
 }

@@ -2,6 +2,7 @@
 	<view class="uni-ai-md-renderer" :class="[`ui-theme-${uiTheme}`]" flatten>
 		<template v-for="block in renderBlocks" :key="block.key">
 			<uni-ai-md-rich-text v-if="block.kind == 'rich'" :markdown-el-list="block.tokens" />
+			<view v-else-if="block.kind == 'divider'" class="uni-ai-md-divider" flatten></view>
 			<uni-ai-msg-table v-else-if="block.kind == 'table'" :table-node="blockToken(block)" />
 			<uni-ai-msg-code v-else-if="block.kind == 'code' || block.kind == 'mermaid'"
 				:code-tokens="codeTokensOf(blockToken(block))"
@@ -68,6 +69,14 @@
 
 .uni-ai-md-renderer {
 	width: 100%;
+}
+
+.uni-ai-md-divider {
+	width: 100%;
+	height: 1px;
+	margin: 12px 0;
+	flex-shrink: 0;
+	background-color: var(--border-primary);
 }
 
 </style>
