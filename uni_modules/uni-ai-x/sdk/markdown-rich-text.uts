@@ -163,12 +163,19 @@ function blockquoteNodes(token: MarkdownToken): UTSJSONObject[] {
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i]
 		if (child == null) continue
-		const content = child.type == 'paragraph' || child.type == 'text' ? inlineChildren(child) : [textNode(tokenText(child))] as UTSJSONObject[]
-		const line = [richNode('span', [textNode('│ ')] as UTSJSONObject[], styleAttrs(MUTED_MARKER_STYLE))] as UTSJSONObject[]
-		for (let j = 0; j < content.length; j++) line.push(content[j])
-		nodes.push(richNode('p', line))
+		if (child.type == 'paragraph' || child.type == 'text') {
+			nodes.push(richNode('p', inlineChildren(child)))
+			continue
+		}
+		if (child.type == 'block_quote') {
+			const nestedNodes = blockquoteNodes(child)
+			for (let j = 0; j < nestedNodes.length; j++) nodes.push(nestedNodes[j])
+			continue
+		}
+		const text = tokenText(child)
+		if (text.length > 0) nodes.push(richNode('p', [textNode(text)] as UTSJSONObject[]))
 	}
-	if (nodes.length == 0) nodes.push(richNode('p', [textNode('│ ' + tokenText(token))] as UTSJSONObject[]))
+	if (nodes.length == 0) nodes.push(richNode('p', [textNode(tokenText(token))] as UTSJSONObject[]))
 	return nodes
 }
 
@@ -348,6 +355,11 @@ export function markdownTokensToRichTextNodes(tokens: MarkdownToken[] | null): U
 export function markdownCodeTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
 	if (token == null) return [] as UTSJSONObject[]
 	return [codeContentNode(token)] as UTSJSONObject[]
+}
+
+export function markdownBlockquoteTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
+	if (token == null) return [] as UTSJSONObject[]
+	return blockquoteNodes(token)
 }
 
 export function markdownTableTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {

@@ -2,6 +2,7 @@
 	<view class="uni-ai-md-renderer" :class="[`ui-theme-${uiTheme}`]" flatten>
 		<template v-for="block in renderBlocks" :key="block.key">
 			<uni-ai-md-rich-text v-if="block.kind == 'rich'" :markdown-el-list="block.tokens" />
+			<uni-ai-msg-quote v-else-if="block.kind == 'quote'" :quote-node="blockToken(block)" />
 			<view v-else-if="block.kind == 'divider'" class="uni-ai-md-divider" flatten></view>
 			<uni-ai-msg-table v-else-if="block.kind == 'table'" :table-node="blockToken(block)" />
 			<uni-ai-msg-code v-else-if="block.kind == 'code' || block.kind == 'mermaid'"
@@ -30,6 +31,7 @@
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 	import { buildMarkdownRenderBlocks, MarkdownRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-render-blocks.uts'
 	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
+	import uniAiMsgQuote from '@/uni_modules/uni-ai-x/components/uni-ai-msg-quote/uni-ai-msg-quote.uvue'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-table/uni-ai-msg-table.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'

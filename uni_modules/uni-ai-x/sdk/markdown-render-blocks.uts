@@ -1,6 +1,6 @@
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 
-export type MarkdownRenderKind = 'rich' | 'divider' | 'table' | 'code' | 'mermaid' | 'math'
+export type MarkdownRenderKind = 'rich' | 'quote' | 'divider' | 'table' | 'code' | 'mermaid' | 'math'
 
 export type MarkdownRenderBlock = {
 	kind: MarkdownRenderKind
@@ -17,6 +17,7 @@ export function markdownRenderKind(token: MarkdownToken): MarkdownRenderKind {
 		return 'code'
 	}
 	if (type == 'math') return 'math'
+	if (type == 'block_quote') return 'quote'
 	if (type == 'thematic_break') return 'divider'
 	if (type == 'table') return 'table'
 	return 'rich'
