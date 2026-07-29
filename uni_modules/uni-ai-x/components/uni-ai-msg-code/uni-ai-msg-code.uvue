@@ -18,9 +18,12 @@
 			</view>
 		</view>
 		<view v-if="language == 'mermaid'" class="uni-code-msg-mermaid-stage" :style="{height: mermaidContentHeight}" flatten>
-			<image class="uni-code-msg-mermaid-image" :src="mermaidHref"
-				:style="{height: mermaidContentHeight, opacity: mermaidImageVisible ? 1 : 0}"
-				mode="aspectFit" @load="onMermaidImageLoad" @error="onMermaidImageError" @click.stop="previewMermaidImage" />
+			<image v-if="buffer0MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer0MermaidHref"
+				:style="buffer0MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer0Load"
+				@error="onMermaidBuffer0Error" @click.stop="previewMermaidImage" />
+			<image v-if="buffer1MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer1MermaidHref"
+				:style="buffer1MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer1Load"
+				@error="onMermaidBuffer1Error" @click.stop="previewMermaidImage" />
 			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}" flatten>
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
 				<text class="uni-code-msg-mermaid-status-text" flatten>{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
@@ -72,10 +75,13 @@ function hasMermaidImage(href: string | null): boolean {
 
 const showMermaidImage = ref<boolean>(false)
 const mermaidViewSelectedByUser = ref<boolean>(false)
-const loadedMermaidHref = ref<string>('')
 const mermaidImageLoadFailed = ref<boolean>(false)
-const themedMermaidHref = ref<string>('')
-const themedMermaidTheme = ref<string>('')
+const buffer0MermaidHref = ref<string>('')
+const buffer0MermaidLoaded = ref<boolean>(false)
+const buffer1MermaidHref = ref<string>('')
+const buffer1MermaidLoaded = ref<boolean>(false)
+const activeMermaidBuffer = ref<number>(0)
+const pendingMermaidBuffer = ref<number>(-1)
 let mermaidRenderRequestKey = ''
 const codeLineHeight = 22
 const codeVerticalPadding = 16
@@ -85,16 +91,22 @@ const estimatedCardHorizontalInset = 48
 const windowWidth = ref<number>(0)
 
 const mermaidHref = computed<string>(() => {
-	if (themedMermaidTheme.value == uiTheme.value && themedMermaidHref.value.length > 0) return themedMermaidHref.value
-	return props.href ?? ''
+	return activeMermaidBuffer.value == 0 ? buffer0MermaidHref.value : buffer1MermaidHref.value
 })
 
 const mermaidImageReady = computed<boolean>(() => {
-	return hasMermaidImage(mermaidHref.value) && loadedMermaidHref.value == mermaidHref.value
+	const loaded = activeMermaidBuffer.value == 0 ? buffer0MermaidLoaded.value : buffer1MermaidLoaded.value
+	return hasMermaidImage(mermaidHref.value) && loaded
 })
 
-const mermaidImageVisible = computed<boolean>(() => {
-	return showMermaidImage.value && mermaidImageReady.value
+const buffer0MermaidImageStyle = computed<string>(() => {
+	const opacity = showMermaidImage.value && activeMermaidBuffer.value == 0 && buffer0MermaidLoaded.value ? 1 : 0
+	return 'height:' + mermaidContentHeight.value + ';opacity:' + opacity.toString() + ';'
+})
+
+const buffer1MermaidImageStyle = computed<string>(() => {
+	const opacity = showMermaidImage.value && activeMermaidBuffer.value == 1 && buffer1MermaidLoaded.value ? 1 : 0
+	return 'height:' + mermaidContentHeight.value + ';opacity:' + opacity.toString() + ';'
 })
 
 function setMermaidView(showImage: boolean) {
@@ -107,17 +119,63 @@ const previewMermaidImage = () => {
 	uni.previewImage({ urls: [mermaidHref.value] as string[] })
 }
 
-function onMermaidImageLoad(_event: ImageLoadEvent) {
-	if (mermaidHref.value.length == 0) return
-	loadedMermaidHref.value = mermaidHref.value
+function hasQueuedMermaidImage(): boolean {
+	return buffer0MermaidHref.value.length > 0 || buffer1MermaidHref.value.length > 0
+}
+
+function queueMermaidImage(href: string) {
+	if (href.length == 0) return
+	if (mermaidHref.value == href) {
+		pendingMermaidBuffer.value = -1
+		return
+	}
+	const targetBuffer = activeMermaidBuffer.value == 0 ? 1 : 0
+	if (targetBuffer == 0) {
+		if (buffer0MermaidHref.value == href && buffer0MermaidLoaded.value) {
+			activeMermaidBuffer.value = 0
+			pendingMermaidBuffer.value = -1
+			return
+		}
+		if (buffer0MermaidHref.value != href) buffer0MermaidLoaded.value = false
+		buffer0MermaidHref.value = href
+	} else {
+		if (buffer1MermaidHref.value == href && buffer1MermaidLoaded.value) {
+			activeMermaidBuffer.value = 1
+			pendingMermaidBuffer.value = -1
+			return
+		}
+		if (buffer1MermaidHref.value != href) buffer1MermaidLoaded.value = false
+		buffer1MermaidHref.value = href
+	}
+	pendingMermaidBuffer.value = targetBuffer
+}
+
+function onMermaidBufferLoad(buffer: number) {
+	if (buffer == 0) buffer0MermaidLoaded.value = true
+	else buffer1MermaidLoaded.value = true
+	if (pendingMermaidBuffer.value != buffer) return
+	activeMermaidBuffer.value = buffer
+	pendingMermaidBuffer.value = -1
 	mermaidImageLoadFailed.value = false
 	if (!mermaidViewSelectedByUser.value) showMermaidImage.value = true
 }
 
-function onMermaidImageError(_event: ImageErrorEvent) {
-	loadedMermaidHref.value = ''
-	mermaidImageLoadFailed.value = true
+function onMermaidBufferError(buffer: number) {
+	if (buffer == 0) {
+		buffer0MermaidLoaded.value = false
+		if (activeMermaidBuffer.value != 0) buffer0MermaidHref.value = ''
+	} else {
+		buffer1MermaidLoaded.value = false
+		if (activeMermaidBuffer.value != 1) buffer1MermaidHref.value = ''
+	}
+	if (pendingMermaidBuffer.value == buffer) pendingMermaidBuffer.value = -1
+	if (!mermaidImageReady.value) mermaidImageLoadFailed.value = true
 }
+
+function onMermaidBuffer0Load(_event: ImageLoadEvent) { onMermaidBufferLoad(0) }
+function onMermaidBuffer1Load(_event: ImageLoadEvent) { onMermaidBufferLoad(1) }
+function onMermaidBuffer0Error(_event: ImageErrorEvent) { onMermaidBufferError(0) }
+function onMermaidBuffer1Error(_event: ImageErrorEvent) { onMermaidBufferError(1) }
 
 function normalizeCodeText(text: string): string {
 	return text.replace(/\r\n/g, '\n')
@@ -204,31 +262,34 @@ const codeRichTextStyle = computed<string>(() => {
 function stopDrawerGesture(_event: TouchEvent) {}
 
 const mermaidGenerationFailed = computed<boolean>(() => {
-	return props.language == 'mermaid' && (mermaidImageLoadFailed.value || (props.isClose == 1 && !hasMermaidImage(mermaidHref.value)))
+	return props.language == 'mermaid'
+		&& (mermaidImageLoadFailed.value || (props.isClose == 1 && !hasQueuedMermaidImage()))
 })
 
 function syncMermaidImageTheme() {
 	if (props.language != 'mermaid' || props.isClose != 1) return
 	const theme = uiTheme.value
-	if ((props.renderTheme ?? '') == theme && (props.href ?? '').length > 0) {
-		themedMermaidHref.value = ''
-		themedMermaidTheme.value = ''
+	const sourceHref = props.href ?? ''
+	if (sourceHref.length == 0) return
+	if (mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
+	if ((props.renderTheme ?? '') == theme) {
+		mermaidRenderRequestKey = ''
+		queueMermaidImage(sourceHref)
 		return
 	}
-	if ((props.href ?? '').length == 0) return
 	const mermaidText = props.codeText
 	if (mermaidText.trim().length == 0) return
 	const requestKey = theme + '\n' + mermaidText
 	mermaidRenderRequestKey = requestKey
 	renderMermaidSvgForTheme(mermaidText, theme, (result: ThemedSvgResult) => {
 		if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme || result.imageDataURL.length == 0) return
-		themedMermaidHref.value = result.imageDataURL
-		themedMermaidTheme.value = result.theme
+		queueMermaidImage(result.imageDataURL)
 	})
 }
 
 watch((): string => {
-	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language + '\n' + props.isClose.toString() + '\n' + props.codeText
+	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language + '\n' + props.isClose.toString()
+		+ '\n' + props.codeText + '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
 }, () => {
 	syncMermaidImageTheme()
 }, { immediate: true })
@@ -240,12 +301,6 @@ watch((): string => props.language, (language: string) => {
 	showMermaidImage.value = false
 	//#endif
 }, {immediate: true})
-
-watch((): string => mermaidHref.value, (href: string) => {
-	if (loadedMermaidHref.value != href) loadedMermaidHref.value = ''
-	mermaidImageLoadFailed.value = false
-	if (!mermaidViewSelectedByUser.value) showMermaidImage.value = false
-})
 
 onMounted(() => {
 	updateWindowWidth()

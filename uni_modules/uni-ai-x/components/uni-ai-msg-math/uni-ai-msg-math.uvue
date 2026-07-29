@@ -2,10 +2,10 @@
     <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, imageReady ? 'math-el-image-ready math-el-scroll-image-ready' : 'math-el-source-pending']"
         direction="horizontal" :show-scrollbar="false" @touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
         <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
-            <image :src="imageHref" class="math-el-image" mode="scaleToFill" flatten
-                :style="{'width': mathWidth, 'height': mathHeight, 'opacity': imageReady ? 1 : 0}"
-                @load="onMathImageLoad"
-            />
+            <image v-if="buffer0Href.length > 0" :src="buffer0Href" class="math-el-image" mode="scaleToFill"
+                :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
+            <image v-if="buffer1Href.length > 0" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
+                :style="buffer1ImageStyle" @load="onMathBuffer1Load" @error="onMathBuffer1Error" />
             <rich-text v-if="!imageReady" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
         </view>
     </scroll-view>
@@ -26,25 +26,47 @@
         renderTheme?: string
     }>()
 
-    const themedHref = ref<string>('')
-    const themedWidth = ref<number>(0)
-    const themedHeight = ref<number>(0)
-    const themedImageTheme = ref<string>('')
-    const loadedImageHref = ref<string>('')
+    const buffer0Href = ref<string>('')
+    const buffer0Width = ref<number>(0)
+    const buffer0Height = ref<number>(0)
+    const buffer0Loaded = ref<boolean>(false)
+    const buffer1Href = ref<string>('')
+    const buffer1Width = ref<number>(0)
+    const buffer1Height = ref<number>(0)
+    const buffer1Loaded = ref<boolean>(false)
+    const activeBuffer = ref<number>(0)
+    const pendingBuffer = ref<number>(-1)
     const windowWidth = ref<number>(0)
     let mathRenderRequestKey = ''
+    let mathBufferLoadRequest = 0
 
-    const imageHref = computed<string>(() => {
-        if (themedImageTheme.value == uiTheme.value && themedHref.value.length > 0) return themedHref.value
-        return props.href ?? ''
+    const activeImageHref = computed<string>(() => {
+        return activeBuffer.value == 0 ? buffer0Href.value : buffer1Href.value
     })
 
-    const hasImage = computed<boolean>(() => {
-        return imageHref.value.length > 0
+    const activeImageWidth = computed<number>(() => {
+        return activeBuffer.value == 0 ? buffer0Width.value : buffer1Width.value
+    })
+
+    const activeImageHeight = computed<number>(() => {
+        return activeBuffer.value == 0 ? buffer0Height.value : buffer1Height.value
     })
 
     const imageReady = computed<boolean>(() => {
-        return hasImage.value && loadedImageHref.value == imageHref.value
+        const loaded = activeBuffer.value == 0 ? buffer0Loaded.value : buffer1Loaded.value
+        return activeImageHref.value.length > 0 && loaded
+    })
+
+    const buffer0ImageStyle = computed<string>(() => {
+        const opacity = activeBuffer.value == 0 && buffer0Loaded.value ? 1 : 0
+        return 'width:' + Math.max(1, Math.ceil(buffer0Width.value)).toString() + 'px;height:'
+            + Math.max(1, Math.ceil(buffer0Height.value)).toString() + 'px;opacity:' + opacity.toString() + ';'
+    })
+
+    const buffer1ImageStyle = computed<string>(() => {
+        const opacity = activeBuffer.value == 1 && buffer1Loaded.value ? 1 : 0
+        return 'width:' + Math.max(1, Math.ceil(buffer1Width.value)).toString() + 'px;height:'
+            + Math.max(1, Math.ceil(buffer1Height.value)).toString() + 'px;opacity:' + opacity.toString() + ';'
     })
 
     const sourceRichNodes = computed<UTSJSONObject[]>(() => {
@@ -86,12 +108,12 @@
     })
 
     const mathWidth = computed<string>(() => {
-        const width = themedImageTheme.value == uiTheme.value && themedWidth.value > 0 ? themedWidth.value : (props.width ?? 1)
+        const width = activeImageWidth.value > 0 ? activeImageWidth.value : (props.width ?? 1)
         return Math.max(1, Math.ceil(width)).toString() + 'px'
     })
 
     const mathHeight = computed<string>(() => {
-        const height = themedImageTheme.value == uiTheme.value && themedHeight.value > 0 ? themedHeight.value : (props.height ?? 1)
+        const height = activeImageHeight.value > 0 ? activeImageHeight.value : (props.height ?? 1)
         return Math.max(1, Math.ceil(height)).toString() + 'px'
     })
 
@@ -103,32 +125,87 @@
         return imageReady.value ? mathHeight.value : sourceContentHeight.value
     })
 
-    function onMathImageLoad(_event: ImageLoadEvent) {
-        if (imageHref.value.length > 0) loadedImageHref.value = imageHref.value
+    function queueMathImage(href: string, width: number, height: number) {
+        if (href.length == 0) return
+        const safeWidth = Math.max(1, width)
+        const safeHeight = Math.max(1, height)
+        if (activeImageHref.value == href) {
+            mathBufferLoadRequest++
+            pendingBuffer.value = -1
+            if (activeBuffer.value == 0) {
+                buffer0Width.value = safeWidth
+                buffer0Height.value = safeHeight
+            } else {
+                buffer1Width.value = safeWidth
+                buffer1Height.value = safeHeight
+            }
+            return
+        }
+
+        const targetBuffer = activeBuffer.value == 0 ? 1 : 0
+        const loadRequest = ++mathBufferLoadRequest
+        pendingBuffer.value = targetBuffer
+        if (targetBuffer == 0) {
+            buffer0Width.value = safeWidth
+            buffer0Height.value = safeHeight
+            buffer0Loaded.value = false
+            buffer0Href.value = ''
+        } else {
+            buffer1Width.value = safeWidth
+            buffer1Height.value = safeHeight
+            buffer1Loaded.value = false
+            buffer1Href.value = ''
+        }
+        nextTick(() => {
+            if (mathBufferLoadRequest != loadRequest || pendingBuffer.value != targetBuffer) return
+            if (targetBuffer == 0) buffer0Href.value = href
+            else buffer1Href.value = href
+        })
     }
+
+    function onMathBufferLoad(buffer: number) {
+        if (buffer == 0) buffer0Loaded.value = true
+        else buffer1Loaded.value = true
+        if (pendingBuffer.value != buffer) return
+        activeBuffer.value = buffer
+        pendingBuffer.value = -1
+    }
+
+    function onMathBufferError(buffer: number) {
+        if (buffer == 0) {
+            buffer0Loaded.value = false
+            if (activeBuffer.value != 0) buffer0Href.value = ''
+        } else {
+            buffer1Loaded.value = false
+            if (activeBuffer.value != 1) buffer1Href.value = ''
+        }
+        if (pendingBuffer.value == buffer) pendingBuffer.value = -1
+    }
+
+    function onMathBuffer0Load(_event: ImageLoadEvent) { onMathBufferLoad(0) }
+    function onMathBuffer1Load(_event: ImageLoadEvent) { onMathBufferLoad(1) }
+    function onMathBuffer0Error(_event: ImageErrorEvent) { onMathBufferError(0) }
+    function onMathBuffer1Error(_event: ImageErrorEvent) { onMathBufferError(1) }
 
     function stopDrawerGesture(_event: TouchEvent) {}
 
     function syncMathImageTheme() {
         const theme = uiTheme.value
-        if ((props.renderTheme ?? '') == theme && (props.href ?? '').length > 0) {
-            themedHref.value = ''
-            themedWidth.value = 0
-            themedHeight.value = 0
-            themedImageTheme.value = ''
+        const sourceHref = props.href ?? ''
+        if (sourceHref.length == 0) return
+        if (activeImageHref.value.length == 0) queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
+        if ((props.renderTheme ?? '') == theme) {
+            mathRenderRequestKey = ''
+            queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
             return
         }
-		if ((props.href ?? '').length == 0) return
         const mathText = (props.text ?? '').trim()
         if (mathText.length == 0) return
         const requestKey = theme + '\n' + mathText
         mathRenderRequestKey = requestKey
         renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
             if (mathRenderRequestKey != requestKey || uiTheme.value != theme || result.imageDataURL.length == 0) return
-            themedHref.value = result.imageDataURL
-            themedWidth.value = result.width
-            themedHeight.value = result.height
-            themedImageTheme.value = result.theme
+            queueMathImage(result.imageDataURL, result.width, result.height)
         })
     }
 
@@ -137,10 +214,6 @@
     }, () => {
         syncMathImageTheme()
     }, { immediate: true })
-
-    watch((): string => imageHref.value, (href: string) => {
-        if (loadedImageHref.value != href) loadedImageHref.value = ''
-    })
 
     onMounted(() => {
         windowWidth.value = uni.getWindowInfo().windowWidth
