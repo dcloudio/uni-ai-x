@@ -3,7 +3,7 @@ import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 // Theme colors belong on the rich-text root so theme switches do not rebuild nodes.
 const INLINE_CODE_STYLE = 'background-color:rgba(127,127,127,0.18);'
 const MUTED_MARKER_STYLE = 'color:rgba(127,127,127,0.78);'
-const TABLE_STYLE = 'border-collapse:collapse;margin:0;'
+const TABLE_STYLE = 'border-collapse:collapse;table-layout:fixed;margin:0;'
 const TABLE_CELL_STYLE = 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;font-size:14px;line-height:22px;'
 const TABLE_HEAD_STYLE = TABLE_CELL_STYLE + 'font-weight:700;background-color:rgba(127,127,127,0.14);'
 
@@ -179,9 +179,15 @@ function blockquoteNodes(token: MarkdownToken): UTSJSONObject[] {
 	return nodes
 }
 
-function tableCellNode(cell: MarkdownToken | null, header: boolean, align: string, width: number): UTSJSONObject {
+function tableCellNode(cell: MarkdownToken | null, header: boolean, align: string, width: number,
+	rowIndex: number, rowCount: number, cellIndex: number, cellCount: number): UTSJSONObject {
 	let style = (header ? TABLE_HEAD_STYLE : TABLE_CELL_STYLE) + 'text-align:' + align + ';'
-	if (width > 0) style += 'width:' + width.toString() + 'px;'
+	if (rowIndex == 0) style += 'border-top-width:0;'
+	if (rowIndex == rowCount - 1) style += 'border-bottom-width:0;'
+	if (cellIndex == 0) style += 'border-left-width:0;'
+	if (cellIndex == cellCount - 1) style += 'border-right-width:0;'
+	if (cellCount > 0) style += 'width:' + (100 / cellCount).toString() + '%;'
+	if (width > 0) style += 'min-width:' + width.toString() + 'px;'
 	return richNode(header ? 'th' : 'td', inlineChildren(cell), styleAttrs(style))
 }
 
@@ -208,7 +214,6 @@ function webTableNode(token: MarkdownToken): UTSJSONObject {
 	const aligns = token.align != null ? token.align! : emptyAligns()
 	const columnWidths = markdownTableColumnWidths(token)
 	const trNodes = [] as UTSJSONObject[]
-	let tableWidth = columnWidths.reduce((sum: number, width: number): number => sum + width, 0)
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
 		if (rows[rowIndex] == null) continue
 		const cells = rows[rowIndex].tokens != null ? rows[rowIndex].tokens! : emptyTokens()
@@ -217,13 +222,12 @@ function webTableNode(token: MarkdownToken): UTSJSONObject {
 			if (cells[cellIndex] == null) continue
 			const width = cellIndex < columnWidths.length ? columnWidths[cellIndex] : 80
 			const align = cellIndex < aligns.length && aligns[cellIndex] != null ? aligns[cellIndex] as string : 'left'
-			cellNodes.push(tableCellNode(cells[cellIndex], rowIndex == 0, align.length > 0 ? align : 'left', width))
+			cellNodes.push(tableCellNode(cells[cellIndex], rowIndex == 0, align.length > 0 ? align : 'left', width,
+				rowIndex, rows.length, cellIndex, cells.length))
 		}
 		trNodes.push(richNode('tr', cellNodes))
 	}
-	let style = TABLE_STYLE
-	if (tableWidth > 0) style += 'width:' + tableWidth.toString() + 'px;'
-	return richNode('table', trNodes, styleAttrs(style))
+	return richNode('table', trNodes, styleAttrs(TABLE_STYLE + 'width:100%;'))
 }
 
 export function markdownTableContentWidth(token: MarkdownToken | null): number {
@@ -256,9 +260,10 @@ export function markdownTableContentHeight(token: MarkdownToken | null): number 
 	if (token == null) return 1
 	const rows = token.tokens ?? emptyTokens()
 	const columnWidths = markdownTableColumnWidths(token)
-	let height = 1
+	let height = 0
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-		height += markdownTableRowContentHeight(rows[rowIndex], columnWidths, rowIndex == 0) + 1
+		height += markdownTableRowContentHeight(rows[rowIndex], columnWidths, rowIndex == 0)
+		if (rowIndex < rows.length - 1) height += 1
 	}
 	return Math.max(1, height)
 }

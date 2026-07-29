@@ -1,6 +1,6 @@
 <template>
 	<view class="uni-ai-msg-table" :class="[`ui-theme-${uiTheme}`]" flatten>
-		<scroll-view class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableContentHeight}">
+		<scroll-view class="uni-ai-msg-table-scroll" direction="horizontal" :show-scrollbar="true" :style="{height: tableViewportHeight}">
 			<rich-text class="uni-ai-msg-table-content" :style="tableRichTextStyle"
 				:nodes="tableRichNodes" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
@@ -24,6 +24,10 @@
 		return markdownTableContentHeight(props.tableNode).toString() + 'px'
 	})
 
+	const tableViewportHeight = computed<string>(() => {
+		return (markdownTableContentHeight(props.tableNode) + 2).toString() + 'px'
+	})
+
 	const tableRichNodes = computed<UTSJSONObject[]>(() => {
 		return markdownTableTokenToRichTextNodes(props.tableNode)
 	})
@@ -31,7 +35,7 @@
 	const tableRichTextStyle = computed<string>(() => {
 		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
 		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-		return 'width:' + tableContentWidth.value + ';height:' + tableContentHeight.value + ';color:' + color + ';background-color:' + backgroundColor + ';'
+		return 'width:100%;min-width:' + tableContentWidth.value + ';height:' + tableContentHeight.value + ';color:' + color + ';background-color:' + backgroundColor + ';'
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
@@ -60,6 +64,8 @@
 
 .uni-ai-msg-table-scroll {
 	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--border-primary);
 	background-color: var(--bg-primary);
 }
 
