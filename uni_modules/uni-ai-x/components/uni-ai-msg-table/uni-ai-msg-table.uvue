@@ -56,9 +56,6 @@
 .uni-ai-msg-table {
 	width: 100%;
 	margin: 6px 0;
-	border: 1px solid var(--border-primary);
-	border-radius: 6px;
-	overflow: hidden;
 }
 
 .uni-ai-msg-table-scroll {
