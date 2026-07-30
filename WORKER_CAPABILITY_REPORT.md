@@ -9,9 +9,9 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 主线程：接收批量渲染描述 -> 更新组件树
 ```
 
-2026-07-30 Android 真机最终验证确认：Worker 内普通 `uni.request`、`RequestTask`、`onChunkReceived`、`ArrayBuffer` 和 `TextDecoder` 均可用。流式请求实际收到 3 个分块，累计解码 177 个字符。此前“`uni.request` 不返回”的结论是缺少 Worker 清单配置、旧编译缓存和跨层回调方式共同造成的无效中间结果，已撤销。
+2026-07-30 Android 真机最终验证确认：Worker 内普通 `uni.request`、`RequestTask`、`onChunkReceived`、`ArrayBuffer`、`TextDecoder` 和 `uni-cmark` JNI 解析均可用。流式请求实际收到 3 个分块，累计解码 177 个字符；CMark 在 143ms 内返回 2 个 token，首个类型为 `heading`。
 
-T01 仍未闭环，但当前只剩一个明确能力边界：Worker 脚本直接导入现有 `uni-cmark` UTS 插件时编译失败。需要框架开发工程师给出 Worker 调用项目内 UTS 原生插件的正式方式，或明确不支持时的替代架构。
+此前“`uni.request` 不返回”和“Worker 不能调用 `uni-cmark`”都是无效中间结论，已经撤销。前者由 Worker 清单、旧缓存和跨层回调方式造成；后者只是模块根别名在 Worker 编译单元中不能解析，改为声明插件依赖并导入 Android 平台入口后成功。F05 已由应用层闭环，不上报框架。T01 仍未完成的原因是生产链路尚未迁移，不再是平台能力阻塞。
 
 ## 保留的复现材料
 
@@ -21,6 +21,8 @@ T01 仍未闭环，但当前只剩一个明确能力边界：Worker 脚本直接
 - CMark 编译失败样例：[`test-fixtures/worker-cmark-import-failure.uts.txt`](test-fixtures/worker-cmark-import-failure.uts.txt)
 - 真机结果：[`test-results/android-worker-capability-results.txt`](test-results/android-worker-capability-results.txt)
 - 真机截图：[`test-results/android-worker-capability.png`](test-results/android-worker-capability.png)
+- CMark 真机结果：[`test-results/android-worker-cmark-results.txt`](test-results/android-worker-cmark-results.txt)
+- CMark 真机截图：[`test-results/android-worker-cmark.png`](test-results/android-worker-cmark.png)
 
 ## 验证环境
 
@@ -36,11 +38,12 @@ T01 仍未闭环，但当前只剩一个明确能力边界：Worker 脚本直接
 
 1. 在 `manifest.json` 顶层配置 `"workers": "workers"`。
 2. 由 UTS 插件创建 `workers/markdownWorkerTask.uts`；Android 蒸汽模式 `.uvue` 页面不能直接调用 `uni.createWorker`。
-3. 页面依次执行 `local`、`request`、`stream`，每个场景使用新的 Worker，避免请求状态互相污染。
+3. 页面依次执行 `local`、`request`、`stream`、`cmark`，每个场景使用新的 Worker，避免请求状态互相污染。
 4. `local` 用 `Uint8Array([87,111,114,107,101,114])` 构造 ArrayBuffer，再用 `TextDecoder` 解码。
 5. `request` 向 `https://request.dcloud.net.cn/api/http/method/get` 发起普通 GET，Worker 超时 8000ms，页面超时 12000ms。
 6. `stream` 向 `https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3` 发起 `enableChunked: true` 的 POST，在 `onChunkReceived` 中逐块解码并累计数量和字符数。
-7. 使用下列命令全量编译并运行：
+7. `cmark` 场景在探针插件 `package.json` 声明 `uni-cmark` 依赖；Worker 直接导入 `../uni_modules/uni-cmark/utssdk/app-android/index.uts`，解析标题与两项列表，回传 token 数和首个 token 类型。
+8. 使用下列命令全量编译并运行：
 
 ```sh
 /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
@@ -51,14 +54,14 @@ T01 仍未闭环，但当前只剩一个明确能力边界：Worker 脚本直接
   --cleanCache true
 ```
 
-8. 使用下列命令读取应用与 Worker 日志：
+9. 使用下列命令读取应用与 Worker 日志：
 
 ```sh
 adb -s 192.168.2.5:5555 logcat -d -v threadtime | \
   rg 'WorkerCapabilityRepro|request-created|chunkCount|decodedLength'
 ```
 
-9. 在开发机预检普通请求地址，排除服务端不可达：
+10. 在开发机预检普通请求地址，排除服务端不可达：
 
 ```sh
 curl -sS -o /dev/null \
@@ -68,13 +71,14 @@ curl -sS -o /dev/null \
 
 ## 最终结果
 
-HBuilderX 全量构建成功，`ready in 28286ms`。页面自动测试结果：
+加入 CMark 场景后的 HBuilderX 全量构建成功，`ready in 31319ms`。页面自动测试结果：
 
 | 场景 | 页面结果 | 耗时 | 结果数据 |
 | --- | --- | ---: | --- |
-| local | `local` | 160ms | `textDecoder=Worker` |
-| request | `request-success` | 422ms | 普通 GET 成功，`RequestTask` 已创建 |
-| stream | `request-success` | 3481ms | `chunkCount=3`，`decodedLength=177` |
+| local | `local` | 174ms | `textDecoder=Worker` |
+| request | `request-success` | 388ms | 普通 GET 成功，`RequestTask` 已创建 |
+| stream | `request-success` | 3476ms | `chunkCount=3`，`decodedLength=177` |
+| cmark | `cmark-success` | 143ms | `tokenCount=2`，`firstType=heading`，`detail` 为空 |
 
 流式分块原始累计数据：
 
@@ -84,14 +88,14 @@ HBuilderX 全量构建成功，`ready in 28286ms`。页面自动测试结果：
 | 2 | 118 |
 | 3 | 177 |
 
-页面最终打印 `[WorkerCapabilityRepro] complete`，没有 `host-timeout`。普通地址预检为 HTTP 200，耗时 0.130574s。应用日志没有 `AndroidRuntime`、`FATAL EXCEPTION` 或 `SIGABRT`；系统窗口管理器有一条与应用无关的 `ActivityRecordImpl` NPE，不计入应用异常。
+页面最终打印 `[WorkerCapabilityRepro] complete`，没有 `host-timeout` 或 `cmark-fail`。CMark JNI 日志显示输入 32 字符、输出 JSON 299 字符。页面主线程 TID 为 10546，Worker 消息线程 TID 为 13284，CMark JNI 日志 TID 为 13304，CMark 没有在页面主线程执行。普通地址预检为 HTTP 200，耗时 0.130574s。应用日志没有 `AndroidRuntime`、`FATAL EXCEPTION` 或 `SIGABRT`。
 
-把复现页移回 `pages.json` 末尾后又执行一次正常入口全量回归：8 个页面均编译成功，`ready in 27322ms`；设备顶层 Activity 为应用主 Activity，截图确认聊天页、公式、流程图和下方正文正常显示，异常扫描为空。
+把复现页移回 `pages.json` 末尾后又执行一次正常入口全量回归：8 个页面均编译成功，`ready in 25366ms`；设备顶层 Activity 为应用主 Activity，截图确认聊天页、公式、完整流程图、分割线和下方正文正常显示，异常扫描为空。
 
-截图为 1440x3200 PNG，203213 字节，SHA-256：
+最终四场景截图为 1440x3200 PNG，244897 字节，SHA-256：
 
 ```text
-139dce9f575350fb00b814d19c6a91a84c1696a1aa1da4e9e00ba8f3d9e9acd6
+d364af5ac62976c60e614cc436e2ebd7322cbb274d3602a5474f521b392f8c4a
 ```
 
 ## 能力矩阵
@@ -102,9 +106,9 @@ HBuilderX 全量构建成功，`ready in 28286ms`。页面自动测试结果：
 | Worker 清单配置 | 缺少 `manifest.json` 的 `"workers": "workers"` 时提示路径不存在 | 必需配置 |
 | Worker 消息收发 | 页面、插件和 Worker 三层消息均到达 | 已确认 |
 | `ArrayBuffer` + `TextDecoder` | 解码得到 `Worker` 并回传 | 已确认 |
-| Worker 内 `uni.request` | 普通 GET 成功，耗时 422ms | 已确认 |
+| Worker 内 `uni.request` | 普通 GET 成功，最新耗时 388ms | 已确认 |
 | `RequestTask.onChunkReceived` | 3 次回调，累计解码 177 字符 | 已确认 |
-| Worker 导入 `uni-cmark` | 编译期无法解析插件入口 | 待框架确认支持方式 |
+| Worker 调用 `uni-cmark` | 声明插件依赖并导入 Android 平台入口后解析成功 | 已确认，应用层解决 |
 | UTS 插件回调多次跨层转发 | 同一次注册中只有第一次事件稳定到达页面；最终探针改为插件记录全部事件、只回传一次终态 | 待框架确认语义 |
 | 请求和 Worker 取消 | API 存在，本轮未验证回调顺序 | 待专项验证 |
 
@@ -121,7 +125,7 @@ HBuilderX 全量构建成功，`ready in 28286ms`。页面自动测试结果：
 
 因此早期的“`uni.request` 不返回”是回调桥接与构建配置的假阴性，不能作为框架缺陷上报。
 
-## `uni-cmark` 编译证据
+## `uni-cmark` 失败路径与成功路径
 
 Worker 脚本尝试直接导入当前项目的 Markdown 插件：
 
@@ -139,11 +143,28 @@ unpackage/dist/dev/.uvue/app-android/workers/markdownWorkerProbe.uts
 index not found
 ```
 
-这只能证明“当前导入方式不可用”，不能扩大成“所有 UTS 插件都不能在 Worker 使用”。失败导入代码保存在不参与构建的 fixture 中，框架研发可直接复制到 Worker 文件复现。
+这只能证明模块根别名在 Worker 编译单元中不可用，不能扩大成“Worker 不能使用 UTS 插件”。失败导入代码保存在不参与构建的 fixture 中，作为负面对照。
+
+应用层成功方案包含两部分：
+
+```json
+"uni_modules": {
+  "dependencies": ["uni-cmark"]
+}
+```
+
+```uts
+// #ifdef APP-ANDROID
+import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
+// #endif
+```
+
+Android 真机结果为 `cmark-success`，`tokenCount=2`、`firstType=heading`、`detail=""`。因此该问题不提交框架。
 
 ## 应用层可以承担的部分
 
-框架明确 `uni-cmark` 的 Worker 调用方式后，应用层负责：
+能力已经闭环，下一阶段由应用层负责：
 
 - 用 UTS 插件封装 Worker 的创建、消息监听和销毁。
 - 把 SSE 解码、Markdown 预处理、CMark 和渲染描述构建放在同一个 Worker 任务中。
@@ -152,13 +173,13 @@ index not found
 - 页面销毁或请求切换时同时执行 `RequestTask.abort()` 和 `Worker.terminate()`，并用请求版本丢弃迟到回调。
 - 跨线程传递后不再修改共享数组和对象；需要修改时创建新批次，避免 Android 共享引用的数据竞争。
 
-## 需要框架开发工程师确认
+## 暂不上报的观察项
 
-1. Worker 脚本应如何导入并调用项目内 `uni-cmark` 这类 UTS 原生插件？
-2. 如果 Worker 设计上不能调用 UTS 插件，框架推荐如何保证“联网到 CMark 全部在同一子线程”？
-3. Worker 源文件变化未触发其创建方 UTS 插件重编译，是否属于已知缓存问题？有无正式清理或依赖声明方式？
-4. UTS 插件同一次强类型 callback 注册能否多次向 `.uvue` 页面回调？本次为何只有第一次稳定到达？
-5. `RequestTask.abort()`、`Worker.terminate()` 与已经排队的回调之间是否有顺序保证？
+- Worker 源文件变化曾未触发创建方 UTS 插件重编译；当前通过修改插件依赖和全量构建解决，尚未形成生产阻塞。
+- 同一次强类型 callback 连续转发多个事件时页面只稳定收到第一次；当前改为插件记录过程、每个场景只回传一次终态，满足批量结果设计。
+- `RequestTask.abort()`、`Worker.terminate()` 与排队回调的顺序尚未专项验证；生产迁移时用请求版本丢弃迟到结果，不依赖隐含顺序。
+
+以上均有应用层规避方式，当前不提交框架；只有生产链路仍能稳定复现且无法规避时再升级。
 
 ## 参考文档
 

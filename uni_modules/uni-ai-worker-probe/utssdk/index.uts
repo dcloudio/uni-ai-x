@@ -27,7 +27,9 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 		const phase = result.getString('phase', '')
 		const isTerminal = currentScenario == 'local'
 			? phase == 'local'
-			: phase == 'request-success' || phase == 'request-fail'
+			: currentScenario == 'cmark'
+				? phase == 'cmark-success' || phase == 'cmark-fail'
+				: phase == 'request-success' || phase == 'request-fail'
 		if (!isTerminal) return
 		if (messageOptions?.success == null) return
 		const event: WorkerProbeMessageSuccess = {

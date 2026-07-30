@@ -1,4 +1,4 @@
-// Noncompiled fixture: copy these imports into a WorkerTaskImpl source to reproduce.
+// Noncompiled negative control: copy these imports into a WorkerTaskImpl source to reproduce.
 // Tested with HBuilderX 5.24.2026072917-dev on 2026-07-30.
 
 import { md2json } from '@/uni_modules/uni-cmark'
@@ -20,4 +20,11 @@ unpackage/dist/dev/.uvue/app-android/workers/markdownWorkerProbe.uts
 index not found
 
 This fixture has a .txt suffix so the normal app build remains runnable.
+
+Application-layer resolution:
+1. Declare "uni-cmark" in the worker bridge plugin's uni_modules.dependencies.
+2. From workers/*.uts on Android, import
+   ../uni_modules/uni-cmark/utssdk/app-android/index.uts
+   and ../uni_modules/uni-cmark/utssdk/interface.uts.
+3. The Android device probe then returned cmark-success.
 */

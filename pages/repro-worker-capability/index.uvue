@@ -1,7 +1,7 @@
 <template>
 	<view class="page">
 		<text class="title">Worker 能力探针</text>
-		<text class="description">TextDecoder、普通请求、流式请求依次使用独立 Worker。</text>
+		<text class="description">TextDecoder、普通请求、流式请求和 CMark 依次使用独立 Worker。</text>
 
 		<view class="toolbar">
 			<button class="command" size="mini" :disabled="isRunning" @click="runSequence">重跑全部</button>
@@ -29,8 +29,9 @@
 
 	const NETWORK_TIMEOUT = 12000
 	const LOCAL_TIMEOUT = 3000
+	const CMARK_TIMEOUT = 5000
 	const NEXT_DELAY = 600
-	const scenarios = ['local', 'request', 'stream']
+	const scenarios = ['local', 'request', 'stream', 'cmark']
 
 	const isRunning = ref(false)
 	const status = ref('准备自动测试')
@@ -136,12 +137,15 @@
 				finishScenario(scenario, version)
 				return
 			}
-			if (phase == 'request-success' || phase == 'request-fail' || phase == 'worker-error') {
+			if (phase == 'request-success' || phase == 'request-fail' ||
+				phase == 'cmark-success' || phase == 'cmark-fail' || phase == 'worker-error') {
 				finishScenario(scenario, version)
 			}
 		})
 
-		const waitTime = scenario == 'local' ? LOCAL_TIMEOUT : NETWORK_TIMEOUT
+		const waitTime = scenario == 'local'
+			? LOCAL_TIMEOUT
+			: scenario == 'cmark' ? CMARK_TIMEOUT : NETWORK_TIMEOUT
 		timeoutId = setTimeout(() => {
 			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
 			appendResult(scenario, 'host-timeout', `limit=${waitTime}ms`)

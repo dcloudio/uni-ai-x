@@ -1,3 +1,8 @@
+// #ifdef APP-ANDROID
+import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
+// #endif
+
 export class MarkdownWorkerTask extends WorkerTaskImpl {
 	private requestTask: RequestTask | null = null
 	private decoder: TextDecoder = new TextDecoder()
@@ -27,7 +32,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			this.requestTask = null
 			return
 		}
-		if (action != 'local' && action != 'request' && action != 'stream') return
+		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark') return
 
 		const received = new UTSJSONObject()
 		received.scenario = action
@@ -46,6 +51,22 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		this.postMessage(localResult)
 		console.log('[WorkerCapabilityRepro] worker-local-post-return', action)
 		if (action == 'local') return
+
+		if (action == 'cmark') {
+			// #ifdef APP-ANDROID
+			const parseResult = md2json('# Worker CMark\n\n- first\n- second') as ParseMdRes
+			const tokenCount = parseResult.data.length
+			const firstType = tokenCount > 0 ? parseResult.data[0].type ?? '' : ''
+			this.postMessage({
+				scenario: action,
+				phase: parseResult.errorMsg.length == 0 ? 'cmark-success' : 'cmark-fail',
+				tokenCount: tokenCount,
+				firstType: firstType,
+				detail: parseResult.errorMsg
+			} as UTSJSONObject)
+			return
+			// #endif
+		}
 
 		this.postMessage({
 			scenario: action,

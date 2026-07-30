@@ -31,7 +31,7 @@
 
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
-| T01 | 联网到 Markdown 的完整子线程链路 | 部分完成，受 CMark 能力阻塞 | 应用层设计，依赖框架能力确认 | Worker 网络、分块和解码已真机通过；仍无法直接导入 `uni-cmark` |
+| T01 | 联网到 Markdown 的完整子线程链路 | 未完成，能力已闭环 | 应用层 | Worker 网络、分块、解码和 CMark 已真机通过；待迁移生产链路 |
 | T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | 当前已有 7 类渲染块，但分类与 RichText 节点转换仍在主线程 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
@@ -65,7 +65,7 @@
 - Android 只有 `asyncMd2json()` 在单线程 executor 中执行。
 - 公式预处理、代码高亮调度、SVG 调用和渲染块构建没有统一进入同一个 worker。
 
-能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。Android 真机已确认真实 Worker 内普通 `uni.request`、`RequestTask.onChunkReceived`、`ArrayBuffer` 和 `TextDecoder` 可用；流式请求收到 3 个分块并累计解码 177 个字符。此前“请求不返回”是缺少 Worker 清单配置、旧编译缓存和跨层回调方式造成的假阴性，已经撤销。当前只剩现有 `uni-cmark` 无法从 Worker 脚本直接导入，需要框架给出支持方式后再实施完整链路。
+能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。Android 真机已确认真实 Worker 内普通 `uni.request`、`RequestTask.onChunkReceived`、`ArrayBuffer`、`TextDecoder` 和 `uni-cmark` JNI 解析可用；流式请求收到 3 个分块并累计解码 177 个字符，CMark 在 143ms 内返回 2 个 token。模块根别名导入失败已通过“声明插件依赖 + 导入 Android 平台入口”在应用层解决。T01 不再受框架能力阻塞，下一步是迁移生产请求、SSE、Markdown 预处理和渲染描述构建。
 
 ### T02 渲染职责边界
 
@@ -165,31 +165,31 @@ T13 已完成：
 | F02 | 原生布局和 View 追加产生主线程长任务 | 待上报 | P0 | 已补最小复现；RichText 追加最大 37.89ms，普通 View 最大 2.15ms；布局尖峰仅真实链路复现 |
 | F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 已补最小复现；动态挂载 append 最大 50.82ms，预挂载切换为 0；是否重复解码/上传待框架 Trace |
 | F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 待上报 | P1 | Android 配对最小复现：2 个非 flatten 对照均正确，3 个 flatten 用例均失败；原始 1440x3200 截图、SHA-256、命令与结果已归档 |
-| F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 部分确认，插件边界待确认 | P0 | 普通请求 422ms；流式请求 3 块/177 字符/3481ms；`uni-cmark` 导入失败 |
+| F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 已由应用层解决，不上报 | - | 普通请求 388ms；流式请求 3 块/177 字符/3476ms；CMark 2 token/143ms |
 
 F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPORT.md`](RICH_TEXT_PERFORMANCE_REPORT.md)。
 
 F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CLIPPING_REPORT.md`](RICH_TEXT_RADIUS_CLIPPING_REPORT.md)。结论不是“所有 RichText 都不能圆角”，而是 Android 蒸汽模式下 `flatten` 父 View 与原生 RichText 的组合不能正确执行父级圆角裁剪。RichText 节点 CSS 只能处理内容自身的首尾边缘，不能替代宽内容外层 ScrollView 的视口裁剪。
 
-F05 的真机探针、测试代码、逐项耗时、流式分块数据、截图、编译错误和建议架构见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。网络和解码能力已确认，不再上报“Worker 请求不返回”。现阶段只上报 Worker 导入 `uni-cmark`、Worker 源码缓存失效和插件多次回调语义三个有证据的边界。
+F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark 线程证据、截图和导入对照见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。网络、解码和 CMark 均已确认；“请求不返回”和“CMark 不能导入”都已证明是应用配置/路径问题，不提交框架。
 
 ### F05 已确认的边界
 
 - Android 蒸汽模式 `.uvue` 页面不能直接调用 `uni.createWorker`，必须由 UTS 插件封装创建。
 - `manifest.json` 必须声明 `"workers": "workers"`，否则会误报 Worker 路径不存在或未正确实现。
 - Worker 本地消息收发、普通 `uni.request`、`RequestTask`、`onChunkReceived`、`ArrayBuffer` 和 `TextDecoder` 已在 Android 真机通过。
-- 最终真机数据：本地解码 160ms；普通 GET 422ms；流式 POST 3481ms，3 个分块，累计 177 个字符，无页面超时。
+- 探针插件声明 `uni-cmark` 依赖，Worker 导入 Android 平台入口后，CMark JNI 在非主线程解析成功。
+- 最终真机数据：本地解码 174ms；普通 GET 388ms；流式 POST 3476ms，3 个分块，累计 177 个字符；CMark 143ms，2 个 token，首个类型 `heading`。
 - Android/iOS 的引用类型按官方说明直接共享内存，不默认克隆；传递渲染描述后必须避免两线程继续修改同一对象。
 - `transferable` 只支持鸿蒙和 Web，Android 方案不能依赖所有权转移。
 - `RequestTask.abort()` 和 `Worker.terminate()` 有公开 API，但仍需用请求版本主动丢弃迟到结果。
 
-### F05 仍需向框架确认的问题
+### F05 暂不上报的工程注意项
 
-1. Worker 脚本应如何导入并调用项目内 `uni-cmark` 这类 UTS 原生插件？
-2. 如果 Worker 不能调用 UTS 插件，框架推荐如何实现“联网到 CMark 全部在同一子线程”？
-3. Worker 源文件变化未触发创建方 UTS 插件重编译，是否属于已知缓存问题？
-4. UTS 插件同一次强类型 callback 注册是否支持多次向 `.uvue` 页面回调？
-5. 请求取消、Worker 销毁和已排队回调之间是否有顺序保证？
+1. Worker 的模块根别名不能解析时，使用平台入口的显式相对路径，并在桥接插件中声明依赖。
+2. Worker 源文件缓存曾未自动失效；当前通过插件依赖变更和全量构建解决，未形成生产阻塞。
+3. 跨层过程消息不逐条回调页面；插件记录过程，每个场景只批量回传一次终态，符合主线程批处理设计。
+4. 生产迁移仍需专项验证取消顺序，并始终用请求版本丢弃迟到结果。
 
 ## 已由应用层处理、不提交框架的问题
 
@@ -204,13 +204,14 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、截图�
 
 1. 人工验收 T05：表格/代码横滑、垂直滚动、左缘短滑和侧栏关闭。
 2. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
-3. 携带 Worker 能力报告向框架确认 `uni-cmark` 导入、缓存失效和多次回调三个边界；能力闭环后实现 T01-T02。
+3. F05 能力已闭环，开始设计并分阶段实现 T01-T02 的生产 Worker 链路。
 4. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | F05 | 声明 `uni-cmark` 依赖并导入 Android 平台入口；真机确认 Worker 中 CMark 返回 2 个 token，线程、耗时和截图已归档 | 本提交（`test: 验证 Worker 调用 CMark`） |
 | 2026-07-30 | F05 | 保留 Worker 自动探针、逐项耗时、流式分块原始数据、截图及 CMark 失败 fixture；撤销请求不返回的假阴性结论 | 本提交（`test: 验证 Worker 流式网络能力`） |
 | 2026-07-30 | F04 | 改为仅切换 flatten 的配对用例，归档原始截图、测试命令和逐项结果 | 本提交（`test: 完善 RichText 圆角裁剪证据`） |
 | 2026-07-30 | F01 | 补齐阶段日志边界，保留自动汇总脚本，连续四轮记录页面与原生结果 | 本提交（`test: 补齐 RichText 性能采集边界`） |

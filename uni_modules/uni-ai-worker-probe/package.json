@@ -13,5 +13,10 @@
   },
   "dcloudext": {
     "type": "uts"
+  },
+  "uni_modules": {
+    "dependencies": [
+      "uni-cmark"
+    ]
   }
 }

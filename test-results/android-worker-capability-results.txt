@@ -55,8 +55,8 @@ test-results/android-worker-capability.png
 PNG 1440x3200 RGBA, 203213 bytes
 SHA-256 139dce9f575350fb00b814d19c6a91a84c1696a1aa1da4e9e00ba8f3d9e9acd6
 
-Known remaining failure:
-Direct Worker import of @/uni_modules/uni-cmark fails during Android UTS compilation. See test-fixtures/worker-cmark-import-failure.uts.txt and WORKER_CAPABILITY_REPORT.md.
+Historical negative control:
+Direct Worker import of @/uni_modules/uni-cmark failed during Android UTS compilation. This root-alias path was later replaced by an explicit app-android entry plus a declared uni-cmark dependency; the successful follow-up is recorded in android-worker-cmark-results.txt.
 
 Normal-entry regression after moving the repro route to the end of pages.json:
 - Full clean build succeeded: ready in 27322ms.
