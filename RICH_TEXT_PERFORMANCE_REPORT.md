@@ -106,9 +106,17 @@ CMark 没有占用 UI 主线程，耗时也远低于布局和追加任务；卡�
 
 ## 3. 大图首次显示仍可能发生纹理上传尖峰
 
+最小复现页：[`pages/repro-svg-image-performance/index.uvue`](pages/repro-svg-image-performance/index.uvue)，路由为 `/pages/repro-svg-image-performance/index`。页面使用同一张 `800x640` SVG 自动对照“已加载 Image 只切换 opacity”和“同源 Image 动态创建/销毁”，不经过联网、Markdown 解析或主题切换。
+
 ### 现象
 
 流程图首次显示或滚动进入可见区域时，仍可能短暂停顿。
+
+复现步骤：
+
+1. 将最小复现路由临时放到 `pages.json` 第一项，使用 Android 蒸汽模式运行。
+2. 等待 SVG 预加载和两个 5 秒场景自动完成，或点击“重跑对照”。
+3. 对比页面 FPS、慢帧和动态 Image 的 `load` 次数，并在日志中检索 `[SvgImagePerfRepro]`、`executeRenderTasks` 和 `appendViewTasks`。
 
 ### 证据
 
@@ -117,11 +125,26 @@ CMark 没有占用 UI 主线程，耗时也远低于布局和追加任务；卡�
 | 图片预挂载后切换 opacity | 约 1ms | 接近 0 |
 | 动态插入 800x640 图片 | 约 21ms | 13.87ms |
 
+HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现连续两轮结果：
+
+| 自动对照场景（各 5 秒） | FPS（第 1 / 2 轮） | 最大帧间隔 | `>32ms` 慢帧 |
+| --- | ---: | ---: | ---: |
+| 已加载 Image 切换 opacity | 120.7 / 120.7 | 8.3ms / 8.3ms | 0 / 0 |
+| 同源 Image 动态创建/销毁 | 102.1 / 101.3 | 49.8ms / 58.1ms | 25 / 25 |
+
+| 原生任务（第 1 / 2 轮） | opacity 切换 | 动态创建/销毁 |
+| --- | ---: | ---: |
+| `executeRenderTasks` 最大值 | 1ms / 2ms | 47ms / 55ms |
+| `appendViewTasks` 最大值 | 0 / 0 | 43.22ms / 50.82ms |
+| 动态挂载数 / `load` 回调数 | - | 25 / 25（两轮均相同） |
+
+两阶段使用完全相同的 SVG data URL 和固定 `800x640` Image 尺寸。动态阶段每次创建 Image 都触发 `load` 回调，并稳定出现约 43~51ms 的 View 追加长任务；预挂载后只改 opacity 没有 View 追加任务。该对照证明预挂载规避有效，也证明同源图片重建仍会重复进入 Image 加载生命周期，但 `load` 回调本身不能证明是否重复解码或上传纹理，后两项仍需框架内部 Trace 确认。
+
 真实页面 `dumpsys gfxinfo` 还记录了 41 次 slow bitmap upload。常态 GPU 90/95 分位约 5/8ms，因此不是持续 GPU 算力不足，更可能是首次上传或 View 重绑定产生的离散尖峰。
 
 ### 如何得出结论
 
-预挂载和动态插入使用同一图片，主要差异是 View 创建、解码和纹理准备时机。动态插入明显更慢，说明图片首次挂载链路存在额外成本。由于当前日志不能继续区分解码、上传和列表回收，这一项仍需框架内部 Trace 最终确认。
+预挂载和动态插入使用同一图片，主要差异是 View 创建和 Image 加载生命周期。动态插入明显更慢，说明图片首次挂载链路存在额外成本。结合真实页面的 slow bitmap upload，解码、上传或列表回收仍是合理排查方向，但当前日志不能区分三者，这一项仍需框架内部 Trace 最终确认。
 
 ### 框架侧建议
 

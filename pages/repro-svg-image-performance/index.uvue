@@ -1,0 +1,363 @@
+<template>
+	<view class="page">
+		<view class="header">
+			<text class="title">SVG Image 首次挂载性能复现</text>
+			<text class="phase">{{phaseLabel}}</text>
+		</view>
+
+		<view class="toolbar">
+			<button class="command" size="mini" :disabled="isRunning || !assetReady" @click="runSequence">重跑对照</button>
+			<button class="command" size="mini" :disabled="isRunning || !assetReady" @click="runDynamicOnly">仅动态挂载</button>
+			<button class="stop-command" size="mini" :disabled="!isRunning" @click="stopTest">停止</button>
+		</view>
+
+		<view class="metrics">
+			<text class="metric-title">已加载 Image 切换 opacity</text>
+			<text class="metric-value">{{opacityResult}}</text>
+			<text class="metric-title metric-gap">同源 Image 动态创建/销毁</text>
+			<text class="metric-value">{{dynamicResult}}</text>
+			<text class="load-value">动态挂载 {{dynamicMountCount}} 次，load 回调 {{dynamicLoadCount}} 次</text>
+		</view>
+
+		<scroll-view class="image-scroll" direction="horizontal" :show-scrollbar="true">
+			<view class="image-stage">
+				<image class="large-image" :src="svgHref" mode="scaleToFill" :style="preloadedImageStyle"
+					@load="onPreloadedLoad" @error="onPreloadedError" />
+				<image v-if="showDynamicImage" class="large-image" :src="svgHref" mode="scaleToFill"
+					@load="onDynamicLoad" @error="onDynamicError" />
+			</view>
+		</scroll-view>
+
+		<text class="scope-note">两阶段使用同一张 800x640 SVG；容器尺寸保持不变。</text>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	const TEST_DURATION = 5000
+	const TOGGLE_INTERVAL = 100
+	const PREPARE_DELAY = 800
+
+	const phaseLabel = ref('生成测试 SVG')
+	const opacityResult = ref('等待运行')
+	const dynamicResult = ref('等待运行')
+	const isRunning = ref(false)
+	const assetReady = ref(false)
+	const preloadedVisible = ref(false)
+	const showDynamicImage = ref(false)
+	const dynamicMountCount = ref(0)
+	const dynamicLoadCount = ref(0)
+	const svgHref = ref('')
+
+	let intervalId: number | null = null
+	let phaseTimerId: number | null = null
+	let autoRunTimerId: number | null = null
+	let animationId = -1
+	let runVersion = 0
+	let sampleActive = false
+	let sampleFirstFrame = 0
+	let sampleLastFrame = 0
+	let sampleFrameCount = 0
+	let sampleMaxDelta = 0
+	let sampleOver16 = 0
+	let sampleOver32 = 0
+
+	const preloadedImageStyle = computed<string>(() => {
+		return 'opacity:' + (preloadedVisible.value && assetReady.value ? '1' : '0') + ';'
+	})
+
+	function buildSvgDataUrl(): string {
+		let shapes = ''
+		const colors = ['#0969da', '#1a7f37', '#bf8700', '#cf222e'] as string[]
+		for (let index = 0; index < 80; index++) {
+			const column = index % 10
+			const row = Math.floor(index / 10)
+			const x = 22 + column * 77
+			const y = 78 + row * 66
+			const color = colors[index % colors.length]
+			shapes += `<rect x="${x}" y="${y}" width="54" height="42" rx="3" fill="${color}"/><text x="${x + 27}" y="${y + 27}" text-anchor="middle" font-size="13" fill="#ffffff">${index + 1}</text>`
+		}
+		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="640" viewBox="0 0 800 640"><rect width="800" height="640" fill="#ffffff"/><text x="24" y="42" font-size="24" font-family="sans-serif" fill="#1f2328">800x640 SVG texture upload probe</text>${shapes}<path d="M20 610 H780" stroke="#8c959f" stroke-width="2"/></svg>`
+		return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+	}
+
+	function resetSample() {
+		sampleFirstFrame = 0
+		sampleLastFrame = 0
+		sampleFrameCount = 0
+		sampleMaxDelta = 0
+		sampleOver16 = 0
+		sampleOver32 = 0
+	}
+
+	let trackFrame = (timestamp: number) => {}
+	trackFrame = (timestamp: number) => {
+		if (sampleActive) {
+			if (sampleFirstFrame == 0) {
+				sampleFirstFrame = timestamp
+			} else {
+				const delta = timestamp - sampleLastFrame
+				sampleMaxDelta = Math.max(sampleMaxDelta, delta)
+				if (delta > 16.7) sampleOver16++
+				if (delta > 32) sampleOver32++
+			}
+			sampleLastFrame = timestamp
+			sampleFrameCount++
+		}
+		animationId = requestAnimationFrame(trackFrame)
+	}
+
+	function formatResult(toggleCount: number): string {
+		const duration = Math.max(1, sampleLastFrame - sampleFirstFrame)
+		const fps = sampleFrameCount * 1000 / duration
+		return `${toggleCount} 次 | ${fps.toFixed(1)} FPS | max ${sampleMaxDelta.toFixed(1)}ms | >16.7ms ${sampleOver16} | >32ms ${sampleOver32}`
+	}
+
+	function clearPhaseTasks() {
+		if (intervalId != null) {
+			clearInterval(intervalId!)
+			intervalId = null
+		}
+		if (phaseTimerId != null) {
+			clearTimeout(phaseTimerId!)
+			phaseTimerId = null
+		}
+		sampleActive = false
+	}
+
+	function preparePhase(label: string, version: number, start: () => void) {
+		clearPhaseTasks()
+		phaseLabel.value = `${label}：准备`
+		phaseTimerId = setTimeout(() => {
+			if (version != runVersion) return
+			resetSample()
+			sampleActive = true
+			phaseLabel.value = `${label}：运行中`
+			start()
+		}, PREPARE_DELAY)
+	}
+
+	function runOpacityPhase(version: number, continueSequence: boolean) {
+		preloadedVisible.value = false
+		showDynamicImage.value = false
+		preparePhase('切换已加载 Image opacity', version, () => {
+			let toggleCount = 0
+			console.log('[SvgImagePerfRepro] opacity-start')
+			intervalId = setInterval(() => {
+				toggleCount++
+				preloadedVisible.value = !preloadedVisible.value
+			}, TOGGLE_INTERVAL)
+			phaseTimerId = setTimeout(() => {
+				if (version != runVersion) return
+				clearPhaseTasks()
+				opacityResult.value = formatResult(toggleCount)
+				console.log('[SvgImagePerfRepro] opacity', opacityResult.value)
+				if (continueSequence) {
+					runDynamicPhase(version)
+				} else {
+					finishSequence()
+				}
+			}, TEST_DURATION)
+		})
+	}
+
+	function runDynamicPhase(version: number) {
+		preloadedVisible.value = false
+		showDynamicImage.value = false
+		dynamicMountCount.value = 0
+		dynamicLoadCount.value = 0
+		preparePhase('动态创建同源 Image', version, () => {
+			let toggleCount = 0
+			console.log('[SvgImagePerfRepro] dynamic-start')
+			intervalId = setInterval(() => {
+				toggleCount++
+				showDynamicImage.value = !showDynamicImage.value
+				if (showDynamicImage.value) dynamicMountCount.value++
+			}, TOGGLE_INTERVAL)
+			phaseTimerId = setTimeout(() => {
+				if (version != runVersion) return
+				clearPhaseTasks()
+				dynamicResult.value = formatResult(toggleCount)
+				console.log('[SvgImagePerfRepro] dynamic', dynamicResult.value + ` | mounts ${dynamicMountCount.value} | loads ${dynamicLoadCount.value}`)
+				finishSequence()
+			}, TEST_DURATION)
+		})
+	}
+
+	function finishSequence() {
+		isRunning.value = false
+		phaseLabel.value = '测试完成'
+	}
+
+	function stopTest() {
+		runVersion++
+		clearPhaseTasks()
+		isRunning.value = false
+		preloadedVisible.value = false
+		showDynamicImage.value = false
+		phaseLabel.value = assetReady.value ? '已停止' : '等待 SVG 加载'
+	}
+
+	function runSequence() {
+		if (!assetReady.value) return
+		stopTest()
+		const version = runVersion
+		isRunning.value = true
+		opacityResult.value = '运行中'
+		dynamicResult.value = '等待运行'
+		runOpacityPhase(version, true)
+	}
+
+	function runDynamicOnly() {
+		if (!assetReady.value) return
+		stopTest()
+		const version = runVersion
+		isRunning.value = true
+		dynamicResult.value = '运行中'
+		runDynamicPhase(version)
+	}
+
+	function onPreloadedLoad(_event: ImageLoadEvent) {
+		if (assetReady.value) return
+		assetReady.value = true
+		phaseLabel.value = 'SVG 已预加载'
+		autoRunTimerId = setTimeout(() => {
+			runSequence()
+		}, 800)
+	}
+
+	function onPreloadedError(_event: ImageErrorEvent) {
+		phaseLabel.value = 'SVG 加载失败'
+	}
+
+	function onDynamicLoad(_event: ImageLoadEvent) {
+		dynamicLoadCount.value++
+	}
+
+	function onDynamicError(_event: ImageErrorEvent) {
+		console.error('[SvgImagePerfRepro] dynamic image load failed')
+	}
+
+	onMounted(() => {
+		animationId = requestAnimationFrame(trackFrame)
+		svgHref.value = buildSvgDataUrl()
+	})
+
+	onUnmounted(() => {
+		stopTest()
+		if (autoRunTimerId != null) {
+			clearTimeout(autoRunTimerId!)
+			autoRunTimerId = null
+		}
+		if (animationId != -1) {
+			cancelAnimationFrame(animationId)
+			animationId = -1
+		}
+	})
+</script>
+
+<style>
+.page {
+	flex: 1;
+	padding: 20px;
+	background-color: #f5f6f7;
+}
+
+.header {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.title {
+	font-size: 20px;
+	font-weight: 700;
+	color: #1f2328;
+}
+
+.phase {
+	font-size: 13px;
+	color: #0969da;
+}
+
+.toolbar {
+	margin-top: 14px;
+	flex-direction: row;
+	align-items: center;
+}
+
+.command,
+.stop-command {
+	margin-left: 0;
+	margin-right: 10px;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.stop-command {
+	color: #b42318;
+}
+
+.metrics {
+	margin-top: 14px;
+	padding: 12px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
+}
+
+.metric-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: #57606a;
+}
+
+.metric-gap {
+	margin-top: 10px;
+}
+
+.metric-value {
+	margin-top: 3px;
+	font-size: 14px;
+	line-height: 20px;
+	color: #1f2328;
+}
+
+.load-value {
+	margin-top: 8px;
+	font-size: 13px;
+	color: #57606a;
+}
+
+.image-scroll {
+	margin-top: 14px;
+	width: 100%;
+	height: 430px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #8c959f;
+	background-color: #ffffff;
+}
+
+.image-stage {
+	position: relative;
+	width: 800px;
+	height: 640px;
+	flex-shrink: 0;
+	background-color: #ffffff;
+}
+
+.large-image {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 800px;
+	height: 640px;
+}
+
+.scope-note {
+	margin-top: 10px;
+	font-size: 13px;
+	color: #57606a;
+}
+</style>

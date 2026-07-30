@@ -42,6 +42,13 @@
 			{
 				"navigationBarTitleText" : "原生 View 性能复现"
 			}
+		},
+		{
+			"path" : "pages/repro-svg-image-performance/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "SVG Image 性能复现"
+			}
 		}
 	],
 	"globalStyle": {
