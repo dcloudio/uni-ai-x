@@ -1,0 +1,56 @@
+T05 Android 侧栏手势真机验收结果
+
+时间
+- 2026-07-30 19:31-19:38 +0800
+
+环境
+- 分支: dev-vapor-richTextNative
+- 实现提交: 3dc1a7dc8e70ee16ae162fe593a4c58b2fb396d8
+- HBuilderX: 5.24.2026072917-dev
+- 编译模式: uni-app x 蒸汽模式，Android 自定义基座 2.1.4
+- 设备: Xiaomi M2102K1AC
+- Android: 14，API 34
+- 分辨率: 1440x3200
+- 密度: 560
+
+被测实现
+- 页面根节点在 10px 后锁定手势方向，纵向位移不小于横向位移时放弃侧栏手势。
+- 菜单关闭时只接受左侧 32px 内起手，打开时只接受向左关闭。
+- 表格、代码块和公式的横向 ScrollView 在 touchstart/touchmove 阶段阻止冒泡。
+- 拖动期间停用 transition，松手后按 80px 位移或 0.35px/ms 速度吸附。
+
+构建与启动
+- 命令:
+  /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android --project /Users/json/Desktop/code/uni-ai-x --deviceId 192.168.2.5:5555 --playground custom --native-log true --cleanCache true --pagePath uni_modules/uni-ai-x/pages/index/index
+- 19:31:28 HBuilderX 输出“项目 uni-ai-x 编译成功”，ready in 33334ms。
+- 真实聊天主页启动后，宽表格、长代码、公式等测试内容正常渲染。
+
+自动化边界
+- 复测命令:
+  adb -t 505 shell input touchscreen swipe 1050 1600 350 1600 500
+- Android 14 返回 SecurityException: Injecting input events requires INJECT_EVENTS permission。
+- 项目没有配置 uni-automator；官方 hello-uni-app-x 示例也注明 program.swipe 在 Android 10 以上不生效。
+- 因此不把 ADB、Monkey 或 program.swipe 当作通过证据，以下结果来自用户在真实设备上的实际触摸。
+
+人工验收步骤与结果
+1. 在“宽表格横向滚动”表格内部左右横滑。
+   结果: 通过；表格内容横向移动，侧栏没有出现。
+2. 垂直滚动到 JavaScript 代码块，在长代码行内部左右横滑。
+   结果: 通过；代码内容横向移动，侧栏没有出现。
+3. 在正文区域执行普通垂直滚动。
+   结果: 通过；页面正常滚动，侧栏不闪动、不误开。
+4. 从屏幕最左缘向右短滑。
+   结果: 通过；侧栏平滑打开。
+5. 侧栏打开后向左滑动关闭。
+   结果: 通过；侧栏平滑关闭。
+
+验收结论
+- 用户于 2026-07-30 明确回复“全部通过”。
+- T05 在 Android 14 真机的五个目标手势场景全部通过，可以从“已实现，待验收”更新为“已完成并验收”。
+- 本项由应用层解决，不提交框架研发。
+
+截图
+- test-results/android-drawer-gesture-acceptance.png
+- 截图状态: 完成全部手势后，正文保持可滚动，公式正常显示，侧栏关闭。
+- 文件大小: 286383 bytes
+- SHA-256: 0f1dc735063be086a03475e15d2325fb1d0f42ed4471e545bd27df707faa4f5c
