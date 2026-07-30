@@ -10,30 +10,67 @@
 
 - HBuilderX：`5.24.2026072917-dev`
 - 编译器：uni-app x 5.24，蒸汽模式，字节码视图层
-- 平台：Android 真机
+- 设备：Xiaomi `M2102K1AC`
+- 系统：Android 14，API 34
+- 屏幕：`1440x3200`，560 dpi
 - 包名：`io.dcloud.ai.x`
 - RichText：`mode="native"`
 
 ## 最小复现
 
-复现页面：[`pages/repro-rich-text-radius/index.uvue`](pages/repro-rich-text-radius/index.uvue)
+页面已经在 `pages.json` 注册。测试代码和本次原始结果均保留在仓库：
 
-页面已经在 `pages.json` 注册。运行时可临时将该路由放到 `pages` 第一项，或从调试代码导航到：
+- 页面：[`pages/repro-rich-text-radius/index.uvue`](pages/repro-rich-text-radius/index.uvue)
+- 路由：`/pages/repro-rich-text-radius/index`
+- 原始截图：[`test-results/android-rich-text-radius-flatten.png`](test-results/android-rich-text-radius-flatten.png)
 
-```text
-/pages/repro-rich-text-radius/index
+### 测试方法
+
+1. 临时将复现路由移到 `pages.json` 第一项。路由顺序变化后必须 clean build，不能依赖热更新同步新增的首屏字节码。
+2. 使用与其他 Android 性能复现相同的自定义基座全量编译并运行：
+
+```sh
+/Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+  --project /Users/json/Desktop/code/uni-ai-x \
+  --deviceId 192.168.2.5:5555 --playground custom \
+  --native-log true --cleanCache true
 ```
 
-页面包含四组相同尺寸对照：
+3. 页面稳定显示五个用例后采集原始设备截图：
+
+```sh
+adb -s 192.168.2.5:5555 shell screencap -p /sdcard/rich-text-radius-f04.png
+adb -s 192.168.2.5:5555 pull /sdcard/rich-text-radius-f04.png \
+  test-results/android-rich-text-radius-flatten.png
+```
+
+4. 检查进程仍存活，并过滤 `AndroidRuntime`、`libc`、`DEBUG`、`CSSParser` 的错误日志。
+
+采集前有两次仅依赖路由热更新的启动失败（13:05:29、13:06:46）：原生层均因缺少 `GenPagesReproRichTextRadiusIndexSharedData.cpp.bytes` 抛出 `failed to open bundle file`，随后收到 `SIGABRT`。改用上述 clean build 后该错误消失，页面稳定启动；这是测试产物未完整同步，不计入圆角用例结果。
+
+### 测试结果
+
+两组配对用例分别保持 nodes、尺寸、颜色、圆角和层级结构一致，只改变父容器是否有 `flatten`：
 
 | 用例 | 结构 | Android 结果 |
 | --- | --- | --- |
-| 1 | 非 flatten 父 View + 普通 View | 正常裁剪 |
-| 2 | flatten 父 View + 原生 RichText | RichText 以直角越过父容器圆角 |
-| 3 | flatten 父 View + 横向 ScrollView + 宽 RichText | 同样越过父容器圆角 |
-| 4 | 用例 3，并给 ScrollView、RichText 和节点增加圆角 CSS | 节点自身左端可变圆，但滚动视口右边仍为直角 |
+| 1 | 非 flatten 父 View + 原生 RichText | 正常，四角均按绿色父边界裁剪 |
+| 2 | flatten 父 View + 原生 RichText | 失败，红色 RichText 以直角越过上下边界 |
+| 3 | 非 flatten 父 View + 横向 ScrollView + 宽 RichText | 正常，滚动视口四角均被裁剪 |
+| 4 | flatten 父 View + 横向 ScrollView + 宽 RichText | 失败，红色内容以直角越过上下边界 |
+| 5 | 用例 4，并给 ScrollView、RichText 和节点增加圆角 CSS | 失败，子级圆角不能恢复父视口裁剪 |
 
-去掉用例 2-4 父 View 的 `flatten` 后，父容器圆角裁剪立即恢复正常，因此变量已经收敛到 `flatten` 与原生 RichText 的组合。
+量化结果为：2 个非 flatten 对照全部正确，3 个 flatten 用例全部失败。用例 1/2 和用例 3/4 均只改变 `flatten`，因此变量已经收敛到 `flatten` 与原生 RichText 的组合；用例 5 进一步排除了“把 CSS 圆角下放到子级即可修复”的解释。
+
+原始截图为 `1440x3200` RGBA PNG，大小 272,259 字节，SHA-256：
+
+```text
+a16f320f0143441e3add44424dfdf1d62f0e5a9ada20d3c009a14a965192a0f9
+```
+
+本轮 clean build 成功，截图后应用进程 `26307` 仍存活；上述四类错误日志过滤结果均为 0 条。
+
+![Android flatten 与原生 RichText 圆角裁剪配对结果](test-results/android-rich-text-radius-flatten.png)
 
 ## 期望结果
 
