@@ -1,0 +1,21 @@
+{
+  "id": "uni-ai-worker",
+  "displayName": "uni-ai Worker",
+  "version": "1.0.0",
+  "description": "uni-ai-x 的流式请求与 Markdown Worker 核心",
+  "keywords": [
+    "worker",
+    "sse",
+    "markdown"
+  ],
+  "engines": {
+    "HBuilderX": "^5.24",
+    "uni-app-x": "^5.24"
+  },
+  "dcloudext": {
+    "type": "uts"
+  },
+  "uni_modules": {
+    "dependencies": []
+  }
+}

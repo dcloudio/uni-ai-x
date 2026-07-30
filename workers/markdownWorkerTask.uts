@@ -2,6 +2,7 @@
 import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
+import { SSEStreamDecoder } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 
 export class MarkdownWorkerTask extends WorkerTaskImpl {
 	private requestTask: RequestTask | null = null
@@ -32,7 +33,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			this.requestTask = null
 			return
 		}
-		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark') return
+		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments') return
 
 		const received = new UTSJSONObject()
 		received.scenario = action
@@ -51,6 +52,11 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		this.postMessage(localResult)
 		console.log('[WorkerCapabilityRepro] worker-local-post-return', action)
 		if (action == 'local') return
+
+		if (action == 'sse-fragments') {
+			this.runSSEFragmentScenario(action)
+			return
+		}
 
 		if (action == 'cmark') {
 			// #ifdef APP-ANDROID
@@ -140,5 +146,71 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 				decodedLength: this.decodedLength
 			} as UTSJSONObject)
 		})
+	}
+
+	private runSSEFragmentScenario(action : string) : void {
+		const source = new Uint8Array([
+			58, 32, 107, 101, 101, 112, 97, 108, 105, 118, 101, 13, 10,
+			100, 97, 116, 97, 58, 32, 123, 34, 99, 111, 110, 116, 101, 110, 116, 34, 58, 34,
+			231, 172, 172, 228, 184, 128, 230, 157, 161, 34, 125, 13, 10, 13, 10,
+			100, 97, 116, 97, 58, 32, 123, 34, 99, 111, 110, 116, 101, 110, 116, 34, 58, 34,
+			231, 172, 172, 228, 186, 140, 230, 157, 161, 34, 125, 10, 10,
+			100, 97, 116, 97, 58, 32, 91, 68, 79, 78, 69, 93, 13, 10, 13, 10
+		])
+		const fragmentSizes = [4, 8, 3, 17, 3, 10, 3, 18, 11, 15, 1]
+		const events : string[] = []
+		let doneCount = 0
+		const streamDecoder = new SSEStreamDecoder(
+			(data : string) => { events.push(data) },
+			() => { doneCount += 1 }
+		)
+		let offset = 0
+		fragmentSizes.forEach((size : number) => {
+			streamDecoder.push(source.slice(offset, offset + size).buffer! as ArrayBuffer)
+			offset += size
+		})
+		streamDecoder.finish()
+
+		const finishEvents : string[] = []
+		const finishDecoder = new SSEStreamDecoder(
+			(data : string) => { finishEvents.push(data) },
+			() => {}
+		)
+		finishDecoder.push(new Uint8Array([100, 97, 116, 97, 58, 32, 116, 97, 105, 108]).buffer! as ArrayBuffer)
+		finishDecoder.finish()
+
+		const multilineEvents : string[] = []
+		const multilineDecoder = new SSEStreamDecoder(
+			(data : string) => { multilineEvents.push(data) },
+			() => {}
+		)
+		multilineDecoder.push(new Uint8Array([
+			100, 97, 116, 97, 58, 32, 102, 105, 114, 115, 116, 10,
+			100, 97, 116, 97, 58, 32, 115, 101, 99, 111, 110, 100, 10, 10
+		]).buffer! as ArrayBuffer)
+		multilineDecoder.finish()
+
+		const firstExpected = '{"content":"第一条"}'
+		const secondExpected = '{"content":"第二条"}'
+		const passed = offset == source.length &&
+			events.length == 2 && events[0] == firstExpected && events[1] == secondExpected &&
+			doneCount == 1 && streamDecoder.eventCount() == 2 && streamDecoder.doneCount() == 1 &&
+			streamDecoder.pendingByteLength() == 0 && streamDecoder.pendingTextLength() == 0 &&
+			finishEvents.length == 1 && finishEvents[0] == 'tail' &&
+			multilineEvents.length == 1 && multilineEvents[0] == 'first\nsecond'
+		this.postMessage({
+			scenario: action,
+			phase: passed ? 'sse-fragments-success' : 'sse-fragments-fail',
+			fragmentSizes: fragmentSizes.join(','),
+			sourceBytes: source.length,
+			eventCount: events.length,
+			firstEvent: events.length > 0 ? events[0] : '',
+			secondEvent: events.length > 1 ? events[1] : '',
+			doneCount: doneCount,
+			pendingBytes: streamDecoder.pendingByteLength(),
+			pendingText: streamDecoder.pendingTextLength(),
+			finishEvent: finishEvents.length > 0 ? finishEvents[0] : '',
+			multilineEvent: multilineEvents.length > 0 ? multilineEvents[0] : ''
+		} as UTSJSONObject)
 	}
 }

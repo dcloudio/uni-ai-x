@@ -23,6 +23,8 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 - 真机截图：[`test-results/android-worker-capability.png`](test-results/android-worker-capability.png)
 - CMark 真机结果：[`test-results/android-worker-cmark-results.txt`](test-results/android-worker-cmark-results.txt)
 - CMark 真机截图：[`test-results/android-worker-cmark.png`](test-results/android-worker-cmark.png)
+- 有状态 UTF-8/SSE 真机结果：[`test-results/android-worker-sse-fragments-results.txt`](test-results/android-worker-sse-fragments-results.txt)
+- 有状态 UTF-8/SSE 真机截图：[`test-results/android-worker-sse-fragments.png`](test-results/android-worker-sse-fragments.png)
 
 ## 验证环境
 
@@ -97,6 +99,18 @@ curl -sS -o /dev/null \
 ```text
 d364af5ac62976c60e614cc436e2ebd7322cbb274d3602a5474f521b392f8c4a
 ```
+
+## 有状态 UTF-8/SSE 分片回归
+
+生产迁移前新增 `uni-ai-worker` 纯 UTS 核心 `SSEStreamDecoder`。它在同一个响应周期内保留未完成的 UTF-8 字节、文本行和 SSE 事件，不再假定一次 `onChunkReceived` 就是一条完整事件。
+
+Android Worker 用 93 个真实 UTF-8 字节构造两条中文 JSON 事件和 `[DONE]`，固定切成 `4,8,3,17,3,10,3,18,11,15,1` 共 11 段。分片点覆盖中文三字节字符中间、CRLF 中间、`data:` 字段中间和 SSE 空行中间。最终 149ms 返回两条无损中文 JSON，`doneCount=1`、`pendingBytes=0`、`pendingText=0`；无结尾空行的 `data: tail` 被 `finish()` 刷出，多行 `data:` 合并为 `first\nsecond`。
+
+同轮回归结果为：本地解码 168ms、普通请求 521ms、网络流 3362ms（3 块/177 字符）、CMark 142ms（2 token）。页面主线程 TID 13799，Worker/plugin TID 18803，CMark JNI TID 18825。完整测试方式、断言、编译路径、失败对照与截图哈希见上述独立结果文件。
+
+本次只修改纯 UTS，没有 `.so`、Kotlin/Java 或原生 `config.json`。HBuilderX 明确提示自定义基座 2.1.4 已是最新并跳过更新，但设备返回了最终版本才新增的 `multilineEvent` 字段，证明纯 UTS 随应用调试内容更新生效。这个结论不外推到 `.so` 或原生桥接修改；此类修改仍须重打自定义基座。
+
+恢复正常聊天页为启动页后再次全量回归：8 个页面编译成功，`ready in 34000ms`；应用主 Activity 为 `RESUMED`，截图确认超宽公式、完整流程图、分割线和下方正文均正常显示，没有本项相关类加载失败或崩溃。
 
 ## 能力矩阵
 

@@ -31,7 +31,7 @@
 
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
-| T01 | 联网到 Markdown 的完整子线程链路 | 未完成，能力已闭环 | 应用层 | Worker 网络、分块、解码和 CMark 已真机通过；待迁移生产链路 |
+| T01 | 联网到 Markdown 的完整子线程链路 | 部分完成 | 应用层 | Worker 能力已闭环；有状态 UTF-8/SSE 核心及分片真机回归已完成，待迁移生产请求与 Markdown |
 | T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | 当前已有 7 类渲染块，但分类与 RichText 节点转换仍在主线程 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
@@ -66,6 +66,8 @@
 - 公式预处理、代码高亮调度、SVG 调用和渲染块构建没有统一进入同一个 worker。
 
 能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。Android 真机已确认真实 Worker 内普通 `uni.request`、`RequestTask.onChunkReceived`、`ArrayBuffer`、`TextDecoder` 和 `uni-cmark` JNI 解析可用；流式请求收到 3 个分块并累计解码 177 个字符，CMark 在 143ms 内返回 2 个 token。模块根别名导入失败已通过“声明插件依赖 + 导入 Android 平台入口”在应用层解决。T01 不再受框架能力阻塞，下一步是迁移生产请求、SSE、Markdown 预处理和渲染描述构建。
+
+第一阶段生产基础已完成：新增纯 UTS `SSEStreamDecoder`，在一个响应周期内保留 UTF-8 尾字节、未完成文本行和 SSE 事件。Android Worker 把 93 个原始 UTF-8 字节切成 11 段，分片点跨越中文字符、CRLF、`data:` 和事件空行，149ms 无损返回两条中文 JSON，`[DONE]` 一次，字节/文本残留均为 0；同时通过无终止空行的 `finish()` 刷出与多行 `data:` 合并断言。测试代码、命令、线程、构建和截图见 [`test-results/android-worker-sse-fragments-results.txt`](test-results/android-worker-sse-fragments-results.txt)。
 
 ### T02 渲染职责边界
 
@@ -211,6 +213,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | T01 | 新增有状态 UTF-8/SSE Worker 核心；保留 11 段边界测试，Android 返回两条无损中文事件且无残留 | 本提交（`fix: 增加有状态 SSE 分片解码`） |
 | 2026-07-30 | F05 | 声明 `uni-cmark` 依赖并导入 Android 平台入口；真机确认 Worker 中 CMark 返回 2 个 token，线程、耗时和截图已归档 | 本提交（`test: 验证 Worker 调用 CMark`） |
 | 2026-07-30 | F05 | 保留 Worker 自动探针、逐项耗时、流式分块原始数据、截图及 CMark 失败 fixture；撤销请求不返回的假阴性结论 | 本提交（`test: 验证 Worker 流式网络能力`） |
 | 2026-07-30 | F04 | 改为仅切换 flatten 的配对用例，归档原始截图、测试命令和逐项结果 | 本提交（`test: 完善 RichText 圆角裁剪证据`） |

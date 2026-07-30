@@ -1,0 +1,159 @@
+export type SSEDataCallback = (data : string) => void
+export type SSEDoneCallback = () => void
+
+function utf8SequenceLength(byte : number) : number {
+	if (byte <= 0x7f) return 1
+	if (byte >= 0xc2 && byte <= 0xdf) return 2
+	if (byte >= 0xe0 && byte <= 0xef) return 3
+	if (byte >= 0xf0 && byte <= 0xf4) return 4
+	return 1
+}
+
+function completeUtf8PrefixLength(bytes : Uint8Array) : number {
+	if (bytes.length == 0) return 0
+
+	let leadIndex = bytes.length - 1
+	while (leadIndex >= 0) {
+		const byte = bytes[leadIndex]
+		if (byte < 0x80 || byte > 0xbf) break
+		leadIndex--
+	}
+	if (leadIndex < 0) return bytes.length
+
+	const expectedLength = utf8SequenceLength(bytes[leadIndex])
+	const availableLength = bytes.length - leadIndex
+	return expectedLength > availableLength ? leadIndex : bytes.length
+}
+
+/**
+ * Keep one decoder for the complete response. Network chunks may end inside
+ * either a UTF-8 code point or an SSE line/event boundary.
+ */
+export class SSEStreamDecoder {
+	private decoder : TextDecoder = new TextDecoder()
+	private pendingBytes : Uint8Array = new Uint8Array(0)
+	private textBuffer = ''
+	private dataLines : string[] = []
+	private dataCallback : SSEDataCallback
+	private doneCallback : SSEDoneCallback
+	private closed = false
+	private emittedEvents = 0
+	private emittedDone = 0
+
+	constructor(dataCallback : SSEDataCallback, doneCallback : SSEDoneCallback) {
+		this.dataCallback = dataCallback
+		this.doneCallback = doneCallback
+	}
+
+	push(chunkData : ArrayBuffer) : void {
+		if (this.closed) return
+		const incoming = new Uint8Array(chunkData)
+		const combined = new Uint8Array(this.pendingBytes.length + incoming.length)
+		for (let index = 0; index < this.pendingBytes.length; index++) {
+			combined[index] = this.pendingBytes[index]
+		}
+		for (let index = 0; index < incoming.length; index++) {
+			combined[this.pendingBytes.length + index] = incoming[index]
+		}
+
+		const completeLength = completeUtf8PrefixLength(combined)
+		if (completeLength > 0) {
+			this.textBuffer += this.decoder.decode(combined.slice(0, completeLength))
+		}
+		this.pendingBytes = combined.slice(completeLength)
+		this.drainLines(false)
+	}
+
+	finish() : void {
+		if (this.closed) return
+		if (this.pendingBytes.length > 0) {
+			this.textBuffer += this.decoder.decode(this.pendingBytes)
+			this.pendingBytes = new Uint8Array(0)
+		}
+		this.drainLines(true)
+		if (this.textBuffer.length > 0) {
+			this.processLine(this.textBuffer)
+			this.textBuffer = ''
+		}
+		this.dispatchEvent()
+		this.closed = true
+	}
+
+	reset() : void {
+		this.pendingBytes = new Uint8Array(0)
+		this.textBuffer = ''
+		this.dataLines = []
+		this.closed = false
+		this.emittedEvents = 0
+		this.emittedDone = 0
+	}
+
+	pendingByteLength() : number {
+		return this.pendingBytes.length
+	}
+
+	pendingTextLength() : number {
+		return this.textBuffer.length
+	}
+
+	eventCount() : number {
+		return this.emittedEvents
+	}
+
+	doneCount() : number {
+		return this.emittedDone
+	}
+
+	private drainLines(flushTrailingCarriageReturn : boolean) : void {
+		while (!this.closed) {
+			const lfIndex = this.textBuffer.indexOf('\n')
+			const crIndex = this.textBuffer.indexOf('\r')
+			if (lfIndex < 0 && crIndex < 0) return
+
+			let separatorIndex = lfIndex
+			if (separatorIndex < 0 || (crIndex >= 0 && crIndex < separatorIndex)) {
+				separatorIndex = crIndex
+			}
+			const separator = this.textBuffer.charAt(separatorIndex)
+			if (separator == '\r' && separatorIndex == this.textBuffer.length - 1 && !flushTrailingCarriageReturn) {
+				return
+			}
+
+			let separatorLength = 1
+			if (separator == '\r' && this.textBuffer.charAt(separatorIndex + 1) == '\n') {
+				separatorLength = 2
+			}
+			const line = this.textBuffer.substring(0, separatorIndex)
+			this.textBuffer = this.textBuffer.substring(separatorIndex + separatorLength)
+			this.processLine(line)
+		}
+	}
+
+	private processLine(line : string) : void {
+		if (line.length == 0) {
+			this.dispatchEvent()
+			return
+		}
+		if (line.startsWith(':')) return
+
+		const colonIndex = line.indexOf(':')
+		const field = colonIndex < 0 ? line : line.substring(0, colonIndex)
+		let value = colonIndex < 0 ? '' : line.substring(colonIndex + 1)
+		if (value.startsWith(' ')) value = value.substring(1)
+		if (field == 'data') this.dataLines.push(value)
+	}
+
+	private dispatchEvent() : void {
+		if (this.dataLines.length == 0 || this.closed) return
+		const data = this.dataLines.join('\n')
+		this.dataLines = []
+		if (data == '[DONE]') {
+			this.closed = true
+			this.emittedDone += 1
+			this.doneCallback()
+			return
+		}
+		this.emittedEvents += 1
+		this.dataCallback(data)
+	}
+}
