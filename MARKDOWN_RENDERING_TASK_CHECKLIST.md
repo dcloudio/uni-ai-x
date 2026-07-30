@@ -31,7 +31,7 @@
 
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
-| T01 | 联网到 Markdown 的完整子线程链路 | 未完成 | 应用层设计，依赖框架能力确认 | 当前只有 Android `md2json` 进入 executor |
+| T01 | 联网到 Markdown 的完整子线程链路 | 未完成，受能力阻塞 | 应用层设计，依赖框架能力确认 | Worker 内请求不返回，且无法直接导入 `uni-cmark` |
 | T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | 当前已有 7 类渲染块，但分类与 RichText 节点转换仍在主线程 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
@@ -65,7 +65,7 @@
 - Android 只有 `asyncMd2json()` 在单线程 executor 中执行。
 - 公式预处理、代码高亮调度、SVG 调用和渲染块构建没有统一进入同一个 worker。
 
-下一步：先完成 F05 的能力确认，再确定使用真实 Worker、原生 UTS executor，或新增统一的原生任务模块。
+能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。真实 Worker 可由 UTS 插件创建，且 Worker 内 `TextDecoder` 可用；但 Android 真机中 `uni.request` 调用不返回，现有 `uni-cmark` 也无法从 Worker 脚本直接导入。下一步先由框架确认这两个边界，再决定真实 Worker 或统一原生任务模块，暂不开始无法闭环的大规模重构。
 
 ### T02 渲染职责边界
 
@@ -165,19 +165,29 @@ T13 已完成：
 | F02 | 原生布局和 View 追加产生主线程长任务 | 待上报 | P0 | layout 最大 69.11ms；append View 最大 40.65ms |
 | F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 41 次 slow bitmap upload；动态插图约 21ms |
 | F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 待上报 | P1 | Android 最小复现已确认，见圆角裁剪报告 |
-| F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 待确认能力 | - | 需要确认下列 API 是否能在 Worker 使用 |
+| F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 待确认能力 | P0 | TextDecoder 已确认；`uni.request` 不返回；`uni-cmark` 导入失败 |
 
 F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPORT.md`](RICH_TEXT_PERFORMANCE_REPORT.md)。
 
 F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CLIPPING_REPORT.md`](RICH_TEXT_RADIUS_CLIPPING_REPORT.md)。结论不是“所有 RichText 都不能圆角”，而是 Android 蒸汽模式下 `flatten` 父 View 与原生 RichText 的组合不能正确执行父级圆角裁剪。RichText 节点 CSS 只能处理内容自身的首尾边缘，不能替代宽内容外层 ScrollView 的视口裁剪。
 
-### F05 需要向框架确认的问题
+F05 的官方能力、真机探针、编译错误和建议架构见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。当前不能简单归类成应用代码问题：UTS 插件创建 Worker 和 `TextDecoder` 已真机通过，但 `uni.request` 的运行结果与官方说明不一致，Worker 导入现有 `uni-cmark` 也缺少可用路径。
 
-1. 真实 Worker 是否支持 `uni.request` 和流式 `onChunkReceived`？
-2. Worker 内是否支持 `TextDecoder`、JSON 解析和 ArrayBuffer 持续解码？
-3. Worker 内能否调用 `uni-cmark` 等 UTS 原生插件？
-4. Worker 与主线程之间传递 `MarkdownToken[]`/`UTSJSONObject` 是否会发生全量序列化和复制？
-5. Worker 是否支持请求取消、页面销毁时释放任务，以及回调顺序保证？
+### F05 已确认的边界
+
+- Android 蒸汽模式 `.uvue` 页面不能直接调用 `uni.createWorker`，必须由 UTS 插件封装创建。
+- Worker 本地消息收发、`ArrayBuffer` 和 `TextDecoder` 已在 Android 真机通过。
+- Android/iOS 的引用类型按官方说明直接共享内存，不默认克隆；传递渲染描述后必须避免两线程继续修改同一对象。
+- `transferable` 只支持鸿蒙和 Web，Android 方案不能依赖所有权转移。
+- `RequestTask.abort()` 和 `Worker.terminate()` 有公开 API，但仍需用请求版本主动丢弃迟到结果。
+
+### F05 仍需向框架确认的问题
+
+1. 为什么 Android 真机 Worker 内 `uni.request` 调用后不返回，成功、失败和超时回调也不触发？
+2. `onChunkReceived` 在 Worker 内是否有已验证的 Android 示例与最低版本？
+3. Worker 脚本应如何导入并调用项目内 `uni-cmark` 这类 UTS 原生插件？
+4. 如果 Worker 不能调用 UTS 插件，框架推荐如何实现“联网到 CMark 全部在同一子线程”？
+5. 请求取消、Worker 销毁和已排队回调之间是否有顺序保证？
 
 ## 暂不提交框架的问题
 
@@ -192,13 +202,14 @@ F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CL
 
 1. 人工验收 T05：表格/代码横滑、垂直滚动、左缘短滑和侧栏关闭。
 2. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
-3. 向框架确认 F05，再设计和实现 T01-T02 的完整子线程架构。
+3. 携带 Worker 能力报告向框架确认 F05；能力闭环后再设计和实现 T01-T02。
 4. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | F05 | 完成 Android Worker 网络、解码、消息和插件导入能力探针；记录当前阻塞项 | 本提交（`docs: 明确蒸汽模式 Worker 能力边界`） |
 | 2026-07-30 | F04 | 完成 flatten + 原生 RichText 圆角裁剪最小复现和框架报告 | 本提交（`test: 新增 RichText 圆角裁剪复现`） |
 | 2026-07-29 | T15 | 修复整段 Markdown 中代码块之前的公式被跳过 | 本提交（`fix: 修复代码块前公式解析遗漏`） |
 | 2026-07-29 | T13 | 公式和流程图使用双 Image 缓冲；Android 连续 24 帧明暗切换无空白帧 | 本提交（`fix: 使用双 Image 缓冲切换 SVG 主题`） |
