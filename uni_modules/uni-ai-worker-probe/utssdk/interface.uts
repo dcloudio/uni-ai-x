@@ -19,5 +19,7 @@ export type WorkerProbeErrorOptions = {
 }
 
 export type WorkerProbeSendOptions = {
-	scenario: string
+	scenario: string,
+	command?: string,
+	sentAt?: number
 }

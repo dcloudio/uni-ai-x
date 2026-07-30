@@ -27,8 +27,9 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 		console.log('[WorkerCapabilityRepro] plugin-message', JSON.stringify(message))
 		const result = message as UTSJSONObject
 		const phase = result.getString('phase', '')
-		if (currentScenario == 'full-chain' &&
-			(phase == 'full-chain-snapshot' || phase == 'full-chain-success' || phase == 'full-chain-fail')) {
+		if ((currentScenario == 'full-chain' &&
+			(phase == 'full-chain-snapshot' || phase == 'full-chain-success' || phase == 'full-chain-fail')) ||
+			(currentScenario == 'cancel-restart' && phase.indexOf('cancel-restart') == 0)) {
 			latestSnapshotJson = JSON.stringify(result)
 		}
 		const isTerminal = currentScenario == 'local'
@@ -39,6 +40,8 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 				? phase == 'stream-core-success' || phase == 'stream-core-fail'
 			: currentScenario == 'full-chain'
 				? phase == 'full-chain-success' || phase == 'full-chain-fail'
+			: currentScenario == 'cancel-restart'
+				? phase == 'cancel-restart-success' || phase == 'cancel-restart-fail'
 			: currentScenario == 'cmark'
 				? phase == 'cmark-success' || phase == 'cmark-fail'
 				: phase == 'request-success' || phase == 'request-fail'
@@ -72,8 +75,10 @@ export function sendWorkerProbeMessage(options: WorkerProbeSendOptions): void {
 	if (worker == null) return
 	currentScenario = options.scenario
 	const message = new UTSJSONObject()
-	message.action = options.scenario
-	console.log('[WorkerCapabilityRepro] plugin-post', options.scenario)
+	message.action = options.command ?? options.scenario
+	message.scenario = options.scenario
+	message.sentAt = options.sentAt ?? 0
+	console.log('[WorkerCapabilityRepro] plugin-post', options.scenario, message.action)
 	worker!.postMessage(message, null)
 }
 

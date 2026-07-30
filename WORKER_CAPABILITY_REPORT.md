@@ -29,6 +29,8 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 - Worker 生产流式请求核心截图：[`test-results/android-worker-stream-core.png`](test-results/android-worker-stream-core.png)
 - Worker 完整机械链路可行性结果：[`test-results/android-worker-full-chain-feasibility-results.txt`](test-results/android-worker-full-chain-feasibility-results.txt)
 - Worker 完整机械链路可行性截图：[`test-results/android-worker-full-chain-feasibility.png`](test-results/android-worker-full-chain-feasibility.png)
+- Worker 取消重启隔离结果：[`test-results/android-worker-cancel-restart-results.txt`](test-results/android-worker-cancel-restart-results.txt)
+- Worker 取消重启隔离截图：[`test-results/android-worker-cancel-restart.png`](test-results/android-worker-cancel-restart.png)
 
 ## 验证环境
 
@@ -135,6 +137,16 @@ Android 真机向真实 event-stream 地址发起 POST，Worker 核心耗时 342
 这证明 Android 蒸汽模式下“真实网络 -> ArrayBuffer/SSE -> Markdown -> CMark -> 稳定渲染描述 -> 主线程多批消费”的机械链路可行，但 T01 仍不能进入生产实施：取消后立即重启、真实七牛/百炼响应格式与鉴权、`reasoning_content`、`[DONE]` 和长 Markdown 仍是实施前闸门。本阶段没有修改生产 `RequestAiRunner`。
 
 不带 `--pagePath` 恢复正常入口后再次全量回归：8 个页面编译成功，`ready in 31038ms`；应用主 Activity 为 `topResumedActivity`，截图确认超宽公式、完整流程图、分割线和下方正文均正常显示，启动时间窗没有 AndroidRuntime 或 libc 致命记录。截图尺寸、哈希和检查命令保存在完整链路结果文件中。
+
+## 取消重启与迟到结果隔离闸门
+
+隔离探针让请求 A 先取得首批结果，页面轮询到 `A:1` 后发出带时间戳的 `restart-request`。Worker 收到控制后先对 A 调用 `abort()`，随即创建并启动独立标识的请求 B；B 完成后继续观察 1500ms 才做终态断言。三次冷启动均完整观察到 `A:1,B:1,B:2,B:3`，B 每次都是 3 块、177 字节且中文顺序正确；A 在取消后的应用层数据回调与成功/失败回调均为 0。
+
+三轮页面到 Worker 的控制投递为 5ms、5ms、6ms，Worker 内 A 取消到 B 启动为 0ms、1ms、0ms。第三轮页面主线程 TID 为 28318，Worker/plugin TID 为 31126（`pool-5-thread-1`）；没有 `host-timeout`、隔离断言失败、类加载失败或崩溃。完整协议、逐轮数据、命令、线程及证据边界见独立结果文件。
+
+该结果证明迟到 A 结果不会越过 `WorkerStreamRequest` 的 generation 防线污染应用层 B 结果，不等价于宣称 Android 网络栈没有产生被丢弃的底层回调。取消闸门通过后，T01 实施前只剩真实七牛/百炼 AI 的鉴权和协议闸门；本阶段仍未修改生产 `RequestAiRunner`。
+
+取消探针完成后不带 `--pagePath` 再做正常入口回归：8 个页面编译成功，`ready in 28466ms`；应用主 Activity 为 `topResumedActivity`，截图确认公式、完整流程图、分割线和后续正文正常，致命错误扫描为空。
 
 ## 能力矩阵
 

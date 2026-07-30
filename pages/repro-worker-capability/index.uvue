@@ -32,9 +32,10 @@
 	const LOCAL_TIMEOUT = 3000
 	const CMARK_TIMEOUT = 5000
 	const FULL_CHAIN_TIMEOUT = 18000
+	const CANCEL_RESTART_TIMEOUT = 22000
 	const SNAPSHOT_POLL_INTERVAL = 50
 	const NEXT_DELAY = 600
-	const scenarios = ['local', 'sse-fragments', 'stream-core', 'request', 'stream', 'cmark', 'full-chain']
+	const scenarios = ['local', 'sse-fragments', 'stream-core', 'request', 'stream', 'cmark', 'full-chain', 'cancel-restart']
 
 	const isRunning = ref(false)
 	const status = ref('准备自动测试')
@@ -49,6 +50,8 @@
 	let runVersion = 0
 	let lastSnapshotJson = ''
 	let observedSnapshotVersions : number[] = []
+	let observedRestartSnapshots : string[] = []
+	let restartControlSent = false
 
 	function stopWorkerProbe() {
 		destroyWorkerProbe()
@@ -108,16 +111,37 @@
 	}
 
 	function startSnapshotPolling(scenario: string, version: number) {
-		if (scenario != 'full-chain') return
+		if (scenario != 'full-chain' && scenario != 'cancel-restart') return
 		lastSnapshotJson = ''
 		observedSnapshotVersions = []
+		observedRestartSnapshots = []
+		restartControlSent = false
 		snapshotTimerId = setInterval(() => {
 			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
 			const snapshotJson = readWorkerProbeSnapshot()
 			if (snapshotJson.length == 0 || snapshotJson == lastSnapshotJson) return
 			lastSnapshotJson = snapshotJson
 			const snapshot = JSON.parse<UTSJSONObject>(snapshotJson) as UTSJSONObject
-			if (snapshot.getString('phase', '') != 'full-chain-snapshot') return
+			const phase = snapshot.getString('phase', '')
+			if (scenario == 'cancel-restart' && phase == 'cancel-restart-snapshot') {
+				const requestId = snapshot.getString('requestId', '')
+				const requestEventCount = snapshot.getNumber('requestEventCount', 0)
+				const snapshotId = requestId + ':' + requestEventCount.toString()
+				if (observedRestartSnapshots.indexOf(snapshotId) == -1) {
+					observedRestartSnapshots.push(snapshotId)
+					console.log('[WorkerFeasibility] restart-snapshot-observed', snapshotId, snapshotJson)
+				}
+				if (requestId == 'A' && requestEventCount >= 1 && !restartControlSent) {
+					restartControlSent = true
+					sendWorkerProbeMessage({
+						scenario: scenario,
+						command: 'restart-request',
+						sentAt: Date.now()
+					} as WorkerProbeSendOptions)
+				}
+				return
+			}
+			if (phase != 'full-chain-snapshot') return
 			const snapshotVersion = snapshot.getNumber('snapshotVersion', 0)
 			if (snapshotVersion > 0 && observedSnapshotVersions.indexOf(snapshotVersion) == -1) {
 				observedSnapshotVersions.push(snapshotVersion)
@@ -189,6 +213,28 @@
 				finishScenario(scenario, version)
 				return
 			}
+			if (scenario == 'cancel-restart' &&
+				(phase == 'cancel-restart-success' || phase == 'cancel-restart-fail')) {
+				let sawA = false
+				let sawB = false
+				observedRestartSnapshots.forEach((value : string) => {
+					if (value.indexOf('A:') == 0) sawA = true
+					if (value.indexOf('B:') == 0) sawB = true
+				})
+				const pagePassed = phase == 'cancel-restart-success' && restartControlSent && sawA && sawB &&
+					result.getBoolean('restartIssued', false) &&
+					result.getNumber('aEventCountAtCancel', 0) >= 1 &&
+					result.getNumber('aLateEventCount', -1) == 0 &&
+					result.getNumber('aLateTerminalCount', -1) == 0 &&
+					result.getNumber('bEventCount', 0) == 3 &&
+					result.getNumber('bNetworkChunkCount', 0) == 3 &&
+					result.getNumber('bReceivedBytes', 0) == 177
+				appendResult(scenario,
+					pagePassed ? 'isolation-success' : 'isolation-fail',
+					`snapshots=${observedRestartSnapshots.join(',')} controlSent=${restartControlSent}`)
+				finishScenario(scenario, version)
+				return
+			}
 
 			if ((scenario == 'local' && phase == 'local') ||
 				phase == 'sse-fragments-success' || phase == 'sse-fragments-fail' ||
@@ -206,7 +252,8 @@
 		const waitTime = scenario == 'local' || scenario == 'sse-fragments'
 			? LOCAL_TIMEOUT
 			: scenario == 'cmark' ? CMARK_TIMEOUT
-				: scenario == 'full-chain' ? FULL_CHAIN_TIMEOUT : NETWORK_TIMEOUT
+				: scenario == 'full-chain' ? FULL_CHAIN_TIMEOUT
+					: scenario == 'cancel-restart' ? CANCEL_RESTART_TIMEOUT : NETWORK_TIMEOUT
 		timeoutId = setTimeout(() => {
 			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
 			appendResult(scenario, 'host-timeout', `limit=${waitTime}ms`)

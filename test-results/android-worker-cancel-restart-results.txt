@@ -1,0 +1,160 @@
+Android Worker cancel/restart isolation result
+==============================================
+
+Date: 2026-07-30
+HBuilderX: 5.24.2026072917-dev
+Compiler: uni-app x 5.24 vapor mode, bytecode view layer
+Package: io.dcloud.ai.x
+Custom playground version: 2.1.4
+Device: Xiaomi M2102K1AC
+Android: 14 (API 34)
+Physical display: 1440x3200, density 560
+
+Purpose:
+Validate cancellation, immediate restart and stale-result isolation before
+integrating the Worker request core into production RequestAiRunner.
+
+This is an isolated feasibility probe. It does not modify production chat or
+use a real AI provider.
+
+Retained test code:
+- Request core under test: uni_modules/uni-ai-worker/utssdk/stream-request.uts
+- Worker scenario: workers/markdownWorkerTask.uts,
+  runCancelRestartScenario()
+- Control/snapshot bridge: uni_modules/uni-ai-worker-probe/utssdk
+- Automatic page: pages/repro-worker-capability/index.uvue
+
+Protocol:
+1. Worker starts request A against the six-event stream fixture.
+2. Worker publishes request-tagged snapshots through the probe plugin.
+3. The page polls immutable snapshots every 50ms.
+4. After observing A's first event, the page sends restart-request with its
+   send timestamp.
+5. Worker aborts A and starts a separately tagged request B without a timer or
+   scheduling gap. B targets the three-event stream fixture.
+6. After B completes, Worker keeps a 1500ms observation window open before
+   publishing the terminal assertion.
+
+Network fixtures:
+- A: POST https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=6
+- B: POST https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3
+- enableChunked: true
+- Expected B: 3 chunks, 177 bytes and contents 1, 2, 3 in order.
+
+Assertions:
+- A produces at least one event before the page sends restart-request.
+- restart-request reaches Worker and B starts immediately after A.abort().
+- No A data callback reaches application code after restart.
+- No A success/fail callback reaches application code after restart.
+- B returns exactly 3 chunks, 177 bytes and the expected ordered contents.
+- The page observes an A snapshot and at least one B snapshot.
+- The automatic sequence has no host timeout or isolation failure.
+
+Test procedure for each cold run:
+1. Clear device logs:
+   adb -s 192.168.2.5:5555 logcat -c
+2. Build, launch and open the probe directly without changing pages.json:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --playground custom \
+     --native-log true \
+     --cleanCache true \
+     --pagePath pages/repro-worker-capability/index
+3. Wait for the eight-scenario sequence to show all complete.
+4. Extract the terminal and snapshot records:
+   adb -s 192.168.2.5:5555 logcat -d \
+     --regex='cancel-restart-(success|fail)|isolation-(success|fail)|restart-snapshot-observed|WorkerCapabilityRepro.*complete'
+5. Scan for fatal and assertion failures:
+   adb -s 192.168.2.5:5555 logcat -d \
+     --regex='FATAL EXCEPTION|SIGABRT|host-timeout|cancel-restart-fail|isolation-fail|NoClassDefFoundError'
+6. Retrieve HBuilderX logs through the required CLI path:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli logcat app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --mode lastBuild
+7. Launch once without --pagePath, then inspect the foreground Activity,
+   screenshot and fatal-error scan for the normal chat entry.
+
+Run 1:
+- Build: all 8 pages compiled; ready in 68708ms.
+- Worker terminal elapsed: 5224ms.
+- Page terminal/isolation elapsed: 5374ms / 5376ms.
+- A events at cancel / total: 1 / 1.
+- A late data / terminal callbacks: 0 / 0.
+- B chunks / bytes / events: 3 / 177 / 3.
+- Control delivery / immediate restart: 5ms / 0ms.
+- Page snapshots: A:1,B:1,B:2,B:3.
+- Result: PASS.
+
+Run 2:
+- Build: all 8 pages compiled; ready in 66656ms.
+- Worker terminal elapsed: 5166ms.
+- Page terminal/isolation elapsed: 5334ms / 5337ms.
+- A events at cancel / total: 1 / 1.
+- A late data / terminal callbacks: 0 / 0.
+- B chunks / bytes / events: 3 / 177 / 3.
+- Control delivery / immediate restart: 5ms / 1ms.
+- Page snapshots: A:1,B:1,B:2,B:3.
+- Result: PASS.
+
+Run 3:
+- Build: all 8 pages compiled successfully.
+- Worker terminal elapsed: 5363ms.
+- Page terminal/isolation elapsed: 5515ms / 5518ms.
+- A events at cancel / total: 1 / 1.
+- A late data / terminal callbacks: 0 / 0.
+- B chunks / bytes / events: 3 / 177 / 3.
+- Control delivery / immediate restart: 6ms / 0ms.
+- Page snapshots: A:1,B:1,B:2,B:3.
+- Result: PASS.
+
+Thread evidence from run 3:
+- Page/main PID and TID: 28318, name io.dcloud.ai.x.
+- Worker/plugin TID: 31126, name pool-5-thread-1.
+- Request control, callbacks and assertions ran on TID 31126, not page/main.
+- Foreground Activity was io.dcloud.ai.x/io.dcloud.uniappxv.UniAppActivity
+  in topResumedActivity state.
+
+Failure scan:
+- No FATAL EXCEPTION, SIGABRT, host-timeout, cancel-restart-fail,
+  isolation-fail or NoClassDefFoundError matched run 3.
+- HBuilderX CLI log retrieval completed successfully.
+- The custom playground stayed at 2.1.4; pure UTS changes executed without a
+  rebuilt playground.
+
+Normal-entry regression:
+- All 8 pages compiled successfully; ready in 28466ms.
+- The foreground Activity was io.dcloud.ai.x/io.dcloud.uniappxv.UniAppActivity
+  in topResumedActivity state, process PID 29807.
+- A 1440x3200 RGBA screenshot showed the normal chat page with the wide
+  formula, complete flowchart, divider and following text rendered.
+- No FATAL EXCEPTION, SIGABRT, NoClassDefFoundError or isolation failure
+  matched the normal-entry launch window.
+- Temporary screenshot: /private/tmp/uni-ai-cancel-restart-normal.png
+- Screenshot size: 238057 bytes.
+- Screenshot SHA-256:
+  ecbd939016548c8785f9fb7a8e6e8ab64ade93b1fd6f4673d7bb65de1e3306cf
+
+Conclusion:
+PASS: three cold runs all cancelled A after its first visible event and started
+      B in 0-1ms inside Worker.
+PASS: B was complete and ordered in every run; no A data or terminal callback
+      reached application code during the post-restart observation window.
+PASS: the page-to-plugin-to-Worker control path took 5-6ms in these runs.
+
+Evidence boundary:
+- The counters prove that stale A callbacks did not cross WorkerStreamRequest's
+  generation guard into application callbacks. They do not claim that the
+  Android network stack produced no lower-level callback that was discarded.
+- The 1500ms explicit observation window starts after B completes; the total
+  A isolation interval was more than five seconds in each run.
+- This uses a deterministic DCloud event-stream fixture, not qiniu or bailian.
+- Real provider authentication, SSE variants, reasoning_content, [DONE], error
+  payloads and long Markdown remain a separate gate.
+- iOS and Harmony are not covered.
+
+Screenshot:
+- test-results/android-worker-cancel-restart.png
+- PNG 1440x3200 with alpha, 430347 bytes.
+- SHA-256 0caea6b3e1db781734ffb4be900e9da2eac0f45ad797a8b4b44fee007b3262de

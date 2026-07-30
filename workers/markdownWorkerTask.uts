@@ -11,6 +11,24 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 	private chunkCount = 0
 	private decodedLength = 0
 	private streamRequest : WorkerStreamRequest | null = null
+	private restartRequestA : WorkerStreamRequest | null = null
+	private restartRequestB : WorkerStreamRequest | null = null
+	private restartScenarioActive = false
+	private restartFinished = false
+	private restartStartedAt = 0
+	private restartIssuedAt = 0
+	private restartControlSentAt = 0
+	private restartBStartedAt = 0
+	private restartSnapshotVersion = 0
+	private restartAEventCount = 0
+	private restartAEventCountAtCancel = 0
+	private restartALateEventCount = 0
+	private restartALateTerminalCount = 0
+	private restartBEventCount = 0
+	private restartBNetworkChunkCount = 0
+	private restartBReceivedBytes = 0
+	private restartBContents : string[] = []
+	private restartObservationTimer : number | null = null
 
 	constructor() {
 		super()
@@ -28,16 +46,28 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 	}
 
 	override onMessage(message: any) {
-		const action = (message as UTSJSONObject).getString('action', '')
+		const payload = message as UTSJSONObject
+		const action = payload.getString('action', '')
 		console.log('[WorkerCapabilityRepro] worker-message', action)
+		if (action == 'restart-request') {
+			this.restartWithRequestB(payload.getNumber('sentAt', 0))
+			return
+		}
 		if (action == 'cancel') {
 			this.requestTask?.abort()
 			this.streamRequest?.abort()
+			this.restartRequestA?.abort()
+			this.restartRequestB?.abort()
+			if (this.restartObservationTimer != null) clearTimeout(this.restartObservationTimer!)
 			this.requestTask = null
 			this.streamRequest = null
+			this.restartRequestA = null
+			this.restartRequestB = null
+			this.restartObservationTimer = null
+			this.restartScenarioActive = false
 			return
 		}
-		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core' && action != 'full-chain') return
+		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core' && action != 'full-chain' && action != 'cancel-restart') return
 
 		const received = new UTSJSONObject()
 		received.scenario = action
@@ -70,6 +100,10 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			this.runFullChainScenario(action)
 			return
 			// #endif
+		}
+		if (action == 'cancel-restart') {
+			this.runCancelRestartScenario(action)
+			return
 		}
 
 		if (action == 'cmark') {
@@ -275,6 +309,169 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			'{}',
 			8000
 		)
+	}
+
+	private runCancelRestartScenario(action : string) : void {
+		this.restartRequestA?.abort()
+		this.restartRequestB?.abort()
+		if (this.restartObservationTimer != null) clearTimeout(this.restartObservationTimer!)
+		this.restartRequestA = null
+		this.restartRequestB = null
+		this.restartObservationTimer = null
+		this.restartScenarioActive = true
+		this.restartFinished = false
+		this.restartStartedAt = Date.now()
+		this.restartIssuedAt = 0
+		this.restartControlSentAt = 0
+		this.restartBStartedAt = 0
+		this.restartSnapshotVersion = 0
+		this.restartAEventCount = 0
+		this.restartAEventCountAtCancel = 0
+		this.restartALateEventCount = 0
+		this.restartALateTerminalCount = 0
+		this.restartBEventCount = 0
+		this.restartBNetworkChunkCount = 0
+		this.restartBReceivedBytes = 0
+		this.restartBContents = []
+
+		this.restartRequestA = new WorkerStreamRequest(
+			(data : string) => {
+				this.restartAEventCount += 1
+				if (this.restartIssuedAt > 0) this.restartALateEventCount += 1
+				this.postRestartSnapshot(action, 'A', this.restartAEventCount, this.readEventContent(data))
+			},
+			(code : string, message : string) => {
+				if (this.restartIssuedAt > 0) {
+					this.restartALateTerminalCount += 1
+					return
+				}
+				this.finishCancelRestart(action, false, 'request A failed before restart: ' + code + ' ' + message)
+			},
+			(_source : string, _networkChunkCount : number, _receivedBytes : number) => {
+				if (this.restartIssuedAt > 0) {
+					this.restartALateTerminalCount += 1
+					return
+				}
+				this.finishCancelRestart(action, false, 'request A completed before restart')
+			}
+		)
+		this.restartRequestA!.start(
+			'https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=6',
+			'',
+			'{}',
+			12000
+		)
+	}
+
+	private restartWithRequestB(controlSentAt : number) : void {
+		if (!this.restartScenarioActive || this.restartFinished || this.restartIssuedAt > 0) return
+		if (this.restartAEventCount == 0) {
+			this.finishCancelRestart('cancel-restart', false, 'restart arrived before request A produced data')
+			return
+		}
+
+		this.restartControlSentAt = controlSentAt
+		this.restartIssuedAt = Date.now()
+		this.restartAEventCountAtCancel = this.restartAEventCount
+		this.restartRequestA?.abort()
+		this.restartBStartedAt = Date.now()
+		this.postMessage({
+			scenario: 'cancel-restart',
+			phase: 'cancel-restart-issued',
+			aEventCountAtCancel: this.restartAEventCountAtCancel,
+			controlDeliveryMs: controlSentAt > 0 ? this.restartIssuedAt - controlSentAt : -1,
+			restartDelayMs: this.restartBStartedAt - this.restartIssuedAt
+		} as UTSJSONObject)
+
+		this.restartRequestB = new WorkerStreamRequest(
+			(data : string) => {
+				this.restartBEventCount += 1
+				const content = this.readEventContent(data)
+				this.restartBContents.push(content)
+				this.postRestartSnapshot('cancel-restart', 'B', this.restartBEventCount, content)
+			},
+			(code : string, message : string) => {
+				this.finishCancelRestart('cancel-restart', false, 'request B failed: ' + code + ' ' + message)
+			},
+			(_source : string, networkChunkCount : number, receivedBytes : number) => {
+				this.restartBNetworkChunkCount = networkChunkCount
+				this.restartBReceivedBytes = receivedBytes
+				this.postMessage({
+					scenario: 'cancel-restart',
+					phase: 'cancel-restart-observing',
+					observationWindowMs: 1500,
+					bEventCount: this.restartBEventCount
+				} as UTSJSONObject)
+				this.restartObservationTimer = setTimeout(() => {
+					this.restartObservationTimer = null
+					const passed = this.restartAEventCountAtCancel >= 1 &&
+						this.restartALateEventCount == 0 && this.restartALateTerminalCount == 0 &&
+						this.restartBEventCount == 3 && this.restartBNetworkChunkCount == 3 &&
+						this.restartBReceivedBytes == 177 && this.restartBContents.join('|') ==
+							'这是第1条消息|这是第2条消息|这是第3条消息'
+					this.finishCancelRestart('cancel-restart', passed,
+						passed ? '' : 'cancel/restart assertions failed')
+				}, 1500)
+			}
+		)
+		this.restartRequestB!.start(
+			'https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3',
+			'',
+			'{}',
+			8000
+		)
+	}
+
+	private postRestartSnapshot(action : string, requestId : string, requestEventCount : number, content : string) : void {
+		this.restartSnapshotVersion += 1
+		this.postMessage({
+			scenario: action,
+			phase: 'cancel-restart-snapshot',
+			snapshotVersion: this.restartSnapshotVersion,
+			requestId: requestId,
+			requestEventCount: requestEventCount,
+			content: content,
+			afterRestart: this.restartIssuedAt > 0,
+			elapsed: Date.now() - this.restartStartedAt
+		} as UTSJSONObject)
+	}
+
+	private finishCancelRestart(action : string, passed : boolean, detail : string) : void {
+		if (this.restartFinished) return
+		this.restartFinished = true
+		this.restartScenarioActive = false
+		if (this.restartObservationTimer != null) clearTimeout(this.restartObservationTimer!)
+		this.restartObservationTimer = null
+		this.restartRequestA?.abort()
+		this.restartRequestB?.abort()
+		this.postMessage({
+			scenario: action,
+			phase: passed ? 'cancel-restart-success' : 'cancel-restart-fail',
+			detail: detail,
+			elapsed: Date.now() - this.restartStartedAt,
+			restartIssued: this.restartIssuedAt > 0,
+			aEventCount: this.restartAEventCount,
+			aEventCountAtCancel: this.restartAEventCountAtCancel,
+			aLateEventCount: this.restartALateEventCount,
+			aLateTerminalCount: this.restartALateTerminalCount,
+			bEventCount: this.restartBEventCount,
+			bNetworkChunkCount: this.restartBNetworkChunkCount,
+			bReceivedBytes: this.restartBReceivedBytes,
+			bContents: this.restartBContents.join('|'),
+			controlDeliveryMs: this.restartControlSentAt > 0 ? this.restartIssuedAt - this.restartControlSentAt : -1,
+			restartDelayMs: this.restartBStartedAt > 0 ? this.restartBStartedAt - this.restartIssuedAt : -1,
+			observationWindowMs: 1500
+		} as UTSJSONObject)
+		this.restartRequestA = null
+		this.restartRequestB = null
+	}
+
+	private readEventContent(data : string) : string {
+		try {
+			return (JSON.parse<UTSJSONObject>(data) as UTSJSONObject).getString('content', '')
+		} catch (_error) {
+			return ''
+		}
 	}
 
 	// #ifdef APP-ANDROID

@@ -31,7 +31,7 @@
 
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
-| T01 | 联网到 Markdown 的完整子线程链路 | 部分完成 | 应用层 | 完整机械链路及 6 批快照真机通过；待取消重启和真实 AI 闸门，通过前不接生产 |
+| T01 | 联网到 Markdown 的完整子线程链路 | 部分完成 | 应用层 | 完整机械链路、6 批快照和取消重启隔离真机通过；待真实 AI 闸门，通过前不接生产 |
 | T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | 当前已有 7 类渲染块，但分类与 RichText 节点转换仍在主线程 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
@@ -73,7 +73,9 @@
 
 关于自定义基座的证据边界：以上两阶段均为纯 UTS，HBuilderX 跳过自定义基座 2.1.4 更新时，设备仍执行了最终源码新增字段和 `stream-core` 场景，证明纯 UTS 调试内容生效。当前只明确 `.so` 变化仍需重打基座；Kotlin/Java 桥接和原生配置未做独立控制变量，不笼统判定。
 
-第三阶段可行性闸门已通过：隔离 `full-chain` 场景用真实网络取得 6 个分块、354 字节，在 Worker 内逐段完成 SSE、Markdown 累积、CMark 与最小 `rich/image` 描述构建。插件保存最新不可变累计快照，页面每 50ms 轮询，实际观察到 `1,2,3,4,5,6` 六个严格递增版本；终态为 6 个 token、6 个稳定 key 描述，首尾中文无损。Worker/plugin 和 CMark JNI 均不在页面主线程。测试代码、命令、原始终态、线程和截图见 [`test-results/android-worker-full-chain-feasibility-results.txt`](test-results/android-worker-full-chain-feasibility-results.txt)。本结果只证明机械链路；取消重启和真实七牛/百炼 AI 响应仍须通过，之后才能实施生产接入。
+第三阶段可行性闸门已通过：隔离 `full-chain` 场景用真实网络取得 6 个分块、354 字节，在 Worker 内逐段完成 SSE、Markdown 累积、CMark 与最小 `rich/image` 描述构建。插件保存最新不可变累计快照，页面每 50ms 轮询，实际观察到 `1,2,3,4,5,6` 六个严格递增版本；终态为 6 个 token、6 个稳定 key 描述，首尾中文无损。Worker/plugin 和 CMark JNI 均不在页面主线程。测试代码、命令、原始终态、线程和截图见 [`test-results/android-worker-full-chain-feasibility-results.txt`](test-results/android-worker-full-chain-feasibility-results.txt)。本阶段只证明机械链路；随后继续验证取消重启和真实七牛/百炼 AI 响应，全部通过后才实施生产接入。
+
+第四阶段取消闸门已通过：页面观察到请求 A 的第一批结果后向 Worker 发 `restart-request`，Worker 对 A 执行 `abort()` 后在 0-1ms 内启动请求 B，并在 B 完成后继续观察 1500ms。三次 Android 冷启动均观察到 `A:1,B:1,B:2,B:3`；B 均为 3 块、177 字节，A 取消后的应用层数据和终态回调均为 0，页面到 Worker 控制投递为 5-6ms。测试代码、逐轮数据、命令、线程、截图和证据边界见 [`test-results/android-worker-cancel-restart-results.txt`](test-results/android-worker-cancel-restart-results.txt)。T01 实施前只剩真实七牛/百炼 AI 闸门。
 
 ### T02 渲染职责边界
 
@@ -219,6 +221,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | T01 | 三次冷启动验证 A 取消后立即启动 B；B 完整有序且 A 迟到应用回调为 0，尚未接生产 | 本提交（`test: 验证 Worker 取消重启隔离`） |
 | 2026-07-30 | T01 | 隔离验证真实网络到 CMark/渲染描述的完整机械链路；页面无损观察 1..6 六批稳定快照，尚未接生产 | 本提交（`test: 验证 Worker 完整链路可行性`） |
 | 2026-07-30 | T01 | 新增 Worker 生产流式 POST 核心；真机确认 3 块/177 字节/3 条 SSE 中文事件，保留线程、命令、断言和截图 | 本提交（`fix: 在 Worker 中执行流式请求`） |
 | 2026-07-30 | T01 | 新增有状态 UTF-8/SSE Worker 核心；保留 11 段边界测试，Android 返回两条无损中文事件且无残留 | 本提交（`fix: 增加有状态 SSE 分片解码`） |
