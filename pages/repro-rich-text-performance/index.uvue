@@ -125,6 +125,7 @@
 		siblingItems.value = []
 		preparePhase('固定 nodes 对照', version, () => {
 			let updateCount = 0
+			console.log('[RichTextPerfRepro] fixed-start')
 			intervalId = setInterval(() => {
 				updateCount++
 				siblingItems.value.push(updateCount)
@@ -148,6 +149,7 @@
 		siblingItems.value = []
 		preparePhase('更新 nodes', version, () => {
 			let updateCount = 0
+			console.log('[RichTextPerfRepro] updating-start')
 			intervalId = setInterval(() => {
 				updateCount++
 				richTextNodes.value = buildNodes(updateCount)

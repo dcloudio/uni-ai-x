@@ -16,7 +16,7 @@
 
 | 编号 | 代码与路由 | 控制变量 | 当前重复轮次 |
 | --- | --- | --- | ---: |
-| F01 | [`pages/repro-rich-text-performance/index.uvue`](pages/repro-rich-text-performance/index.uvue)，`/pages/repro-rich-text-performance/index` | 同尺寸 Rich Text；只改变是否更新已有 nodes | 1（另有 5.23 历史对照） |
+| F01 | [`pages/repro-rich-text-performance/index.uvue`](pages/repro-rich-text-performance/index.uvue)，`/pages/repro-rich-text-performance/index` | 同尺寸 Rich Text；只改变是否更新已有 nodes | 5（其中 4 轮有精确阶段边界，另有 5.23 历史对照） |
 | F02 | [`pages/repro-native-view-performance/index.uvue`](pages/repro-native-view-performance/index.uvue)，`/pages/repro-native-view-performance/index` | 同为每 100ms 追加；对比普通文本 View 与新原生 Rich Text | 3 |
 | F03 | [`pages/repro-svg-image-performance/index.uvue`](pages/repro-svg-image-performance/index.uvue)，`/pages/repro-svg-image-performance/index` | 同源 `800x640` SVG；对比预挂载 opacity 与动态创建/销毁 | 2 |
 
@@ -33,7 +33,7 @@
 ```
 
 3. 页面用 `requestAnimationFrame` 在每个阶段内采样。FPS 为采样帧数除以阶段实际时长；同时记录最大帧间隔，以及 `>16.7ms`、`>32ms` 的帧间隔次数。
-4. 页面输出 `[RichTextPerfRepro]`、`[NativeViewPerfRepro]` 或 `[SvgImagePerfRepro]` 结果日志。F02、F03 另有明确的 `*-start` 日志，原生任务严格在 start 与结果之间统计，排除预热、列表清理和阶段切换；F01 当前数据按页面固定的自动阶段顺序和结果时间划窗，后续补齐 start 标记后再复测原生任务汇总。
+4. 页面输出 `[RichTextPerfRepro]`、`[NativeViewPerfRepro]` 或 `[SvgImagePerfRepro]` 日志。每个测试阶段均有明确的 `*-start` 和结果日志，原生任务严格在两者之间统计，排除预热、列表清理和阶段切换。
 5. Android 原生任务使用以下命令采集：
 
 ```sh
@@ -42,6 +42,13 @@ adb -s 192.168.2.5:5555 logcat -v threadtime \
 ```
 
 6. 原生任务结果取 `executeRenderTasks` 日志中的 `renderNativeLayoutTasks` 和 `appendViewTasks`；F01 另统计 `Tile RGBA->Bitmap copy` 与 `BuildTileSnapshotList`。所有结果均来自调试基座，应看同轮对照和数量级，不把一次 FPS 小数波动当成确定收益。
+7. F01 每轮运行前执行 `adb -s 192.168.2.5:5555 logcat -c`，运行结束后用保留在仓库中的脚本汇总最近一轮完整对照：
+
+```sh
+node scripts/android-rich-text-perf-summary.mjs 192.168.2.5:5555
+```
+
+脚本只统计 `fixed-start/result`、`updating-start/result` 之间的日志；RGBA 字节数按每条日志的 `width * height * 4` 求和，耗时按日志中的毫秒值求和并取最大值。若 logcat 中有多轮数据，脚本在新的 start 标记处重置，只输出最近一轮，避免跨轮累计。
 
 ## 结论
 
@@ -80,6 +87,29 @@ HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现复测：
 | 每 100ms 更新同一 Rich Text nodes | 49 | 54.3 | 74.7ms | 54 | 51 |
 
 两阶段由同一页面连续执行，Rich Text 尺寸和测试时长一致。更新阶段的 Android 日志同步出现 `Tile RGBA->Bitmap copy` 和 `BuildTileSnapshotList`，可稳定复现 nodes 更新导致的快照与掉帧问题。
+
+补齐 `fixed-start`、`updating-start` 后连续四轮精确划窗复测：
+
+| 阶段 | 指标 | 第 1 轮 | 第 2 轮 | 第 3 轮 | 第 4 轮 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| fixed | FPS | 114.7 | 114.3 | 114.5 | 113.5 |
+| fixed | 最大帧间隔 | 33.2ms | 16.6ms | 24.9ms | 24.9ms |
+| fixed | `>16.7ms` / `>32ms` | 1 / 1 | 0 / 0 | 2 / 0 | 2 / 0 |
+| updating | FPS | 60.1 | 52.5 | 54.3 | 52.2 |
+| updating | 最大帧间隔 | 66.4ms | 74.7ms | 66.5ms | 74.7ms |
+| updating | `>16.7ms` / `>32ms` | 51 / 49 | 53 / 50 | 55 / 50 | 54 / 50 |
+
+阶段内原生 Rich Text 日志汇总：
+
+| 阶段 | 指标 | 第 1 轮 | 第 2 轮 | 第 3 轮 | 第 4 轮 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| fixed | RGBA 拷贝日志 / 快照日志 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| updating | RGBA 拷贝日志 / 快照日志 | 196 / 98 | 196 / 98 | 196 / 98 | 196 / 98 |
+| updating | RGBA 拷贝总字节 | 未保留原始日志 | 4,368,072,072 B（4.068 GiB） | 4,368,072,072 B（4.068 GiB） | 4,368,072,072 B（4.068 GiB） |
+| updating | RGBA 拷贝累计 / 最大耗时 | 未保留原始日志 | 1559.24ms / 17.30ms | 1546.82ms / 14.78ms | 1554.05ms / 14.74ms |
+| updating | 快照累计 / 最大耗时 | 未保留原始日志 | 1604.81ms / 22.97ms | 1601.21ms / 21.62ms | 1605.63ms / 20.85ms |
+
+第 1 轮在汇总脚本落盘前清空了 logcat，只保留了解析器实时输出的次数，故不补造累计耗时和字节数；第 2~4 轮均由仓库内同一脚本直接汇总。每次更新会生成两个 tile，尺寸为 `13377x595` 和 `13377x238`；98 组 tile 的理论 RGBA 字节数与日志汇总结果一致。
 
 ### 如何得出结论
 
