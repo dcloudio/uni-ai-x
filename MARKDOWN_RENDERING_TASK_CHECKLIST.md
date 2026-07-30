@@ -32,7 +32,7 @@
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
 | T01 | 联网到 Markdown 的完整子线程链路 | Android/七牛范围已完成 | 应用层 | 生产 `RequestAiRunner` 真机通过；证据见 `android-worker-production-qiniu-results.txt` |
-| T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | Worker 已输出 CMark token 快照；稳定 key、渲染富化与组件更新仍在主线程 |
+| T02 | 子线程输出渲染描述，主线程批量创建组件 | 技术闸门完成，待生产接入 | 应用层 | 七类描述、RichText 合并、稳定 key、嵌套节点与 CSS 跨线程通过 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
 | T05 | 侧滑菜单不抢占表格/代码横滑，不误触垂直滚动 | 已实现，待验收 | 应用层 | 已实现方向锁、左缘起手、拖动禁用动画、速度吸附及横向 ScrollView 让权 |
@@ -101,6 +101,10 @@ rich / quote / divider / table / code / mermaid / math
 - 数学公式和流程图的加载态、尺寸占位、失败态与预览交互。
 
 建议子线程输出粗粒度、带稳定 key 的渲染描述，并按节流周期批量通知主线程。不要每发现一个标签就立即追加一个 View，否则会放大主线程 `appendViewTasks` 卡顿。
+
+T02 生产实施前闸门已通过：确定性 Android fixture 在 Worker 内经真实 CMark 得到 `9 -> 10` 个 token，并构建 `7 -> 8` 个粗粒度描述；七类顺序为 `rich,quote,divider,table,code,mermaid,math`，连续标题和两个段落合并为一个 RichText 描述，扩展文档保留全部旧 key。包含 `attrs.style` 的嵌套节点在 Worker 和主页面两侧完成 JSON 往返，CMark TID 23349 与页面主线程 TID 19069 不同；页面 372ms 明确通过。完整 fixture、断言、线程、命令和截图见 [`test-results/android-worker-render-descriptions-feasibility-results.txt`](test-results/android-worker-render-descriptions-feasibility-results.txt)。
+
+该闸门只证明平台与数据契约可行，未提前修改生产渲染器。下一步可以把纯稳定 ID、块分组和 RichText 节点构建迁入 Worker 共享模块；表格最小宽度、代码高亮、MathJax/Mermaid SVG 等依赖视口或 WebView 的能力仍由主线程富化。这样既满足“子线程输出批量渲染描述”，也不会错误地把必要的 ScrollView、工具栏、状态容器简化成只有 RichText/Image 两个组件。
 
 ### T03-T04 流程图完整性与性能
 
@@ -228,6 +232,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | T02 | Android Worker 确定性验证七类描述、连续 RichText 合并、稳定 key、嵌套节点和 `attrs.style` 两批 JSON 快照 | 本提交（`test: 验证 Worker 渲染描述能力`） |
 | 2026-07-30 | T01 | 生产 `RequestAiRunner` 接入 Android Worker；七牛真实流完成 224 块/115574 字节/506 条 SSE/61 批快照，取消后重启无迟到回调和 dead-thread 警告 | 本提交（`feat: 将七牛流式解析接入 Worker`） |
 | 2026-07-30 | T01 | 七牛网关真实 `deepseek-v3` 在 Worker 内完成 210 块/109955 字节/482 条 SSE、8 批快照和 24 个 CMark token；页面 1/1，通过后允许生产接入 | 本提交（`test: 验证 Worker 七牛真实链路`） |
 | 2026-07-30 | T01 | 三次冷启动验证 A 取消后立即启动 B；B 完整有序且 A 迟到应用回调为 0，尚未接生产 | 本提交（`test: 验证 Worker 取消重启隔离`） |

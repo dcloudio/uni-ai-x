@@ -63,6 +63,13 @@
 			{
 				"navigationBarTitleText" : "Worker 真实 AI 探针"
 			}
+		},
+		{
+			"path" : "pages/repro-worker-render-descriptions/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "Worker 渲染描述探针"
+			}
 		}
 	],
 	"globalStyle": {

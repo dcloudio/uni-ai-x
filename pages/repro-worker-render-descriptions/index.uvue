@@ -1,0 +1,205 @@
+<template>
+	<view class="page">
+		<text class="title">Worker 渲染描述闸门</text>
+		<text class="description">验证七类块分组、稳定 key、连续 RichText 合并和嵌套节点 JSON。</text>
+		<text class="status" :class="passed ? 'success' : ''">{{status}}</text>
+		<text class="summary">{{summary}}</text>
+		<scroll-view class="result-list" direction="vertical" :show-scrollbar="true">
+			<text v-for="(item, index) in results" :key="index" class="result-line">{{item}}</text>
+		</scroll-view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import {
+		createWorkerProbe,
+		destroyWorkerProbe,
+		onWorkerProbeError,
+		onWorkerProbeMessage,
+		readWorkerProbeSnapshot,
+		sendWorkerProbeMessage,
+		WorkerProbeErrorOptions,
+		WorkerProbeMessageOptions,
+		WorkerProbeSendOptions
+	} from '@/uni_modules/uni-ai-worker-probe'
+
+	type ProbeRichNodeAttrs = {
+		style: string
+	}
+
+	type ProbeRichNode = {
+		name?: string,
+		type?: string,
+		text?: string,
+		attrs?: ProbeRichNodeAttrs,
+		children?: ProbeRichNode[]
+	}
+
+	type ProbeRenderDescription = {
+		kind: string,
+		key: string,
+		tokenStart: number,
+		tokenCount: number,
+		tokenTypes: string,
+		nodes: ProbeRichNode[]
+	}
+
+	const TIMEOUT = 6000
+	const status = ref('准备自动测试')
+	const summary = ref('等待 Worker')
+	const results = ref<string[]>([])
+	const passed = ref(false)
+	let startedAt = 0
+	let timeoutId = 0
+	let pollTimer = 0
+	let lastSnapshotJson = ''
+	let observedVersions = [] as number[]
+	let finished = false
+
+	function appendResult(label: string, detail: string) {
+		const line = label + ' | ' + (Date.now() - startedAt).toString() + 'ms | ' + detail
+		results.value.push(line)
+		console.log('[WorkerRenderDescriptionRepro]', line)
+	}
+
+	function cleanup() {
+		if (timeoutId != 0) clearTimeout(timeoutId)
+		if (pollTimer != 0) clearInterval(pollTimer)
+		timeoutId = 0
+		pollTimer = 0
+		destroyWorkerProbe()
+	}
+
+	function finish(success: boolean, detail: string) {
+		if (finished) return
+		finished = true
+		passed.value = success
+		status.value = success ? '技术闸门通过' : '技术闸门失败'
+		summary.value = detail
+		appendResult('final', (success ? 'gate-success ' : 'gate-fail ') + detail)
+		cleanup()
+	}
+
+	function parseDescriptionGate(result: UTSJSONObject): boolean {
+		const descriptions = JSON.parseArray<ProbeRenderDescription>(result.getString('descriptionJson', '[]')) as ProbeRenderDescription[]
+		if (descriptions.length != 8) return false
+		const first = descriptions[0]
+		const firstNode = first.nodes.length > 0 ? first.nodes[0] : null
+		const firstChildren = firstNode?.children ?? [] as ProbeRichNode[]
+		return first.kind == 'rich' && first.key == 'u0' && first.tokenCount == 3 &&
+			firstNode?.name == 'h1' && (firstNode?.attrs?.style ?? '').indexOf('line-height:26px') != -1 &&
+			firstChildren.length == 1 && firstChildren[0].text == 'heading'
+	}
+
+	function runGate() {
+		startedAt = Date.now()
+		results.value = []
+		observedVersions = [] as number[]
+		lastSnapshotJson = ''
+		finished = false
+		passed.value = false
+		status.value = 'Worker 生成渲染描述'
+		summary.value = '等待两批不可变快照'
+		createWorkerProbe()
+		onWorkerProbeMessage({
+			success: (event: any) => {
+				const wrapper = JSON.parse(JSON.stringify(event)) as UTSJSONObject
+				const result = wrapper.getAny('result') as UTSJSONObject
+				const phase = result.getString('phase', '')
+				const expectedKinds = 'rich,quote,divider,table,code,mermaid,math'
+				const expectedBaseKeys = 'u0,u3,u4,u5,u6,u7,u8'
+				const expectedExtendedKeys = expectedBaseKeys + ',u9'
+				const success = phase == 'render-descriptions-success' &&
+					observedVersions.indexOf(1) != -1 && result.getNumber('snapshotVersion', 0) == 2 &&
+					result.getNumber('baseTokenCount', 0) == 9 && result.getNumber('extendedTokenCount', 0) == 10 &&
+					result.getNumber('baseDescriptionCount', 0) == 7 && result.getNumber('extendedDescriptionCount', 0) == 8 &&
+					result.getString('descriptionKinds', '') == expectedKinds &&
+					result.getString('baseKeys', '') == expectedBaseKeys &&
+					result.getString('extendedKeys', '') == expectedExtendedKeys &&
+					result.getNumber('firstTokenStart', -1) == 0 && result.getNumber('firstTokenCount', 0) == 3 &&
+					result.getString('firstTokenTypes', '') == 'heading,paragraph,paragraph' &&
+					result.getBoolean('stableKeys', false) && result.getBoolean('nestedNodeRoundTrip', false) &&
+					result.getNumber('roundTripCount', 0) == 7 && result.getString('parseError', '').length == 0 &&
+					parseDescriptionGate(result)
+				finish(success,
+					'versions=' + observedVersions.join(',') +
+					' tokens=' + result.getNumber('baseTokenCount', 0).toString() + '->' + result.getNumber('extendedTokenCount', 0).toString() +
+					' blocks=' + result.getNumber('baseDescriptionCount', 0).toString() + '->' + result.getNumber('extendedDescriptionCount', 0).toString() +
+					' kinds=' + result.getString('descriptionKinds', ''))
+			}
+		} as WorkerProbeMessageOptions)
+		onWorkerProbeError({
+			success: (_event: any) => { finish(false, 'worker-error') }
+		} as WorkerProbeErrorOptions)
+		pollTimer = setInterval(() => {
+			const snapshotJson = readWorkerProbeSnapshot()
+			if (snapshotJson.length == 0 || snapshotJson == lastSnapshotJson) return
+			lastSnapshotJson = snapshotJson
+			const snapshot = JSON.parse<UTSJSONObject>(snapshotJson) as UTSJSONObject
+			const version = snapshot.getNumber('snapshotVersion', 0)
+			if (version > 0 && observedVersions.indexOf(version) == -1) {
+				observedVersions.push(version)
+				appendResult('snapshot', 'v=' + version.toString() +
+					' tokens=' + snapshot.getNumber('tokenCount', 0).toString() +
+					' blocks=' + snapshot.getNumber('descriptionCount', 0).toString())
+			}
+		}, 20)
+		setTimeout(() => {
+			sendWorkerProbeMessage({ scenario: 'render-descriptions' } as WorkerProbeSendOptions)
+		}, 100)
+		timeoutId = setTimeout(() => { finish(false, 'host-timeout') }, TIMEOUT)
+	}
+
+	onMounted(() => { runGate() })
+	onUnmounted(() => { cleanup() })
+</script>
+
+<style>
+.page {
+	flex: 1;
+	padding: 24px 20px;
+	background-color: #f5f6f7;
+}
+
+.title {
+	font-size: 22px;
+	font-weight: 700;
+	color: #1f2328;
+}
+
+.description,
+.summary {
+	margin-top: 8px;
+	font-size: 13px;
+	line-height: 20px;
+	color: #59636e;
+}
+
+.status {
+	margin-top: 18px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #cf222e;
+}
+
+.status.success {
+	color: #1a7f37;
+}
+
+.result-list {
+	flex: 1;
+	margin-top: 14px;
+	padding: 12px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
+}
+
+.result-line {
+	margin-bottom: 8px;
+	font-size: 12px;
+	line-height: 18px;
+	color: #1f2328;
+}
+</style>

@@ -1,6 +1,6 @@
 // #ifdef APP-ANDROID
 import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
-import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
+import { MarkdownToken, ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
 import { SSEStreamDecoder } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
@@ -16,6 +16,27 @@ type WorkerAiChoice = {
 
 type WorkerAiChunk = {
 	choices?: WorkerAiChoice[]
+}
+
+type ProbeRichNodeAttrs = {
+	style: string
+}
+
+type ProbeRichNode = {
+	name?: string,
+	type?: string,
+	text?: string,
+	attrs?: ProbeRichNodeAttrs,
+	children?: ProbeRichNode[]
+}
+
+type ProbeRenderDescription = {
+	kind: string,
+	key: string,
+	tokenStart: number,
+	tokenCount: number,
+	tokenTypes: string,
+	nodes: ProbeRichNode[]
 }
 
 export class MarkdownWorkerTask extends WorkerTaskImpl {
@@ -80,7 +101,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			this.restartScenarioActive = false
 			return
 		}
-		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core' && action != 'full-chain' && action != 'cancel-restart' && action != 'real-ai') return
+		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core' && action != 'full-chain' && action != 'cancel-restart' && action != 'real-ai' && action != 'render-descriptions') return
 
 		const received = new UTSJSONObject()
 		received.scenario = action
@@ -111,6 +132,12 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		if (action == 'full-chain') {
 			// #ifdef APP-ANDROID
 			this.runFullChainScenario(action)
+			return
+			// #endif
+		}
+		if (action == 'render-descriptions') {
+			// #ifdef APP-ANDROID
+			this.runRenderDescriptionScenario(action)
 			return
 			// #endif
 		}
@@ -769,6 +796,140 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			'{}',
 			12000
 		)
+	}
+
+	private renderDescriptionKind(token: MarkdownToken): string {
+		const type = token.type ?? 'text'
+		if (type == 'code_block') {
+			const language = (token.lang ?? '').toLowerCase()
+			if (language == 'mermaid') return 'mermaid'
+			if (language == 'math' || language == 'math-pending') return 'math'
+			return 'code'
+		}
+		if (type == 'math') return 'math'
+		if (type == 'block_quote') return 'quote'
+		if (type == 'thematic_break') return 'divider'
+		if (type == 'table') return 'table'
+		return 'rich'
+	}
+
+	private probeNodeForToken(token: MarkdownToken): ProbeRichNode {
+		const type = token.type ?? 'text'
+		let name = 'p'
+		if (type == 'heading') name = 'h' + Math.max(1, Math.min(token.depth ?? 1, 6)).toString()
+		else if (type == 'list' || type == 'tasklist') name = token.ordered == 1 ? 'ol' : 'ul'
+		else if (type == 'block_quote') name = 'blockquote'
+		else if (type == 'thematic_break') name = 'hr'
+		else if (type == 'table') name = 'table'
+		else if (type == 'code_block') name = 'span'
+		return {
+			name: name,
+			attrs: { style: 'margin:4px 0;line-height:26px;' } as ProbeRichNodeAttrs,
+			children: [{ type: 'text', text: type } as ProbeRichNode]
+		} as ProbeRichNode
+	}
+
+	private buildProbeRenderDescriptions(tokens: MarkdownToken[]): ProbeRenderDescription[] {
+		const descriptions = [] as ProbeRenderDescription[]
+		for (let index = 0; index < tokens.length; index++) {
+			const token = tokens[index]
+			token.uniqueId = 'u' + index.toString()
+			const kind = this.renderDescriptionKind(token)
+			const previous = descriptions.length > 0 ? descriptions[descriptions.length - 1] : null
+			if (kind == 'rich' && previous != null && previous.kind == 'rich') {
+				previous.tokenCount += 1
+				previous.tokenTypes += ',' + (token.type ?? 'text')
+				previous.nodes.push(this.probeNodeForToken(token))
+				continue
+			}
+			descriptions.push({
+				kind: kind,
+				key: token.uniqueId!,
+				tokenStart: index,
+				tokenCount: 1,
+				tokenTypes: token.type ?? 'text',
+				nodes: [this.probeNodeForToken(token)] as ProbeRichNode[]
+			} as ProbeRenderDescription)
+		}
+		return descriptions
+	}
+
+	private descriptionKeys(descriptions: ProbeRenderDescription[]): string {
+		return descriptions.map((item: ProbeRenderDescription): string => item.key).join(',')
+	}
+
+	private descriptionKinds(descriptions: ProbeRenderDescription[]): string {
+		return descriptions.map((item: ProbeRenderDescription): string => item.kind).join(',')
+	}
+
+	private runRenderDescriptionScenario(action: string): void {
+		const startedAt = Date.now()
+		const baseMarkdown = '# 标题\n\n第一段。\n\n第二段含 **加粗**。\n\n> 引用\n\n---\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n```javascript\nconst value = 1\n```\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```math\nx^2\n```\n'
+		const extendedMarkdown = baseMarkdown + '\n最后一段。\n'
+		const baseResult = md2json(baseMarkdown) as ParseMdRes
+		const extendedResult = md2json(extendedMarkdown) as ParseMdRes
+		const baseDescriptions = this.buildProbeRenderDescriptions(baseResult.data)
+		const extendedDescriptions = this.buildProbeRenderDescriptions(extendedResult.data)
+		const baseJson = JSON.stringify(baseDescriptions)
+		const extendedJson = JSON.stringify(extendedDescriptions)
+		const roundTrip = JSON.parseArray<ProbeRenderDescription>(baseJson) as ProbeRenderDescription[]
+		let stableKeys = baseDescriptions.length <= extendedDescriptions.length
+		for (let index = 0; index < baseDescriptions.length && stableKeys; index++) {
+			if (baseDescriptions[index].key != extendedDescriptions[index].key ||
+				baseDescriptions[index].kind != extendedDescriptions[index].kind) stableKeys = false
+		}
+		const firstNodes = roundTrip.length > 0 ? roundTrip[0].nodes : [] as ProbeRichNode[]
+		const firstNode = firstNodes.length > 0 ? firstNodes[0] : null
+		const firstChildren = firstNode?.children ?? [] as ProbeRichNode[]
+		const nestedNodeRoundTrip = firstNode?.name == 'h1' &&
+			(firstNode?.attrs?.style ?? '').indexOf('line-height:26px') != -1 &&
+			firstChildren.length == 1 && firstChildren[0].text == 'heading'
+		const expectedKinds = 'rich,quote,divider,table,code,mermaid,math'
+		const expectedBaseKeys = 'u0,u3,u4,u5,u6,u7,u8'
+		const expectedExtendedKeys = expectedBaseKeys + ',u9'
+		const passed = baseResult.errorMsg.length == 0 && extendedResult.errorMsg.length == 0 &&
+			baseResult.data.length == 9 && extendedResult.data.length == 10 &&
+			baseDescriptions.length == 7 && extendedDescriptions.length == 8 &&
+			baseDescriptions[0].tokenStart == 0 && baseDescriptions[0].tokenCount == 3 &&
+			baseDescriptions[0].tokenTypes == 'heading,paragraph,paragraph' &&
+			this.descriptionKinds(baseDescriptions) == expectedKinds &&
+			this.descriptionKeys(baseDescriptions) == expectedBaseKeys &&
+			this.descriptionKeys(extendedDescriptions) == expectedExtendedKeys &&
+			stableKeys && nestedNodeRoundTrip && roundTrip.length == baseDescriptions.length
+
+		this.postMessage({
+			scenario: action,
+			phase: 'render-descriptions-snapshot',
+			snapshotVersion: 1,
+			tokenCount: baseResult.data.length,
+			descriptionCount: baseDescriptions.length,
+			descriptionKinds: this.descriptionKinds(baseDescriptions),
+			descriptionKeys: this.descriptionKeys(baseDescriptions),
+			descriptionJson: baseJson
+		} as UTSJSONObject)
+		setTimeout(() => {
+			this.postMessage({
+				scenario: action,
+				phase: passed ? 'render-descriptions-success' : 'render-descriptions-fail',
+				snapshotVersion: 2,
+				elapsed: Date.now() - startedAt,
+				baseTokenCount: baseResult.data.length,
+				extendedTokenCount: extendedResult.data.length,
+				baseDescriptionCount: baseDescriptions.length,
+				extendedDescriptionCount: extendedDescriptions.length,
+				descriptionKinds: this.descriptionKinds(baseDescriptions),
+				baseKeys: this.descriptionKeys(baseDescriptions),
+				extendedKeys: this.descriptionKeys(extendedDescriptions),
+				firstTokenStart: baseDescriptions.length > 0 ? baseDescriptions[0].tokenStart : -1,
+				firstTokenCount: baseDescriptions.length > 0 ? baseDescriptions[0].tokenCount : 0,
+				firstTokenTypes: baseDescriptions.length > 0 ? baseDescriptions[0].tokenTypes : '',
+				stableKeys: stableKeys,
+				nestedNodeRoundTrip: nestedNodeRoundTrip,
+				roundTripCount: roundTrip.length,
+				descriptionJson: extendedJson,
+				parseError: baseResult.errorMsg + extendedResult.errorMsg
+			} as UTSJSONObject)
+		}, 150)
 	}
 	// #endif
 }

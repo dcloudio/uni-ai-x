@@ -24,11 +24,18 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 	if (worker == null) return
 	messageOptions = options
 	worker!.onMessage((message: any) => {
-		console.log('[WorkerCapabilityRepro] plugin-message', JSON.stringify(message))
 		const result = message as UTSJSONObject
 		const phase = result.getString('phase', '')
+		if (currentScenario == 'render-descriptions' && phase.indexOf('render-descriptions') == 0) {
+			console.log('[WorkerCapabilityRepro] plugin-message', phase,
+				result.getNumber('snapshotVersion', 0),
+				result.getNumber('descriptionCount', result.getNumber('extendedDescriptionCount', 0)))
+		} else {
+			console.log('[WorkerCapabilityRepro] plugin-message', JSON.stringify(message))
+		}
 		if ((currentScenario == 'full-chain' &&
 			(phase == 'full-chain-snapshot' || phase == 'full-chain-success' || phase == 'full-chain-fail')) ||
+			(currentScenario == 'render-descriptions' && phase.indexOf('render-descriptions') == 0) ||
 			(currentScenario == 'cancel-restart' && phase.indexOf('cancel-restart') == 0) ||
 			(currentScenario == 'real-ai' && phase.indexOf('real-ai') == 0)) {
 			latestSnapshotJson = JSON.stringify(result)
@@ -41,6 +48,8 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 				? phase == 'stream-core-success' || phase == 'stream-core-fail'
 			: currentScenario == 'full-chain'
 				? phase == 'full-chain-success' || phase == 'full-chain-fail'
+			: currentScenario == 'render-descriptions'
+				? phase == 'render-descriptions-success' || phase == 'render-descriptions-fail'
 			: currentScenario == 'cancel-restart'
 				? phase == 'cancel-restart-success' || phase == 'cancel-restart-fail'
 			: currentScenario == 'real-ai'
