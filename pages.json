@@ -28,6 +28,13 @@
 			{
 				"navigationBarTitleText" : "RichText 圆角裁剪复现"
 			}
+		},
+		{
+			"path" : "pages/repro-rich-text-performance/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "RichText 性能复现"
+			}
 		}
 	],
 	"globalStyle": {

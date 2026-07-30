@@ -2,6 +2,8 @@
 
 测试环境：Android 真机、HBuilderX 5.23、uni-app x 蒸汽模式、`rich-text mode="native"`。
 
+最小复现页：[`pages/repro-rich-text-performance/index.uvue`](pages/repro-rich-text-performance/index.uvue)，路由为 `/pages/repro-rich-text-performance/index`。页面自动依次运行“固定 3822px Rich Text + 每 100ms 追加兄弟 View”和“每 100ms 更新同一 Rich Text nodes”两个 5 秒场景，并输出 FPS、最大帧间隔和慢帧数。
+
 ## 结论
 
 应用侧已优化解析、重复发布和流式阶段的超宽临时内容，但仍无法消除卡顿。剩余瓶颈集中在框架原生视图层，主要是 Rich Text 更新后的全量位图快照，以及主线程布局和 View 追加。
@@ -11,6 +13,12 @@
 ### 现象
 
 持续修改同一个原生 Rich Text 的 `nodes` 时，帧率明显下降；内容宽度越大，问题越严重。
+
+复现步骤：
+
+1. 将最小复现路由临时放到 `pages.json` 第一项，使用 Android 蒸汽模式运行。
+2. 等待页面自动完成两个场景，或点击“重跑对照”。
+3. 对比页面结果，并在日志中检索 `[RichTextPerfRepro]`、`Tile RGBA->Bitmap copy` 和 `BuildTileSnapshotList`。
 
 ### 证据
 
@@ -24,6 +32,15 @@
 - `RGBA -> Bitmap` 拷贝累计约 625MB。
 - `BuildTileSnapshotList` 日志累计约 444.54ms。
 - 单次快照最高 11.17ms。
+
+HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现复测：
+
+| 自动对照场景（各 5 秒） | 操作次数 | FPS | 最大帧间隔 | `>16.7ms` | `>32ms` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| nodes 固定，每 100ms 追加兄弟 View | 49 | 114.4 | 24.9ms | 2 | 0 |
+| 每 100ms 更新同一 Rich Text nodes | 49 | 54.3 | 74.7ms | 54 | 51 |
+
+两阶段由同一页面连续执行，Rich Text 尺寸和测试时长一致。更新阶段的 Android 日志同步出现 `Tile RGBA->Bitmap copy` 和 `BuildTileSnapshotList`，可稳定复现 nodes 更新导致的快照与掉帧问题。
 
 ### 如何得出结论
 

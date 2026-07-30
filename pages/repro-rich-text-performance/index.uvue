@@ -1,0 +1,332 @@
+<template>
+	<view class="page">
+		<view class="header">
+			<text class="title">RichText nodes 更新性能复现</text>
+			<text class="phase">{{phaseLabel}}</text>
+		</view>
+
+		<view class="toolbar">
+			<button class="command" size="mini" :disabled="isRunning" @click="runSequence">重跑对照</button>
+			<button class="command" size="mini" :disabled="isRunning" @click="runUpdatingOnly">仅运行更新</button>
+			<button class="stop-command" size="mini" :disabled="!isRunning" @click="stopTest">停止</button>
+		</view>
+
+		<view class="metrics">
+			<text class="metric-title">固定 nodes + 追加兄弟 View</text>
+			<text class="metric-value">{{fixedResult}}</text>
+			<text class="metric-title metric-gap">持续更新 RichText nodes</text>
+			<text class="metric-value">{{updatingResult}}</text>
+		</view>
+
+		<scroll-view class="rich-scroll" direction="horizontal" :show-scrollbar="true">
+			<rich-text class="wide-rich-text" :nodes="richTextNodes" mode="native"></rich-text>
+		</scroll-view>
+
+		<view class="sibling-header">
+			<text class="sibling-title">兄弟 View</text>
+			<text class="sibling-count">{{siblingItems.length}}</text>
+		</view>
+		<scroll-view class="sibling-list" direction="vertical" :show-scrollbar="true">
+			<view v-for="item in siblingItems" :key="item" class="sibling-row">
+				<text class="sibling-text">append {{item}}</text>
+			</view>
+		</scroll-view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	const TEST_DURATION = 5000
+	const UPDATE_INTERVAL = 100
+	const PREPARE_DELAY = 600
+	const WIDE_CONTENT_WIDTH = 3822
+
+	const phaseLabel = ref('准备自动测试')
+	const fixedResult = ref('等待运行')
+	const updatingResult = ref('等待运行')
+	const isRunning = ref(false)
+	const siblingItems = ref<number[]>([])
+	const richTextNodes = ref('')
+
+	let intervalId: number | null = null
+	let phaseTimerId: number | null = null
+	let animationId = -1
+	let runVersion = 0
+	let sampleActive = false
+	let sampleFirstFrame = 0
+	let sampleLastFrame = 0
+	let sampleFrameCount = 0
+	let sampleMaxDelta = 0
+	let sampleOver16 = 0
+	let sampleOver32 = 0
+
+	function buildNodes(step: number): string {
+		const marker = step == 0 ? 'stable' : `update-${step}`
+		return `<div style="width:${WIDE_CONTENT_WIDTH}px;height:180px;padding:20px;box-sizing:border-box;background-color:#ffffff;color:#1f2328;font-size:18px;line-height:28px;"><strong>Native RichText ${marker}</strong><p>0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ Markdown streaming content ${marker}</p><p>Only the tail marker changes while the 3822px content width remains fixed. ${marker}</p></div>`
+	}
+
+	function resetSample() {
+		sampleFirstFrame = 0
+		sampleLastFrame = 0
+		sampleFrameCount = 0
+		sampleMaxDelta = 0
+		sampleOver16 = 0
+		sampleOver32 = 0
+	}
+
+	let trackFrame = (timestamp: number) => {}
+	trackFrame = (timestamp: number) => {
+		if (sampleActive) {
+			if (sampleFirstFrame == 0) {
+				sampleFirstFrame = timestamp
+			} else {
+				const delta = timestamp - sampleLastFrame
+				sampleMaxDelta = Math.max(sampleMaxDelta, delta)
+				if (delta > 16.7) sampleOver16++
+				if (delta > 32) sampleOver32++
+			}
+			sampleLastFrame = timestamp
+			sampleFrameCount++
+		}
+		animationId = requestAnimationFrame(trackFrame)
+	}
+
+	function formatResult(updateCount: number): string {
+		const duration = Math.max(1, sampleLastFrame - sampleFirstFrame)
+		const fps = sampleFrameCount * 1000 / duration
+		return `${updateCount} 次 | ${fps.toFixed(1)} FPS | max ${sampleMaxDelta.toFixed(1)}ms | >16.7ms ${sampleOver16} | >32ms ${sampleOver32}`
+	}
+
+	function clearPhaseTasks() {
+		if (intervalId != null) {
+			clearInterval(intervalId!)
+			intervalId = null
+		}
+		if (phaseTimerId != null) {
+			clearTimeout(phaseTimerId!)
+			phaseTimerId = null
+		}
+		sampleActive = false
+	}
+
+	function preparePhase(label: string, version: number, start: () => void) {
+		clearPhaseTasks()
+		phaseLabel.value = `${label}：准备`
+		phaseTimerId = setTimeout(() => {
+			if (version != runVersion) return
+			resetSample()
+			sampleActive = true
+			phaseLabel.value = `${label}：运行中`
+			start()
+		}, PREPARE_DELAY)
+	}
+
+	function runFixedPhase(version: number, continueSequence: boolean) {
+		richTextNodes.value = buildNodes(0)
+		siblingItems.value = []
+		preparePhase('固定 nodes 对照', version, () => {
+			let updateCount = 0
+			intervalId = setInterval(() => {
+				updateCount++
+				siblingItems.value.push(updateCount)
+			}, UPDATE_INTERVAL)
+			phaseTimerId = setTimeout(() => {
+				if (version != runVersion) return
+				clearPhaseTasks()
+				fixedResult.value = formatResult(updateCount)
+				console.log('[RichTextPerfRepro] fixed', fixedResult.value)
+				if (continueSequence) {
+					runUpdatingPhase(version)
+				} else {
+					finishSequence()
+				}
+			}, TEST_DURATION)
+		})
+	}
+
+	function runUpdatingPhase(version: number) {
+		richTextNodes.value = buildNodes(0)
+		siblingItems.value = []
+		preparePhase('更新 nodes', version, () => {
+			let updateCount = 0
+			intervalId = setInterval(() => {
+				updateCount++
+				richTextNodes.value = buildNodes(updateCount)
+			}, UPDATE_INTERVAL)
+			phaseTimerId = setTimeout(() => {
+				if (version != runVersion) return
+				clearPhaseTasks()
+				updatingResult.value = formatResult(updateCount)
+				console.log('[RichTextPerfRepro] updating', updatingResult.value)
+				finishSequence()
+			}, TEST_DURATION)
+		})
+	}
+
+	function finishSequence() {
+		isRunning.value = false
+		phaseLabel.value = '测试完成'
+	}
+
+	function stopTest() {
+		runVersion++
+		clearPhaseTasks()
+		isRunning.value = false
+		phaseLabel.value = '已停止'
+	}
+
+	function runSequence() {
+		stopTest()
+		const version = runVersion
+		isRunning.value = true
+		fixedResult.value = '运行中'
+		updatingResult.value = '等待运行'
+		runFixedPhase(version, true)
+	}
+
+	function runUpdatingOnly() {
+		stopTest()
+		const version = runVersion
+		isRunning.value = true
+		updatingResult.value = '运行中'
+		runUpdatingPhase(version)
+	}
+
+	onMounted(() => {
+		richTextNodes.value = buildNodes(0)
+		animationId = requestAnimationFrame(trackFrame)
+		phaseTimerId = setTimeout(() => {
+			runSequence()
+		}, 800)
+	})
+
+	onUnmounted(() => {
+		stopTest()
+		if (animationId != -1) {
+			cancelAnimationFrame(animationId)
+			animationId = -1
+		}
+	})
+</script>
+
+<style>
+.page {
+	flex: 1;
+	padding: 20px;
+	background-color: #f5f6f7;
+}
+
+.header {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.title {
+	font-size: 20px;
+	font-weight: 700;
+	color: #1f2328;
+}
+
+.phase {
+	font-size: 13px;
+	color: #0969da;
+}
+
+.toolbar {
+	margin-top: 14px;
+	flex-direction: row;
+	align-items: center;
+}
+
+.command,
+.stop-command {
+	margin-left: 0;
+	margin-right: 10px;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.stop-command {
+	color: #b42318;
+}
+
+.metrics {
+	margin-top: 14px;
+	padding: 12px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
+}
+
+.metric-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: #57606a;
+}
+
+.metric-gap {
+	margin-top: 10px;
+}
+
+.metric-value {
+	margin-top: 3px;
+	font-size: 14px;
+	line-height: 20px;
+	color: #1f2328;
+}
+
+.rich-scroll {
+	margin-top: 14px;
+	width: 100%;
+	height: 182px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #8c959f;
+	background-color: #ffffff;
+}
+
+.wide-rich-text {
+	width: 3822px;
+	height: 180px;
+	background-color: #ffffff;
+}
+
+.sibling-header {
+	margin-top: 14px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.sibling-title,
+.sibling-count {
+	font-size: 13px;
+	font-weight: 600;
+	color: #57606a;
+}
+
+.sibling-list {
+	margin-top: 6px;
+	width: 100%;
+	height: 170px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
+}
+
+.sibling-row {
+	height: 28px;
+	padding: 4px 10px;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #eaeef2;
+}
+
+.sibling-text {
+	font-size: 12px;
+	line-height: 20px;
+	color: #57606a;
+}
+</style>
