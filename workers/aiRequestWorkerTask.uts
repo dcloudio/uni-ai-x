@@ -1,0 +1,231 @@
+// #ifdef APP-ANDROID
+import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
+// #endif
+import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
+import { MarkdownPreprocessor } from '../uni_modules/uni-ai-worker/utssdk/markdown-preprocessor.uts'
+
+type WorkerAiDelta = {
+	content?: string,
+	reasoning_content?: string
+}
+
+type WorkerAiChoice = {
+	delta?: WorkerAiDelta
+}
+
+type WorkerAiChunk = {
+	choices?: WorkerAiChoice[]
+}
+
+export class AiRequestWorkerTask extends WorkerTaskImpl {
+	private streamRequest: WorkerStreamRequest | null = null
+	private parseTimer: number = 0
+	private requestVersion: number = 0
+	private snapshotVersion: number = 0
+	private parseInterval: number = 300
+	private startedAt: number = 0
+	private content: string = ''
+	private reasoningContent: string = ''
+	private hasThinkContent: boolean = false
+	private eventCount: number = 0
+	private networkChunkCount: number = 0
+	private receivedBytes: number = 0
+	private terminalSource: string = ''
+	private finished: boolean = false
+	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
+
+	constructor() {
+		super()
+	}
+
+	override entry() {
+		this.postMessage({ phase: 'ready' } as UTSJSONObject)
+	}
+
+	override onMessage(message: any) {
+		const payload = message as UTSJSONObject
+		const action = payload.getString('action', '')
+		if (action == 'cancel') {
+			if (payload.getNumber('requestVersion', 0) == this.requestVersion) this.cancelCurrent()
+			return
+		}
+		if (action != 'start') return
+		this.startRequest(payload)
+	}
+
+	private resetState(requestVersion: number, parseInterval: number) {
+		this.cancelCurrent()
+		this.requestVersion = requestVersion
+		this.snapshotVersion = 0
+		this.parseInterval = parseInterval
+		this.startedAt = Date.now()
+		this.content = ''
+		this.reasoningContent = ''
+		this.hasThinkContent = false
+		this.eventCount = 0
+		this.networkChunkCount = 0
+		this.receivedBytes = 0
+		this.terminalSource = ''
+		this.finished = false
+		this.preprocessor = new MarkdownPreprocessor()
+	}
+
+	private startRequest(payload: UTSJSONObject) {
+		const requestVersion = payload.getNumber('requestVersion', 0)
+		const url = payload.getString('url', '')
+		const authorization = payload.getString('authorization', '')
+		const bodyJson = payload.getString('bodyJson', '')
+		const timeout = payload.getNumber('timeout', 90000)
+		this.resetState(requestVersion, payload.getNumber('parseInterval', 300))
+		if (requestVersion <= 0 || url.length == 0 || authorization.length == 0 || bodyJson.length == 0) {
+			this.fail('invalid_request', 'Worker 请求参数不完整')
+			return
+		}
+
+		this.streamRequest = new WorkerStreamRequest(
+			(data: string) => { this.handleSseEvent(data) },
+			(code: string, message: string) => { this.fail(code, message) },
+			(source: string, networkChunkCount: number, receivedBytes: number) => {
+				this.networkChunkCount = networkChunkCount
+				this.receivedBytes = receivedBytes
+				this.terminalSource = source
+				this.complete()
+			}
+		)
+		this.streamRequest!.start(url, authorization, bodyJson, timeout)
+	}
+
+	private handleSseEvent(data: string) {
+		if (this.finished) return
+		let raw: UTSJSONObject
+		let chunk: WorkerAiChunk
+		try {
+			raw = JSON.parse<UTSJSONObject>(data) as UTSJSONObject
+			chunk = JSON.parse<WorkerAiChunk>(data) as WorkerAiChunk
+		} catch (_error) {
+			this.fail('invalid_sse_json', 'AI 流数据解析失败')
+			return
+		}
+		const error = raw.getJSON('error')
+		if (error != null) {
+			this.fail(error.getString('code', 'provider_error'), error.getString('message', '模型服务请求失败'))
+			return
+		}
+
+		this.eventCount += 1
+		let contentDelta = chunk.choices?.[0]?.delta?.content ?? ''
+		let reasoningDelta = chunk.choices?.[0]?.delta?.reasoning_content ?? ''
+		if (this.content.length == 0 && contentDelta == '<think>') {
+			this.hasThinkContent = true
+			contentDelta = ''
+		}
+		if (this.hasThinkContent) {
+			if (contentDelta == '</think>') {
+				this.hasThinkContent = false
+			} else {
+				reasoningDelta = contentDelta
+			}
+			contentDelta = ''
+		}
+		if (contentDelta.length > 0) this.content += contentDelta
+		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
+		if (contentDelta.length > 0) this.scheduleParse()
+	}
+
+	private scheduleParse() {
+		if (this.parseTimer != 0 || this.finished) return
+		this.parseTimer = setTimeout(() => {
+			this.parseTimer = 0
+			this.publishSnapshot(false)
+		}, this.parseInterval)
+	}
+
+	private complete() {
+		if (this.finished) return
+		this.finished = true
+		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
+		this.parseTimer = 0
+		if (!this.content.endsWith('\n')) this.content += '\n'
+		this.publishSnapshot(true)
+		this.streamRequest = null
+	}
+
+	private publishSnapshot(isDone: boolean) {
+		if (this.content.length == 0 && !isDone) return
+		const processedMarkdown = this.preprocessor.process(this.content, isDone)
+		if (processedMarkdown == null) return
+		// #ifdef APP-ANDROID
+		const parseResult = md2json(processedMarkdown) as ParseMdRes
+		if (parseResult.errorMsg.length > 0) {
+			this.fail('markdown_parse_failed', parseResult.errorMsg)
+			return
+		}
+		this.snapshotVersion += 1
+		const snapshot = {
+			requestVersion: this.requestVersion,
+			snapshotVersion: this.snapshotVersion,
+			phase: isDone ? 'complete' : 'snapshot',
+			msgBody: this.content,
+			thinkContent: this.reasoningContent.trim(),
+			tokensJson: JSON.stringify(parseResult.data),
+			tokenCount: parseResult.data.length,
+			isDone: isDone,
+			eventCount: this.eventCount,
+			networkChunkCount: this.networkChunkCount,
+			receivedBytes: this.receivedBytes,
+			terminalSource: this.terminalSource,
+			elapsed: Date.now() - this.startedAt,
+			errCode: '',
+			errMsg: ''
+		} as UTSJSONObject
+		this.postMessage({
+			phase: 'snapshot',
+			snapshotJson: JSON.stringify(snapshot)
+		} as UTSJSONObject)
+		return
+		// #endif
+		// #ifndef APP-ANDROID
+		this.fail('unsupported_platform', '当前平台暂未启用 AI Worker Markdown 解析')
+		// #endif
+	}
+
+	private fail(code: string, message: string) {
+		if (this.finished && code != 'markdown_parse_failed') return
+		this.finished = true
+		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
+		this.parseTimer = 0
+		this.streamRequest?.abort()
+		this.streamRequest = null
+		this.snapshotVersion += 1
+		const snapshot = {
+			requestVersion: this.requestVersion,
+			snapshotVersion: this.snapshotVersion,
+			phase: 'error',
+			msgBody: this.content,
+			thinkContent: this.reasoningContent.trim(),
+			tokensJson: '[]',
+			tokenCount: 0,
+			isDone: false,
+			eventCount: this.eventCount,
+			networkChunkCount: this.networkChunkCount,
+			receivedBytes: this.receivedBytes,
+			terminalSource: this.terminalSource,
+			elapsed: Date.now() - this.startedAt,
+			errCode: code,
+			errMsg: message
+		} as UTSJSONObject
+		this.postMessage({
+			phase: 'snapshot',
+			snapshotJson: JSON.stringify(snapshot)
+		} as UTSJSONObject)
+	}
+
+	private cancelCurrent() {
+		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
+		this.parseTimer = 0
+		this.finished = true
+		this.streamRequest?.abort()
+		this.streamRequest = null
+	}
+}

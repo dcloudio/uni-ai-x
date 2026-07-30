@@ -5,6 +5,14 @@ import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
+// #ifdef APP-ANDROID
+import {
+	cancelAiWorkerRequest,
+	destroyAiWorkerRuntime,
+	readAiWorkerSnapshot,
+	startAiWorkerRequest
+} from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
 
 type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
 export type RequestAiRunnerCallbacks = {
@@ -55,6 +63,10 @@ class RequestAiRunner {
 	hasThinkContent : boolean = false
 	private bodyEmitTimer: number = 0
 	private lastBodyEmitTime: number = 0
+	private workerPollTimer: number = 0
+	private workerRequestVersion: number = 0
+	private workerSnapshotVersion: number = 0
+	private workerActive: boolean = false
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
@@ -130,6 +142,8 @@ class RequestAiRunner {
 		}
 	}
 	resetRequestState() {
+		this.stopWorkerRuntime(true)
+		this.workerRequestVersion += 1
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
 		this.lastBodyEmitTime = 0
@@ -178,6 +192,12 @@ class RequestAiRunner {
 		this.requestRemoteAi(messages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		// #ifdef APP-ANDROID
+		if (getCustomProvider(llm.provider) == null) {
+			this.requestRemoteAiInWorker(messages, llm, chat_id)
+			return
+		}
+		// #endif
 		this.requestAiServer({
 			llm,
 			messages,
@@ -198,6 +218,128 @@ class RequestAiRunner {
 		}).finally(() => {
 			this.requestTask = null
 		})
+	}
+	// #ifdef APP-ANDROID
+	private async requestRemoteAiInWorker(messages: RequestAiCoMessage[], llm: Llm, chat_id: string) {
+		const requestVersion = this.workerRequestVersion + 1
+		this.workerRequestVersion = requestVersion
+		const requestOptions: RequestAiServerOptions = {
+			llm: llm,
+			messages: messages,
+			stream: true,
+			chat_id: chat_id,
+			onError: (errRes: UTSJSONObject) => {
+				if (requestVersion == this.workerRequestVersion) this.handleRequestError(errRes)
+			}
+		}
+		try {
+			const config = this.getProviderConfig(llm.provider, requestOptions)
+			const tmpToken = await this.requestProviderToken(config, requestOptions)
+			if (this.userAbort || requestVersion != this.workerRequestVersion) return
+			const body = {
+				messages: messages,
+				stream: true,
+				model: llm.model
+			} as UTSJSONObject
+			this.workerSnapshotVersion = 0
+			this.workerActive = true
+			startAiWorkerRequest({
+				requestVersion: requestVersion,
+				provider: llm.provider,
+				model: llm.model,
+				url: config.baseURL!,
+				authorization: 'Bearer ' + tmpToken,
+				bodyJson: JSON.stringify(body),
+				parseInterval: MARKDOWN_PARSE_INTERVAL,
+				timeout: 90000
+			})
+			this.workerPollTimer = setInterval(() => {
+				this.pollWorkerSnapshot(requestVersion)
+			}, 50)
+		} catch (_error) {
+			// getProviderConfig/requestProviderToken 已通过 requestOptions.onError 上报。
+		}
+	}
+
+	private pollWorkerSnapshot(requestVersion: number) {
+		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
+		const snapshotJson = readAiWorkerSnapshot()
+		if (snapshotJson.length == 0) return
+		let snapshot: UTSJSONObject
+		try {
+			snapshot = JSON.parse<UTSJSONObject>(snapshotJson) as UTSJSONObject
+		} catch (_error) {
+			this.handleWorkerSnapshotError('worker_snapshot_invalid', 'Worker 返回数据解析失败')
+			return
+		}
+		if (snapshot.getNumber('requestVersion', 0) != requestVersion) return
+		const phase = snapshot.getString('phase', '')
+		const snapshotVersion = snapshot.getNumber('snapshotVersion', 0)
+		if (phase != 'error' && snapshotVersion <= this.workerSnapshotVersion) return
+		if (snapshotVersion > this.workerSnapshotVersion) this.workerSnapshotVersion = snapshotVersion
+		if (phase == 'error') {
+			console.log('[uni-ai-x][AI Worker] error', JSON.stringify({
+				requestVersion: requestVersion,
+				snapshotVersion: snapshotVersion,
+				eventCount: snapshot.getNumber('eventCount', 0),
+				networkChunkCount: snapshot.getNumber('networkChunkCount', 0),
+				receivedBytes: snapshot.getNumber('receivedBytes', 0),
+				elapsed: snapshot.getNumber('elapsed', 0),
+				errCode: snapshot.getString('errCode', 'worker_error')
+			} as UTSJSONObject))
+			this.handleWorkerSnapshotError(
+				snapshot.getString('errCode', 'worker_error'),
+				snapshot.getString('errMsg', 'Worker 请求失败')
+			)
+			return
+		}
+		if (phase != 'snapshot' && phase != 'complete') return
+
+		this.msgBody = snapshot.getString('msgBody', this.msgBody)
+		this.thinkContent = snapshot.getString('thinkContent', this.thinkContent)
+		this.emitMsgBody(true)
+		this.callbacks?.onThinkContent(this.thinkContent)
+		let tokenList: MarkdownToken[]
+		try {
+			tokenList = JSON.parseArray<MarkdownToken>(snapshot.getString('tokensJson', '[]')) as MarkdownToken[]
+		} catch (_error) {
+			this.handleWorkerSnapshotError('worker_tokens_invalid', 'Worker Markdown 数据解析失败')
+			return
+		}
+		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
+		if (isDone) {
+			console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
+				requestVersion: requestVersion,
+				snapshotVersion: snapshotVersion,
+				eventCount: snapshot.getNumber('eventCount', 0),
+				networkChunkCount: snapshot.getNumber('networkChunkCount', 0),
+				receivedBytes: snapshot.getNumber('receivedBytes', 0),
+				tokenCount: snapshot.getNumber('tokenCount', 0),
+				terminalSource: snapshot.getString('terminalSource', ''),
+				elapsed: snapshot.getNumber('elapsed', 0)
+			} as UTSJSONObject))
+			this.stopWorkerRuntime(false)
+		}
+		this.parseMarkdown?.applyParsedTokens(tokenList, isDone)
+	}
+
+	private handleWorkerSnapshotError(errCode: string, errMsg: string) {
+		this.stopWorkerRuntime(false)
+		this.handleRequestError({
+			errCode: errCode,
+			errMsg: errMsg
+		} as UTSJSONObject)
+	}
+	// #endif
+
+	private stopWorkerRuntime(cancelRequest: boolean) {
+		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
+		this.workerPollTimer = 0
+		// #ifdef APP-ANDROID
+		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
+		destroyAiWorkerRuntime()
+		// #endif
+		this.workerActive = false
 	}
 	streamDemoMarkdown() {
 		let index = 0
@@ -391,6 +533,8 @@ class RequestAiRunner {
 		this.bodyEmitTimer = 0
 		this.parseMarkdown?.dispose()
 		this.userAbort = true
+		this.stopWorkerRuntime(true)
+		this.workerRequestVersion += 1
 		this.requestTask?.abort()
 		this.callbacks?.onState('stop')
 		this.callbacks = null

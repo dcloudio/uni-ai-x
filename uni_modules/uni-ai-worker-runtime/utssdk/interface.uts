@@ -1,0 +1,10 @@
+export type AiWorkerStartOptions = {
+	requestVersion: number,
+	provider: string,
+	model: string,
+	url: string,
+	authorization: string,
+	bodyJson: string,
+	parseInterval?: number,
+	timeout?: number
+}

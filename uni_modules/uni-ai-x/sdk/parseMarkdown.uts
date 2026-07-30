@@ -6,6 +6,7 @@ import { asyncMd2json } from '@/uni_modules/uni-cmark'
 import { parseLineCode, ParseLineCodeRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import { setApproxTableContentWidth } from '@/uni_modules/uni-ai-x/sdk/markdown-utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+import { MarkdownPreprocessor } from '@/uni_modules/uni-ai-worker/utssdk/markdown-preprocessor.uts'
 
 type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
 type Md2JsonCallBack = (markdownTokenList: MarkdownToken[], isParseDone: boolean | null) => void
@@ -13,19 +14,6 @@ type UniCmarkCallback = (result: ParseMdRes) => void
 type CallBack = () => void
 let parseMarkdownInstanceIndex = 0
 const TOKEN_PUBLISH_DELAY = 48
-const mathMarkMap = new Map<string, string>([
-	['$', '$'],
-	['$$', '$$'],
-	['\\[', '\\]'],
-	['\\(', '\\)']
-])
-
-type MathRange = {
-	startIndex: number
-	endToken: string
-	contentStartIndex: number
-}
-
 function markdownErrorLog(message: string) {
 	console.error(message)
 }
@@ -54,9 +42,10 @@ export default class ParseMarkdown {
 	private lastParsedText: string = ''
 	private lastParsedDone: boolean = false
 	private segmentTokenList: MarkdownToken[] = []
-	private oldMsgBodyLength: number = 0
-	private lastMathEndIndex: number = 0
-	private myMarkdownText: string = ''
+	private markdownPreprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
+	private workerPendingTokens: MarkdownToken[] | null = null
+	private workerPendingDone: boolean = false
+	private workerEnriching: boolean = false
 	private latestMsgBody: string = ''
 	private traceId: string = ''
 	private cmarkReady: boolean = false
@@ -81,6 +70,29 @@ export default class ParseMarkdown {
 
 	flush(msgBody: string) {
 		this.scheduleParse(msgBody, true, true)
+	}
+
+	applyParsedTokens(markdownTokenList: MarkdownToken[], isDone: boolean) {
+		if (this.userAbort) return
+		this.msgReceiveDone = this.msgReceiveDone || isDone
+		this.workerPendingTokens = markdownTokenList
+		this.workerPendingDone = this.workerPendingDone || isDone
+		this.enrichPendingWorkerTokens()
+	}
+
+	private enrichPendingWorkerTokens() {
+		if (this.workerEnriching || this.workerPendingTokens == null || this.userAbort) return
+		const nextTokenList = this.workerPendingTokens!
+		const isDone = this.workerPendingDone
+		this.workerPendingTokens = null
+		this.workerPendingDone = false
+		this.workerEnriching = true
+		this.enrichParsedTokenList(nextTokenList, isDone, (list: MarkdownToken[]) => {
+			this.workerEnriching = false
+			if (this.userAbort) return
+			this.queueTokenPublish(list, isDone)
+			this.enrichPendingWorkerTokens()
+		})
 	}
 
 	private scheduleParse(msgBody: string, isDone: boolean, immediate: boolean = false) {
@@ -184,9 +196,7 @@ export default class ParseMarkdown {
 	}
 
 	private md2jsonTask(markdownText: string, isDone: boolean, md2JsonCallBack: Md2JsonCallBack) {
-		const processedMarkdownText = isDone
-			? this.prepareFinalMarkdownText(markdownText)
-			: this.prepareMarkdownText(markdownText)
+		const processedMarkdownText = this.markdownPreprocessor.process(markdownText, isDone)
 		if (processedMarkdownText == null) {
 			md2JsonCallBack(this.publishTokenList(), false)
 			return
@@ -203,33 +213,38 @@ export default class ParseMarkdown {
 				md2JsonCallBack(this.publishTokenList(), isDone)
 				return
 			}
-			const nextTokenList = parseMdRes.data
-			for (let i = 0; i < nextTokenList.length; i++) {
-				const nextToken = nextTokenList[i]
-				nextToken.uniqueId = 'u' + i.toString()
-				nextToken.isClose = (isDone || i < nextTokenList.length - 1) ? 1 : 0
-				const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
-				if (previousToken != null && this.canReusePublishedToken(previousToken, nextToken)) {
-					nextTokenList[i] = previousToken
-				}
-			}
-			const beforeDone = this.createBeforeDone(nextTokenList.length, () => {
-				this.segmentTokenList = nextTokenList
-				md2JsonCallBack(this.publishTokenList(), isDone)
+			this.enrichParsedTokenList(parseMdRes.data, isDone, (list: MarkdownToken[]) => {
+				md2JsonCallBack(list, isDone)
 			})
-			for (let i = 0; i < nextTokenList.length; i++) {
-				const token = nextTokenList[i]
-				const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
-				if (previousToken != null && token === previousToken) {
-					beforeDone()
-					continue
-				}
-				this.enrichToken(token, (nextToken: MarkdownToken | null) => {
-					if (nextToken != null) nextTokenList[i] = nextToken
-					beforeDone()
-				})
-			}
 		})
+	}
+
+	private enrichParsedTokenList(nextTokenList: MarkdownToken[], isDone: boolean, callback: (list: MarkdownToken[]) => void) {
+		for (let i = 0; i < nextTokenList.length; i++) {
+			const nextToken = nextTokenList[i]
+			nextToken.uniqueId = 'u' + i.toString()
+			nextToken.isClose = (isDone || i < nextTokenList.length - 1) ? 1 : 0
+			const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
+			if (previousToken != null && this.canReusePublishedToken(previousToken, nextToken)) {
+				nextTokenList[i] = previousToken
+			}
+		}
+		const beforeDone = this.createBeforeDone(nextTokenList.length, () => {
+			this.segmentTokenList = nextTokenList
+			callback(this.publishTokenList())
+		})
+		for (let i = 0; i < nextTokenList.length; i++) {
+			const token = nextTokenList[i]
+			const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
+			if (previousToken != null && token === previousToken) {
+				beforeDone()
+				continue
+			}
+			this.enrichToken(token, (nextToken: MarkdownToken | null) => {
+				if (nextToken != null) nextTokenList[i] = nextToken
+				beforeDone()
+			})
+		}
 	}
 
 	private canReusePublishedToken(previousToken: MarkdownToken, nextToken: MarkdownToken): boolean {
@@ -241,94 +256,6 @@ export default class ParseMarkdown {
 		return (previousToken.text ?? '') == (nextToken.text ?? '') &&
 			(previousToken.lang ?? '') == (nextToken.lang ?? '') &&
 			(previousToken.depth ?? 0) == (nextToken.depth ?? 0)
-	}
-
-	private prepareFinalMarkdownText(msgBody: string): string | null {
-		let processedMarkdownText = this.prepareMarkdownText(msgBody)
-		if (processedMarkdownText == null) return null
-		let previousMathEndIndex = -1
-		let passCount = 0
-		while (previousMathEndIndex != this.lastMathEndIndex && passCount < 1000) {
-			previousMathEndIndex = this.lastMathEndIndex
-			const nextMarkdownText = this.prepareMarkdownText(msgBody)
-			if (nextMarkdownText != null) processedMarkdownText = nextMarkdownText
-			passCount++
-		}
-		return processedMarkdownText
-	}
-
-	private prepareMarkdownText(msgBody: string): string | null {
-		if (msgBody.length < this.oldMsgBodyLength) {
-			return null
-		}
-		this.myMarkdownText = this.myMarkdownText + msgBody.slice(this.oldMsgBodyLength)
-		this.oldMsgBodyLength = msgBody.length
-		const withFindMathText = this.myMarkdownText.slice(this.lastMathEndIndex)
-		const mathRange = this.findMathRangeOutsideFencedCode(withFindMathText)
-		if (mathRange == null) {
-			return this.myMarkdownText
-		}
-		const endIndex = withFindMathText.slice(mathRange.contentStartIndex).indexOf(mathRange.endToken)
-		if (endIndex == -1) {
-			return this.createPendingMathMarkdown(withFindMathText, mathRange)
-		}
-		const mathEndIndex = endIndex + mathRange.contentStartIndex
-		const mathText = withFindMathText.slice(mathRange.contentStartIndex, mathEndIndex)
-		const mathCodeText = '\n```math\n' + mathText + '\n```\n'
-		this.myMarkdownText = this.myMarkdownText.slice(0, this.lastMathEndIndex) +
-			withFindMathText.slice(0, mathRange.startIndex) + mathCodeText +
-			withFindMathText.slice(mathEndIndex + mathRange.endToken.length)
-		this.lastMathEndIndex += mathRange.startIndex + mathCodeText.length - 1
-		return this.myMarkdownText
-	}
-
-	private findMathRangeOutsideFencedCode(text: string): MathRange | null {
-		let cursor = 0
-		let inCodeBlock = false
-		while (cursor < text.length) {
-			const fenceIndex = text.indexOf('```', cursor)
-			const segmentEnd = fenceIndex == -1 ? text.length : fenceIndex
-			if (!inCodeBlock) {
-				const mathRange = this.findMathRange(text.slice(cursor, segmentEnd))
-				if (mathRange != null) {
-					return {
-						startIndex: cursor + mathRange.startIndex,
-						endToken: mathRange.endToken,
-						contentStartIndex: cursor + mathRange.contentStartIndex
-					} as MathRange
-				}
-			}
-			if (fenceIndex == -1) return null
-			inCodeBlock = !inCodeBlock
-			cursor = fenceIndex + 3
-		}
-		return null
-	}
-
-	private findMathRange(text: string): MathRange | null {
-		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
-		const mathStartIndex = text.search(mathStartPattern)
-		if (mathStartIndex == -1) return null
-		const startToken = text.match(mathStartPattern)![0]!
-		let endToken = mathMarkMap.get(startToken) ?? ''
-		if (startToken.startsWith('\\begin{')) {
-			const envName = startToken.slice('\\begin{'.length, startToken.length - 1)
-			endToken = '\\end{' + envName + '}'
-		}
-		if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
-		const range: MathRange = {
-			startIndex: mathStartIndex,
-			endToken,
-			contentStartIndex: mathStartIndex + startToken.length
-		}
-		return range
-	}
-
-	private createPendingMathMarkdown(withFindMathText: string, mathRange: MathRange): string {
-		const pendingMathText = withFindMathText.slice(mathRange.contentStartIndex)
-		return this.myMarkdownText.slice(0, this.lastMathEndIndex) +
-			withFindMathText.slice(0, mathRange.startIndex) +
-			'\n```math-pending\n' + pendingMathText + '\n```\n'
 	}
 
 	private parseWithUniCmark(markdownText: string, callback: UniCmarkCallback) {
@@ -622,6 +549,8 @@ export default class ParseMarkdown {
 		this.tokenPublishTimer = 0
 		this.pendingText = null
 		this.pendingPublishList = null
+		this.workerPendingTokens = null
+		this.workerPendingDone = false
 		this.pendingPublishDone = false
 		this.pendingMathRenderKeys = []
 		this.pendingMathRenderMap.clear()

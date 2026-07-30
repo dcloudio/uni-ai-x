@@ -1,0 +1,99 @@
+import { AiWorkerStartOptions } from './interface.uts'
+
+export * from './interface.uts'
+
+let worker: Worker | null = null
+let workerReady = false
+let pendingStart: AiWorkerStartOptions | null = null
+let latestSnapshotJson = ''
+let currentRequestVersion = 0
+let runtimeGeneration = 0
+
+function postStart(options: AiWorkerStartOptions): void {
+	if (worker == null || !workerReady) return
+	const message = new UTSJSONObject()
+	message.action = 'start'
+	message.requestVersion = options.requestVersion
+	message.provider = options.provider
+	message.model = options.model
+	message.url = options.url
+	message.authorization = options.authorization
+	message.bodyJson = options.bodyJson
+	message.parseInterval = options.parseInterval ?? 300
+	message.timeout = options.timeout ?? 90000
+	worker!.postMessage(message, null)
+}
+
+export function createAiWorkerRuntime(): void {
+	if (worker != null) return
+	runtimeGeneration += 1
+	const generation = runtimeGeneration
+	workerReady = false
+	latestSnapshotJson = ''
+	worker = uni.createWorker('workers/aiRequestWorkerTask.uts')
+	worker!.onMessage((message: any) => {
+		if (generation != runtimeGeneration) return
+		const result = message as UTSJSONObject
+		const phase = result.getString('phase', '')
+		if (phase == 'ready') {
+			workerReady = true
+			if (pendingStart != null) {
+				const options = pendingStart!
+				pendingStart = null
+				postStart(options)
+			}
+			return
+		}
+		const snapshotJson = result.getString('snapshotJson', '')
+		if (snapshotJson.length > 0) latestSnapshotJson = snapshotJson
+	})
+	worker!.onError((_error: any) => {
+		if (generation != runtimeGeneration) return
+		latestSnapshotJson = JSON.stringify({
+			requestVersion: currentRequestVersion,
+			snapshotVersion: 0,
+			phase: 'error',
+			errCode: 'worker_error',
+			errMsg: 'Worker 运行失败'
+		} as UTSJSONObject)
+	})
+}
+
+export function startAiWorkerRequest(options: AiWorkerStartOptions): void {
+	createAiWorkerRuntime()
+	currentRequestVersion = options.requestVersion
+	latestSnapshotJson = ''
+	if (!workerReady) {
+		pendingStart = options
+		return
+	}
+	postStart(options)
+}
+
+export function readAiWorkerSnapshot(): string {
+	return latestSnapshotJson
+}
+
+export function cancelAiWorkerRequest(requestVersion: number): void {
+	if (pendingStart?.requestVersion == requestVersion) pendingStart = null
+	if (worker == null || !workerReady) return
+	worker!.postMessage({
+		action: 'cancel',
+		requestVersion: requestVersion
+	} as UTSJSONObject, null)
+}
+
+export function destroyAiWorkerRuntime(): void {
+	const previousWorker = worker
+	runtimeGeneration += 1
+	worker = null
+	workerReady = false
+	pendingStart = null
+	latestSnapshotJson = ''
+	currentRequestVersion = 0
+	if (previousWorker != null) {
+		setTimeout(() => {
+			previousWorker!.terminate()
+		}, 500)
+	}
+}

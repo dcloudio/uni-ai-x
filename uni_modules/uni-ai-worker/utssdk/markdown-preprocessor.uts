@@ -1,0 +1,100 @@
+const mathMarkMap = new Map<string, string>([
+	['$', '$'],
+	['$$', '$$'],
+	['\\[', '\\]'],
+	['\\(', '\\)']
+])
+
+type MathRange = {
+	startIndex: number
+	endToken: string
+	contentStartIndex: number
+}
+
+export class MarkdownPreprocessor {
+	private oldMsgBodyLength: number = 0
+	private lastMathEndIndex: number = 0
+	private markdownText: string = ''
+
+	process(msgBody: string, isDone: boolean): string | null {
+		if (!isDone) return this.prepareMarkdownText(msgBody)
+		let processedMarkdownText = this.prepareMarkdownText(msgBody)
+		if (processedMarkdownText == null) return null
+		let previousMathEndIndex = -1
+		let passCount = 0
+		while (previousMathEndIndex != this.lastMathEndIndex && passCount < 1000) {
+			previousMathEndIndex = this.lastMathEndIndex
+			const nextMarkdownText = this.prepareMarkdownText(msgBody)
+			if (nextMarkdownText != null) processedMarkdownText = nextMarkdownText
+			passCount++
+		}
+		return processedMarkdownText
+	}
+
+	private prepareMarkdownText(msgBody: string): string | null {
+		if (msgBody.length < this.oldMsgBodyLength) return null
+		this.markdownText += msgBody.slice(this.oldMsgBodyLength)
+		this.oldMsgBodyLength = msgBody.length
+		const withFindMathText = this.markdownText.slice(this.lastMathEndIndex)
+		const mathRange = this.findMathRangeOutsideFencedCode(withFindMathText)
+		if (mathRange == null) return this.markdownText
+		const endIndex = withFindMathText.slice(mathRange.contentStartIndex).indexOf(mathRange.endToken)
+		if (endIndex == -1) return this.createPendingMathMarkdown(withFindMathText, mathRange)
+		const mathEndIndex = endIndex + mathRange.contentStartIndex
+		const mathText = withFindMathText.slice(mathRange.contentStartIndex, mathEndIndex)
+		const mathCodeText = '\n```math\n' + mathText + '\n```\n'
+		this.markdownText = this.markdownText.slice(0, this.lastMathEndIndex) +
+			withFindMathText.slice(0, mathRange.startIndex) + mathCodeText +
+			withFindMathText.slice(mathEndIndex + mathRange.endToken.length)
+		this.lastMathEndIndex += mathRange.startIndex + mathCodeText.length - 1
+		return this.markdownText
+	}
+
+	private findMathRangeOutsideFencedCode(text: string): MathRange | null {
+		let cursor = 0
+		let inCodeBlock = false
+		while (cursor < text.length) {
+			const fenceIndex = text.indexOf('```', cursor)
+			const segmentEnd = fenceIndex == -1 ? text.length : fenceIndex
+			if (!inCodeBlock) {
+				const mathRange = this.findMathRange(text.slice(cursor, segmentEnd))
+				if (mathRange != null) {
+					return {
+						startIndex: cursor + mathRange.startIndex,
+						endToken: mathRange.endToken,
+						contentStartIndex: cursor + mathRange.contentStartIndex
+					} as MathRange
+				}
+			}
+			if (fenceIndex == -1) return null
+			inCodeBlock = !inCodeBlock
+			cursor = fenceIndex + 3
+		}
+		return null
+	}
+
+	private findMathRange(text: string): MathRange | null {
+		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
+		const mathStartIndex = text.search(mathStartPattern)
+		if (mathStartIndex == -1) return null
+		const startToken = text.match(mathStartPattern)![0]!
+		let endToken = mathMarkMap.get(startToken) ?? ''
+		if (startToken.startsWith('\\begin{')) {
+			const envName = startToken.slice('\\begin{'.length, startToken.length - 1)
+			endToken = '\\end{' + envName + '}'
+		}
+		if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
+		return {
+			startIndex: mathStartIndex,
+			endToken: endToken,
+			contentStartIndex: mathStartIndex + startToken.length
+		} as MathRange
+	}
+
+	private createPendingMathMarkdown(withFindMathText: string, mathRange: MathRange): string {
+		const pendingMathText = withFindMathText.slice(mathRange.contentStartIndex)
+		return this.markdownText.slice(0, this.lastMathEndIndex) +
+			withFindMathText.slice(0, mathRange.startIndex) +
+			'\n```math-pending\n' + pendingMathText + '\n```\n'
+	}
+}

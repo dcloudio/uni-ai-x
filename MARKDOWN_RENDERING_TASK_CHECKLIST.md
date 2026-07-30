@@ -31,8 +31,8 @@
 
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
-| T01 | 联网到 Markdown 的完整子线程链路 | 技术闸门完成，待生产接入 | 应用层 | 机械链路、取消重启隔离、真实七牛 AI 均通过；允许开始接入生产 |
-| T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | 当前已有 7 类渲染块，但分类与 RichText 节点转换仍在主线程 |
+| T01 | 联网到 Markdown 的完整子线程链路 | Android/七牛范围已完成 | 应用层 | 生产 `RequestAiRunner` 真机通过；证据见 `android-worker-production-qiniu-results.txt` |
+| T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | Worker 已输出 CMark token 快照；稳定 key、渲染富化与组件更新仍在主线程 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
 | T05 | 侧滑菜单不抢占表格/代码横滑，不误触垂直滚动 | 已实现，待验收 | 应用层 | 已实现方向锁、左缘起手、拖动禁用动画、速度吸附及横向 ScrollView 让权 |
@@ -58,14 +58,15 @@
 主线程：接收批量渲染描述 -> 更新稳定 key 的组件树
 ```
 
-当前实现还没有达到该目标：
+当前 Android 内置模型生产链路已经达到本轮约定的七牛范围：
 
-- 请求仍由 [`requestAiRunner.uts`](uni_modules/uni-ai-x/sdk/requestAiRunner.uts) 中的 `uni.request` 发起。
-- SSE 解码通过 `runOnDispatcher("io")` 尝试切线程，但蒸汽模式可能回退当前线程。
-- Android 只有 `asyncMd2json()` 在单线程 executor 中执行。
-- 公式预处理、代码高亮调度、SVG 调用和渲染块构建没有统一进入同一个 worker。
+- [`requestAiRunner.uts`](uni_modules/uni-ai-x/sdk/requestAiRunner.uts) 仅在主线程取得提供商配置和短期令牌，随后把实际流式 AI 请求交给生产 Worker。
+- Worker 内完成 `enableChunked` 请求、ArrayBuffer/UTF-8/SSE 解码、正文与思考内容累积、公式预处理和 CMark。
+- UTS 运行时桥只保存最新不可变 JSON 快照；主线程每 50ms 轮询，不按标签逐条回调和追加 View。
+- 主线程继续负责稳定 key/节点复用、表格宽度、代码高亮、公式/流程图 SVG 等依赖 UI 能力的渲染富化；这部分归入 T02，不能据此宣称“整个界面只有 RichText 和 Image”。
+- 自定义提供商与非 Android 平台保持原路径；百炼按用户要求未测试。短期令牌的云端预取也没有迁入 Worker，因此 T01 的完成结论严格限定为 Android/七牛的 AI 热链路。
 
-能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。Android 真机已确认真实 Worker 内普通 `uni.request`、`RequestTask.onChunkReceived`、`ArrayBuffer`、`TextDecoder` 和 `uni-cmark` JNI 解析可用；流式请求收到 3 个分块并累计解码 177 个字符，CMark 在 143ms 内返回 2 个 token。模块根别名导入失败已通过“声明插件依赖 + 导入 Android 平台入口”在应用层解决。T01 不再受框架能力阻塞，下一步是迁移生产请求、SSE、Markdown 预处理和渲染描述构建。
+能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。Android 真机已确认真实 Worker 内普通 `uni.request`、`RequestTask.onChunkReceived`、`ArrayBuffer`、`TextDecoder` 和 `uni-cmark` JNI 解析可用；流式请求收到 3 个分块并累计解码 177 个字符，CMark 在 143ms 内返回 2 个 token。模块根别名导入失败已通过“声明插件依赖 + 导入 Android 平台入口”在应用层解决。该阶段确认 T01 不受框架能力阻塞，后续生产迁移结果见下方第六阶段。
 
 第一阶段生产基础已完成：新增纯 UTS `SSEStreamDecoder`，在一个响应周期内保留 UTF-8 尾字节、未完成文本行和 SSE 事件。Android Worker 把 93 个原始 UTF-8 字节切成 11 段，分片点跨越中文字符、CRLF、`data:` 和事件空行，149ms 无损返回两条中文 JSON，`[DONE]` 一次，字节/文本残留均为 0；同时通过无终止空行的 `finish()` 刷出与多行 `data:` 合并断言。测试代码、命令、线程、构建和截图见 [`test-results/android-worker-sse-fragments-results.txt`](test-results/android-worker-sse-fragments-results.txt)。
 
@@ -79,7 +80,9 @@
 
 第五阶段真实七牛闸门已通过：续费后的七牛网关在 1060ms 返回 67 字符临时令牌；`deepseek-v3` 真实流式请求在 Worker 内收到 210 个网络分块、109955 字节和 482 条 SSE 事件，以真实 `[DONE]` 终止。最终正文 1873 字符，Worker 生成 8 批快照，CMark 返回 24 个 token 且无解析错误，覆盖标题、段落、列表、代码块、引用和表格；页面明确完成 `1/1`。完整测试代码、命令、线程、原始数据、失败扫描、正常入口回归和截图见 [`test-results/android-worker-real-ai-qiniu-results.txt`](test-results/android-worker-real-ai-qiniu-results.txt)。按用户确认，本阶段只要求七牛，百炼不在当前范围；未改动或部署云端资源。
 
-T01 的关键技术可行性验证现已全部完成，可以开始生产接入。证据边界是临时令牌仍由主线程预取，真实 AI 流式请求、ArrayBuffer/SSE、Markdown 累积和 CMark 均在 Worker；生产 `RequestAiRunner` 与完整生产渲染描述构建尚未迁移，所以 T01 还不能标为最终完成。
+第六阶段生产接入已完成：Android 内置提供商的 `RequestAiRunner` 已切换到生产 Worker。最终七牛真机回归先在请求 A 首批 42 字符后取消，59ms 后启动请求 B；B 以真实 `[DONE]` 完成 224 个网络分块、115574 字节、506 条 SSE、61 批不可变快照和 24 个顶层 CMark token。CMark TID 为 20353，主线程 TID 为 16395；标题、列表、引用、表格、代码块、两张公式 SVG 和 JavaScript 高亮均通过，A 取消后的回调为 0，且无 dead-thread、`IllegalStateException`、`TypeError` 或崩溃。完整命令、边界、数据和截图见 [`test-results/android-worker-production-qiniu-results.txt`](test-results/android-worker-production-qiniu-results.txt)。
+
+因此，T01 在当前约定的 Android/七牛范围内已完成。这里不扩大结论：临时令牌仍由主线程预取，百炼未测，iOS/Harmony/Web 未迁移，完整渲染描述与组件创建职责仍属于 T02。
 
 ### T02 渲染职责边界
 
@@ -203,7 +206,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 1. Worker 的模块根别名不能解析时，使用平台入口的显式相对路径，并在桥接插件中声明依赖。
 2. Worker 源文件缓存曾未自动失效；当前通过插件依赖变更和全量构建解决，未形成生产阻塞。
 3. 跨层过程消息不逐条回调页面；插件记录过程，每个场景只批量回传一次终态，符合主线程批处理设计。
-4. 生产迁移仍需专项验证取消顺序，并始终用请求版本丢弃迟到结果。
+4. 生产迁移已经用请求 generation、取消后 59ms 重启和 `lateA=0` 完成专项验证；后续修改仍必须保留版本隔离。
 
 ## 已由应用层处理、不提交框架的问题
 
@@ -218,13 +221,14 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 1. 人工验收 T05：表格/代码横滑、垂直滚动、左缘短滑和侧栏关闭。
 2. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
-3. T01 技术闸门已完成；按已验证的七牛方案接入生产 `RequestAiRunner`，保留 generation 隔离和批量不可变快照。
+3. 继续 T02：把可脱离 UI 的渲染描述构建移入 Worker，主线程只做必要富化和批量组件更新。
 4. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | T01 | 生产 `RequestAiRunner` 接入 Android Worker；七牛真实流完成 224 块/115574 字节/506 条 SSE/61 批快照，取消后重启无迟到回调和 dead-thread 警告 | 本提交（`feat: 将七牛流式解析接入 Worker`） |
 | 2026-07-30 | T01 | 七牛网关真实 `deepseek-v3` 在 Worker 内完成 210 块/109955 字节/482 条 SSE、8 批快照和 24 个 CMark token；页面 1/1，通过后允许生产接入 | 本提交（`test: 验证 Worker 七牛真实链路`） |
 | 2026-07-30 | T01 | 三次冷启动验证 A 取消后立即启动 B；B 完整有序且 A 迟到应用回调为 0，尚未接生产 | 本提交（`test: 验证 Worker 取消重启隔离`） |
 | 2026-07-30 | T01 | 隔离验证真实网络到 CMark/渲染描述的完整机械链路；页面无损观察 1..6 六批稳定快照，尚未接生产 | 本提交（`test: 验证 Worker 完整链路可行性`） |

@@ -40,7 +40,9 @@
   },
   "uni_modules": {
     "dependencies": [
-    	"uni-highlight"
+		"uni-highlight",
+		"uni-ai-worker",
+		"uni-ai-worker-runtime"
     ],
     "encrypt": [],
     "platforms": {

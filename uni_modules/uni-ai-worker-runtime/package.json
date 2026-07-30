@@ -1,0 +1,24 @@
+{
+  "id": "uni-ai-worker-runtime",
+  "displayName": "uni-ai Worker 运行时",
+  "version": "1.0.0",
+  "description": "在 Worker 内执行 uni-ai-x 流式请求与 Markdown 解析",
+  "keywords": [
+    "worker",
+    "markdown",
+    "stream"
+  ],
+  "engines": {
+    "HBuilderX": "^5.24",
+    "uni-app-x": "^5.24"
+  },
+  "dcloudext": {
+    "type": "uts"
+  },
+  "uni_modules": {
+    "dependencies": [
+      "uni-ai-worker",
+      "uni-cmark"
+    ]
+  }
+}
