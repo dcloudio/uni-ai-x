@@ -21,6 +21,13 @@
 			{
 				"navigationBarTitleText" : "选择文本"
 			}
+		},
+		{
+			"path" : "pages/repro-rich-text-radius/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "RichText 圆角裁剪复现"
+			}
 		}
 	],
 	"globalStyle": {

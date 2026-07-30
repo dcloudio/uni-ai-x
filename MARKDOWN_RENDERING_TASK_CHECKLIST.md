@@ -4,7 +4,7 @@
 
 - 当前分支：`dev-vapor-richTextNative`
 - 首次整理：2026-07-29
-- 最近更新：2026-07-29
+- 最近更新：2026-07-30
 - 维护规则：每解决一项，必须同步更新状态、实现说明、验证结果和 Git 提交号。
 
 ## 状态说明
@@ -164,10 +164,12 @@ T13 已完成：
 | F01 | RichText `nodes` 更新触发全量位图快照和大规模拷贝 | 待上报 | P0 | 4.57 秒约 625MB 拷贝；最大帧间隔 66.35ms |
 | F02 | 原生布局和 View 追加产生主线程长任务 | 待上报 | P0 | layout 最大 69.11ms；append View 最大 40.65ms |
 | F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 41 次 slow bitmap upload；动态插图约 21ms |
-| F04 | RichText 内容不能稳定服从父容器圆角裁剪 | 待补最小复现后上报 | P1 | 当前只能移除表格、代码块圆角规避 |
+| F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 待上报 | P1 | Android 最小复现已确认，见圆角裁剪报告 |
 | F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 待确认能力 | - | 需要确认下列 API 是否能在 Worker 使用 |
 
 F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPORT.md`](RICH_TEXT_PERFORMANCE_REPORT.md)。
+
+F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CLIPPING_REPORT.md`](RICH_TEXT_RADIUS_CLIPPING_REPORT.md)。结论不是“所有 RichText 都不能圆角”，而是 Android 蒸汽模式下 `flatten` 父 View 与原生 RichText 的组合不能正确执行父级圆角裁剪。RichText 节点 CSS 只能处理内容自身的首尾边缘，不能替代宽内容外层 ScrollView 的视口裁剪。
 
 ### F05 需要向框架确认的问题
 
@@ -189,7 +191,7 @@ F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPOR
 按改动大小和风险从低到高：
 
 1. 人工验收 T05：表格/代码横滑、垂直滚动、左缘短滑和侧栏关闭。
-2. 为 F04 建立最小复现页并整理框架报告。
+2. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
 3. 向框架确认 F05，再设计和实现 T01-T02 的完整子线程架构。
 4. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人。
 
@@ -197,6 +199,7 @@ F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPOR
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | F04 | 完成 flatten + 原生 RichText 圆角裁剪最小复现和框架报告 | 本提交（`test: 新增 RichText 圆角裁剪复现`） |
 | 2026-07-29 | T15 | 修复整段 Markdown 中代码块之前的公式被跳过 | 本提交（`fix: 修复代码块前公式解析遗漏`） |
 | 2026-07-29 | T13 | 公式和流程图使用双 Image 缓冲；Android 连续 24 帧明暗切换无空白帧 | 本提交（`fix: 使用双 Image 缓冲切换 SVG 主题`） |
 | 2026-07-29 | T05 | 完成侧栏方向锁、左缘起手、速度吸附和横向 ScrollView 手势让权 | 本提交（`fix: 修复侧栏与横向滚动手势冲突`） |

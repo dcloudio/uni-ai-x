@@ -1,0 +1,125 @@
+<template>
+	<view class="page">
+		<text class="title">RichText 圆角裁剪最小复现</text>
+		<text class="description">绿色描边是父容器边界；红色内容不应覆盖圆角区域。</text>
+
+		<text class="case-title">1. 普通 View 对照</text>
+		<view class="clip-host">
+			<view class="native-fill">
+				<text class="content-text">普通 View</text>
+			</view>
+		</view>
+
+		<text class="case-title">2. flatten 父容器 + RichText</text>
+		<view class="clip-host" flatten>
+			<rich-text class="rich-fill" :nodes="richTextNodes" mode="native"></rich-text>
+		</view>
+
+		<text class="case-title">3. flatten + ScrollView + 宽 RichText</text>
+		<view class="clip-host" flatten>
+			<scroll-view class="rich-scroll" direction="horizontal">
+				<rich-text class="wide-rich-fill" :nodes="wideRichTextNodes" mode="native"></rich-text>
+			</scroll-view>
+		</view>
+
+		<text class="case-title">4. flatten + 子级/节点 CSS 圆角</text>
+		<view class="clip-host" flatten>
+			<scroll-view class="rich-scroll rich-scroll-rounded" direction="horizontal">
+				<rich-text class="wide-rich-fill wide-rich-fill-rounded" :nodes="wideRoundedNode" mode="native"></rich-text>
+			</scroll-view>
+		</view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	const contentStyle = 'height:88px;padding:28px 16px;box-sizing:border-box;background-color:#e5484d;color:#ffffff;font-size:16px;line-height:24px;'
+	const richTextNodes = '<div style="' + contentStyle + '">原生 RichText</div>'
+	const wideContentStyle = 'width:560px;' + contentStyle
+	const wideRichTextNodes = '<div style="' + wideContentStyle + '">ScrollView 内的宽 RichText</div>'
+	const wideRoundedNode = '<div style="' + wideContentStyle + 'border-radius:17px;overflow:hidden;">ScrollView 与 RichText CSS 圆角</div>'
+</script>
+
+<style>
+.page {
+	flex: 1;
+	padding: 24px 20px;
+	background-color: #f5f6f7;
+}
+
+.title {
+	font-size: 22px;
+	font-weight: 700;
+	color: #1f2328;
+}
+
+.description {
+	margin-top: 8px;
+	margin-bottom: 16px;
+	font-size: 13px;
+	line-height: 20px;
+	color: #59636e;
+}
+
+.case-title {
+	margin-top: 10px;
+	margin-bottom: 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1f2328;
+}
+
+.clip-host {
+	width: 100%;
+	height: 88px;
+	border-width: 3px;
+	border-style: solid;
+	border-color: #00875a;
+	border-radius: 20px;
+	overflow: hidden;
+	background-color: #ffffff;
+}
+
+.native-fill {
+	width: 100%;
+	height: 88px;
+	padding: 28px 16px;
+	box-sizing: border-box;
+	background-color: #e5484d;
+}
+
+.content-text {
+	font-size: 16px;
+	line-height: 24px;
+	color: #ffffff;
+}
+
+.rich-fill {
+	width: 100%;
+	height: 88px;
+	background-color: #e5484d;
+}
+
+.rich-scroll {
+	width: 100%;
+	height: 88px;
+	background-color: #e5484d;
+}
+
+.wide-rich-fill {
+	width: 560px;
+	height: 88px;
+	background-color: #e5484d;
+}
+
+.rich-scroll-rounded {
+	border-radius: 17px;
+	overflow: hidden;
+	background-color: transparent;
+}
+
+.wide-rich-fill-rounded {
+	border-radius: 17px;
+	overflow: hidden;
+	background-color: transparent;
+}
+</style>
