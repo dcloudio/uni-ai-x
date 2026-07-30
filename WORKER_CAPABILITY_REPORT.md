@@ -25,6 +25,8 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 - CMark 真机截图：[`test-results/android-worker-cmark.png`](test-results/android-worker-cmark.png)
 - 有状态 UTF-8/SSE 真机结果：[`test-results/android-worker-sse-fragments-results.txt`](test-results/android-worker-sse-fragments-results.txt)
 - 有状态 UTF-8/SSE 真机截图：[`test-results/android-worker-sse-fragments.png`](test-results/android-worker-sse-fragments.png)
+- Worker 生产流式请求核心结果：[`test-results/android-worker-stream-core-results.txt`](test-results/android-worker-stream-core-results.txt)
+- Worker 生产流式请求核心截图：[`test-results/android-worker-stream-core.png`](test-results/android-worker-stream-core.png)
 
 ## 验证环境
 
@@ -40,7 +42,7 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 
 1. 在 `manifest.json` 顶层配置 `"workers": "workers"`。
 2. 由 UTS 插件创建 `workers/markdownWorkerTask.uts`；Android 蒸汽模式 `.uvue` 页面不能直接调用 `uni.createWorker`。
-3. 页面依次执行 `local`、`request`、`stream`、`cmark`，每个场景使用新的 Worker，避免请求状态互相污染。
+3. 页面依次执行 `local`、`sse-fragments`、`stream-core`、`request`、`stream`、`cmark`，每个场景使用新的 Worker，避免请求状态互相污染。
 4. `local` 用 `Uint8Array([87,111,114,107,101,114])` 构造 ArrayBuffer，再用 `TextDecoder` 解码。
 5. `request` 向 `https://request.dcloud.net.cn/api/http/method/get` 发起普通 GET，Worker 超时 8000ms，页面超时 12000ms。
 6. `stream` 向 `https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3` 发起 `enableChunked: true` 的 POST，在 `onChunkReceived` 中逐块解码并累计数量和字符数。
@@ -108,7 +110,19 @@ Android Worker 用 93 个真实 UTF-8 字节构造两条中文 JSON 事件和 `[
 
 同轮回归结果为：本地解码 168ms、普通请求 521ms、网络流 3362ms（3 块/177 字符）、CMark 142ms（2 token）。页面主线程 TID 13799，Worker/plugin TID 18803，CMark JNI TID 18825。完整测试方式、断言、编译路径、失败对照与截图哈希见上述独立结果文件。
 
-本次只修改纯 UTS，没有 `.so`、Kotlin/Java 或原生 `config.json`。HBuilderX 明确提示自定义基座 2.1.4 已是最新并跳过更新，但设备返回了最终版本才新增的 `multilineEvent` 字段，证明纯 UTS 随应用调试内容更新生效。这个结论不外推到 `.so` 或原生桥接修改；此类修改仍须重打自定义基座。
+本次只修改纯 UTS，没有 `.so`、Kotlin/Java 或原生 `config.json`。HBuilderX 明确提示自定义基座 2.1.4 已是最新并跳过更新，但设备返回了最终版本才新增的 `multilineEvent` 字段，证明纯 UTS 随应用调试内容更新生效。这个结论只覆盖已测的纯 UTS；当前工程流程中 `.so` 变化仍须重打自定义基座，Kotlin/Java 桥接和原生配置变化本轮没有单独做控制变量，不作一概而论。
+
+## Worker 生产流式请求核心回归
+
+新增纯 UTS `WorkerStreamRequest`，把 `enableChunked` POST、`RequestTask.onChunkReceived`、ArrayBuffer 字节统计、有状态 `SSEStreamDecoder` 和终态收敛封装在 Worker 所在线程。鉴权 token 仍由主线程按供应商配置取得，只把已经序列化的 URL、Authorization 和 JSON 请求体交给 Worker，避免把 `uniCloud.importObject` 回调与供应商闭包跨线程传递。
+
+Android 真机向真实 event-stream 地址发起 POST，Worker 核心耗时 3425ms，收到 3 个网络分块、177 字节并解出 3 条 SSE JSON；首条为“这是第1条消息”，末条为“这是第3条消息”，终态来源为 `request-success`。页面主线程 TID 17254，执行 Worker/插件回调的 TID 23355，线程名 `pool-5-thread-1`。同轮另外五个回归场景全部成功，页面最终显示“全部完成”。
+
+请求类通过递增 generation 丢弃旧请求或 abort 后迟到的 chunk、success、fail 和 complete 回调；HTTP 状态码先判断，再 flush SSE。本轮成功链路已真机验证，HTTP 失败和取消竞态仍保留为后续专项用例，不能写成已验收。完整命令、断言、原始终态、线程名、截图与哈希见独立结果文件。
+
+本轮再次明确：HBuilderX 跳过自定义基座更新，而新增纯 UTS `stream-core` 场景已在设备执行，证明纯 UTS 生效。这里只能据实区分“纯 UTS 已验证”和“`.so` 仍需重打”；没有单独验证的 Kotlin/Java 桥接或原生配置不扩大结论。
+
+恢复聊天页为启动页后再次全量构建，8 个页面编译成功，`ready in 33864ms`；应用主 Activity 为 `RESUMED`，截图确认超宽公式、完整流程图、分割线和后续正文正常。启动日志仍有基座既存的 `UniAppConfig` 反射探针异常，但应用继续完成绘制，本轮没有 Worker 类加载失败或崩溃。
 
 恢复正常聊天页为启动页后再次全量回归：8 个页面编译成功，`ready in 34000ms`；应用主 Activity 为 `RESUMED`，截图确认超宽公式、完整流程图、分割线和下方正文均正常显示，没有本项相关类加载失败或崩溃。
 
@@ -122,6 +136,7 @@ Android Worker 用 93 个真实 UTF-8 字节构造两条中文 JSON 事件和 `[
 | `ArrayBuffer` + `TextDecoder` | 解码得到 `Worker` 并回传 | 已确认 |
 | Worker 内 `uni.request` | 普通 GET 成功，最新耗时 388ms | 已确认 |
 | `RequestTask.onChunkReceived` | 3 次回调，累计解码 177 字符 | 已确认 |
+| Worker 生产流式请求核心 | 3 块/177 字节/3 条 SSE 事件，中文 JSON 无损 | 已确认，尚未接入生产聊天链路 |
 | Worker 调用 `uni-cmark` | 声明插件依赖并导入 Android 平台入口后解析成功 | 已确认，应用层解决 |
 | UTS 插件回调多次跨层转发 | 同一次注册中只有第一次事件稳定到达页面；最终探针改为插件记录全部事件、只回传一次终态 | 待框架确认语义 |
 | 请求和 Worker 取消 | API 存在，本轮未验证回调顺序 | 待专项验证 |
@@ -181,7 +196,7 @@ Android 真机结果为 `cmark-success`，`tokenCount=2`、`firstType=heading`�
 能力已经闭环，下一阶段由应用层负责：
 
 - 用 UTS 插件封装 Worker 的创建、消息监听和销毁。
-- 把 SSE 解码、Markdown 预处理、CMark 和渲染描述构建放在同一个 Worker 任务中。
+- 已完成 Worker 内流式请求和 SSE 解码核心；继续把生产聊天请求接入，并把 Markdown 预处理、CMark 和渲染描述构建放在同一个 Worker 任务中。
 - 每批输出带稳定 key、主题版本和请求版本的不可变渲染描述。
 - 主线程按节流周期批量更新，不按每个 Markdown 标签逐个创建组件。
 - 页面销毁或请求切换时同时执行 `RequestTask.abort()` 和 `Worker.terminate()`，并用请求版本丢弃迟到回调。

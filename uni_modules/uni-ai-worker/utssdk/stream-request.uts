@@ -1,0 +1,99 @@
+import { SSEStreamDecoder } from './sse.uts'
+
+export type WorkerStreamDataCallback = (data : string) => void
+export type WorkerStreamErrorCallback = (code : string, message : string) => void
+export type WorkerStreamDoneCallback = (source : string, networkChunkCount : number, receivedBytes : number) => void
+
+/**
+ * Runs an OpenAI-compatible streaming POST request inside its owning Worker.
+ * Token acquisition remains outside so provider-specific credentials and cloud
+ * object callbacks do not cross the Worker boundary.
+ */
+export class WorkerStreamRequest {
+	private requestTask : RequestTask | null = null
+	private streamDecoder : SSEStreamDecoder | null = null
+	private dataCallback : WorkerStreamDataCallback
+	private errorCallback : WorkerStreamErrorCallback
+	private doneCallback : WorkerStreamDoneCallback
+	private terminal = false
+	private generation = 0
+	private networkChunkCount = 0
+	private receivedBytes = 0
+
+	constructor(dataCallback : WorkerStreamDataCallback, errorCallback : WorkerStreamErrorCallback, doneCallback : WorkerStreamDoneCallback) {
+		this.dataCallback = dataCallback
+		this.errorCallback = errorCallback
+		this.doneCallback = doneCallback
+	}
+
+	start(url : string, authorization : string, bodyJson : string, timeout : number = 30000) : void {
+		this.abort()
+		const generation = this.generation
+		this.terminal = false
+		this.networkChunkCount = 0
+		this.receivedBytes = 0
+		this.streamDecoder = new SSEStreamDecoder(
+			(data : string) => {
+				if (generation == this.generation && !this.terminal) this.dataCallback(data)
+			},
+			() => {
+				this.finish('done-sentinel', generation)
+			}
+		)
+
+		this.requestTask = uni.request({
+			url: url,
+			method: 'POST',
+			dataType: 'text',
+			data: bodyJson,
+			// @ts-ignore
+			enableChunked: true,
+			timeout: timeout,
+			header: {
+				'Authorization': authorization,
+				'Content-Type': 'application/json'
+			},
+			success: (response : RequestSuccess<any>) => {
+				if (generation != this.generation) return
+				if (response.statusCode >= 400) {
+					this.fail(response.statusCode.toString(), 'HTTP ' + response.statusCode.toString(), generation)
+					return
+				}
+				this.streamDecoder?.finish()
+				this.finish('request-success', generation)
+			},
+			fail: (error : RequestFail) => {
+				this.fail(error.errCode.toString(), error.errMsg, generation)
+			},
+			complete: () => {
+				if (generation == this.generation) this.requestTask = null
+			}
+		})
+		this.requestTask!.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
+			if (generation != this.generation || this.terminal) return
+			this.networkChunkCount += 1
+			this.receivedBytes += new Uint8Array(chunk.data).length
+			this.streamDecoder?.push(chunk.data)
+		})
+	}
+
+	abort() : void {
+		this.generation += 1
+		this.terminal = true
+		this.requestTask?.abort()
+		this.requestTask = null
+		this.streamDecoder = null
+	}
+
+	private finish(source : string, generation : number) : void {
+		if (generation != this.generation || this.terminal) return
+		this.terminal = true
+		this.doneCallback(source, this.networkChunkCount, this.receivedBytes)
+	}
+
+	private fail(code : string, message : string, generation : number) : void {
+		if (generation != this.generation || this.terminal) return
+		this.terminal = true
+		this.errorCallback(code, message)
+	}
+}

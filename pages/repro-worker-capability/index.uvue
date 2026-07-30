@@ -1,7 +1,7 @@
 <template>
 	<view class="page">
 		<text class="title">Worker 能力探针</text>
-		<text class="description">TextDecoder、SSE 分片、普通请求、流式请求和 CMark 依次使用独立 Worker。</text>
+		<text class="description">TextDecoder、SSE 分片、生产流式核心、普通请求、流式请求和 CMark 依次使用独立 Worker。</text>
 
 		<view class="toolbar">
 			<button class="command" size="mini" :disabled="isRunning" @click="runSequence">重跑全部</button>
@@ -31,7 +31,7 @@
 	const LOCAL_TIMEOUT = 3000
 	const CMARK_TIMEOUT = 5000
 	const NEXT_DELAY = 600
-	const scenarios = ['local', 'sse-fragments', 'request', 'stream', 'cmark']
+	const scenarios = ['local', 'sse-fragments', 'stream-core', 'request', 'stream', 'cmark']
 
 	const isRunning = ref(false)
 	const status = ref('准备自动测试')
@@ -134,7 +134,8 @@
 			appendResult(scenario, phase, detail)
 
 			if ((scenario == 'local' && phase == 'local') ||
-				phase == 'sse-fragments-success' || phase == 'sse-fragments-fail') {
+				phase == 'sse-fragments-success' || phase == 'sse-fragments-fail' ||
+				phase == 'stream-core-success' || phase == 'stream-core-fail') {
 				finishScenario(scenario, version)
 				return
 			}

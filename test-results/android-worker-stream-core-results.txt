@@ -1,0 +1,148 @@
+Android Worker production streaming request core result
+=======================================================
+
+Date: 2026-07-30
+HBuilderX: 5.24.2026072917-dev
+Compiler: uni-app x 5.24 vapor mode, bytecode view layer
+Package: io.dcloud.ai.x
+Custom playground version: 2.1.4
+Device: Xiaomi M2102K1AC
+Android: 14 (API 34)
+Physical display: 1440x3200, density 560
+
+Purpose:
+Prove that the reusable production core can issue an enableChunked POST inside
+a real Worker, consume each RequestTask ArrayBuffer, preserve stream state with
+SSEStreamDecoder, and return decoded SSE events without using the page thread.
+
+Retained implementation and test code:
+- Production request core:
+  uni_modules/uni-ai-worker/utssdk/stream-request.uts
+- Stateful UTF-8/SSE core:
+  uni_modules/uni-ai-worker/utssdk/sse.uts
+- Worker fixture:
+  workers/markdownWorkerTask.uts, runStreamCoreScenario()
+- Automatic page: pages/repro-worker-capability/index.uvue
+- Worker bridge: uni_modules/uni-ai-worker-probe
+
+Request fixture:
+- POST https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3
+- dataType: text
+- enableChunked: true
+- Content-Type: application/json
+- Body: {}
+- Request timeout: 8000ms
+- Expected network chunks: 3
+- Expected received bytes: 177
+- Expected SSE events: 3
+- Expected first content: This is message 1 (Chinese: \u8fd9\u662f\u7b2c1\u6761\u6d88\u606f)
+- Expected last content: This is message 3 (Chinese: \u8fd9\u662f\u7b2c3\u6761\u6d88\u606f)
+
+Assertions performed inside the Worker:
+- The request reaches one terminal callback only.
+- Exactly 3 RequestTask chunks and 177 bytes are received.
+- Exactly 3 SSE data events are decoded.
+- JSON parsing preserves the first and last Chinese content strings.
+- The decoder is flushed on successful request completion.
+
+Implemented but not asserted by this success fixture:
+- A request generation invalidates callbacks from an older request or abort.
+- HTTP and RequestFail paths converge on one error callback.
+
+Test procedure:
+1. Temporarily move pages/repro-worker-capability/index to the first pages.json
+   entry. Restore the normal chat page to first entry after evidence capture.
+2. Start a clean build and launch:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --playground custom \
+     --native-log true \
+     --cleanCache true
+3. Wait for the automatic six-scenario page to show "all complete".
+4. Extract the stream-core terminal record:
+   adb -s 192.168.2.5:5555 logcat -d \
+     -T '07-30 15:46:00.000' \
+     --regex='stream-core|WorkerCapabilityRepro.*complete'
+5. Read the executing thread names:
+   adb -s 192.168.2.5:5555 shell cat \
+     /proc/17254/task/17254/comm
+   adb -s 192.168.2.5:5555 shell cat \
+     /proc/17254/task/23355/comm
+6. Scan the same run for fatal and terminal failures:
+   adb -s 192.168.2.5:5555 logcat -d \
+     -T '07-30 15:46:00.000' \
+     --regex='FATAL EXCEPTION|SIGABRT|host-timeout|stream-core-fail|NoClassDefFoundError'
+7. Capture the completed page:
+   adb -s 192.168.2.5:5555 exec-out screencap -p \
+     > test-results/android-worker-stream-core.png
+
+Build result:
+- All 8 pages compiled.
+- Project compiled successfully.
+- ready in 43910ms.
+- HBuilderX reported that custom playground 2.1.4 was already current and
+  skipped its update.
+
+Normal-entry regression after restoring pages.json:
+- A second clean full build compiled all 8 pages successfully.
+- ready in 33864ms.
+- The top activity was io.dcloud.ai.x/io.dcloud.uniappxv.UniAppActivity in
+  RESUMED state; its window was drawn and visible.
+- Screenshot inspection confirmed the normal chat page, wide formula, complete
+  flowchart, divider and following text rendered.
+- No FATAL EXCEPTION, SIGABRT or Worker class-loading failure was found.
+- The base startup emitted its existing UniAppConfig reflection probe
+  ClassNotFoundException; the app continued to RESUMED and rendered normally,
+  so it is recorded but not attributed to this Worker change.
+
+Final six-scenario page results:
+- local: 168ms, textDecoder=Worker.
+- sse-fragments: 142ms, sse-fragments-success.
+- stream-core: 3556ms page elapsed, 3425ms Worker core elapsed.
+- ordinary request: 360ms, request-success.
+- original stream probe: 3470ms, 3 chunks, 177 decoded characters.
+- CMark: 152ms, 2 tokens, first type heading, empty error detail.
+- Page ended with [WorkerCapabilityRepro] complete.
+
+stream-core terminal result:
+{"scenario":"stream-core","phase":"stream-core-success","elapsed":3425,"terminalSource":"request-success","networkChunkCount":3,"receivedBytes":177,"eventCount":3,"firstContent":"\u8fd9\u662f\u7b2c1\u6761\u6d88\u606f","lastContent":"\u8fd9\u662f\u7b2c3\u6761\u6d88\u606f"}
+
+Thread evidence:
+- Page/main TID: 17254, thread name io.dcloud.ai.x.
+- Worker/plugin TID: 23355, thread name pool-5-thread-1.
+- The stream-core request start, chunks, decoder, and terminal message ran from
+  the Worker/plugin callback path, not page/main TID 17254.
+
+Custom playground scope conclusion:
+- This change contains pure UTS only and was observed on device while HBuilderX
+  skipped updating the custom playground.
+- This proves that these pure UTS debug classes update without rebuilding the
+  custom playground.
+- A changed native .so still requires a rebuilt custom playground in the
+  current project workflow.
+- Kotlin/Java bridge and native configuration changes were not independently
+  isolated in this run, so this result makes no blanket claim about them.
+
+Failure and residual-risk result:
+- No FATAL EXCEPTION, SIGABRT, host-timeout, stream-core-fail or
+  NoClassDefFoundError matched the run.
+- HTTP error and RequestFail callbacks compile, but were not forced in this
+  success fixture.
+- abort/restart stale callbacks are guarded by request generation in code, but
+  abort timing is still listed as a separate unverified scenario.
+- The production chat RequestAiRunner is not wired to this Worker core in this
+  commit; this is an independently verified production-compatible core.
+
+Assertions:
+PASS: the real POST and onChunkReceived callbacks execute through the Worker.
+PASS: all 3 network chunks and 177 bytes reach the stateful SSE decoder.
+PASS: all 3 SSE events and their Chinese JSON content are preserved.
+PASS: the automatic regression also passes local decode, fragment boundaries,
+      ordinary request, the original stream probe and CMark.
+PASS: no fatal, timeout or stream-core terminal failure was found.
+
+Screenshot:
+- test-results/android-worker-stream-core.png
+- PNG 1440x3200 with alpha, 425896 bytes.
+- SHA-256 abb94e2283917be041e5e6ed25fe02c963a8c3f170070c356a73c711380cf25a

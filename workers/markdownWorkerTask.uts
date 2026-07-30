@@ -3,12 +3,14 @@ import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
 import { SSEStreamDecoder } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
+import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 
 export class MarkdownWorkerTask extends WorkerTaskImpl {
 	private requestTask: RequestTask | null = null
 	private decoder: TextDecoder = new TextDecoder()
 	private chunkCount = 0
 	private decodedLength = 0
+	private streamRequest : WorkerStreamRequest | null = null
 
 	constructor() {
 		super()
@@ -30,10 +32,12 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		console.log('[WorkerCapabilityRepro] worker-message', action)
 		if (action == 'cancel') {
 			this.requestTask?.abort()
+			this.streamRequest?.abort()
 			this.requestTask = null
+			this.streamRequest = null
 			return
 		}
-		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments') return
+		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core') return
 
 		const received = new UTSJSONObject()
 		received.scenario = action
@@ -55,6 +59,10 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 
 		if (action == 'sse-fragments') {
 			this.runSSEFragmentScenario(action)
+			return
+		}
+		if (action == 'stream-core') {
+			this.runStreamCoreScenario(action)
 			return
 		}
 
@@ -212,5 +220,54 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			finishEvent: finishEvents.length > 0 ? finishEvents[0] : '',
 			multilineEvent: multilineEvents.length > 0 ? multilineEvents[0] : ''
 		} as UTSJSONObject)
+	}
+
+	private runStreamCoreScenario(action : string) : void {
+		const startedAt = Date.now()
+		const events : string[] = []
+		this.streamRequest = new WorkerStreamRequest(
+			(data : string) => {
+				events.push(data)
+			},
+			(code : string, message : string) => {
+				this.postMessage({
+					scenario: action,
+					phase: 'stream-core-fail',
+					code: code,
+					detail: message,
+					elapsed: Date.now() - startedAt,
+					eventCount: events.length
+				} as UTSJSONObject)
+				this.streamRequest = null
+			},
+			(source : string, networkChunkCount : number, receivedBytes : number) => {
+				let firstContent = ''
+				let lastContent = ''
+				if (events.length > 0) {
+					firstContent = (JSON.parse<UTSJSONObject>(events[0]) as UTSJSONObject).getString('content', '')
+					lastContent = (JSON.parse<UTSJSONObject>(events[events.length - 1]) as UTSJSONObject).getString('content', '')
+				}
+				const passed = events.length == 3 && networkChunkCount == 3 && receivedBytes == 177 &&
+					firstContent == '这是第1条消息' && lastContent == '这是第3条消息'
+				this.postMessage({
+					scenario: action,
+					phase: passed ? 'stream-core-success' : 'stream-core-fail',
+					elapsed: Date.now() - startedAt,
+					terminalSource: source,
+					networkChunkCount: networkChunkCount,
+					receivedBytes: receivedBytes,
+					eventCount: events.length,
+					firstContent: firstContent,
+					lastContent: lastContent
+				} as UTSJSONObject)
+				this.streamRequest = null
+			}
+		)
+		this.streamRequest!.start(
+			'https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3',
+			'',
+			'{}',
+			8000
+		)
 	}
 }

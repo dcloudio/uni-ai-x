@@ -1,1 +1,2 @@
 export * from './sse.uts'
+export * from './stream-request.uts'

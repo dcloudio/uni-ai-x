@@ -29,6 +29,8 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 			? phase == 'local'
 			: currentScenario == 'sse-fragments'
 				? phase == 'sse-fragments-success' || phase == 'sse-fragments-fail'
+			: currentScenario == 'stream-core'
+				? phase == 'stream-core-success' || phase == 'stream-core-fail'
 			: currentScenario == 'cmark'
 				? phase == 'cmark-success' || phase == 'cmark-fail'
 				: phase == 'request-success' || phase == 'request-fail'
