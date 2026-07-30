@@ -31,7 +31,7 @@
 
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
-| T01 | 联网到 Markdown 的完整子线程链路 | 部分完成 | 应用层 | Worker 流式 POST + ArrayBuffer + 有状态 SSE 核心真机通过，待接入生产聊天请求并迁移 Markdown |
+| T01 | 联网到 Markdown 的完整子线程链路 | 部分完成 | 应用层 | 完整机械链路及 6 批快照真机通过；待取消重启和真实 AI 闸门，通过前不接生产 |
 | T02 | 子线程输出渲染描述，主线程批量创建组件 | 部分完成 | 应用层 | 当前已有 7 类渲染块，但分类与 RichText 节点转换仍在主线程 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
@@ -72,6 +72,8 @@
 第二阶段生产基础已完成：新增 `WorkerStreamRequest`，在 Worker 内执行真实 `enableChunked` POST，把每个 ArrayBuffer 直接交给上述有状态 SSE 核心。Android 真机收到 3 个网络分块、177 字节和 3 条 SSE JSON，首尾中文内容无损，核心耗时 3425ms；执行线程为 `pool-5-thread-1`，不是页面主线程。请求 generation 会丢弃旧请求/abort 后迟到回调；取消时序与 HTTP 失败仍待专项测试。完整方式、断言、线程和截图见 [`test-results/android-worker-stream-core-results.txt`](test-results/android-worker-stream-core-results.txt)。本阶段尚未把生产 `RequestAiRunner` 切换到该核心，因此 T01 仍是部分完成。
 
 关于自定义基座的证据边界：以上两阶段均为纯 UTS，HBuilderX 跳过自定义基座 2.1.4 更新时，设备仍执行了最终源码新增字段和 `stream-core` 场景，证明纯 UTS 调试内容生效。当前只明确 `.so` 变化仍需重打基座；Kotlin/Java 桥接和原生配置未做独立控制变量，不笼统判定。
+
+第三阶段可行性闸门已通过：隔离 `full-chain` 场景用真实网络取得 6 个分块、354 字节，在 Worker 内逐段完成 SSE、Markdown 累积、CMark 与最小 `rich/image` 描述构建。插件保存最新不可变累计快照，页面每 50ms 轮询，实际观察到 `1,2,3,4,5,6` 六个严格递增版本；终态为 6 个 token、6 个稳定 key 描述，首尾中文无损。Worker/plugin 和 CMark JNI 均不在页面主线程。测试代码、命令、原始终态、线程和截图见 [`test-results/android-worker-full-chain-feasibility-results.txt`](test-results/android-worker-full-chain-feasibility-results.txt)。本结果只证明机械链路；取消重启和真实七牛/百炼 AI 响应仍须通过，之后才能实施生产接入。
 
 ### T02 渲染职责边界
 
@@ -210,13 +212,14 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 1. 人工验收 T05：表格/代码横滑、垂直滚动、左缘短滑和侧栏关闭。
 2. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
-3. T01 已完成 Worker 流式请求/SSE 核心，下一步接入生产 `RequestAiRunner`，再迁移 Markdown 预处理和渲染描述。
+3. T01 先验证取消后立即重启与迟到结果隔离，再用真实七牛/百炼 AI 验证鉴权、SSE 变体、`reasoning_content`、`[DONE]` 和长 Markdown；两个闸门都通过后才接入生产 `RequestAiRunner`。
 4. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | T01 | 隔离验证真实网络到 CMark/渲染描述的完整机械链路；页面无损观察 1..6 六批稳定快照，尚未接生产 | 本提交（`test: 验证 Worker 完整链路可行性`） |
 | 2026-07-30 | T01 | 新增 Worker 生产流式 POST 核心；真机确认 3 块/177 字节/3 条 SSE 中文事件，保留线程、命令、断言和截图 | 本提交（`fix: 在 Worker 中执行流式请求`） |
 | 2026-07-30 | T01 | 新增有状态 UTF-8/SSE Worker 核心；保留 11 段边界测试，Android 返回两条无损中文事件且无残留 | 本提交（`fix: 增加有状态 SSE 分片解码`） |
 | 2026-07-30 | F05 | 声明 `uni-cmark` 依赖并导入 Android 平台入口；真机确认 Worker 中 CMark 返回 2 个 token，线程、耗时和截图已归档 | 本提交（`test: 验证 Worker 调用 CMark`） |

@@ -27,6 +27,8 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 - 有状态 UTF-8/SSE 真机截图：[`test-results/android-worker-sse-fragments.png`](test-results/android-worker-sse-fragments.png)
 - Worker 生产流式请求核心结果：[`test-results/android-worker-stream-core-results.txt`](test-results/android-worker-stream-core-results.txt)
 - Worker 生产流式请求核心截图：[`test-results/android-worker-stream-core.png`](test-results/android-worker-stream-core.png)
+- Worker 完整机械链路可行性结果：[`test-results/android-worker-full-chain-feasibility-results.txt`](test-results/android-worker-full-chain-feasibility-results.txt)
+- Worker 完整机械链路可行性截图：[`test-results/android-worker-full-chain-feasibility.png`](test-results/android-worker-full-chain-feasibility.png)
 
 ## 验证环境
 
@@ -124,7 +126,15 @@ Android 真机向真实 event-stream 地址发起 POST，Worker 核心耗时 342
 
 恢复聊天页为启动页后再次全量构建，8 个页面编译成功，`ready in 33864ms`；应用主 Activity 为 `RESUMED`，截图确认超宽公式、完整流程图、分割线和后续正文正常。启动日志仍有基座既存的 `UniAppConfig` 反射探针异常，但应用继续完成绘制，本轮没有 Worker 类加载失败或崩溃。
 
-恢复正常聊天页为启动页后再次全量回归：8 个页面编译成功，`ready in 34000ms`；应用主 Activity 为 `RESUMED`，截图确认超宽公式、完整流程图、分割线和下方正文均正常显示，没有本项相关类加载失败或崩溃。
+## 完整机械链路可行性闸门
+
+在接入 `RequestAiRunner` 之前，新增隔离的 `full-chain` 场景验证组合能力，而不是只根据各零件分别通过就开始改生产代码。真实 event-stream 返回 6 个网络分块、354 字节；Worker 逐段完成 SSE JSON、Markdown 累积、CMark 和最小 `rich/image` 渲染描述构建。6 次结果的 key 从 `0:heading` 稳定增长到 `0:heading...5:heading`，旧 key 始终保持不变。
+
+针对此前“UTS 插件连续 success 回调页面不稳定”的风险，探针改为让插件保存最新不可变累计快照，页面每 50ms 按版本轮询。页面实际观察到 `1,2,3,4,5,6` 六个严格递增版本，没有缺失或重复；最终为 6 个 token、6 个描述，首尾中文正确。Worker/plugin TID 为 27392，CMark JNI TID 为 27432，均不是页面主线程 TID 23239。
+
+这证明 Android 蒸汽模式下“真实网络 -> ArrayBuffer/SSE -> Markdown -> CMark -> 稳定渲染描述 -> 主线程多批消费”的机械链路可行，但 T01 仍不能进入生产实施：取消后立即重启、真实七牛/百炼响应格式与鉴权、`reasoning_content`、`[DONE]` 和长 Markdown 仍是实施前闸门。本阶段没有修改生产 `RequestAiRunner`。
+
+不带 `--pagePath` 恢复正常入口后再次全量回归：8 个页面编译成功，`ready in 31038ms`；应用主 Activity 为 `topResumedActivity`，截图确认超宽公式、完整流程图、分割线和下方正文均正常显示，启动时间窗没有 AndroidRuntime 或 libc 致命记录。截图尺寸、哈希和检查命令保存在完整链路结果文件中。
 
 ## 能力矩阵
 

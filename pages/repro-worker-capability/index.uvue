@@ -1,7 +1,7 @@
 <template>
 	<view class="page">
 		<text class="title">Worker 能力探针</text>
-		<text class="description">TextDecoder、SSE 分片、生产流式核心、普通请求、流式请求和 CMark 依次使用独立 Worker。</text>
+		<text class="description">基础能力回归后，验证真实网络到 CMark、渲染描述和多批快照的完整 Worker 链路。</text>
 
 		<view class="toolbar">
 			<button class="command" size="mini" :disabled="isRunning" @click="runSequence">重跑全部</button>
@@ -21,6 +21,7 @@
 		destroyWorkerProbe,
 		onWorkerProbeError,
 		onWorkerProbeMessage,
+		readWorkerProbeSnapshot,
 		sendWorkerProbeMessage,
 		WorkerProbeErrorOptions,
 		WorkerProbeMessageOptions,
@@ -30,8 +31,10 @@
 	const NETWORK_TIMEOUT = 12000
 	const LOCAL_TIMEOUT = 3000
 	const CMARK_TIMEOUT = 5000
+	const FULL_CHAIN_TIMEOUT = 18000
+	const SNAPSHOT_POLL_INTERVAL = 50
 	const NEXT_DELAY = 600
-	const scenarios = ['local', 'sse-fragments', 'stream-core', 'request', 'stream', 'cmark']
+	const scenarios = ['local', 'sse-fragments', 'stream-core', 'request', 'stream', 'cmark', 'full-chain']
 
 	const isRunning = ref(false)
 	const status = ref('准备自动测试')
@@ -42,7 +45,10 @@
 	let scenarioStartTime = 0
 	let timeoutId: number | null = null
 	let nextTimerId: number | null = null
+	let snapshotTimerId: number | null = null
 	let runVersion = 0
+	let lastSnapshotJson = ''
+	let observedSnapshotVersions : number[] = []
 
 	function stopWorkerProbe() {
 		destroyWorkerProbe()
@@ -95,6 +101,29 @@
 			clearTimeout(nextTimerId!)
 			nextTimerId = null
 		}
+		if (snapshotTimerId != null) {
+			clearInterval(snapshotTimerId!)
+			snapshotTimerId = null
+		}
+	}
+
+	function startSnapshotPolling(scenario: string, version: number) {
+		if (scenario != 'full-chain') return
+		lastSnapshotJson = ''
+		observedSnapshotVersions = []
+		snapshotTimerId = setInterval(() => {
+			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
+			const snapshotJson = readWorkerProbeSnapshot()
+			if (snapshotJson.length == 0 || snapshotJson == lastSnapshotJson) return
+			lastSnapshotJson = snapshotJson
+			const snapshot = JSON.parse<UTSJSONObject>(snapshotJson) as UTSJSONObject
+			if (snapshot.getString('phase', '') != 'full-chain-snapshot') return
+			const snapshotVersion = snapshot.getNumber('snapshotVersion', 0)
+			if (snapshotVersion > 0 && observedSnapshotVersions.indexOf(snapshotVersion) == -1) {
+				observedSnapshotVersions.push(snapshotVersion)
+				console.log('[WorkerFeasibility] snapshot-observed', snapshotVersion, snapshotJson)
+			}
+		}, SNAPSHOT_POLL_INTERVAL)
 	}
 
 	function finishScenario(scenario: string, version: number) {
@@ -102,6 +131,10 @@
 		if (timeoutId != null) {
 			clearTimeout(timeoutId!)
 			timeoutId = null
+		}
+		if (snapshotTimerId != null) {
+			clearInterval(snapshotTimerId!)
+			snapshotTimerId = null
 		}
 		stopWorkerProbe()
 		activeScenario = ''
@@ -133,6 +166,30 @@
 			const detail = JSON.stringify(result)
 			appendResult(scenario, phase, detail)
 
+			if (scenario == 'full-chain' && (phase == 'full-chain-success' || phase == 'full-chain-fail')) {
+				let versionsAscending = true
+				for (let index = 1; index < observedSnapshotVersions.length; index++) {
+					if (observedSnapshotVersions[index] <= observedSnapshotVersions[index - 1]) {
+						versionsAscending = false
+						break
+					}
+				}
+				const expectedKeys = '0:heading,1:heading,2:heading,3:heading,4:heading,5:heading'
+				const pagePassed = phase == 'full-chain-success' &&
+					observedSnapshotVersions.length >= 3 && versionsAscending &&
+					result.getNumber('snapshotCount', 0) == 6 &&
+					result.getNumber('eventCount', 0) == 6 &&
+					result.getNumber('tokenCount', 0) == 6 &&
+					result.getNumber('descriptionCount', 0) == 6 &&
+					result.getString('descriptionKeys', '') == expectedKeys &&
+					result.getBoolean('stableKeys', false)
+				appendResult(scenario,
+					pagePassed ? 'feasibility-success' : 'feasibility-fail',
+					`observed=${observedSnapshotVersions.join(',')} ascending=${versionsAscending}`)
+				finishScenario(scenario, version)
+				return
+			}
+
 			if ((scenario == 'local' && phase == 'local') ||
 				phase == 'sse-fragments-success' || phase == 'sse-fragments-fail' ||
 				phase == 'stream-core-success' || phase == 'stream-core-fail') {
@@ -144,10 +201,12 @@
 				finishScenario(scenario, version)
 			}
 		})
+		startSnapshotPolling(scenario, version)
 
 		const waitTime = scenario == 'local' || scenario == 'sse-fragments'
 			? LOCAL_TIMEOUT
-			: scenario == 'cmark' ? CMARK_TIMEOUT : NETWORK_TIMEOUT
+			: scenario == 'cmark' ? CMARK_TIMEOUT
+				: scenario == 'full-chain' ? FULL_CHAIN_TIMEOUT : NETWORK_TIMEOUT
 		timeoutId = setTimeout(() => {
 			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
 			appendResult(scenario, 'host-timeout', `limit=${waitTime}ms`)

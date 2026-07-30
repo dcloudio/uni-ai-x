@@ -12,9 +12,11 @@ let worker: Worker | null = null
 let messageOptions: WorkerProbeMessageOptions | null = null
 let errorOptions: WorkerProbeErrorOptions | null = null
 let currentScenario = ''
+let latestSnapshotJson = ''
 
 export function createWorkerProbe(): void {
 	destroyWorkerProbe()
+	latestSnapshotJson = ''
 	worker = uni.createWorker('workers/markdownWorkerTask.uts')
 }
 
@@ -25,12 +27,18 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 		console.log('[WorkerCapabilityRepro] plugin-message', JSON.stringify(message))
 		const result = message as UTSJSONObject
 		const phase = result.getString('phase', '')
+		if (currentScenario == 'full-chain' &&
+			(phase == 'full-chain-snapshot' || phase == 'full-chain-success' || phase == 'full-chain-fail')) {
+			latestSnapshotJson = JSON.stringify(result)
+		}
 		const isTerminal = currentScenario == 'local'
 			? phase == 'local'
 			: currentScenario == 'sse-fragments'
 				? phase == 'sse-fragments-success' || phase == 'sse-fragments-fail'
 			: currentScenario == 'stream-core'
 				? phase == 'stream-core-success' || phase == 'stream-core-fail'
+			: currentScenario == 'full-chain'
+				? phase == 'full-chain-success' || phase == 'full-chain-fail'
 			: currentScenario == 'cmark'
 				? phase == 'cmark-success' || phase == 'cmark-fail'
 				: phase == 'request-success' || phase == 'request-fail'
@@ -42,6 +50,10 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 		messageOptions!.success!(event)
 		messageOptions = null
 	})
+}
+
+export function readWorkerProbeSnapshot(): string {
+	return latestSnapshotJson
 }
 
 export function onWorkerProbeError(options: WorkerProbeErrorOptions): void {
@@ -71,4 +83,5 @@ export function destroyWorkerProbe(): void {
 	messageOptions = null
 	errorOptions = null
 	currentScenario = ''
+	latestSnapshotJson = ''
 }

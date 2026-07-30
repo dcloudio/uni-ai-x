@@ -1,0 +1,169 @@
+Android Worker full-chain feasibility result
+============================================
+
+Date: 2026-07-30
+HBuilderX: 5.24.2026072917-dev
+Compiler: uni-app x 5.24 vapor mode, bytecode view layer
+Package: io.dcloud.ai.x
+Custom playground version: 2.1.4
+Device: Xiaomi M2102K1AC
+Android: 14 (API 34)
+Physical display: 1440x3200, density 560
+
+Purpose:
+Validate the complete mechanical path before integrating RequestAiRunner:
+real Worker network -> RequestTask ArrayBuffer -> stateful UTF-8/SSE ->
+incremental Markdown -> CMark -> minimal rich/image render descriptions ->
+versioned snapshots observed by the page.
+
+This is an isolated feasibility probe. It does not modify the production chat
+request or claim that real AI provider compatibility is already verified.
+
+Retained test code:
+- Network and SSE core: uni_modules/uni-ai-worker/utssdk
+- Worker scenario: workers/markdownWorkerTask.uts, runFullChainScenario()
+- Snapshot holder: uni_modules/uni-ai-worker-probe/utssdk/index.uts
+- Automatic page: pages/repro-worker-capability/index.uvue
+
+Candidate bridge being tested:
+- Worker posts cumulative snapshots with a strictly increasing version.
+- The UTS plugin receives every Worker message and stores only the latest
+  snapshot as an immutable JSON string.
+- The page polls that string every 50ms and ignores an unchanged version.
+- Cumulative snapshots make the final result lossless even if an intermediate
+  snapshot is overwritten before one polling tick.
+- This avoids relying on repeated UTS plugin success callbacks, which were not
+  stable in the earlier direct-callback probe.
+
+Network fixture:
+- POST https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=6
+- enableChunked: true
+- timeout: 12000ms
+- Expected 6 network chunks, 354 bytes and 6 JSON data events.
+- Expected first content: Chinese text meaning "This is message 1".
+- Expected last content: Chinese text meaning "This is message 6".
+
+Worker transformation:
+- Each event content becomes one Markdown level-2 heading.
+- The cumulative Markdown is parsed by CMark after every event.
+- Every top-level token becomes a minimal render description:
+  { key, kind: "rich" | "image", tokenType }.
+- Keys use the top-level token index and token type. Every new snapshot must
+  preserve all keys from the previous snapshot as an unchanged prefix.
+
+Worker assertions:
+- eventCount == 6
+- snapshotCount == 6
+- tokenCount == 6
+- descriptionCount == 6
+- descriptionKeys ==
+  0:heading,1:heading,2:heading,3:heading,4:heading,5:heading
+- stableKeys == true
+- first and last Chinese content match the expected network events
+
+Page assertions:
+- At least 3 distinct snapshots are observed before terminal completion.
+- Observed snapshot versions are strictly ascending.
+- Terminal event, token, description and key values match Worker assertions.
+- The actual observed versions were all six values: 1,2,3,4,5,6.
+
+Test procedure:
+1. Clear device logs:
+   adb -s 192.168.2.5:5555 logcat -c
+2. Build, launch and open the probe directly without changing pages.json:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --playground custom \
+     --native-log true \
+     --cleanCache true \
+     --pagePath pages/repro-worker-capability/index
+3. Wait for the seven-scenario automatic sequence to show all complete.
+4. Retrieve HBuilderX logs through the required CLI path:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli logcat app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --mode lastBuild
+5. Extract full-chain and snapshot records from device logs:
+   adb -s 192.168.2.5:5555 logcat -d \
+     -T '07-30 16:13:00.000' \
+     --regex='full-chain|snapshot-observed|CmarkJNI|WorkerCapabilityRepro.*complete'
+6. Read the page and Worker/plugin thread names:
+   adb -s 192.168.2.5:5555 shell cat /proc/23239/task/23239/comm
+   adb -s 192.168.2.5:5555 shell cat /proc/23239/task/27392/comm
+7. Scan the run for fatal and terminal failures:
+   adb -s 192.168.2.5:5555 logcat -d \
+     -T '07-30 16:12:42.000' \
+     --regex='FATAL EXCEPTION|SIGABRT|host-timeout|feasibility-fail|full-chain-fail|NoClassDefFoundError'
+8. Capture the completed page:
+   adb -s 192.168.2.5:5555 exec-out screencap -p \
+     > test-results/android-worker-full-chain-feasibility.png
+9. Restore the normal entry, build all pages without --pagePath, then inspect
+   the foreground Activity, screenshot and fatal-error window:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --playground custom \
+     --native-log true \
+     --cleanCache true
+
+Build result:
+- All 8 pages compiled successfully.
+- ready in 60799ms.
+- The custom playground remained version 2.1.4 and HBuilderX skipped updating
+  it; the new pure UTS scenario still ran on device.
+
+Terminal result:
+{"scenario":"full-chain","phase":"full-chain-success","elapsed":6287,"terminalSource":"request-success","networkChunkCount":6,"receivedBytes":354,"eventCount":6,"snapshotCount":6,"markdownLength":72,"tokenCount":6,"descriptionCount":6,"descriptionKeys":"0:heading,1:heading,2:heading,3:heading,4:heading,5:heading","stableKeys":true,"firstContent":"\u8fd9\u662f\u7b2c1\u6761\u6d88\u606f","lastContent":"\u8fd9\u662f\u7b2c6\u6761\u6d88\u606f"}
+
+Page result:
+- full-chain-success at 6435ms.
+- feasibility-success at 6438ms.
+- observed=1,2,3,4,5,6 ascending=true.
+- The automatic sequence ended with [WorkerCapabilityRepro] complete.
+
+Thread evidence:
+- Page/main TID: 23239, thread name io.dcloud.ai.x.
+- Worker/plugin TID: 27392, thread name pool-5-thread-1.
+- Full-chain network, SSE and snapshot messages ran through TID 27392, not the
+  page/main TID.
+- CMark JNI calls for this scenario ran on TID 27432, also not the page/main
+  TID. Six cumulative CMark conversions succeeded.
+
+Failure scan:
+- No FATAL EXCEPTION, SIGABRT, host-timeout, feasibility-fail,
+  full-chain-fail or NoClassDefFoundError matched the run.
+
+Normal-entry regression:
+- All 8 pages compiled successfully; ready in 31038ms.
+- HBuilderX reported that custom playground 2.1.4 was already current and
+  skipped updating it.
+- The foreground Activity was io.dcloud.ai.x/io.dcloud.uniappxv.UniAppActivity
+  in topResumedActivity state, process PID 23802.
+- A 1440x3200 RGBA screenshot showed the normal chat page with the wide
+  formula, complete flowchart, divider and following text rendered.
+- No AndroidRuntime or libc fatal record matched the 16:16:50 launch window.
+- Temporary screenshot: /private/tmp/uni-ai-worker-full-chain-normal.png
+- Screenshot size: 237057 bytes.
+- Screenshot SHA-256:
+  1e359d481a640040e37ef8a1eb8d4d663ce81536e7e900f30f1b170c8819a619
+
+Conclusion:
+PASS: the complete mechanical Worker chain is feasible on the tested Android
+      vapor-mode runtime.
+PASS: immutable cumulative snapshots cross the plugin boundary repeatedly;
+      the page observed all six strictly ordered versions without loss.
+PASS: CMark and minimal render-description construction stay off the page main
+      thread and preserve stable keys across incremental results.
+
+Not yet proven by this result:
+- abort followed by immediate restart and stale-result isolation;
+- actual qiniu/bailian authentication and real AI SSE variants;
+- reasoning_content, [DONE], provider error payloads and long AI Markdown;
+- production RequestAiRunner integration;
+- iOS or Harmony behavior.
+
+Screenshot:
+- test-results/android-worker-full-chain-feasibility.png
+- PNG 1440x3200 with alpha, 460418 bytes.
+- SHA-256 0b878f647892e67a7adae10f33a955bcdae62317f6b85e3f96def71514ffb800

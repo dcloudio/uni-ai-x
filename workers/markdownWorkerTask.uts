@@ -37,7 +37,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			this.streamRequest = null
 			return
 		}
-		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core') return
+		if (action != 'local' && action != 'request' && action != 'stream' && action != 'cmark' && action != 'sse-fragments' && action != 'stream-core' && action != 'full-chain') return
 
 		const received = new UTSJSONObject()
 		received.scenario = action
@@ -64,6 +64,12 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		if (action == 'stream-core') {
 			this.runStreamCoreScenario(action)
 			return
+		}
+		if (action == 'full-chain') {
+			// #ifdef APP-ANDROID
+			this.runFullChainScenario(action)
+			return
+			// #endif
 		}
 
 		if (action == 'cmark') {
@@ -270,4 +276,126 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			8000
 		)
 	}
+
+	// #ifdef APP-ANDROID
+	private runFullChainScenario(action : string) : void {
+		const startedAt = Date.now()
+		let markdownText = ''
+		let eventCount = 0
+		let snapshotCount = 0
+		let firstContent = ''
+		let lastContent = ''
+		let tokenCount = 0
+		let descriptionCount = 0
+		let descriptionJson = '[]'
+		let descriptionKeys = ''
+		let stableKeys = true
+		let previousKeys : string[] = []
+
+		this.streamRequest = new WorkerStreamRequest(
+			(data : string) => {
+				let content = ''
+				try {
+					content = (JSON.parse<UTSJSONObject>(data) as UTSJSONObject).getString('content', '')
+				} catch (error) {
+					this.postMessage({
+						scenario: action,
+						phase: 'full-chain-fail',
+						detail: 'event JSON parse failed',
+						elapsed: Date.now() - startedAt
+					} as UTSJSONObject)
+					this.streamRequest?.abort()
+					this.streamRequest = null
+					return
+				}
+				if (content.length == 0) return
+				eventCount += 1
+				if (firstContent.length == 0) firstContent = content
+				lastContent = content
+				markdownText += '## ' + content + '\n\n'
+
+				const parseResult = md2json(markdownText) as ParseMdRes
+				const descriptions : UTSJSONObject[] = []
+				const currentKeys : string[] = []
+				parseResult.data.forEach((token, index : number) => {
+					const tokenType = token.type ?? ''
+					const key = index.toString() + ':' + tokenType
+					currentKeys.push(key)
+					descriptions.push({
+						key: key,
+						kind: tokenType == 'image' ? 'image' : 'rich',
+						tokenType: tokenType
+					} as UTSJSONObject)
+				})
+				for (let index = 0; index < previousKeys.length; index++) {
+					if (index >= currentKeys.length || previousKeys[index] != currentKeys[index]) {
+						stableKeys = false
+						break
+					}
+				}
+				previousKeys = currentKeys
+				tokenCount = parseResult.data.length
+				descriptionCount = descriptions.length
+				descriptionJson = JSON.stringify(descriptions)
+				descriptionKeys = currentKeys.join(',')
+				snapshotCount += 1
+				this.postMessage({
+					scenario: action,
+					phase: 'full-chain-snapshot',
+					snapshotVersion: snapshotCount,
+					eventCount: eventCount,
+					markdownLength: markdownText.length,
+					tokenCount: tokenCount,
+					descriptionCount: descriptionCount,
+					descriptionKeys: descriptionKeys,
+					descriptionJson: descriptionJson,
+					stableKeys: stableKeys
+				} as UTSJSONObject)
+			},
+			(code : string, message : string) => {
+				this.postMessage({
+					scenario: action,
+					phase: 'full-chain-fail',
+					code: code,
+					detail: message,
+					elapsed: Date.now() - startedAt,
+					eventCount: eventCount,
+					snapshotCount: snapshotCount
+				} as UTSJSONObject)
+				this.streamRequest = null
+			},
+			(source : string, networkChunkCount : number, receivedBytes : number) => {
+				const expectedKeys = '0:heading,1:heading,2:heading,3:heading,4:heading,5:heading'
+				const passed = eventCount == 6 && snapshotCount == 6 && tokenCount == 6 &&
+					descriptionCount == 6 && stableKeys && descriptionKeys == expectedKeys &&
+					firstContent == '这是第1条消息' && lastContent == '这是第6条消息'
+				this.postMessage({
+					scenario: action,
+					phase: passed ? 'full-chain-success' : 'full-chain-fail',
+					elapsed: Date.now() - startedAt,
+					terminalSource: source,
+					networkChunkCount: networkChunkCount,
+					receivedBytes: receivedBytes,
+					eventCount: eventCount,
+					snapshotCount: snapshotCount,
+					markdownLength: markdownText.length,
+					tokenCount: tokenCount,
+					descriptionCount: descriptionCount,
+					descriptionKeys: descriptionKeys,
+					descriptionJson: descriptionJson,
+					stableKeys: stableKeys,
+					firstContent: firstContent,
+					lastContent: lastContent
+				} as UTSJSONObject)
+				this.streamRequest = null
+			}
+		)
+		this.streamRequest!.start(
+			'https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=6',
+			'',
+			'{}',
+			12000
+		)
+	}
+	// #endif
 }
