@@ -1,0 +1,286 @@
+<template>
+	<view class="page">
+		<text class="title">Worker 真实 AI 探针</text>
+			<text class="description">验证七牛网关的鉴权、SSE、Markdown 与 CMark 链路。临时令牌不显示、不记录。</text>
+		<text class="status">{{status}}</text>
+		<text class="summary">{{summary}}</text>
+		<scroll-view class="result-list" direction="vertical" :show-scrollbar="true">
+			<text v-for="(item, index) in results" :key="index" class="result-line">{{item}}</text>
+		</scroll-view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+	import {
+		createWorkerProbe,
+		destroyWorkerProbe,
+		onWorkerProbeError,
+		onWorkerProbeMessage,
+		readWorkerProbeSnapshot,
+		sendWorkerProbeMessage,
+		WorkerProbeErrorOptions,
+		WorkerProbeMessageOptions,
+		WorkerProbeSendOptions
+	} from '@/uni_modules/uni-ai-worker-probe'
+
+	type RealAiCase = {
+		provider: string,
+		model: string,
+		requireReasoning: boolean,
+		minContentLength: number,
+		prompt: string
+	}
+
+	const cases : RealAiCase[] = [
+		{
+			provider: 'qiniu',
+			model: 'deepseek-v3',
+			requireReasoning: false,
+			minContentLength: 800,
+				prompt: '只输出 Markdown，不要解释，也不要用代码围栏包住整篇文档。生成一篇 1200 到 1800 个中文字符的移动端渲染测试文档，依次包含二级标题、普通段落、无序列表、有序列表、任务列表、引用、三列表格、JavaScript 代码块、行内公式和块级公式。只有 JavaScript 示例使用代码围栏，内容必须完整，不要省略。'
+			}
+	]
+
+	const CASE_TIMEOUT = 120000
+	const SNAPSHOT_POLL_INTERVAL = 100
+	const NEXT_DELAY = 800
+	const status = ref('准备自动测试')
+	const summary = ref('等待开始')
+	const results = ref<string[]>([])
+
+	let runVersion = 0
+	let caseIndex = -1
+	let caseStartedAt = 0
+	let timeoutId : number | null = null
+	let nextTimerId : number | null = null
+	let snapshotTimerId : number | null = null
+	let lastSnapshotJson = ''
+	let observedVersions : number[] = []
+	let passedCases = 0
+
+	function appendResult(label : string, detail : string) {
+		const line = `${label} | ${Date.now() - caseStartedAt}ms | ${detail}`
+		results.value.push(line)
+		console.log('[WorkerRealAiRepro]', line)
+	}
+
+	function clearTimers() {
+		if (timeoutId != null) clearTimeout(timeoutId!)
+		if (nextTimerId != null) clearTimeout(nextTimerId!)
+		if (snapshotTimerId != null) clearInterval(snapshotTimerId!)
+		timeoutId = null
+		nextTimerId = null
+		snapshotTimerId = null
+	}
+
+	function stopProbe() {
+		destroyWorkerProbe()
+	}
+
+	function finishCase(version : number) {
+		if (version != runVersion) return
+		if (timeoutId != null) clearTimeout(timeoutId!)
+		if (snapshotTimerId != null) clearInterval(snapshotTimerId!)
+		timeoutId = null
+		snapshotTimerId = null
+		stopProbe()
+		nextTimerId = setTimeout(() => {
+			startCase(caseIndex + 1, version)
+		}, NEXT_DELAY)
+	}
+
+	function startSnapshotPolling(testCase : RealAiCase, version : number) {
+		lastSnapshotJson = ''
+		observedVersions = []
+		snapshotTimerId = setInterval(() => {
+			if (version != runVersion) return
+			const json = readWorkerProbeSnapshot()
+			if (json.length == 0 || json == lastSnapshotJson) return
+			lastSnapshotJson = json
+			const snapshot = JSON.parse<UTSJSONObject>(json) as UTSJSONObject
+			if (snapshot.getString('phase', '') != 'real-ai-snapshot') return
+			const snapshotVersion = snapshot.getNumber('snapshotVersion', 0)
+			if (snapshotVersion <= 0 || observedVersions.indexOf(snapshotVersion) != -1) return
+			observedVersions.push(snapshotVersion)
+			appendResult(testCase.provider + '/' + testCase.model,
+				`snapshot=${snapshotVersion} content=${snapshot.getNumber('contentLength', 0)} reasoning=${snapshot.getNumber('reasoningLength', 0)} tokens=${snapshot.getNumber('tokenCount', 0)}`)
+		}, SNAPSHOT_POLL_INTERVAL)
+	}
+
+	async function startCase(index : number, version : number) {
+		if (version != runVersion) return
+		if (index >= cases.length) {
+			status.value = passedCases == cases.length ? '全部完成' : '存在失败'
+				summary.value = `通过 ${passedCases}/${cases.length} 个七牛网关用例`
+			console.log('[WorkerRealAiRepro] complete', passedCases, cases.length)
+			return
+		}
+
+		caseIndex = index
+		caseStartedAt = Date.now()
+		const testCase = cases[index]
+		status.value = `获取临时令牌：${testCase.provider}/${testCase.model}`
+		summary.value = '令牌仅保存在内存中'
+		appendResult(testCase.provider + '/' + testCase.model, 'token-start')
+		const config = llmModelMap.get(testCase.provider)
+		if (config == null || config.baseURL == null) {
+			appendResult(testCase.provider, 'provider config missing')
+			finishCase(version)
+			return
+		}
+
+		let token = ''
+		try {
+			const uniAiChatCo = uniCloud.importObject('uni-ai-x-co', { customUI: true })
+				const tokenResult = await uniAiChatCo.getTmpToken({ provider: testCase.provider })
+			const errCode = tokenResult.getAny('errCode')
+			if (errCode?.toString() != '0') {
+				appendResult(testCase.provider,
+					`temporary token rejected code=${errCode?.toString() ?? ''} message=${tokenResult.getString('errMsg', '')}`)
+				finishCase(version)
+				return
+			}
+			token = tokenResult.getString('data.token', '')
+		} catch (error : any) {
+			const safeError = JSON.parse<UTSJSONObject>(JSON.stringify(error)) as UTSJSONObject
+			appendResult(testCase.provider,
+				`temporary token exception code=${safeError.getAny('errCode')?.toString() ?? ''} message=${safeError.getString('errMsg', safeError.getString('message', ''))}`)
+			finishCase(version)
+			return
+		}
+		if (token.length == 0) {
+			appendResult(testCase.provider, 'temporary token empty')
+			finishCase(version)
+			return
+		}
+
+		status.value = `Worker 请求：${testCase.provider}/${testCase.model}`
+		appendResult(testCase.provider + '/' + testCase.model, `token-ready length=${token.length}`)
+		stopProbe()
+		createWorkerProbe()
+		onWorkerProbeMessage({
+			success: (event : any) => {
+				if (version != runVersion) return
+				const wrapper = JSON.parse(JSON.stringify(event)) as UTSJSONObject
+				const result = wrapper.getAny('result') as UTSJSONObject
+				const phase = result.getString('phase', '')
+				const passed = phase == 'real-ai-success' &&
+					result.getString('terminalSource', '') == 'done-sentinel' &&
+					result.getNumber('contentLength', 0) >= testCase.minContentLength &&
+					result.getNumber('tokenCount', 0) > 0 &&
+					(!testCase.requireReasoning || result.getNumber('reasoningLength', 0) > 0)
+				if (passed) passedCases += 1
+				appendResult(testCase.provider + '/' + testCase.model,
+					`${passed ? 'gate-success' : 'gate-fail'} events=${result.getNumber('eventCount', 0)} chunks=${result.getNumber('networkChunkCount', 0)} bytes=${result.getNumber('receivedBytes', 0)} content=${result.getNumber('contentLength', 0)} reasoning=${result.getNumber('reasoningLength', 0)} snapshots=${result.getNumber('snapshotCount', 0)} tokens=${result.getNumber('tokenCount', 0)} source=${result.getString('terminalSource', '')} detail=${result.getString('detail', '')}`)
+				finishCase(version)
+			}
+		} as WorkerProbeMessageOptions)
+		onWorkerProbeError({
+			success: (_event : any) => {
+				if (version != runVersion) return
+				appendResult(testCase.provider + '/' + testCase.model, 'worker-error')
+				finishCase(version)
+			}
+		} as WorkerProbeErrorOptions)
+		startSnapshotPolling(testCase, version)
+
+		const body = {
+			model: testCase.model,
+			stream: true,
+			messages: [
+				{ role: 'user', content: testCase.prompt }
+			]
+		} as UTSJSONObject
+		setTimeout(() => {
+			if (version != runVersion) return
+			sendWorkerProbeMessage({
+				scenario: 'real-ai',
+				provider: testCase.provider,
+				model: testCase.model,
+				url: config.baseURL!,
+				authorization: 'Bearer ' + token,
+				bodyJson: JSON.stringify(body),
+				requireReasoning: testCase.requireReasoning,
+				minContentLength: testCase.minContentLength
+			} as WorkerProbeSendOptions)
+			token = ''
+		}, 100)
+
+		timeoutId = setTimeout(() => {
+			if (version != runVersion) return
+			appendResult(testCase.provider + '/' + testCase.model, `host-timeout limit=${CASE_TIMEOUT}`)
+			finishCase(version)
+		}, CASE_TIMEOUT)
+	}
+
+	function runAll() {
+		runVersion += 1
+		clearTimers()
+		stopProbe()
+		results.value = []
+		passedCases = 0
+		caseIndex = -1
+		status.value = '开始测试'
+		summary.value = '真实请求可能需要数十秒'
+		startCase(0, runVersion)
+	}
+
+	onMounted(() => {
+		nextTimerId = setTimeout(() => {
+			runAll()
+		}, 800)
+	})
+
+	onUnmounted(() => {
+		runVersion += 1
+		clearTimers()
+		stopProbe()
+	})
+</script>
+
+<style>
+.page {
+	flex: 1;
+	padding: 24px 20px;
+	background-color: #f5f6f7;
+}
+
+.title {
+	font-size: 22px;
+	font-weight: 700;
+	color: #1f2328;
+}
+
+.description,
+.summary {
+	margin-top: 8px;
+	font-size: 13px;
+	line-height: 20px;
+	color: #59636e;
+}
+
+.status {
+	margin-top: 18px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #0969da;
+}
+
+.result-list {
+	flex: 1;
+	margin-top: 14px;
+	padding: 12px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
+}
+
+.result-line {
+	margin-bottom: 8px;
+	font-size: 12px;
+	line-height: 18px;
+	color: #1f2328;
+}
+</style>

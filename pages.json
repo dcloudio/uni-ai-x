@@ -56,6 +56,13 @@
 			{
 				"navigationBarTitleText" : "Worker 能力探针"
 			}
+		},
+		{
+			"path" : "pages/repro-worker-real-ai/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "Worker 真实 AI 探针"
+			}
 		}
 	],
 	"globalStyle": {

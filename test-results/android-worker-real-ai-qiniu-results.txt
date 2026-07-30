@@ -1,0 +1,176 @@
+Android Worker real qiniu AI gate result
+=========================================
+
+Date: 2026-07-30
+HBuilderX: 5.24.2026072917-dev
+Compiler: uni-app x 5.24 vapor mode, bytecode view layer
+Package: io.dcloud.ai.x
+Custom playground version: 2.1.4
+Device: Xiaomi M2102K1AC
+Android: 14 (API 34)
+Physical display: 1440x3200, density 560
+
+Purpose:
+Validate the last T01 feasibility gate with the user's renewed qiniu gateway:
+temporary authentication, a real streaming AI request, ArrayBuffer/SSE decode,
+incremental Markdown accumulation and CMark parsing.
+
+Scope decision:
+- Only qiniu is required for this gate.
+- Bailian is explicitly out of scope and was not called in the final run.
+- No cloud object was uploaded, deployed or modified remotely.
+- The temporary token value is never displayed, logged or persisted. Only its
+  length is recorded.
+
+Retained test code:
+- Automatic page: pages/repro-worker-real-ai/index.uvue
+- Worker scenario: workers/markdownWorkerTask.uts, runRealAiScenario()
+- Worker request/SSE core: uni_modules/uni-ai-worker/utssdk
+- Snapshot bridge: uni_modules/uni-ai-worker-probe/utssdk
+- Route registration: pages.json
+
+Request under test:
+- Token provider: qiniu through uni-ai-x-co.getTmpToken()
+- Completion endpoint: https://openai.qiniu.com/v1/chat/completions
+- Model: deepseek-v3
+- stream: true
+- Minimum accepted Markdown content length: 800 characters
+- Prompt requests 1200-1800 Chinese characters and forbids wrapping the whole
+  document in a fenced code block. It requests headings, paragraphs, unordered,
+  ordered and task lists, a quote, a table, a JavaScript code block and formulas.
+
+Thread boundary:
+1. The page obtains the short-lived token and serializes URL, Authorization and
+   request body. This one-time authentication preflight is not claimed to run in
+   Worker.
+2. WorkerStreamRequest starts the real chunked AI request in Worker.
+3. Each received ArrayBuffer goes directly through the stateful UTF-8/SSE decoder
+   in Worker.
+4. Worker accumulates content and runs CMark every 256 characters and once at
+   terminal.
+5. The plugin retains the latest immutable snapshot; the page polls every 100ms.
+
+Assertions:
+- Temporary token is non-empty.
+- The request has network chunks, bytes and SSE events.
+- Terminal source is the real [DONE] sentinel.
+- Content length is at least 800 characters.
+- CMark returns at least one token with no parse error.
+- Page reaches the explicit 1/1 terminal summary without timeout.
+
+Test procedure:
+1. Confirm the Android target:
+   adb devices -l
+2. Build, launch and open the qiniu probe directly:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --playground custom \
+     --native-log true \
+     --cleanCache true \
+     --pagePath pages/repro-worker-real-ai/index
+3. Wait until the page shows "all complete" and "1/1 qiniu gateway case".
+4. Extract terminal and snapshot records:
+   adb -s 192.168.2.5:5555 logcat -d \
+     --regex='WorkerRealAiRepro|real-ai-(success|fail)'
+5. Scan for failures:
+   adb -s 192.168.2.5:5555 logcat -d \
+     --regex='AndroidRuntime|FATAL EXCEPTION|real-ai-fail|WorkerRealAiRepro.*(fail|timeout|exception|rejected|empty)'
+6. Retrieve HBuilderX logs through the required CLI path:
+   /Applications/HBuilderX-Dev.app/Contents/MacOS/cli logcat app-android \
+     --project /Users/json/Desktop/code/uni-ai-x \
+     --deviceId 192.168.2.5:5555 \
+     --mode lastBuild
+7. Launch again without --pagePath and verify the normal chat entry, foreground
+   Activity, screenshot and process-level fatal-error scan.
+
+Build and launch:
+- All 9 pages compiled successfully.
+- Probe build ready in 33881ms.
+- Normal-entry build ready in 51239ms.
+- Custom playground 2.1.4 was current and skipped update.
+- The final pure UTS probe source executed without rebuilding the playground.
+
+Authentication result:
+- Token ready in 1060ms.
+- Token length: 67.
+- Token value did not appear in page output, Worker messages or captured logs.
+
+Real qiniu terminal result:
+- Page gate elapsed: 28226ms.
+- Worker terminal elapsed: 27001ms.
+- Terminal source: done-sentinel.
+- Network chunks: 210.
+- Received bytes: 109955.
+- SSE events: 482.
+- Content events: 479.
+- Empty protocol events: 3.
+- Content length: 1873.
+- Incremental snapshots: 8.
+- Final CMark tokens: 24.
+- Parse error: empty.
+- Result: PASS, 1/1 qiniu gateway case.
+
+Page-observed snapshots:
+- v1: content 257, tokens 4, elapsed 7919ms.
+- v2: content 515, tokens 9, elapsed 11119ms.
+- v3: content 771, tokens 9, elapsed 12971ms.
+- v4: content 1027, tokens 13, elapsed 16808ms.
+- v5: content 1284, tokens 17, elapsed 21161ms.
+- v6: content 1540, tokens 18, elapsed 23444ms.
+- v7: content 1796, tokens 22, elapsed 26872ms.
+- v8 was published by Worker at terminal; the terminal result confirms content
+  1873 and 24 tokens before the page stopped its polling timer.
+
+Final token types:
+heading, heading, paragraph, paragraph, heading, paragraph, list, paragraph,
+code_block, heading, list, heading, list, heading, list, block_quote, heading,
+table, heading, paragraph, paragraph, paragraph, paragraph, list
+
+Thread evidence:
+- App main PID/TID: 1923/1923.
+- CMark log TID during the real request: 6975, different from app main.
+- Worker message bridge TID: 6976, name pool-6-thread-1.
+- The CMark Worker thread terminated with the probe before its /proc thread name
+  could be read; this run claims non-main execution from the recorded TID, not a
+  recovered thread name.
+
+Failure scan:
+- No AndroidRuntime, FATAL EXCEPTION, real-ai-fail, host timeout, token rejection,
+  token exception or empty-token match was found.
+- HBuilderX CLI lastBuild retrieval contained the successful terminal record and
+  explicit 1/1 completion.
+
+Normal-entry regression:
+- io.dcloud.ai.x/io.dcloud.uniappxv.UniAppActivity was topResumedActivity.
+- Process PID 4083 and Activity state RESUMED were recorded.
+- The screenshot shows the normal chat entry with the wide formula, full
+  flowchart, divider and following text visible.
+- No AndroidRuntime, FATAL EXCEPTION, SIGABRT, NoClassDefFoundError,
+  real-ai-fail or host-timeout matched process 4083.
+
+Screenshots:
+- test-results/android-worker-real-ai-qiniu.png
+  - PNG 1440x3200, 370233 bytes.
+  - SHA-256 e3a4b0b5329c89b35aa652683fe06d238eeca60db07ae07616b764a116671ca2
+- test-results/android-worker-real-ai-normal-entry.png
+  - PNG 1440x3200, 237002 bytes.
+  - SHA-256 f04cc8361ff040107e72d030f4bede206c63b59cbfbccc1f49e3c78fa4520414
+
+Conclusion:
+PASS: the renewed qiniu gateway issued a temporary token and completed a real
+      streaming deepseek-v3 response.
+PASS: the AI response network, ArrayBuffer/SSE decode, Markdown accumulation and
+      repeated CMark parsing ran through the Worker chain and ended at [DONE].
+PASS: the output was real structured Markdown rather than one outer code block;
+      CMark covered headings, lists, code, quote and table tokens.
+
+Evidence boundary:
+- This is a qiniu-only Android feasibility gate. Bailian, iOS and Harmony are not
+  covered.
+- Temporary-token acquisition remains a main-thread preflight. The hot streaming
+  request and all response decoding/parsing are the Worker scope validated here.
+- The probe uses immutable snapshot polling. Production RequestAiRunner and the
+  production render-description builder have not yet been migrated.
+- Formula preprocessing and complete production render descriptions are covered
+  by deterministic full-chain tests, not by the minimal real-provider assertion.

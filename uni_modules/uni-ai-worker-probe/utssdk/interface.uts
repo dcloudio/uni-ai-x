@@ -21,5 +21,12 @@ export type WorkerProbeErrorOptions = {
 export type WorkerProbeSendOptions = {
 	scenario: string,
 	command?: string,
-	sentAt?: number
+	sentAt?: number,
+	provider?: string,
+	model?: string,
+	url?: string,
+	authorization?: string,
+	bodyJson?: string,
+	requireReasoning?: boolean,
+	minContentLength?: number
 }
