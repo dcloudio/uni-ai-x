@@ -1,8 +1,47 @@
 # Rich Text 剩余性能问题报告
 
-测试环境：Android 真机、HBuilderX 5.23、uni-app x 蒸汽模式、`rich-text mode="native"`。
+## 测试环境与采集方式
 
-最小复现页：[`pages/repro-rich-text-performance/index.uvue`](pages/repro-rich-text-performance/index.uvue)，路由为 `/pages/repro-rich-text-performance/index`。页面自动依次运行“固定 3822px Rich Text + 每 100ms 追加兄弟 View”和“每 100ms 更新同一 Rich Text nodes”两个 5 秒场景，并输出 FPS、最大帧间隔和慢帧数。
+| 项目 | 值 |
+| --- | --- |
+| Android 设备 | Xiaomi `M2102K1AC` |
+| 系统 | Android 14，API 34 |
+| 屏幕 | `1440x3200`，560 dpi，系统峰值刷新率 120Hz |
+| HBuilderX | 历史真实链路数据为 5.23；当前保留的最小复现为 `5.24.2026072917-dev` |
+| 编译模式 | uni-app x 蒸汽模式，视图层字节码，Android 自定义基座 |
+| 应用包名 | `io.dcloud.ai.x` |
+| Rich Text | `rich-text mode="native"` |
+
+当前保留三份可独立运行的测试代码：
+
+| 编号 | 代码与路由 | 控制变量 | 当前重复轮次 |
+| --- | --- | --- | ---: |
+| F01 | [`pages/repro-rich-text-performance/index.uvue`](pages/repro-rich-text-performance/index.uvue)，`/pages/repro-rich-text-performance/index` | 同尺寸 Rich Text；只改变是否更新已有 nodes | 1（另有 5.23 历史对照） |
+| F02 | [`pages/repro-native-view-performance/index.uvue`](pages/repro-native-view-performance/index.uvue)，`/pages/repro-native-view-performance/index` | 同为每 100ms 追加；对比普通文本 View 与新原生 Rich Text | 3 |
+| F03 | [`pages/repro-svg-image-performance/index.uvue`](pages/repro-svg-image-performance/index.uvue)，`/pages/repro-svg-image-performance/index` | 同源 `800x640` SVG；对比预挂载 opacity 与动态创建/销毁 | 2 |
+
+运行和采集方法：
+
+1. 将目标复现路由临时放到 `pages.json` 第一项。页面启动后自动预热，并按顺序运行每个 5 秒场景；操作间隔均为 100ms。
+2. 使用以下命令全量编译并运行；每次对照在同一进程、同一页面中连续完成：
+
+```sh
+/Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+  --project /Users/json/Desktop/code/uni-ai-x \
+  --deviceId 192.168.2.5:5555 --playground custom \
+  --native-log true --cleanCache true
+```
+
+3. 页面用 `requestAnimationFrame` 在每个阶段内采样。FPS 为采样帧数除以阶段实际时长；同时记录最大帧间隔，以及 `>16.7ms`、`>32ms` 的帧间隔次数。
+4. 页面输出 `[RichTextPerfRepro]`、`[NativeViewPerfRepro]` 或 `[SvgImagePerfRepro]` 结果日志。F02、F03 另有明确的 `*-start` 日志，原生任务严格在 start 与结果之间统计，排除预热、列表清理和阶段切换；F01 当前数据按页面固定的自动阶段顺序和结果时间划窗，后续补齐 start 标记后再复测原生任务汇总。
+5. Android 原生任务使用以下命令采集：
+
+```sh
+adb -s 192.168.2.5:5555 logcat -v threadtime \
+  JSConsole:D test:I RichTextJNI:W '*:S'
+```
+
+6. 原生任务结果取 `executeRenderTasks` 日志中的 `renderNativeLayoutTasks` 和 `appendViewTasks`；F01 另统计 `Tile RGBA->Bitmap copy` 与 `BuildTileSnapshotList`。所有结果均来自调试基座，应看同轮对照和数量级，不把一次 FPS 小数波动当成确定收益。
 
 ## 结论
 
