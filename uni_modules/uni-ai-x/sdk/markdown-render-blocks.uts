@@ -1,67 +1,56 @@
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-
-export type MarkdownRenderKind = 'rich' | 'quote' | 'divider' | 'table' | 'code' | 'mermaid' | 'math'
+import {
+	buildMarkdownRenderDescriptions,
+	MarkdownRenderDescription,
+	MarkdownRenderKind
+} from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
 
 export type MarkdownRenderBlock = {
 	kind: MarkdownRenderKind
 	key: string
 	tokens: MarkdownToken[]
-}
-
-export function markdownRenderKind(token: MarkdownToken): MarkdownRenderKind {
-	const type = token.type ?? 'text'
-	if (type == 'code_block') {
-		const language = (token.lang ?? '').toLowerCase()
-		if (language == 'mermaid') return 'mermaid'
-		if (language == 'math' || language == 'math-pending') return 'math'
-		return 'code'
-	}
-	if (type == 'math') return 'math'
-	if (type == 'block_quote') return 'quote'
-	if (type == 'thematic_break') return 'divider'
-	if (type == 'table') return 'table'
-	return 'rich'
-}
-
-function tokenKey(token: MarkdownToken, index: number, keyPrefix: string): string {
-	const id = token.uniqueId ?? ((token.type ?? 'node') + '-' + index.toString())
-	return keyPrefix + id
+	nodes: UTSJSONObject[]
 }
 
 function blockTokensMatch(left: MarkdownToken[], right: MarkdownToken[]): boolean {
 	if (left.length != right.length) return false
-	for (let i = 0; i < left.length; i++) {
-		if (left[i] !== right[i]) return false
+	for (let index = 0; index < left.length; index++) {
+		if (left[index] !== right[index]) return false
 	}
 	return true
 }
 
-export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPrefix: string = '', previousBlocks: MarkdownRenderBlock[] | null = null): MarkdownRenderBlock[] {
+export function materializeMarkdownRenderBlocks(tokens: MarkdownToken[] | null,
+	descriptions: MarkdownRenderDescription[] | null, keyPrefix: string = '',
+	previousBlocks: MarkdownRenderBlock[] | null = null): MarkdownRenderBlock[] {
 	const blocks = [] as MarkdownRenderBlock[]
-	if (tokens == null) return blocks
-	for (let i = 0; i < tokens.length; i++) {
-		const token = tokens[i]
-		if (token == null) continue
-		const kind = markdownRenderKind(token)
-		const lastBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null
-		if (kind == 'rich' && lastBlock != null && lastBlock.kind == 'rich') {
-			lastBlock.tokens.push(token)
-			continue
-		}
-		blocks.push({
-			kind,
-			key: tokenKey(token, i, keyPrefix),
-			tokens: [token] as MarkdownToken[]
-		} as MarkdownRenderBlock)
-	}
-	if (previousBlocks != null) {
-		for (let i = 0; i < blocks.length && i < previousBlocks.length; i++) {
-			const block = blocks[i]
-			const previousBlock = previousBlocks[i]
-			if (block.kind == previousBlock.kind && block.key == previousBlock.key && blockTokensMatch(block.tokens, previousBlock.tokens)) {
-				blocks[i] = previousBlock
-			}
+	if (tokens == null || descriptions == null) return blocks
+	for (let index = 0; index < descriptions.length; index++) {
+		const description = descriptions[index]
+		if (description.tokenStart < 0 || description.tokenCount <= 0 || description.tokenStart >= tokens.length) continue
+		const blockTokens = tokens.slice(description.tokenStart,
+			Math.min(tokens.length, description.tokenStart + description.tokenCount))
+		if (blockTokens.length == 0) continue
+		const block = {
+			kind: description.kind,
+			key: keyPrefix + description.key,
+			tokens: blockTokens,
+			nodes: description.nodes
+		} as MarkdownRenderBlock
+		const previous = previousBlocks != null && index < previousBlocks.length ? previousBlocks[index] : null
+		if (previous != null && previous.kind == block.kind && previous.key == block.key &&
+			blockTokensMatch(block.tokens, previous.tokens)) {
+			blocks.push(previous)
+		} else {
+			blocks.push(block)
 		}
 	}
 	return blocks
+}
+
+export function buildMarkdownRenderBlocks(tokens: MarkdownToken[] | null, keyPrefix: string = '',
+	previousBlocks: MarkdownRenderBlock[] | null = null): MarkdownRenderBlock[] {
+	if (tokens == null) return [] as MarkdownRenderBlock[]
+	const descriptions = buildMarkdownRenderDescriptions(tokens)
+	return materializeMarkdownRenderBlocks(tokens, descriptions, keyPrefix, previousBlocks)
 }

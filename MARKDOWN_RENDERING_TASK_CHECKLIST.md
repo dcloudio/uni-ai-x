@@ -32,7 +32,7 @@
 | 编号 | 任务 | 当前状态 | 归属 | 验证/提交 |
 | --- | --- | --- | --- | --- |
 | T01 | 联网到 Markdown 的完整子线程链路 | Android/七牛范围已完成 | 应用层 | 生产 `RequestAiRunner` 真机通过；证据见 `android-worker-production-qiniu-results.txt` |
-| T02 | 子线程输出渲染描述，主线程批量创建组件 | 技术闸门完成，待生产接入 | 应用层 | 七类描述、RichText 合并、稳定 key、嵌套节点与 CSS 跨线程通过 |
+| T02 | 子线程输出渲染描述，主线程批量创建组件 | Android/七牛范围已完成 | 应用层 | 生产 Worker 生成 17 个描述/23 个 RichText 根节点，正式渲染器真机通过 |
 | T03 | 流程图底部完整显示 | 已完成 | 应用层 | Android 隔离截图确认结束节点、容器底边和下方正文完整可见 |
 | T04 | 滚动到流程图时不卡顿 | 部分完成 | 应用层缓解，框架层仍有瓶颈 | `14445cf`，剩余证据见性能报告 |
 | T05 | 侧滑菜单不抢占表格/代码横滑，不误触垂直滚动 | 已实现，待验收 | 应用层 | 已实现方向锁、左缘起手、拖动禁用动画、速度吸附及横向 ScrollView 让权 |
@@ -63,7 +63,7 @@
 - [`requestAiRunner.uts`](uni_modules/uni-ai-x/sdk/requestAiRunner.uts) 仅在主线程取得提供商配置和短期令牌，随后把实际流式 AI 请求交给生产 Worker。
 - Worker 内完成 `enableChunked` 请求、ArrayBuffer/UTF-8/SSE 解码、正文与思考内容累积、公式预处理和 CMark。
 - UTS 运行时桥只保存最新不可变 JSON 快照；主线程每 50ms 轮询，不按标签逐条回调和追加 View。
-- 主线程继续负责稳定 key/节点复用、表格宽度、代码高亮、公式/流程图 SVG 等依赖 UI 能力的渲染富化；这部分归入 T02，不能据此宣称“整个界面只有 RichText 和 Image”。
+- Worker 负责稳定 key、块分组和 RichText/引用节点；主线程保留 token 对象复用、表格宽度、代码高亮、公式/流程图 SVG 等依赖 UI 能力的渲染富化，不能据此宣称“整个界面只有 RichText 和 Image”。
 - 自定义提供商与非 Android 平台保持原路径；百炼按用户要求未测试。短期令牌的云端预取也没有迁入 Worker，因此 T01 的完成结论严格限定为 Android/七牛的 AI 热链路。
 
 能力探针已经完成，结论见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。Android 真机已确认真实 Worker 内普通 `uni.request`、`RequestTask.onChunkReceived`、`ArrayBuffer`、`TextDecoder` 和 `uni-cmark` JNI 解析可用；流式请求收到 3 个分块并累计解码 177 个字符，CMark 在 143ms 内返回 2 个 token。模块根别名导入失败已通过“声明插件依赖 + 导入 Android 平台入口”在应用层解决。该阶段确认 T01 不受框架能力阻塞，后续生产迁移结果见下方第六阶段。
@@ -82,7 +82,7 @@
 
 第六阶段生产接入已完成：Android 内置提供商的 `RequestAiRunner` 已切换到生产 Worker。最终七牛真机回归先在请求 A 首批 42 字符后取消，59ms 后启动请求 B；B 以真实 `[DONE]` 完成 224 个网络分块、115574 字节、506 条 SSE、61 批不可变快照和 24 个顶层 CMark token。CMark TID 为 20353，主线程 TID 为 16395；标题、列表、引用、表格、代码块、两张公式 SVG 和 JavaScript 高亮均通过，A 取消后的回调为 0，且无 dead-thread、`IllegalStateException`、`TypeError` 或崩溃。完整命令、边界、数据和截图见 [`test-results/android-worker-production-qiniu-results.txt`](test-results/android-worker-production-qiniu-results.txt)。
 
-因此，T01 在当前约定的 Android/七牛范围内已完成。这里不扩大结论：临时令牌仍由主线程预取，百炼未测，iOS/Harmony/Web 未迁移，完整渲染描述与组件创建职责仍属于 T02。
+因此，T01 在当前约定的 Android/七牛范围内已完成。这里不扩大结论：临时令牌仍由主线程预取，百炼未测，iOS/Harmony/Web 未迁移；Android/七牛的渲染描述职责已在 T02 完成。
 
 ### T02 渲染职责边界
 
@@ -100,11 +100,15 @@ rich / quote / divider / table / code / mermaid / math
 - 分割线。
 - 数学公式和流程图的加载态、尺寸占位、失败态与预览交互。
 
-建议子线程输出粗粒度、带稳定 key 的渲染描述，并按节流周期批量通知主线程。不要每发现一个标签就立即追加一个 View，否则会放大主线程 `appendViewTasks` 卡顿。
+生产实现采用粗粒度、带稳定 key 的渲染描述，并随节流后的不可变快照批量交付主线程；没有按标签逐个回调或追加 View。
 
 T02 生产实施前闸门已通过：确定性 Android fixture 在 Worker 内经真实 CMark 得到 `9 -> 10` 个 token，并构建 `7 -> 8` 个粗粒度描述；七类顺序为 `rich,quote,divider,table,code,mermaid,math`，连续标题和两个段落合并为一个 RichText 描述，扩展文档保留全部旧 key。包含 `attrs.style` 的嵌套节点在 Worker 和主页面两侧完成 JSON 往返，CMark TID 23349 与页面主线程 TID 19069 不同；页面 372ms 明确通过。完整 fixture、断言、线程、命令和截图见 [`test-results/android-worker-render-descriptions-feasibility-results.txt`](test-results/android-worker-render-descriptions-feasibility-results.txt)。
 
-该闸门只证明平台与数据契约可行，未提前修改生产渲染器。下一步可以把纯稳定 ID、块分组和 RichText 节点构建迁入 Worker 共享模块；表格最小宽度、代码高亮、MathJax/Mermaid SVG 等依赖视口或 WebView 的能力仍由主线程富化。这样既满足“子线程输出批量渲染描述”，也不会错误地把必要的 ScrollView、工具栏、状态容器简化成只有 RichText/Image 两个组件。
+生产接入已经完成：RichText 转换器迁入 `uni-ai-worker` 作为 Worker/兼容回退共享的单一实现，生产 Worker 为根 token 分配稳定 ID、合并连续 RichText、输出七类描述，并在 Worker 内创建 RichText 与引用节点。主线程一次回调同时提交 token 和描述；正式渲染器按描述范围装配组件，并直接把 Worker 节点交给原生 RichText。旧历史消息、非 Android 和自定义提供商没有 Worker 描述时仍走兼容回退。
+
+Android 七牛最终可视化回归：请求 A 首批内容后取消，请求 B 以真实 `[DONE]` 完成 57 批快照、221 个网络分块、111036 字节和 487 条 SSE；最终 31 个 token、17 个描述、23 个 Worker RichText/引用根节点。描述范围、key、所需类型、4 张公式 SVG、2 个高亮代码块和 `lateA=0` 全部通过，正式 Markdown 渲染器预览可见标题和正文。完整测试代码、两次有效结果、一次测试代码作用域失误、命令、线程、截图 SHA 和原生日志边界见 [`test-results/android-worker-render-production-results.txt`](test-results/android-worker-render-production-results.txt)。
+
+T02 的完成范围与 T01 一致：Android/七牛生产热链路完成；百炼按要求未测，非 Android/自定义提供商保留兼容路径。表格最小宽度、代码高亮和 MathJax/Mermaid SVG 仍必须由主线程完成，ScrollView、工具栏、引用外框、分割线、状态容器也仍然存在。
 
 ### T03-T04 流程图完整性与性能
 
@@ -184,7 +188,7 @@ T13 已完成：
 | --- | --- | --- | --- | --- |
 | F01 | RichText `nodes` 更新触发全量位图快照和大规模拷贝 | 待上报 | P0 | 已补最小复现与汇总脚本；4 轮精确对照 fixed 113.5~114.7 FPS、updating 52.2~60.1 FPS；每轮更新阶段 196 次拷贝、98 次快照，完整日志轮次各拷贝 4.068 GiB |
 | F02 | 原生布局和 View 追加产生主线程长任务 | 待上报 | P0 | 已补最小复现；RichText 追加最大 37.89ms，普通 View 最大 2.15ms；布局尖峰仅真实链路复现 |
-| F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 已补最小复现；动态挂载 append 最大 50.82ms，预挂载切换为 0；是否重复解码/上传待框架 Trace |
+| F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 最小复现动态挂载 append 最大 50.82ms；T02 真实公式渲染又记录 EGL_BAD_ACCESS、SkiaContext/FixedTilePool 和图片解码警告，待框架 Trace |
 | F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 待上报 | P1 | Android 配对最小复现：2 个非 flatten 对照均正确，3 个 flatten 用例均失败；原始 1440x3200 截图、SHA-256、命令与结果已归档 |
 | F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 已由应用层解决，不上报 | - | 普通请求 388ms；流式请求 3 块/177 字符/3476ms；CMark 2 token/143ms |
 
@@ -201,7 +205,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 - Worker 本地消息收发、普通 `uni.request`、`RequestTask`、`onChunkReceived`、`ArrayBuffer` 和 `TextDecoder` 已在 Android 真机通过。
 - 探针插件声明 `uni-cmark` 依赖，Worker 导入 Android 平台入口后，CMark JNI 在非主线程解析成功。
 - 最终真机数据：本地解码 174ms；普通 GET 388ms；流式 POST 3476ms，3 个分块，累计 177 个字符；CMark 143ms，2 个 token，首个类型 `heading`。
-- Android/iOS 的引用类型按官方说明直接共享内存，不默认克隆；传递渲染描述后必须避免两线程继续修改同一对象。
+- Android/iOS 的引用类型按官方说明直接共享内存，不默认克隆；生产实现因此传递不可变 JSON 快照，主线程重新解析 token 和描述，不让两线程继续修改同一对象。
 - `transferable` 只支持鸿蒙和 Web，Android 方案不能依赖所有权转移。
 - `RequestTask.abort()` 和 `Worker.terminate()` 有公开 API，但仍需用请求版本主动丢弃迟到结果。
 
@@ -225,13 +229,13 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 1. 人工验收 T05：表格/代码横滑、垂直滚动、左缘短滑和侧栏关闭。
 2. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
-3. 继续 T02：把可脱离 UI 的渲染描述构建移入 Worker，主线程只做必要富化和批量组件更新。
-4. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人。
+3. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人；补充 T02 真实公式路径的 EGL/图片解码日志。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | T02 | 生产 Worker 输出稳定 key、七类块描述及 RichText/引用节点；七牛真机通过数据断言和正式渲染器可视化回归 | 本提交（`feat: 将渲染描述构建迁入 Worker`） |
 | 2026-07-30 | T02 | Android Worker 确定性验证七类描述、连续 RichText 合并、稳定 key、嵌套节点和 `attrs.style` 两批 JSON 快照 | 本提交（`test: 验证 Worker 渲染描述能力`） |
 | 2026-07-30 | T01 | 生产 `RequestAiRunner` 接入 Android Worker；七牛真实流完成 224 块/115574 字节/506 条 SSE/61 批快照，取消后重启无迟到回调和 dead-thread 警告 | 本提交（`feat: 将七牛流式解析接入 Worker`） |
 | 2026-07-30 | T01 | 七牛网关真实 `deepseek-v3` 在 Worker 内完成 210 块/109955 字节/482 条 SSE、8 批快照和 24 个 CMark token；页面 1/1，通过后允许生产接入 | 本提交（`test: 验证 Worker 七牛真实链路`） |

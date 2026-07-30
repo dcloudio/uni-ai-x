@@ -2,9 +2,12 @@
 	<view class="page">
 		<text class="title">生产 Worker 七牛回归</text>
 		<text class="description">验证生产 RequestAiRunner 的取消隔离、流式解析和最终富化。</text>
-		<text class="status">{{status}}</text>
-		<text class="summary">{{summary}}</text>
-		<scroll-view class="result-list" direction="vertical" :show-scrollbar="true">
+			<text class="status">{{status}}</text>
+			<text class="summary">{{summary}}</text>
+			<scroll-view v-if="previewTokens.length > 0" class="preview" direction="vertical" :show-scrollbar="true">
+				<uni-ai-md-renderer :markdown-el-list="previewTokens" :markdown-render-list="previewRenderList" />
+			</scroll-view>
+			<scroll-view class="result-list" direction="vertical" :show-scrollbar="true">
 			<text v-for="(item, index) in results" :key="index" class="result-line">{{item}}</text>
 		</scroll-view>
 		<web-view class="proxy-web" id="proxy-web" src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html" @message="proxyWebMsg"></web-view>
@@ -15,12 +18,16 @@
 	import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts'
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	import { Llm, RequestAiCoMessage } from '@/uni_modules/uni-ai-x/types.uts'
-	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+		import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+		import { MarkdownRenderDescription } from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
+		import uniAiMdRenderer from '@/uni_modules/uni-ai-x/components/uni-ai-md-renderer/uni-ai-md-renderer.uvue'
 
 	const CASE_TIMEOUT = 120000
 	const status = ref('准备自动测试')
 	const summary = ref('等待开始')
-	const results = ref<string[]>([])
+		const results = ref<string[]>([])
+		const previewTokens = ref<MarkdownToken[]>([] as MarkdownToken[])
+		const previewRenderList = ref<MarkdownRenderDescription[]>([] as MarkdownRenderDescription[])
 	const llm: Llm = {
 		provider: 'qiniu',
 		model: 'deepseek-v3',
@@ -36,7 +43,8 @@
 	let cancelIssued = false
 	let lateCallbacksA = 0
 	let lastTokenCount = 0
-	let finalTokens: MarkdownToken[] = [] as MarkdownToken[]
+		let finalTokens: MarkdownToken[] = [] as MarkdownToken[]
+		let finalRenderList: MarkdownRenderDescription[] = [] as MarkdownRenderDescription[]
 	let completedSeen = false
 	let finishedTest = false
 
@@ -68,16 +76,36 @@
 		return count
 	}
 
-	function countHighlightedCode(tokenList: MarkdownToken[]): number {
-		let count = 0
+		function countHighlightedCode(tokenList: MarkdownToken[]): number {
+			let count = 0
 		for (let i = 0; i < tokenList.length; i++) {
 			const token = tokenList[i]
 			if ((token.type ?? '') == 'code_block' && (token.lang ?? '') == 'javascript' && (token.codeTokens?.length ?? 0) > 0) count += 1
 			count += countHighlightedCode(token.tokens ?? [] as MarkdownToken[])
-			count += countHighlightedCode(token.items ?? [] as MarkdownToken[])
+				count += countHighlightedCode(token.items ?? [] as MarkdownToken[])
+			}
+			return count
 		}
-		return count
-	}
+
+		function countDescriptions(kind: string): number {
+			let count = 0
+			for (let index = 0; index < finalRenderList.length; index++) {
+				if (finalRenderList[index].kind == kind) count += 1
+			}
+			return count
+		}
+
+		function validateRenderDescriptions(): boolean {
+			if (finalTokens.length > 0 && finalRenderList.length == 0) return false
+			for (let index = 0; index < finalRenderList.length; index++) {
+				const description = finalRenderList[index]
+				if (description.tokenStart < 0 || description.tokenCount <= 0 ||
+					description.tokenStart + description.tokenCount > finalTokens.length) return false
+				if (description.key != (finalTokens[description.tokenStart].uniqueId ?? '')) return false
+				if ((description.kind == 'rich' || description.kind == 'quote') && description.nodes.length == 0) return false
+			}
+			return true
+		}
 
 	function evaluateCompletion() {
 		if (!completedSeen || finishedTest) return
@@ -93,13 +121,19 @@
 			status.value = '等待公式 SVG 与代码高亮'
 			return
 		}
-		const passed = finalTokens.length > 0 && missingTypes.length == 0 && mathCount >= 2 && lateCallbacksA == 0
-		finish(passed, 'tokens=' + finalTokens.length.toString() +
-			' math=' + mathCount.toString() +
-			' renderedMath=' + renderedMathCount.toString() +
-			' highlightedCode=' + highlightedCodeCount.toString() +
-			' missing=' + missingTypes.join(',') +
-			' lateA=' + lateCallbacksA.toString())
+			const descriptionsValid = validateRenderDescriptions()
+			const expectedDescriptionKinds = countDescriptions('rich') > 0 && countDescriptions('quote') > 0 &&
+				countDescriptions('table') > 0 && countDescriptions('code') > 0 && countDescriptions('math') >= 2
+			const passed = finalTokens.length > 0 && missingTypes.length == 0 && mathCount >= 2 && lateCallbacksA == 0 &&
+				descriptionsValid && expectedDescriptionKinds
+			finish(passed, 'tokens=' + finalTokens.length.toString() +
+				' descriptions=' + finalRenderList.length.toString() +
+				' math=' + mathCount.toString() +
+				' renderedMath=' + renderedMathCount.toString() +
+				' highlightedCode=' + highlightedCodeCount.toString() +
+				' descriptionsValid=' + descriptionsValid.toString() +
+				' missing=' + missingTypes.join(',') +
+				' lateA=' + lateCallbacksA.toString())
 	}
 
 	function finish(passed: boolean, detail: string) {
@@ -116,8 +150,11 @@
 		status.value = '请求 B：生产完整链路'
 		appendResult('request-B', 'start')
 		const callbacks: RequestAiRunnerCallbacks = {
-			onMarkdownElList: (tokenList: MarkdownToken[]) => {
-				finalTokens = tokenList
+				onMarkdownElList: (tokenList: MarkdownToken[], renderList: MarkdownRenderDescription[]) => {
+					finalTokens = tokenList
+					finalRenderList = renderList
+					previewTokens.value = tokenList
+					previewRenderList.value = renderList
 				if (tokenList.length != lastTokenCount) {
 					lastTokenCount = tokenList.length
 					appendResult('request-B', 'render-tokens=' + tokenList.length.toString())
@@ -148,7 +185,7 @@
 		status.value = '请求 A：等待首批内容后取消'
 		appendResult('request-A', 'start')
 		const callbacks: RequestAiRunnerCallbacks = {
-			onMarkdownElList: (_tokenList: MarkdownToken[]) => {
+				onMarkdownElList: (_tokenList: MarkdownToken[], _renderList: MarkdownRenderDescription[]) => {
 				if (cancelIssued) lateCallbacksA += 1
 			},
 			onThinkContent: (_thinkContent: string) => {
@@ -187,7 +224,10 @@
 		cancelIssued = false
 		lateCallbacksA = 0
 		lastTokenCount = 0
-		finalTokens = [] as MarkdownToken[]
+			finalTokens = [] as MarkdownToken[]
+			finalRenderList = [] as MarkdownRenderDescription[]
+			previewTokens.value = [] as MarkdownToken[]
+			previewRenderList.value = [] as MarkdownRenderDescription[]
 		completedSeen = false
 		finishedTest = false
 		status.value = '开始测试'
@@ -243,6 +283,16 @@
 	font-size: 16px;
 	font-weight: 600;
 	color: #0969da;
+}
+
+.preview {
+	height: 240px;
+	margin-top: 12px;
+	padding: 12px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
 }
 
 .result-list {

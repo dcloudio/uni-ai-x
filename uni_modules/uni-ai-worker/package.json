@@ -16,6 +16,8 @@
     "type": "uts"
   },
   "uni_modules": {
-    "dependencies": []
+    "dependencies": [
+      "uni-cmark"
+    ]
   }
 }

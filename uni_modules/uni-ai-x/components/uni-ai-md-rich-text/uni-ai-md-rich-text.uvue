@@ -10,11 +10,13 @@
 
 	type UniAiMdRichTextProps = {
 		markdownElList: MarkdownToken[]
+		richNodes?: UTSJSONObject[]
 	}
 
 	const props = defineProps<UniAiMdRichTextProps>()
 
 	const richNodes = computed<UTSJSONObject[]>(() => {
+		if (props.richNodes != null) return props.richNodes!
 		return markdownTokensToRichTextNodes(props.markdownElList)
 	})
 

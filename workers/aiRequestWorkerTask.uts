@@ -4,6 +4,7 @@ import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 import { MarkdownPreprocessor } from '../uni_modules/uni-ai-worker/utssdk/markdown-preprocessor.uts'
+import { buildMarkdownRenderDescriptions } from '../uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
 
 type WorkerAiDelta = {
 	content?: string,
@@ -161,6 +162,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			this.fail('markdown_parse_failed', parseResult.errorMsg)
 			return
 		}
+		const renderList = buildMarkdownRenderDescriptions(parseResult.data)
+		let richNodeCount = 0
+		for (let index = 0; index < renderList.length; index++) richNodeCount += renderList[index].nodes.length
 		this.snapshotVersion += 1
 		const snapshot = {
 			requestVersion: this.requestVersion,
@@ -169,7 +173,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			msgBody: this.content,
 			thinkContent: this.reasoningContent.trim(),
 			tokensJson: JSON.stringify(parseResult.data),
+			renderListJson: JSON.stringify(renderList),
 			tokenCount: parseResult.data.length,
+			renderDescriptionCount: renderList.length,
+			richNodeCount: richNodeCount,
 			isDone: isDone,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -205,7 +212,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			msgBody: this.content,
 			thinkContent: this.reasoningContent.trim(),
 			tokensJson: '[]',
+			renderListJson: '[]',
 			tokenCount: 0,
+			renderDescriptionCount: 0,
+			richNodeCount: 0,
 			isDone: false,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,

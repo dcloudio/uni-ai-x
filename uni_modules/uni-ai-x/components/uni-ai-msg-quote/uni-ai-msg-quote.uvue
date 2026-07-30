@@ -12,9 +12,11 @@ import { markdownBlockquoteTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/s
 
 const props = defineProps<{
 	quoteNode: MarkdownToken
+	richNodes?: UTSJSONObject[]
 }>()
 
 const quoteNodes = computed<UTSJSONObject[]>(() => {
+	if (props.richNodes != null) return props.richNodes!
 	return markdownBlockquoteTokenToRichTextNodes(props.quoteNode)
 })
 

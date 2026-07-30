@@ -2,6 +2,7 @@ import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import { MarkdownRenderDescription } from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
@@ -14,9 +15,9 @@ import {
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
-type BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => void;
+type BeforeUpdateMdElList = (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => void;
 export type RequestAiRunnerCallbacks = {
-	onMarkdownElList: (markdownTokenList: MarkdownToken[]) => void,
+	onMarkdownElList: (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[]) => void,
 	onThinkContent: (thinkContent: string) => void,
 	onMsgBody: (msgBody: string) => void,
 	onState: (state: string) => void,
@@ -58,7 +59,7 @@ class RequestAiRunner {
 	parseMarkdown : ParseMarkdown | null = null
 	private callbacks : RequestAiRunnerCallbacks | null = null
 	currentChatState : string = ''
-	beforeUpdateMdElList : BeforeUpdateMdElList = (markdownTokenList : MarkdownToken[], isParseDone: boolean) => {}
+	beforeUpdateMdElList: BeforeUpdateMdElList = (_markdownTokenList: MarkdownToken[], _renderList: MarkdownRenderDescription[], _isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
 	private bodyEmitTimer: number = 0
@@ -69,8 +70,8 @@ class RequestAiRunner {
 	private workerActive: boolean = false
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
-		this.beforeUpdateMdElList = (newMarkdownTokenList : MarkdownToken[], isParseDone: boolean) => {
-			this.callbacks?.onMarkdownElList(newMarkdownTokenList)
+		this.beforeUpdateMdElList = (newMarkdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => {
+			this.callbacks?.onMarkdownElList(newMarkdownTokenList, renderList)
 			if (isParseDone) {
 				this.currentChatState = 'completed'
 				this.callbacks?.onState('completed')
@@ -300,10 +301,16 @@ class RequestAiRunner {
 		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
 		let tokenList: MarkdownToken[]
+		let renderList: MarkdownRenderDescription[]
 		try {
 			tokenList = JSON.parseArray<MarkdownToken>(snapshot.getString('tokensJson', '[]')) as MarkdownToken[]
+			renderList = JSON.parseArray<MarkdownRenderDescription>(snapshot.getString('renderListJson', '[]')) as MarkdownRenderDescription[]
 		} catch (_error) {
-			this.handleWorkerSnapshotError('worker_tokens_invalid', 'Worker Markdown 数据解析失败')
+			this.handleWorkerSnapshotError('worker_render_data_invalid', 'Worker Markdown 渲染数据解析失败')
+			return
+		}
+		if (tokenList.length > 0 && renderList.length == 0) {
+			this.handleWorkerSnapshotError('worker_render_descriptions_missing', 'Worker 未返回 Markdown 渲染描述')
 			return
 		}
 		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
@@ -315,12 +322,14 @@ class RequestAiRunner {
 				networkChunkCount: snapshot.getNumber('networkChunkCount', 0),
 				receivedBytes: snapshot.getNumber('receivedBytes', 0),
 				tokenCount: snapshot.getNumber('tokenCount', 0),
+				renderDescriptionCount: snapshot.getNumber('renderDescriptionCount', 0),
+				richNodeCount: snapshot.getNumber('richNodeCount', 0),
 				terminalSource: snapshot.getString('terminalSource', ''),
 				elapsed: snapshot.getNumber('elapsed', 0)
 			} as UTSJSONObject))
 			this.stopWorkerRuntime(false)
 		}
-		this.parseMarkdown?.applyParsedTokens(tokenList, isDone)
+		this.parseMarkdown?.applyParsedTokens(tokenList, renderList, isDone)
 	}
 
 	private handleWorkerSnapshotError(errCode: string, errMsg: string) {

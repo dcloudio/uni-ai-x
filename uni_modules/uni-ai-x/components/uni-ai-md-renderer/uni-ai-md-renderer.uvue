@@ -1,8 +1,8 @@
 <template>
 	<view class="uni-ai-md-renderer" :class="[`ui-theme-${uiTheme}`]" flatten>
 		<template v-for="block in renderBlocks" :key="block.key">
-			<uni-ai-md-rich-text v-if="block.kind == 'rich'" :markdown-el-list="block.tokens" />
-			<uni-ai-msg-quote v-else-if="block.kind == 'quote'" :quote-node="blockToken(block)" />
+				<uni-ai-md-rich-text v-if="block.kind == 'rich'" :markdown-el-list="block.tokens" :rich-nodes="block.nodes" />
+				<uni-ai-msg-quote v-else-if="block.kind == 'quote'" :quote-node="blockToken(block)" :rich-nodes="block.nodes" />
 			<view v-else-if="block.kind == 'divider'" class="uni-ai-md-divider" flatten></view>
 			<uni-ai-msg-table v-else-if="block.kind == 'table'" :table-node="blockToken(block)" />
 			<uni-ai-msg-code v-else-if="block.kind == 'code' || block.kind == 'mermaid'"
@@ -21,15 +21,16 @@
 				:render-theme="blockToken(block).renderTheme"
 				:code-tokens="codeTokensOf(blockToken(block))"
 			/>
-			<uni-ai-md-rich-text v-else :markdown-el-list="block.tokens" />
+				<uni-ai-md-rich-text v-else :markdown-el-list="block.tokens" :rich-nodes="block.nodes" />
 		</template>
 	</view>
 </template>
 
 <script lang="uts" setup>
-	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
-	import { buildMarkdownRenderBlocks, MarkdownRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-render-blocks.uts'
+		import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+		import { MarkdownRenderDescription } from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
+		import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+		import { buildMarkdownRenderBlocks, materializeMarkdownRenderBlocks, MarkdownRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-render-blocks.uts'
 	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
 	import uniAiMsgQuote from '@/uni_modules/uni-ai-x/components/uni-ai-msg-quote/uni-ai-msg-quote.uvue'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
@@ -40,19 +41,23 @@
 		name: 'uni-ai-md-renderer'
 	})
 
-	type UniAiMdRendererProps = {
-		markdownElList: MarkdownToken[]
-		keyPrefix?: string
+		type UniAiMdRendererProps = {
+			markdownElList: MarkdownToken[]
+			markdownRenderList?: MarkdownRenderDescription[]
+			keyPrefix?: string
 	}
 
 	const props = withDefaults(defineProps<UniAiMdRendererProps>(), {
 		keyPrefix: ''
 	})
 
-	let previousRenderBlocks = [] as MarkdownRenderBlock[]
-	const renderBlocks = computed<MarkdownRenderBlock[]>(() => {
-		const blocks = buildMarkdownRenderBlocks(props.markdownElList, props.keyPrefix, previousRenderBlocks)
-		previousRenderBlocks = blocks
+		let previousRenderBlocks = [] as MarkdownRenderBlock[]
+		const renderBlocks = computed<MarkdownRenderBlock[]>(() => {
+			const descriptions = props.markdownRenderList
+			const blocks = descriptions != null && descriptions!.length > 0
+				? materializeMarkdownRenderBlocks(props.markdownElList, descriptions!, props.keyPrefix, previousRenderBlocks)
+				: buildMarkdownRenderBlocks(props.markdownElList, props.keyPrefix, previousRenderBlocks)
+			previousRenderBlocks = blocks
 		return blocks
 	})
 

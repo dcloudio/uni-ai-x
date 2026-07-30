@@ -7,8 +7,12 @@ import { parseLineCode, ParseLineCodeRes } from '@/uni_modules/uni-ai-x/sdk/pars
 import { setApproxTableContentWidth } from '@/uni_modules/uni-ai-x/sdk/markdown-utils.uts'
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { MarkdownPreprocessor } from '@/uni_modules/uni-ai-worker/utssdk/markdown-preprocessor.uts'
+import {
+	buildMarkdownRenderDescriptions,
+	MarkdownRenderDescription
+} from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
 
-type ParseDone = (markdownTokenList: MarkdownToken[], isParseDone: boolean) => void
+type ParseDone = (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => void
 type Md2JsonCallBack = (markdownTokenList: MarkdownToken[], isParseDone: boolean | null) => void
 type UniCmarkCallback = (result: ParseMdRes) => void
 type CallBack = () => void
@@ -36,14 +40,17 @@ export default class ParseMarkdown {
 	private mathPublishTimer: number = 0
 	private tokenPublishTimer: number = 0
 	private pendingPublishList: MarkdownToken[] | null = null
+	private pendingPublishRenderList: MarkdownRenderDescription[] | null = null
 	private pendingPublishDone: boolean = false
 	private lastPublishedList: MarkdownToken[] = [] as MarkdownToken[]
 	private lastPublishedDone: boolean = false
 	private lastParsedText: string = ''
 	private lastParsedDone: boolean = false
 	private segmentTokenList: MarkdownToken[] = []
+	private segmentRenderList: MarkdownRenderDescription[] = []
 	private markdownPreprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
 	private workerPendingTokens: MarkdownToken[] | null = null
+	private workerPendingRenderList: MarkdownRenderDescription[] | null = null
 	private workerPendingDone: boolean = false
 	private workerEnriching: boolean = false
 	private latestMsgBody: string = ''
@@ -72,10 +79,11 @@ export default class ParseMarkdown {
 		this.scheduleParse(msgBody, true, true)
 	}
 
-	applyParsedTokens(markdownTokenList: MarkdownToken[], isDone: boolean) {
+	applyParsedTokens(markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isDone: boolean) {
 		if (this.userAbort) return
 		this.msgReceiveDone = this.msgReceiveDone || isDone
 		this.workerPendingTokens = markdownTokenList
+		this.workerPendingRenderList = renderList
 		this.workerPendingDone = this.workerPendingDone || isDone
 		this.enrichPendingWorkerTokens()
 	}
@@ -83,14 +91,17 @@ export default class ParseMarkdown {
 	private enrichPendingWorkerTokens() {
 		if (this.workerEnriching || this.workerPendingTokens == null || this.userAbort) return
 		const nextTokenList = this.workerPendingTokens!
+		const nextRenderList = this.workerPendingRenderList ?? [] as MarkdownRenderDescription[]
 		const isDone = this.workerPendingDone
 		this.workerPendingTokens = null
+		this.workerPendingRenderList = null
 		this.workerPendingDone = false
 		this.workerEnriching = true
 		this.enrichParsedTokenList(nextTokenList, isDone, (list: MarkdownToken[]) => {
 			this.workerEnriching = false
 			if (this.userAbort) return
-			this.queueTokenPublish(list, isDone)
+			this.segmentRenderList = nextRenderList
+			this.queueTokenPublish(list, nextRenderList, isDone)
 			this.enrichPendingWorkerTokens()
 		})
 	}
@@ -168,7 +179,9 @@ export default class ParseMarkdown {
 			const callbackDone = parseDone ?? isDone
 			this.lastParsedText = text
 			this.lastParsedDone = callbackDone
-			this.queueTokenPublish(list, callbackDone)
+			const renderList = buildMarkdownRenderDescriptions(list)
+			this.segmentRenderList = renderList
+			this.queueTokenPublish(list, renderList, callbackDone)
 			if (this.pendingText != null) {
 				this.scheduleParse(this.pendingText, this.pendingDone || this.msgReceiveDone)
 			} else if (this.msgReceiveDone && !callbackDone) {
@@ -222,7 +235,7 @@ export default class ParseMarkdown {
 	private enrichParsedTokenList(nextTokenList: MarkdownToken[], isDone: boolean, callback: (list: MarkdownToken[]) => void) {
 		for (let i = 0; i < nextTokenList.length; i++) {
 			const nextToken = nextTokenList[i]
-			nextToken.uniqueId = 'u' + i.toString()
+			if ((nextToken.uniqueId ?? '').length == 0) nextToken.uniqueId = 'u' + i.toString()
 			nextToken.isClose = (isDone || i < nextTokenList.length - 1) ? 1 : 0
 			const previousToken = i < this.segmentTokenList.length ? this.segmentTokenList[i] : null
 			if (previousToken != null && this.canReusePublishedToken(previousToken, nextToken)) {
@@ -295,8 +308,9 @@ export default class ParseMarkdown {
 		return true
 	}
 
-	private queueTokenPublish(list: MarkdownToken[], isDone: boolean) {
+	private queueTokenPublish(list: MarkdownToken[], renderList: MarkdownRenderDescription[], isDone: boolean) {
 		this.pendingPublishList = list
+		this.pendingPublishRenderList = renderList
 		this.pendingPublishDone = this.pendingPublishDone || isDone
 		if (this.tokenPublishTimer != 0) return
 		this.tokenPublishTimer = setTimeout(() => {
@@ -306,15 +320,17 @@ export default class ParseMarkdown {
 	}
 
 	private flushTokenPublish() {
-		if (this.userAbort || this.pendingPublishList == null) return
+		if (this.userAbort || this.pendingPublishList == null || this.pendingPublishRenderList == null) return
 		const list = this.pendingPublishList!
+		const renderList = this.pendingPublishRenderList!
 		const isDone = this.pendingPublishDone
 		this.pendingPublishList = null
+		this.pendingPublishRenderList = null
 		this.pendingPublishDone = false
 		if (this.tokenListsMatch(list, this.lastPublishedList) && (!isDone || this.lastPublishedDone)) return
 		this.lastPublishedList = list
 		this.lastPublishedDone = isDone
-		this.updateCallBack(list, isDone)
+		this.updateCallBack(list, renderList, isDone)
 	}
 
 	private enrichToken(item: MarkdownToken, callBack: (token: MarkdownToken | null) => void) {
@@ -473,7 +489,7 @@ export default class ParseMarkdown {
 		const renderedToken = this.pendingMathRenderMap.get(cacheKey)
 		this.pendingMathRenderMap.delete(cacheKey)
 		if (renderedToken != null && this.replaceRenderedMathToken(cacheKey, renderedToken)) {
-			this.queueTokenPublish(this.publishTokenList(), this.msgReceiveDone)
+			this.queueTokenPublish(this.publishTokenList(), this.segmentRenderList, this.msgReceiveDone)
 		}
 		if (this.pendingMathRenderKeys.length == 0) return
 		this.mathPublishTimer = setTimeout(() => {
@@ -549,7 +565,9 @@ export default class ParseMarkdown {
 		this.tokenPublishTimer = 0
 		this.pendingText = null
 		this.pendingPublishList = null
+		this.pendingPublishRenderList = null
 		this.workerPendingTokens = null
+		this.workerPendingRenderList = null
 		this.workerPendingDone = false
 		this.pendingPublishDone = false
 		this.pendingMathRenderKeys = []

@@ -13,7 +13,8 @@
 				</view>
 			</view>
 			<text v-if="showPlainText" class="msg-root-plain-text" flatten>{{msg.body}}</text>
-			<uni-ai-md-renderer v-else :markdown-el-list="msg.markdownElList" />
+				<uni-ai-md-renderer v-else :markdown-el-list="msg.markdownElList"
+					:markdown-render-list="msg.markdownRenderList" />
 			<template v-if="isLastAiMsg && msg.body == ''">
 				<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
 				<text v-if="state == 'none'" class="msg-root-need-try" flatten>错误：未回复</text>
