@@ -9,80 +9,117 @@ Worker：uni.request -> onChunkReceived -> ArrayBuffer/TextDecoder -> SSE -> Mar
 主线程：接收批量渲染描述 -> 更新组件树
 ```
 
-当前 HBuilderX 5.24 Android 蒸汽模式还不能直接据此开始应用层重构，原因有两项：
+2026-07-30 Android 真机最终验证确认：Worker 内普通 `uni.request`、`RequestTask`、`onChunkReceived`、`ArrayBuffer` 和 `TextDecoder` 均可用。流式请求实际收到 3 个分块，累计解码 177 个字符。此前“`uni.request` 不返回”的结论是缺少 Worker 清单配置、旧编译缓存和跨层回调方式共同造成的无效中间结果，已撤销。
 
-1. 官方文档说明 Worker 可调用 `uni.request`，但 Android 真机探针在 Worker 内调用 `uni.request` 后没有返回 `RequestTask`，也没有触发成功、失败或超时回调，调用后的代码不再执行。
-2. Worker 脚本直接导入现有 `uni-cmark` UTS 插件时编译失败，当前没有得到可用的插件导入路径。
+T01 仍未闭环，但当前只剩一个明确能力边界：Worker 脚本直接导入现有 `uni-cmark` UTS 插件时编译失败。需要框架开发工程师给出 Worker 调用项目内 UTS 原生插件的正式方式，或明确不支持时的替代架构。
 
-因此 T01/T02 暂时保持未完成。先由框架开发工程师确认或修复以上能力，再选择真实 Worker 方案；不应在能力未确认时把请求、解析和渲染职责拆成一套无法闭环的实现。
+## 保留的复现材料
+
+- 页面：[`pages/repro-worker-capability/index.uvue`](pages/repro-worker-capability/index.uvue)
+- Worker：[`workers/markdownWorkerTask.uts`](workers/markdownWorkerTask.uts)
+- UTS 桥接插件：[`uni_modules/uni-ai-worker-probe`](uni_modules/uni-ai-worker-probe)
+- CMark 编译失败样例：[`test-fixtures/worker-cmark-import-failure.uts.txt`](test-fixtures/worker-cmark-import-failure.uts.txt)
+- 真机结果：[`test-results/android-worker-capability-results.txt`](test-results/android-worker-capability-results.txt)
+- 真机截图：[`test-results/android-worker-capability.png`](test-results/android-worker-capability.png)
 
 ## 验证环境
 
 - HBuilderX：`5.24.2026072917-dev`
 - 编译器：uni-app x 5.24，蒸汽模式，字节码视图层
-- 平台：Android 真机
+- 平台：Android 14 / API 34
+- 设备：Xiaomi `M2102K1AC`
+- 物理屏幕：1440x3200，density 560
 - 包名：`io.dcloud.ai.x`
 - 验证日期：2026-07-30
 
+## 测试方式
+
+1. 在 `manifest.json` 顶层配置 `"workers": "workers"`。
+2. 由 UTS 插件创建 `workers/markdownWorkerTask.uts`；Android 蒸汽模式 `.uvue` 页面不能直接调用 `uni.createWorker`。
+3. 页面依次执行 `local`、`request`、`stream`，每个场景使用新的 Worker，避免请求状态互相污染。
+4. `local` 用 `Uint8Array([87,111,114,107,101,114])` 构造 ArrayBuffer，再用 `TextDecoder` 解码。
+5. `request` 向 `https://request.dcloud.net.cn/api/http/method/get` 发起普通 GET，Worker 超时 8000ms，页面超时 12000ms。
+6. `stream` 向 `https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3` 发起 `enableChunked: true` 的 POST，在 `onChunkReceived` 中逐块解码并累计数量和字符数。
+7. 使用下列命令全量编译并运行：
+
+```sh
+/Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
+  --project /Users/json/Desktop/code/uni-ai-x \
+  --deviceId 192.168.2.5:5555 \
+  --playground custom \
+  --native-log true \
+  --cleanCache true
+```
+
+8. 使用下列命令读取应用与 Worker 日志：
+
+```sh
+adb -s 192.168.2.5:5555 logcat -d -v threadtime | \
+  rg 'WorkerCapabilityRepro|request-created|chunkCount|decodedLength'
+```
+
+9. 在开发机预检普通请求地址，排除服务端不可达：
+
+```sh
+curl -sS -o /dev/null \
+  -w 'ordinary_http=%{http_code} total=%{time_total}s\n' \
+  'https://request.dcloud.net.cn/api/http/method/get'
+```
+
+## 最终结果
+
+HBuilderX 全量构建成功，`ready in 28286ms`。页面自动测试结果：
+
+| 场景 | 页面结果 | 耗时 | 结果数据 |
+| --- | --- | ---: | --- |
+| local | `local` | 160ms | `textDecoder=Worker` |
+| request | `request-success` | 422ms | 普通 GET 成功，`RequestTask` 已创建 |
+| stream | `request-success` | 3481ms | `chunkCount=3`，`decodedLength=177` |
+
+流式分块原始累计数据：
+
+| 分块 | 累计解码字符数 |
+| ---: | ---: |
+| 1 | 59 |
+| 2 | 118 |
+| 3 | 177 |
+
+页面最终打印 `[WorkerCapabilityRepro] complete`，没有 `host-timeout`。普通地址预检为 HTTP 200，耗时 0.130574s。应用日志没有 `AndroidRuntime`、`FATAL EXCEPTION` 或 `SIGABRT`；系统窗口管理器有一条与应用无关的 `ActivityRecordImpl` NPE，不计入应用异常。
+
+把复现页移回 `pages.json` 末尾后又执行一次正常入口全量回归：8 个页面均编译成功，`ready in 27322ms`；设备顶层 Activity 为应用主 Activity，截图确认聊天页、公式、流程图和下方正文正常显示，异常扫描为空。
+
+截图为 1440x3200 PNG，203213 字节，SHA-256：
+
+```text
+139dce9f575350fb00b814d19c6a91a84c1696a1aa1da4e9e00ba8f3d9e9acd6
+```
+
 ## 能力矩阵
 
-| 能力 | 官方说明 | 本次结果 | 结论 |
-| --- | --- | --- | --- |
-| 页面直接调用 `uni.createWorker` | Android 蒸汽模式 `.uvue` 不能直接调用，需由 UTS 插件创建 | 按官方示例使用 UTS 插件后 Worker 可启动 | 已确认边界 |
-| Worker 消息收发 | 支持 `postMessage`、`onMessage`、`terminate` | 真机收到 Worker 本地结果 | 已确认 |
-| `ArrayBuffer` + `TextDecoder` | Worker 可使用非 UI API 和基础数据处理能力 | `Uint8Array` 解码得到 `Worker` 并回传 | 已确认 |
-| Worker 内 `uni.request` | 官方文档列为可用示例，回调应在 Worker 线程执行 | 调用处不返回，回调均未触发 | 与文档不一致，待框架确认 |
-| `onChunkReceived` 流式回调 | `RequestTask` 支持 | 因 `uni.request` 调用未返回，无法进入监听阶段 | 未确认 |
-| Worker 导入 `uni-cmark` | 文档未给出当前项目此类插件的可用示例 | 编译期无法解析插件入口 | 待框架确认支持方式 |
-| Android 消息对象传递 | 官方说明 Android/iOS 引用类型直接共享内存，不默认克隆 | 本次未做大对象压测 | 按官方边界设计，必须避免跨线程并发修改 |
-| 请求和 Worker 取消 | `RequestTask.abort()`、`Worker.terminate()` 可用 | 未进入可取消的请求状态 | API 已有，完整链路仍待验证 |
+| 能力 | 本次结果 | 结论 |
+| --- | --- | --- |
+| 页面直接调用 `uni.createWorker` | 编译明确提示 `.uvue` 暂不支持，只能由 UTS 插件创建 | 已确认边界 |
+| Worker 清单配置 | 缺少 `manifest.json` 的 `"workers": "workers"` 时提示路径不存在 | 必需配置 |
+| Worker 消息收发 | 页面、插件和 Worker 三层消息均到达 | 已确认 |
+| `ArrayBuffer` + `TextDecoder` | 解码得到 `Worker` 并回传 | 已确认 |
+| Worker 内 `uni.request` | 普通 GET 成功，耗时 422ms | 已确认 |
+| `RequestTask.onChunkReceived` | 3 次回调，累计解码 177 字符 | 已确认 |
+| Worker 导入 `uni-cmark` | 编译期无法解析插件入口 | 待框架确认支持方式 |
+| UTS 插件回调多次跨层转发 | 同一次注册中只有第一次事件稳定到达页面；最终探针改为插件记录全部事件、只回传一次终态 | 待框架确认语义 |
+| 请求和 Worker 取消 | API 存在，本轮未验证回调顺序 | 待专项验证 |
 
-## `uni.request` 真机证据
+## 诊断过程与无效中间结果
 
-探针先在 Worker 内完成本地解码并回传，再安排 5 秒定时消息，随后调用单个普通 GET 请求：
+这些记录用于说明最终结论如何排除了测试工具和架构噪音。
 
-```uts
-this.postMessage({ phase: 'local', textDecoder: decoded } as UTSJSONObject)
+1. 初始编译报 `Worker[workers/markdownWorkerTask.uts]路径不存在或未正确实现`。把 Worker 缩减为官方最小实现、改名后仍失败；对照官方示例发现根因是缺少 `manifest.json` 的 Worker 目录配置。
+2. 加配置后仍命中旧文件名，报 `ENOENT ... workers/markdownWorkerProbe.uts`。`--cleanCache true` 没有清掉该插件缓存；只删除对应插件的三处生成目录后全量编译成功。
+3. 只改 Worker 文件时，HBuilderX 曾输出 `uts插件[uni-ai-worker-probe]文件未发生变化，跳过编译`。同步修改桥接插件后才重新生成。因此 Worker 源文件是否参与插件缓存失效需要框架确认。
+4. 页面直接调用 `uni.createWorker` 的对照编译明确失败：`当前平台 uvue 页面中暂不支持使用 uni.createWorker 创建 worker，目前仅 uts 插件中支持`。最终实现遵循官方示例，从 UTS 插件创建。
+5. 使用普通函数保存页面回调时，Worker 和网络事件只到达插件日志，没有到达页面；改成官方示例同类的强类型 options callback 后才建立跨层桥接。
+6. 同一个强类型回调连续转发多个 Worker 事件时，页面只稳定收到第一次。最终测试让插件记录所有原始事件，每个场景只向页面回传一次终态，排除了多次回调桥接对能力结果的干扰。
 
-setTimeout(() => {
-  this.postMessage({ phase: 'watchdog' } as UTSJSONObject)
-}, 5000)
-
-this.requestTask = uni.request({
-  url: 'https://request.dcloud.net.cn/api/http/method/get',
-  method: 'GET',
-  timeout: 15000,
-  success: () => this.postMessage({ phase: 'request-success' } as UTSJSONObject),
-  fail: (error) => this.postMessage({
-    phase: 'request-fail',
-    detail: error.errMsg
-  } as UTSJSONObject)
-})
-
-this.postMessage({ phase: 'request-created' } as UTSJSONObject)
-```
-
-真机只收到：
-
-```json
-{"phase":"local","textDecoder":"Worker"}
-```
-
-以下消息均未收到：
-
-- `request-created`
-- `request-success`
-- `request-fail`
-- `watchdog`
-
-补充排查结果：
-
-- 使用 `--cleanCache true` 全量编译、同步并重启应用，确认设备加载的是更新后的 Worker 文件。
-- Android 日志显示请求调用时创建了网络 socket，但没有 Java/Kotlin 崩溃栈。
-- 同一测试地址从开发机访问返回 HTTP 200，不能用服务端不可用解释调用后的代码不执行。
-- 先后测试了普通 GET、流式 POST，以及缩减为单个 GET；现象一致。
-
-需要框架确认：这是当前开发版的已知限制、Worker 内请求实现缺陷，还是 Worker 调用 `uni.request` 还需要未写入文档的初始化方式。
+因此早期的“`uni.request` 不返回”是回调桥接与构建配置的假阴性，不能作为框架缺陷上报。
 
 ## `uni-cmark` 编译证据
 
@@ -102,11 +139,11 @@ unpackage/dist/dev/.uvue/app-android/workers/markdownWorkerProbe.uts
 index not found
 ```
 
-这只能证明“当前导入方式不可用”，不能扩大成“所有 UTS 插件都不能在 Worker 使用”。需要框架给出 Worker 调用项目内 UTS 原生插件的正式支持方式；如果设计上不支持，也需要明确替代架构。
+这只能证明“当前导入方式不可用”，不能扩大成“所有 UTS 插件都不能在 Worker 使用”。失败导入代码保存在不参与构建的 fixture 中，框架研发可直接复制到 Worker 文件复现。
 
 ## 应用层可以承担的部分
 
-框架能力闭环后，应用层负责：
+框架明确 `uni-cmark` 的 Worker 调用方式后，应用层负责：
 
 - 用 UTS 插件封装 Worker 的创建、消息监听和销毁。
 - 把 SSE 解码、Markdown 预处理、CMark 和渲染描述构建放在同一个 Worker 任务中。
@@ -117,10 +154,10 @@ index not found
 
 ## 需要框架开发工程师确认
 
-1. 为什么 Android 蒸汽模式 Worker 内 `uni.request` 没有返回，且所有回调均不触发？
-2. `onChunkReceived` 在 Worker 内是否有已验证的 Android 示例和最低 HBuilderX 版本？
-3. Worker 脚本应如何导入并调用项目内 `uni-cmark` 这类 UTS 原生插件？
-4. 如果 Worker 设计上不能调用 UTS 插件，框架推荐如何保证“联网到 CMark 全部在同一子线程”的链路？
+1. Worker 脚本应如何导入并调用项目内 `uni-cmark` 这类 UTS 原生插件？
+2. 如果 Worker 设计上不能调用 UTS 插件，框架推荐如何保证“联网到 CMark 全部在同一子线程”？
+3. Worker 源文件变化未触发其创建方 UTS 插件重编译，是否属于已知缓存问题？有无正式清理或依赖声明方式？
+4. UTS 插件同一次强类型 callback 注册能否多次向 `.uvue` 页面回调？本次为何只有第一次稳定到达？
 5. `RequestTask.abort()`、`Worker.terminate()` 与已经排队的回调之间是否有顺序保证？
 
 ## 参考文档

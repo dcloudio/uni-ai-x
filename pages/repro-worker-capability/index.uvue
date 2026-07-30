@@ -1,0 +1,242 @@
+<template>
+	<view class="page">
+		<text class="title">Worker 能力探针</text>
+		<text class="description">TextDecoder、普通请求、流式请求依次使用独立 Worker。</text>
+
+		<view class="toolbar">
+			<button class="command" size="mini" :disabled="isRunning" @click="runSequence">重跑全部</button>
+			<button class="stop-command" size="mini" :disabled="!isRunning" @click="stopSequence">停止</button>
+		</view>
+
+		<text class="status">{{status}}</text>
+		<scroll-view class="result-list" direction="vertical" :show-scrollbar="true">
+			<text v-for="(item, index) in results" :key="index" class="result-line">{{item}}</text>
+		</scroll-view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import {
+		createWorkerProbe,
+		destroyWorkerProbe,
+		onWorkerProbeError,
+		onWorkerProbeMessage,
+		sendWorkerProbeMessage,
+		WorkerProbeErrorOptions,
+		WorkerProbeMessageOptions,
+		WorkerProbeSendOptions
+	} from '@/uni_modules/uni-ai-worker-probe'
+
+	const NETWORK_TIMEOUT = 12000
+	const LOCAL_TIMEOUT = 3000
+	const NEXT_DELAY = 600
+	const scenarios = ['local', 'request', 'stream']
+
+	const isRunning = ref(false)
+	const status = ref('准备自动测试')
+	const results = ref<string[]>([])
+
+	let activeScenario = ''
+	let scenarioIndex = -1
+	let scenarioStartTime = 0
+	let timeoutId: number | null = null
+	let nextTimerId: number | null = null
+	let runVersion = 0
+
+	function stopWorkerProbe() {
+		destroyWorkerProbe()
+	}
+
+	function startWorkerProbe(scenario: string, callback: (result: UTSJSONObject) => void) {
+		stopWorkerProbe()
+		console.log('[WorkerCapabilityRepro] create-worker', scenario)
+		createWorkerProbe()
+		onWorkerProbeMessage({
+			success: (event: any) => {
+				const wrapper = JSON.parse(JSON.stringify(event)) as UTSJSONObject
+				const result = wrapper.getAny('result') as UTSJSONObject
+				console.log('[WorkerCapabilityRepro] worker-result', scenario, JSON.stringify(result))
+				callback(result)
+			}
+		} as WorkerProbeMessageOptions)
+		onWorkerProbeError({
+			success: (event: any) => {
+				const wrapper = event as UTSJSONObject
+				const result = new UTSJSONObject()
+				result.phase = 'worker-error'
+				result.detail = wrapper.getString('message', 'worker error')
+				callback(result)
+			}
+		} as WorkerProbeErrorOptions)
+		setTimeout(() => {
+			const options = {
+				scenario: scenario
+			} as WorkerProbeSendOptions
+			console.log('[WorkerCapabilityRepro] post-worker', scenario)
+			sendWorkerProbeMessage(options)
+		}, 100)
+	}
+
+	function appendResult(scenario: string, phase: string, detail: string = '') {
+		const elapsed = Date.now() - scenarioStartTime
+		const suffix = detail.length > 0 ? ` | ${detail}` : ''
+		const line = `${scenario} | ${phase} | ${elapsed}ms${suffix}`
+		results.value.push(line)
+		console.log('[WorkerCapabilityRepro]', line)
+	}
+
+	function clearTimers() {
+		if (timeoutId != null) {
+			clearTimeout(timeoutId!)
+			timeoutId = null
+		}
+		if (nextTimerId != null) {
+			clearTimeout(nextTimerId!)
+			nextTimerId = null
+		}
+	}
+
+	function finishScenario(scenario: string, version: number) {
+		if (!isRunning.value || version != runVersion || activeScenario != scenario) return
+		if (timeoutId != null) {
+			clearTimeout(timeoutId!)
+			timeoutId = null
+		}
+		stopWorkerProbe()
+		activeScenario = ''
+		nextTimerId = setTimeout(() => {
+			if (version != runVersion) return
+			startScenario(scenarioIndex + 1, version)
+		}, NEXT_DELAY)
+	}
+
+	function startScenario(index: number, version: number) {
+		if (version != runVersion) return
+		if (index >= scenarios.length) {
+			isRunning.value = false
+			status.value = '全部完成'
+			console.log('[WorkerCapabilityRepro] complete')
+			return
+		}
+
+		scenarioIndex = index
+		activeScenario = scenarios[index]
+		scenarioStartTime = Date.now()
+		status.value = `运行中：${activeScenario}`
+		appendResult(activeScenario, 'host-start')
+
+		const scenario = activeScenario
+		startWorkerProbe(scenario, (result: UTSJSONObject) => {
+			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
+			const phase = result.getString('phase', 'unknown')
+			const detail = JSON.stringify(result)
+			appendResult(scenario, phase, detail)
+
+			if (scenario == 'local' && phase == 'local') {
+				finishScenario(scenario, version)
+				return
+			}
+			if (phase == 'request-success' || phase == 'request-fail' || phase == 'worker-error') {
+				finishScenario(scenario, version)
+			}
+		})
+
+		const waitTime = scenario == 'local' ? LOCAL_TIMEOUT : NETWORK_TIMEOUT
+		timeoutId = setTimeout(() => {
+			if (!isRunning.value || version != runVersion || activeScenario != scenario) return
+			appendResult(scenario, 'host-timeout', `limit=${waitTime}ms`)
+			finishScenario(scenario, version)
+		}, waitTime)
+	}
+
+	function stopSequence() {
+		runVersion++
+		clearTimers()
+		stopWorkerProbe()
+		activeScenario = ''
+		isRunning.value = false
+		status.value = '已停止'
+	}
+
+	function runSequence() {
+		stopSequence()
+		const version = runVersion
+		results.value = []
+		isRunning.value = true
+		status.value = '开始测试'
+		startScenario(0, version)
+	}
+
+	onMounted(() => {
+		nextTimerId = setTimeout(() => {
+			runSequence()
+		}, 800)
+	})
+
+	onUnmounted(() => {
+		stopSequence()
+	})
+</script>
+
+<style>
+.page {
+	flex: 1;
+	padding: 24px 20px;
+	background-color: #f5f6f7;
+}
+
+.title {
+	font-size: 22px;
+	font-weight: 700;
+	color: #1f2328;
+}
+
+.description {
+	margin-top: 8px;
+	font-size: 13px;
+	line-height: 20px;
+	color: #59636e;
+}
+
+.toolbar {
+	margin-top: 16px;
+	flex-direction: row;
+	align-items: center;
+}
+
+.command,
+.stop-command {
+	margin-left: 0;
+	margin-right: 10px;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.stop-command {
+	color: #b42318;
+}
+
+.status {
+	margin-top: 16px;
+	font-size: 15px;
+	font-weight: 600;
+	color: #0969da;
+}
+
+.result-list {
+	flex: 1;
+	margin-top: 12px;
+	padding: 12px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #d0d7de;
+	background-color: #ffffff;
+}
+
+.result-line {
+	margin-bottom: 8px;
+	font-size: 12px;
+	line-height: 18px;
+	color: #1f2328;
+}
+</style>

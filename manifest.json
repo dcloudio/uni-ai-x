@@ -32,6 +32,7 @@
 		"enable": false
 	},
 	"vueVersion": "3",
+	"workers": "workers",
 	"app": {
 		"distribute": {
 			"icons": {

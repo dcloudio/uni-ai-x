@@ -1,0 +1,66 @@
+Android vapor Worker capability result
+======================================
+
+Date: 2026-07-30
+HBuilderX: 5.24.2026072917-dev
+Package: io.dcloud.ai.x
+Device: Xiaomi M2102K1AC
+Android: 14 (API 34)
+Physical display: 1440x3200, density 560
+
+Build command:
+/Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android --project /Users/json/Desktop/code/uni-ai-x --deviceId 192.168.2.5:5555 --playground custom --native-log true --cleanCache true
+
+Build result:
+Started: 14:50:23
+Succeeded: 14:50:52
+ready in 28286ms
+
+Test design:
+- local, request, and stream each use a fresh Worker.
+- Worker request timeout: 8000ms.
+- Page timeout: local 3000ms, request/stream 12000ms.
+- Ordinary GET: https://request.dcloud.net.cn/api/http/method/get
+- Chunked POST: https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3
+
+Page terminal results:
+local | host-start | 0ms
+local | local | 160ms | {"phase":"local","scenario":"local","textDecoder":"Worker"}
+request | host-start | 0ms
+request | request-success | 422ms | {"phase":"request-success","scenario":"request"}
+stream | host-start | 1ms
+stream | request-success | 3481ms | {"phase":"request-success","scenario":"stream","chunkCount":3,"decodedLength":177}
+[WorkerCapabilityRepro] complete
+
+Worker/plugin stream progression:
+request-created
+chunk | chunkCount=1 | decodedLength=59
+chunk | chunkCount=2 | decodedLength=118
+chunk | chunkCount=3 | decodedLength=177
+request-success | chunkCount=3 | decodedLength=177
+
+Assertions:
+PASS: TextDecoder decoded Uint8Array to "Worker".
+PASS: ordinary uni.request returned RequestTask and completed successfully.
+PASS: RequestTask.onChunkReceived fired 3 times.
+PASS: 177 decoded characters were accumulated from ArrayBuffer chunks.
+PASS: page printed complete and no host-timeout.
+PASS: no app AndroidRuntime, FATAL EXCEPTION, or SIGABRT entry was found.
+
+Endpoint precheck:
+ordinary_http=200 total=0.130574s
+
+Screenshot:
+test-results/android-worker-capability.png
+PNG 1440x3200 RGBA, 203213 bytes
+SHA-256 139dce9f575350fb00b814d19c6a91a84c1696a1aa1da4e9e00ba8f3d9e9acd6
+
+Known remaining failure:
+Direct Worker import of @/uni_modules/uni-cmark fails during Android UTS compilation. See test-fixtures/worker-cmark-import-failure.uts.txt and WORKER_CAPABILITY_REPORT.md.
+
+Normal-entry regression after moving the repro route to the end of pages.json:
+- Full clean build succeeded: ready in 27322ms.
+- All 8 pages, including pages/repro-worker-capability/index, compiled.
+- Device top resumed activity: io.dcloud.ai.x/io.dcloud.uniappxv.UniAppActivity.
+- Screenshot inspection confirmed the normal chat page, formula, flowchart, and following text rendered.
+- Error scan found no FATAL EXCEPTION, AndroidRuntime, SIGABRT, Worker path, or CMark load_transformed failure.

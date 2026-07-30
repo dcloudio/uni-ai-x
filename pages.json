@@ -49,6 +49,13 @@
 			{
 				"navigationBarTitleText" : "SVG Image 性能复现"
 			}
+		},
+		{
+			"path" : "pages/repro-worker-capability/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "Worker 能力探针"
+			}
 		}
 	],
 	"globalStyle": {

@@ -1,0 +1,123 @@
+export class MarkdownWorkerTask extends WorkerTaskImpl {
+	private requestTask: RequestTask | null = null
+	private decoder: TextDecoder = new TextDecoder()
+	private chunkCount = 0
+	private decodedLength = 0
+
+	constructor() {
+		super()
+	}
+
+	override entry() {
+		console.log('[WorkerCapabilityRepro] worker-entry')
+		setTimeout(() => {
+			console.log('[WorkerCapabilityRepro] worker-ready-post')
+			const ready = new UTSJSONObject()
+			ready.phase = 'worker-ready'
+			this.postMessage(ready)
+			console.log('[WorkerCapabilityRepro] worker-ready-post-return')
+		}, 50)
+	}
+
+	override onMessage(message: any) {
+		const action = (message as UTSJSONObject).getString('action', '')
+		console.log('[WorkerCapabilityRepro] worker-message', action)
+		if (action == 'cancel') {
+			this.requestTask?.abort()
+			this.requestTask = null
+			return
+		}
+		if (action != 'local' && action != 'request' && action != 'stream') return
+
+		const received = new UTSJSONObject()
+		received.scenario = action
+		received.phase = 'message-received'
+		this.postMessage(received)
+		console.log('[WorkerCapabilityRepro] worker-message-post-return', action)
+
+		console.log('[WorkerCapabilityRepro] worker-decode-start', action)
+		const bytes = new Uint8Array([87, 111, 114, 107, 101, 114])
+		const decoded = this.decoder.decode(bytes.buffer!)
+		console.log('[WorkerCapabilityRepro] worker-decode-return', action, decoded)
+		const localResult = new UTSJSONObject()
+		localResult.scenario = action
+		localResult.phase = 'local'
+		localResult.textDecoder = decoded
+		this.postMessage(localResult)
+		console.log('[WorkerCapabilityRepro] worker-local-post-return', action)
+		if (action == 'local') return
+
+		this.postMessage({
+			scenario: action,
+			phase: 'request-call-start'
+		} as UTSJSONObject)
+		setTimeout(() => {
+			this.postMessage({
+				scenario: action,
+				phase: 'worker-watchdog',
+				chunkCount: this.chunkCount,
+				decodedLength: this.decodedLength
+			} as UTSJSONObject)
+		}, 5000)
+
+		if (action == 'request') {
+			this.requestTask = uni.request({
+				url: 'https://request.dcloud.net.cn/api/http/method/get',
+				method: 'GET',
+				timeout: 8000,
+				success: (_response) => {
+					this.postMessage({ scenario: action, phase: 'request-success' } as UTSJSONObject)
+				},
+				fail: (error) => {
+					this.postMessage({
+						scenario: action,
+						phase: 'request-fail',
+						detail: error.errMsg
+					} as UTSJSONObject)
+				},
+				complete: () => {
+					this.requestTask = null
+				}
+			})
+			this.postMessage({ scenario: action, phase: 'request-created' } as UTSJSONObject)
+			return
+		}
+
+		this.requestTask = uni.request({
+			url: 'https://request.dcloud.net.cn/api/http/contentType/eventStream?limit=3',
+			method: 'POST',
+			enableChunked: true,
+			timeout: 8000,
+			success: (_response) => {
+				this.postMessage({
+					scenario: action,
+					phase: 'request-success',
+					chunkCount: this.chunkCount,
+					decodedLength: this.decodedLength
+				} as UTSJSONObject)
+			},
+			fail: (error) => {
+				this.postMessage({
+					scenario: action,
+					phase: 'request-fail',
+					detail: error.errMsg
+				} as UTSJSONObject)
+			},
+			complete: () => {
+				this.requestTask = null
+			}
+		})
+		this.postMessage({ scenario: action, phase: 'request-created' } as UTSJSONObject)
+		this.requestTask!.onChunkReceived((chunk: RequestTaskOnChunkReceivedListenerResult) => {
+			const chunkText = this.decoder.decode(chunk.data)
+			this.chunkCount += 1
+			this.decodedLength += chunkText.length
+			this.postMessage({
+				scenario: action,
+				phase: 'chunk',
+				chunkCount: this.chunkCount,
+				decodedLength: this.decodedLength
+			} as UTSJSONObject)
+		})
+	}
+}

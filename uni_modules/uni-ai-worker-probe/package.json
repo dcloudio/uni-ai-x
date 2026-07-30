@@ -1,0 +1,17 @@
+{
+  "id": "uni-ai-worker-probe",
+  "displayName": "uni-ai Worker 能力探针",
+  "version": "1.0.0",
+  "description": "用于验证 uni-app x Worker 网络、ArrayBuffer 和 TextDecoder 能力",
+  "keywords": [
+    "worker",
+    "probe"
+  ],
+  "engines": {
+    "HBuilderX": "^5.24",
+    "uni-app-x": "^5.24"
+  },
+  "dcloudext": {
+    "type": "uts"
+  }
+}
