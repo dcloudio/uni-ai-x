@@ -35,6 +35,13 @@
 			{
 				"navigationBarTitleText" : "RichText 性能复现"
 			}
+		},
+		{
+			"path" : "pages/repro-native-view-performance/index",
+			"style" :
+			{
+				"navigationBarTitleText" : "原生 View 性能复现"
+			}
 		}
 	],
 	"globalStyle": {

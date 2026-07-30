@@ -54,9 +54,17 @@ HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现复测：
 
 ## 2. 原生布局和 View 追加仍产生主线程长任务
 
+最小复现页：[`pages/repro-native-view-performance/index.uvue`](pages/repro-native-view-performance/index.uvue)，路由为 `/pages/repro-native-view-performance/index`。页面自动对照“每 100ms 追加普通文本 View”和“每 100ms 追加一个全新的原生 Rich Text”。已有节点不会更新，且不经过联网和 Markdown 解析。
+
 ### 现象
 
 真实 Markdown 流式渲染期间仍会出现 30~90ms 的卡顿尖峰。
+
+复现步骤：
+
+1. 将最小复现路由临时放到 `pages.json` 第一项，使用 Android 蒸汽模式运行。
+2. 等待两个 5 秒场景自动完成，或点击“重跑对照”。
+3. 对比页面 FPS 和慢帧数，并在日志中检索 `[NativeViewPerfRepro]`、`executeRenderTasks`、`renderNativeLayoutTasks` 和 `appendViewTasks`。
 
 ### 证据
 
@@ -70,9 +78,25 @@ HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现复测：
 
 同一阶段 CMark 共调用 62 次，全部位于后台线程，累计 41ms、最大 7ms。
 
+HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现连续三轮结果：
+
+| 自动对照场景（各 5 秒） | FPS（第 1 / 2 / 3 轮） | 最大帧间隔 | `>32ms` 慢帧 |
+| --- | ---: | ---: | ---: |
+| 追加普通文本 View | 115.1 / 113.8 / 115.7 | 24.9ms / 24.9ms / 16.6ms | 0 / 0 / 0 |
+| 追加全新原生 Rich Text | 88.7 / 85.3 / 89.1 | 41.5ms / 41.5ms / 49.8ms | 7 / 17 / 6 |
+
+第 3 轮使用页面新增的 `plain-start`、`native-start` 日志严格划分阶段，排除了切换阶段清空列表的任务：
+
+| 第 3 轮原生任务（各追加 49 次） | 普通文本 View | 原生 Rich Text |
+| --- | ---: | ---: |
+| `appendViewTasks` 最大值 | 2.15ms | 37.89ms |
+| `renderNativeLayoutTasks` 最大值 | 5.19ms | 5.11ms |
+
+Rich Text 阶段的 `appendViewTasks` 最大值为 37.89ms，与真实 Markdown 链路的 40.65ms 接近，说明原生 Rich Text View 的创建与追加可以独立触发主线程长任务。隔离页的布局最大值与普通 View 对照接近，没有复现真实链路的 69.11ms；该布局尖峰仍需在真实页面中由框架 Trace 继续拆分，不能由本最小复现单独归因。
+
 ### 如何得出结论
 
-CMark 没有占用 UI 主线程，耗时也远低于布局和追加任务；卡顿时间点与原生渲染队列中的长任务一致。因此当前主要瓶颈是框架视图层，而不是 Markdown 解析。
+CMark 没有占用 UI 主线程，耗时也远低于布局和追加任务；卡顿时间点与原生渲染队列中的长任务一致。最小复现进一步排除了联网、Markdown 解析和已有 nodes 更新，并稳定重现约 40ms 的 Rich Text View 追加。因此追加瓶颈位于框架视图层；真实链路中的布局尖峰还需框架内部 Trace 最终确认。
 
 ### 框架侧建议
 
