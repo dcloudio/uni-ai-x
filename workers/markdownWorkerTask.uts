@@ -39,6 +39,12 @@ type ProbeRenderDescription = {
 	nodes: ProbeRichNode[]
 }
 
+function copyBytesToArrayBuffer(bytes : Uint8Array) : ArrayBuffer {
+	const buffer = new ArrayBuffer(bytes.length)
+	new Uint8Array(buffer).set(bytes)
+	return buffer
+}
+
 export class MarkdownWorkerTask extends WorkerTaskImpl {
 	private requestTask: RequestTask | null = null
 	private decoder: TextDecoder = new TextDecoder()
@@ -111,7 +117,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 
 		console.log('[WorkerCapabilityRepro] worker-decode-start', action)
 		const bytes = new Uint8Array([87, 111, 114, 107, 101, 114])
-		const decoded = this.decoder.decode(bytes.buffer!)
+		const decoded = this.decoder.decode(copyBytesToArrayBuffer(bytes))
 		console.log('[WorkerCapabilityRepro] worker-decode-return', action, decoded)
 		const localResult = new UTSJSONObject()
 		localResult.scenario = action
@@ -186,7 +192,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 				url: 'https://request.dcloud.net.cn/api/http/method/get',
 				method: 'GET',
 				timeout: 8000,
-				success: (_response) => {
+				success: (_response : RequestSuccess<any>) => {
 					this.postMessage({ scenario: action, phase: 'request-success' } as UTSJSONObject)
 				},
 				fail: (error) => {
@@ -209,7 +215,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			method: 'POST',
 			enableChunked: true,
 			timeout: 8000,
-			success: (_response) => {
+			success: (_response : RequestSuccess<any>) => {
 				this.postMessage({
 					scenario: action,
 					phase: 'request-success',
@@ -260,7 +266,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		)
 		let offset = 0
 		fragmentSizes.forEach((size : number) => {
-			streamDecoder.push(source.slice(offset, offset + size).buffer! as ArrayBuffer)
+			streamDecoder.push(copyBytesToArrayBuffer(source.slice(offset, offset + size)))
 			offset += size
 		})
 		streamDecoder.finish()
@@ -270,7 +276,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			(data : string) => { finishEvents.push(data) },
 			() => {}
 		)
-		finishDecoder.push(new Uint8Array([100, 97, 116, 97, 58, 32, 116, 97, 105, 108]).buffer! as ArrayBuffer)
+		finishDecoder.push(copyBytesToArrayBuffer(new Uint8Array([100, 97, 116, 97, 58, 32, 116, 97, 105, 108])))
 		finishDecoder.finish()
 
 		const multilineEvents : string[] = []
@@ -278,10 +284,10 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 			(data : string) => { multilineEvents.push(data) },
 			() => {}
 		)
-		multilineDecoder.push(new Uint8Array([
+		multilineDecoder.push(copyBytesToArrayBuffer(new Uint8Array([
 			100, 97, 116, 97, 58, 32, 102, 105, 114, 115, 116, 10,
 			100, 97, 116, 97, 58, 32, 115, 101, 99, 111, 110, 100, 10, 10
-		]).buffer! as ArrayBuffer)
+		])))
 		multilineDecoder.finish()
 
 		const firstExpected = '{"content":"第一条"}'
@@ -295,7 +301,7 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		this.postMessage({
 			scenario: action,
 			phase: passed ? 'sse-fragments-success' : 'sse-fragments-fail',
-			fragmentSizes: fragmentSizes.join(','),
+			fragmentSizes: '4,8,3,17,3,10,3,18,11,15,1',
 			sourceBytes: source.length,
 			eventCount: events.length,
 			firstEvent: events.length > 0 ? events[0] : '',

@@ -38,7 +38,7 @@ export function onWorkerProbeMessage(options: WorkerProbeMessageOptions): void {
 			(currentScenario == 'render-descriptions' && phase.indexOf('render-descriptions') == 0) ||
 			(currentScenario == 'cancel-restart' && phase.indexOf('cancel-restart') == 0) ||
 			(currentScenario == 'real-ai' && phase.indexOf('real-ai') == 0)) {
-			latestSnapshotJson = JSON.stringify(result)
+			latestSnapshotJson = JSON.stringify(result) ?? ''
 		}
 		const isTerminal = currentScenario == 'local'
 			? phase == 'local'
