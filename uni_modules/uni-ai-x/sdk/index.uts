@@ -258,6 +258,7 @@ class UniAi {
 			state: 0,
 				markdownElList: [] as MarkdownElItem[],
 				markdownRenderList: [] as MarkdownRenderDescription[],
+				markdownHtml: '',
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)
@@ -327,6 +328,7 @@ class UniAi {
 		msg.thinkContent = null
 			msg.markdownElList = []
 			msg.markdownRenderList = []
+			msg.markdownHtml = ''
 		this.updateMsg2Storage(msg)
 	}
 	
@@ -343,6 +345,14 @@ class UniAi {
 					if (this.currentChat!.state == 'stop') return
 					aiMsgItem.markdownElList = markdownElList
 					aiMsgItem.markdownRenderList = renderList
+					aiMsgItem.markdownHtml = ''
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onMarkdownHtml: (html: string) => {
+				if (this.currentChat!.state == 'stop') return
+				aiMsgItem.markdownHtml = html
+				aiMsgItem.markdownElList = []
+				aiMsgItem.markdownRenderList = []
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {

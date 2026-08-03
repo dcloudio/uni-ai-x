@@ -161,6 +161,9 @@
 				}
 				evaluateCompletion()
 			},
+			onMarkdownHtml: (html: string) => {
+				appendResult('request-B', 'render-html=' + html.length.toString())
+			},
 			onThinkContent: (_thinkContent: string) => {},
 			onMsgBody: (msgBody: string) => {
 				status.value = '请求 B：已接收 ' + msgBody.length.toString() + ' 字符'
@@ -186,6 +189,9 @@
 		appendResult('request-A', 'start')
 		const callbacks: RequestAiRunnerCallbacks = {
 				onMarkdownElList: (_tokenList: MarkdownToken[], _renderList: MarkdownRenderDescription[]) => {
+				if (cancelIssued) lateCallbacksA += 1
+			},
+			onMarkdownHtml: (_html: string) => {
 				if (cancelIssued) lateCallbacksA += 1
 			},
 			onThinkContent: (_thinkContent: string) => {

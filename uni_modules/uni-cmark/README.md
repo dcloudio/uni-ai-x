@@ -70,6 +70,7 @@ if (isMd2htmlAvailable()) {
 原生库的可复现构建入口位于
 `utssdk/app-android/native/build-android.sh`，固定使用 cmark-gfm `0.29.0.gfm.13`。
 新增或更新 `libcmarkhtml.so` 后必须重新制作自定义基座；运行时热同步无法更新 APK 中的原生库。
+项目 Worker 会在旧基座中自动回退到 `md2json` 结构化渲染。
 
 
 ### 参数

@@ -1,5 +1,5 @@
 // #ifdef APP-ANDROID
-import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 import { MarkdownToken, ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
 import { SSEStreamDecoder } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
@@ -161,13 +161,23 @@ export class MarkdownWorkerTask extends WorkerTaskImpl {
 		if (action == 'cmark') {
 			// #ifdef APP-ANDROID
 			const parseResult = md2json('# Worker CMark\n\n- first\n- second') as ParseMdRes
+			const htmlAvailable: boolean = isMd2htmlAvailable()
+			const html = htmlAvailable == true ? md2html('# Worker CMark\n\n- first\n- second') : ''
 			const tokenCount = parseResult.data.length
 			const firstType = tokenCount > 0 ? parseResult.data[0].type ?? '' : ''
+			let htmlValid = true
+			if (htmlAvailable == true) {
+				htmlValid = html.indexOf('<h1>Worker CMark</h1>') != -1 &&
+					html.indexOf('<ul>') != -1 && html.indexOf('<li>first</li>') != -1
+			}
 			this.postMessage({
 				scenario: action,
-				phase: parseResult.errorMsg.length == 0 ? 'cmark-success' : 'cmark-fail',
+				phase: parseResult.errorMsg.length == 0 && htmlValid ? 'cmark-success' : 'cmark-fail',
 				tokenCount: tokenCount,
 				firstType: firstType,
+				htmlAvailable: htmlAvailable,
+				html: html,
+				htmlLength: html.length,
 				detail: parseResult.errorMsg
 			} as UTSJSONObject)
 			return

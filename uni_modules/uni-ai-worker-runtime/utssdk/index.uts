@@ -2,6 +2,7 @@ import { AiWorkerStartOptions } from './interface.uts'
 
 export * from './interface.uts'
 
+const WORKER_RENDER_PROTOCOL_VERSION = 2
 let worker: Worker | null = null
 let workerReady = false
 let pendingStart: AiWorkerStartOptions | null = null
@@ -13,6 +14,7 @@ function postStart(options: AiWorkerStartOptions): void {
 	if (worker == null || !workerReady) return
 	const message = new UTSJSONObject()
 	message.action = 'start'
+	message.renderProtocolVersion = WORKER_RENDER_PROTOCOL_VERSION
 	message.requestVersion = options.requestVersion
 	message.provider = options.provider
 	message.model = options.model

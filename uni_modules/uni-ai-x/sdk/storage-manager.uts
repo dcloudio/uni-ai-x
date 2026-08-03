@@ -17,6 +17,7 @@ function migrateLegacyMessage(rawMessage: string, message: MsgItem): MsgItem {
 	if (rawMessage.includes('"datasList"')) {
 		message.markdownElList = []
 	}
+	if (message.markdownHtml == null) message.markdownHtml = ''
 	return message
 }
 

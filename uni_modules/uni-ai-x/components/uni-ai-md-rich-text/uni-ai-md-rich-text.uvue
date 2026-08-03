@@ -9,15 +9,17 @@
 	import { markdownTokensToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 
 	type UniAiMdRichTextProps = {
-		markdownElList: MarkdownToken[]
+		markdownElList?: MarkdownToken[]
 		richNodes?: UTSJSONObject[]
+		html?: string
 	}
 
 	const props = defineProps<UniAiMdRichTextProps>()
 
-	const richNodes = computed<UTSJSONObject[]>(() => {
+	const richNodes = computed<string | UTSJSONObject[]>(() => {
+		if (props.html != null) return props.html!
 		if (props.richNodes != null) return props.richNodes!
-		return markdownTokensToRichTextNodes(props.markdownElList)
+		return markdownTokensToRichTextNodes(props.markdownElList ?? [] as MarkdownToken[])
 	})
 
 	const richTextStyle = computed<string>(() => {

@@ -87,6 +87,7 @@ export type MsgItem = {
 	chat_id: string,
 	markdownElList: MarkdownElItem[]
 	markdownRenderList?: MarkdownRenderDescription[]
+	markdownHtml?: string
 	error_msg?: string
 	rendered: boolean
 }

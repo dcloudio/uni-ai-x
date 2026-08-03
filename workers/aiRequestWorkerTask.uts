@@ -1,5 +1,5 @@
 // #ifdef APP-ANDROID
-import { md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
@@ -157,6 +157,48 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		const processedMarkdown = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdown == null) return
 		// #ifdef APP-ANDROID
+		let useHtmlRendering: boolean = false
+		if (!this.requiresStructuredRendering(processedMarkdown)) {
+			useHtmlRendering = isMd2htmlAvailable()
+		}
+		if (useHtmlRendering == true) {
+			let html = ''
+			try {
+				html = md2html(processedMarkdown)
+			} catch (error) {
+				this.fail('markdown_html_failed', error.message as string)
+				return
+			}
+			this.snapshotVersion += 1
+			const snapshot = {
+				requestVersion: this.requestVersion,
+				snapshotVersion: this.snapshotVersion,
+				phase: isDone ? 'complete' : 'snapshot',
+				msgBody: this.content,
+				thinkContent: this.reasoningContent.trim(),
+				renderMode: 'html',
+				html: html,
+				tokensJson: '[]',
+				renderListJson: '[]',
+				tokenCount: 0,
+				renderDescriptionCount: 0,
+				richNodeCount: 0,
+				htmlLength: html.length,
+				isDone: isDone,
+				eventCount: this.eventCount,
+				networkChunkCount: this.networkChunkCount,
+				receivedBytes: this.receivedBytes,
+				terminalSource: this.terminalSource,
+				elapsed: Date.now() - this.startedAt,
+				errCode: '',
+				errMsg: ''
+			} as UTSJSONObject
+			this.postMessage({
+				phase: 'snapshot',
+				snapshotJson: JSON.stringify(snapshot)
+			} as UTSJSONObject)
+			return
+		}
 		const parseResult = md2json(processedMarkdown) as ParseMdRes
 		if (parseResult.errorMsg.length > 0) {
 			this.fail('markdown_parse_failed', parseResult.errorMsg)
@@ -172,11 +214,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			phase: isDone ? 'complete' : 'snapshot',
 			msgBody: this.content,
 			thinkContent: this.reasoningContent.trim(),
+			renderMode: 'structured',
+			html: '',
 			tokensJson: JSON.stringify(parseResult.data),
 			renderListJson: JSON.stringify(renderList),
 			tokenCount: parseResult.data.length,
 			renderDescriptionCount: renderList.length,
 			richNodeCount: richNodeCount,
+			htmlLength: 0,
 			isDone: isDone,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -197,8 +242,33 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
+	private requiresStructuredRendering(markdown: string): boolean {
+		const lines = markdown.split('\n')
+		for (let index = 0; index < lines.length; index++) {
+			const line = lines[index]
+			if (/^\s{0,3}(```|~~~)/.test(line)) return true
+			if (/^( {4}|\t)\S/.test(line)) return true
+			if (/^\s*(?:[-+*]|\d+[.)])\s+\[[ xX]\]\s/.test(line)) return true
+			if (index > 0 && line.indexOf('|') != -1 && this.isTableDelimiter(line) &&
+				lines[index - 1].indexOf('|') != -1) return true
+		}
+		return false
+	}
+
+	private isTableDelimiter(line: string): boolean {
+		let normalized = line.trim()
+		if (normalized.startsWith('|')) normalized = normalized.slice(1)
+		if (normalized.endsWith('|')) normalized = normalized.slice(0, normalized.length - 1)
+		const cells = normalized.split('|')
+		if (cells.length < 2) return false
+		for (let index = 0; index < cells.length; index++) {
+			if (!/^\s*:?-{3,}:?\s*$/.test(cells[index])) return false
+		}
+		return true
+	}
+
 	private fail(code: string, message: string) {
-		if (this.finished && code != 'markdown_parse_failed') return
+		if (this.finished && code != 'markdown_parse_failed' && code != 'markdown_html_failed') return
 		this.finished = true
 		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
 		this.parseTimer = 0
@@ -211,11 +281,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			phase: 'error',
 			msgBody: this.content,
 			thinkContent: this.reasoningContent.trim(),
+			renderMode: '',
+			html: '',
 			tokensJson: '[]',
 			renderListJson: '[]',
 			tokenCount: 0,
 			renderDescriptionCount: 0,
 			richNodeCount: 0,
+			htmlLength: 0,
 			isDone: false,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,

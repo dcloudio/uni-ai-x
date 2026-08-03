@@ -18,6 +18,7 @@ import {
 type BeforeUpdateMdElList = (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => void;
 export type RequestAiRunnerCallbacks = {
 	onMarkdownElList: (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[]) => void,
+	onMarkdownHtml: (html: string) => void,
 	onThinkContent: (thinkContent: string) => void,
 	onMsgBody: (msgBody: string) => void,
 	onState: (state: string) => void,
@@ -300,17 +301,23 @@ class RequestAiRunner {
 		this.thinkContent = snapshot.getString('thinkContent', this.thinkContent)
 		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
-		let tokenList: MarkdownToken[]
-		let renderList: MarkdownRenderDescription[]
-		try {
-			tokenList = JSON.parseArray<MarkdownToken>(snapshot.getString('tokensJson', '[]')) as MarkdownToken[]
-			renderList = JSON.parseArray<MarkdownRenderDescription>(snapshot.getString('renderListJson', '[]')) as MarkdownRenderDescription[]
-		} catch (_error) {
-			this.handleWorkerSnapshotError('worker_render_data_invalid', 'Worker Markdown 渲染数据解析失败')
-			return
-		}
-		if (tokenList.length > 0 && renderList.length == 0) {
-			this.handleWorkerSnapshotError('worker_render_descriptions_missing', 'Worker 未返回 Markdown 渲染描述')
+		const renderMode = snapshot.getString('renderMode', 'structured')
+		let tokenList = [] as MarkdownToken[]
+		let renderList = [] as MarkdownRenderDescription[]
+		if (renderMode == 'structured') {
+			try {
+				tokenList = JSON.parseArray<MarkdownToken>(snapshot.getString('tokensJson', '[]')) as MarkdownToken[]
+				renderList = JSON.parseArray<MarkdownRenderDescription>(snapshot.getString('renderListJson', '[]')) as MarkdownRenderDescription[]
+			} catch (_error) {
+				this.handleWorkerSnapshotError('worker_render_data_invalid', 'Worker Markdown 渲染数据解析失败')
+				return
+			}
+			if (tokenList.length > 0 && renderList.length == 0) {
+				this.handleWorkerSnapshotError('worker_render_descriptions_missing', 'Worker 未返回 Markdown 渲染描述')
+				return
+			}
+		} else if (renderMode != 'html') {
+			this.handleWorkerSnapshotError('worker_render_mode_invalid', 'Worker Markdown 渲染模式无效')
 			return
 		}
 		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
@@ -324,10 +331,21 @@ class RequestAiRunner {
 				tokenCount: snapshot.getNumber('tokenCount', 0),
 				renderDescriptionCount: snapshot.getNumber('renderDescriptionCount', 0),
 				richNodeCount: snapshot.getNumber('richNodeCount', 0),
+				renderMode: renderMode,
+				htmlLength: snapshot.getNumber('htmlLength', 0),
 				terminalSource: snapshot.getString('terminalSource', ''),
 				elapsed: snapshot.getNumber('elapsed', 0)
 			} as UTSJSONObject))
 			this.stopWorkerRuntime(false)
+		}
+		if (renderMode == 'html') {
+			this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
+			if (isDone) {
+				this.currentChatState = 'completed'
+				this.callbacks?.onState('completed')
+				this.callbacks?.onRendered(true)
+			}
+			return
 		}
 		this.parseMarkdown?.applyParsedTokens(tokenList, renderList, isDone)
 	}

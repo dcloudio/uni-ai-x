@@ -12,7 +12,8 @@
 					<text class="msg-root-think-content-text" flatten>{{msg.thinkContent}}</text>
 				</view>
 			</view>
-			<text v-if="showPlainText" class="msg-root-plain-text" flatten>{{msg.body}}</text>
+			<uni-ai-md-rich-text v-if="hasMarkdownHtml" :html="msg.markdownHtml!" />
+			<text v-else-if="showPlainText" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 				<uni-ai-md-renderer v-else :markdown-el-list="msg.markdownElList"
 					:markdown-render-list="msg.markdownRenderList" />
 			<template v-if="isLastAiMsg && msg.body == ''">
@@ -28,6 +29,7 @@
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
+	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
 	import uniAiMdRenderer from '@/uni_modules/uni-ai-x/components/uni-ai-md-renderer/uni-ai-md-renderer.uvue'
 
 	type UniAiXMsgProps = {
@@ -49,8 +51,12 @@
 		return uniAi.lastAiMsg?._id == msg.value._id
 	})
 
+	const hasMarkdownHtml = computed<boolean>(() => {
+		return (msg.value.markdownHtml ?? '').length > 0
+	})
+
 	const showPlainText = computed<boolean>(() => {
-		return msg.value.body.length > 0 && msg.value.markdownElList.length == 0
+		return msg.value.body.length > 0 && msg.value.markdownElList.length == 0 && !hasMarkdownHtml.value
 	})
 
 	const changeThinkContent = () => {
