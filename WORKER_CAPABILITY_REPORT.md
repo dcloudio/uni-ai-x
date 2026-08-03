@@ -154,7 +154,9 @@ Android 真机向真实 event-stream 地址发起 POST，Worker 核心耗时 342
 
 随后运行保留的八场景自动探针：SSE 11 段/93 字节边界返回 2 个事件且无残留；流核心为 3 块/177 字节/3 事件；CMark 为 2 token；完整链路为 6 块/354 字节/6 事件/6 快照/6 token/6 描述，页面观察版本 `1..6` 严格递增；取消重启完整观察 `A:1,B:1,B:2,B:3`，A 迟到数据和终态均为 0。页面最终打印 `complete`，失败、超时、崩溃和类型异常扫描为空。
 
-完整命令、设备、生成文件路径、逐项耗时和断言保存在 [`test-results/android-worker-ios-compat-regression-results.txt`](test-results/android-worker-ios-compat-regression-results.txt)。该结果只证明提交 `69528b3` 未破坏 Android；iOS 仍以 Xcode 26.3 云端编译结果为最终判据。
+完整命令、设备、生成文件路径、逐项耗时和断言保存在 [`test-results/android-worker-ios-compat-regression-results.txt`](test-results/android-worker-ios-compat-regression-results.txt)。该轮结果只证明提交 `69528b3` 未破坏 Android。
+
+随后提交 `09934d3` 和 `54ac333` 继续处理 SSE 索引、`Uint8Array.buffer` 两端可空性、`uni.request` 泛型、`Array<NSNumber>.join` 与 `JSON.stringify` 可空返回。最终 Android 6 页 clean compile 为 32099ms，八场景真机回归全部通过；Xcode 26.3 云端任务于 2026-07-31 20:00:21 打包成功，生成 26M 的 `iOS_debug_vapor.ipa`。自定义基座 2.1.5 已安装并同步到 iPhone，但自动启动被设备锁屏拦截，因此只确认 iOS 云编译、打包、安装和同步通过，不宣称 iOS 运行时场景已通过。完整数据见 [`test-results/ios-worker-cloud-build-and-android-regression-results.txt`](test-results/ios-worker-cloud-build-and-android-regression-results.txt)。
 
 ## 能力矩阵
 
