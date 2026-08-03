@@ -4,7 +4,7 @@
 
 - 当前分支：`dev-vapor-richTextNative`
 - 首次整理：2026-07-29
-- 最近更新：2026-07-30
+- 最近更新：2026-07-31
 - 维护规则：每解决一项，必须同步更新状态、实现说明、验证结果和 Git 提交号。
 
 ## 状态说明
@@ -188,13 +188,17 @@ T13 已完成：
 
 | 编号 | 问题 | 状态 | 优先级 | 当前证据 |
 | --- | --- | --- | --- | --- |
-| F01 | RichText `nodes` 更新触发全量位图快照和大规模拷贝 | 待上报 | P0 | 已补最小复现与汇总脚本；4 轮精确对照 fixed 113.5~114.7 FPS、updating 52.2~60.1 FPS；每轮更新阶段 196 次拷贝、98 次快照，完整日志轮次各拷贝 4.068 GiB |
-| F02 | 原生布局和 View 追加产生主线程长任务 | 待上报 | P0 | 已补最小复现；RichText 追加最大 37.89ms，普通 View 最大 2.15ms；布局尖峰仅真实链路复现 |
-| F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 最小复现动态挂载 append 最大 50.82ms；T02 真实公式渲染又记录 EGL_BAD_ACCESS、SkiaContext/FixedTilePool 和图片解码警告，待框架 Trace |
+| F01 | RichText `nodes` 更新触发全量位图快照和大规模拷贝 | 独立工程已验证，待上报 | P0 | 标准基座独立复现：fixed 115.1 FPS、updating 54.4 FPS；更新阶段 196 次拷贝、98 次快照、4.068 GiB；工程提交 `89a5cfb` |
+| F02 | 原生布局和 View 追加产生主线程长任务 | 独立工程已验证，待上报 | P0 | 标准基座独立复现：普通 View/RichText 为 114.5/87.2 FPS，RichText `appendViewTasks` 最大 39.48ms；工程提交 `3e44f36` |
+| F03 | SVG Image 动态挂载产生主线程长任务；内部解码/纹理上传待 Trace | 独立工程已验证，待上报 | P1 | 标准基座独立复现：opacity/dynamic 为 120.7/99.5 FPS，dynamic `appendViewTasks` 最大 120.11ms；工程提交 `55cddbe` |
 | F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 独立工程已验证，待上报 | P1 | 全新 uni-app x Vapor bytecode 工程已在 Android 14 标准基座复现；工程、Issue 文案、日志、截图和结果已提交为 `0b657a9` |
 | F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 已由应用层解决，不上报 | - | 普通请求 388ms；流式请求 3 块/177 字符/3476ms；CMark 2 token/143ms |
 
-F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPORT.md`](RICH_TEXT_PERFORMANCE_REPORT.md)。
+F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPORT.md`](RICH_TEXT_PERFORMANCE_REPORT.md)。三项均已进一步迁移到全新 HBuilderX CLI 工程，并使用 Android 14 标准调试基座完成独立验证：
+
+- F01：`~/Desktop/code/bug-project/vapor-richtext-nodes-update-snapshot-copy-bug`，提交 `89a5cfb`。页面和汇总脚本与主项目来源提交 `79a2c9ddddf6a30a77ad9411859080d464355d38` 完全一致。49 次 nodes 更新产生 196 次 tile 拷贝、98 次快照、4,368,072,072 B（4.068 GiB）拷贝量；fixed 对照两项均为 0。工程内保留 `README.md`、`ISSUE.md`、`TESTING.md`、脚本原始输出、原生日志、HBuilderX 日志、截图和结果。
+- F02：`~/Desktop/code/bug-project/vapor-native-richtext-append-jank-bug`，提交 `3e44f36`。普通 View 对照为 114.5 FPS、`appendViewTasks` 最大 8.94ms；新原生 RichText 为 87.2 FPS、最大帧间隔 157.7ms、`appendViewTasks` 最大 39.48ms。工程内保留 Issue 文案、测试方法、原生日志、HBuilderX 日志、截图和结果。
+- F03：`~/Desktop/code/bug-project/vapor-svg-image-dynamic-mount-jank-bug`，提交 `55cddbe`。预加载 Image 切换 opacity 为 120.7 FPS、阶段内无 `appendViewTasks`；同源 Image 动态创建/销毁为 99.5 FPS、24 个 `>32ms` 慢帧，`appendViewTasks` 最大 120.11ms，25 次挂载对应 25 次 `load`。该结果证明动态挂载和 Image 加载生命周期存在额外主线程成本，但不能单凭 `load` 证明重复解码或 GPU 纹理上传；内部阶段仍需框架 Trace。
 
 F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CLIPPING_REPORT.md`](RICH_TEXT_RADIUS_CLIPPING_REPORT.md)。结论不是“所有 RichText 都不能圆角”，而是 Android 蒸汽模式下 `flatten` 父 View 与原生 RichText 的组合不能正确执行父级圆角裁剪。RichText 节点 CSS 只能处理内容自身的首尾边缘，不能替代宽内容外层 ScrollView 的视口裁剪。
 
@@ -231,13 +235,16 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 按改动大小和风险从低到高：
 
-1. 在 HBuilderX 中提交 F04 独立工程和圆角裁剪报告，并记录 issue/负责人。
-2. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人；补充 T02 真实公式路径的 EGL/图片解码日志。
+1. 在 HBuilderX 中优先提交 F01、F02 两个 P0 独立工程，并记录 issue/负责人。
+2. 提交 F03、F04 两个 P1 独立工程；F03 请求框架拆分 Image 挂载、解码和纹理上传耗时，F04 请求确认 flatten 父容器圆角裁剪能力。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-31 | F01 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现 nodes 更新产生 196 次拷贝、98 次快照和 4.068 GiB 拷贝量，保留自动汇总脚本、日志和截图 | 独立工程 `89a5cfb`；本提交更新检查单 |
+| 2026-07-31 | F02 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现原生 RichText 追加阶段 39.48ms `appendViewTasks` 和 157.7ms 最大帧间隔 | 独立工程 `3e44f36`；本提交更新检查单 |
+| 2026-07-31 | F03 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现同源 SVG Image 动态挂载 120.11ms `appendViewTasks`，并明确解码/纹理上传仍需框架 Trace | 独立工程 `55cddbe`；本提交更新检查单 |
 | 2026-07-30 | F04 | 使用 HBuilderX CLI 创建独立 Vapor bytecode 工程；Android 14 标准基座编译、启动并复现 flatten 父容器圆角裁剪失效，工程内保留 Issue 文案、日志、截图和结果 | 独立工程 `0b657a9`；本提交更新检查单 |
 | 2026-07-30 | T05 | Android 14 真机完成人工五场景验收：宽表和代码横滑不打开侧栏、垂直滚动不误触、左缘短滑打开及向左滑动关闭均通过 | 本提交（`test: 记录侧栏手势真机验收`） |
 | 2026-07-30 | T02 | 生产 Worker 输出稳定 key、七类块描述及 RichText/引用节点；七牛真机通过数据断言和正式渲染器可视化回归 | 本提交（`feat: 将渲染描述构建迁入 Worker`） |
