@@ -191,12 +191,14 @@ T13 已完成：
 | F01 | RichText `nodes` 更新触发全量位图快照和大规模拷贝 | 待上报 | P0 | 已补最小复现与汇总脚本；4 轮精确对照 fixed 113.5~114.7 FPS、updating 52.2~60.1 FPS；每轮更新阶段 196 次拷贝、98 次快照，完整日志轮次各拷贝 4.068 GiB |
 | F02 | 原生布局和 View 追加产生主线程长任务 | 待上报 | P0 | 已补最小复现；RichText 追加最大 37.89ms，普通 View 最大 2.15ms；布局尖峰仅真实链路复现 |
 | F03 | SVG 大图首次显示/回屏可能重复解码和上传纹理 | 待上报 | P1 | 最小复现动态挂载 append 最大 50.82ms；T02 真实公式渲染又记录 EGL_BAD_ACCESS、SkiaContext/FixedTilePool 和图片解码警告，待框架 Trace |
-| F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 待上报 | P1 | Android 配对最小复现：2 个非 flatten 对照均正确，3 个 flatten 用例均失败；原始 1440x3200 截图、SHA-256、命令与结果已归档 |
+| F04 | flatten 容器中的原生 RichText 不服从父容器圆角裁剪 | 独立工程已验证，待上报 | P1 | 全新 uni-app x Vapor bytecode 工程已在 Android 14 标准基座复现；工程、Issue 文案、日志、截图和结果已提交为 `0b657a9` |
 | F05 | 蒸汽模式真实 Worker 的网络与插件能力边界 | 已由应用层解决，不上报 | - | 普通请求 388ms；流式请求 3 块/177 字符/3476ms；CMark 2 token/143ms |
 
 F01-F03 的完整数据、对照实验和建议见 [`RICH_TEXT_PERFORMANCE_REPORT.md`](RICH_TEXT_PERFORMANCE_REPORT.md)。
 
 F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CLIPPING_REPORT.md`](RICH_TEXT_RADIUS_CLIPPING_REPORT.md)。结论不是“所有 RichText 都不能圆角”，而是 Android 蒸汽模式下 `flatten` 父 View 与原生 RichText 的组合不能正确执行父级圆角裁剪。RichText 节点 CSS 只能处理内容自身的首尾边缘，不能替代宽内容外层 ScrollView 的视口裁剪。
+
+F04 已从主项目迁移到独立工程 `~/Desktop/code/bug-project/vapor-richtext-flatten-clip-bug`。该工程由 HBuilderX CLI 创建，仅含内置 `view`、`scroll-view` 和 `rich-text`，不含 `uni_modules`、网络或业务代码；HBuilderX 5.24 在 Android 14 M2102K1AC 标准基座明确以 Vapor bytecode 编译并启动。真机截图中非 `flatten` 对照组裁剪正确，`flatten` 实验组仍以直角越过父级圆角，独立工程提交为 `0b657a9`。当前只差在 HBuilderX 中正式提交 Issue 并回填编号/负责人。
 
 F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark 线程证据、截图和导入对照见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。网络、解码和 CMark 均已确认；“请求不返回”和“CMark 不能导入”都已证明是应用配置/路径问题，不提交框架。
 
@@ -229,13 +231,14 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 按改动大小和风险从低到高：
 
-1. 将 F04 最小复现和圆角裁剪报告正式提交框架，并记录 issue/负责人。
+1. 在 HBuilderX 中提交 F04 独立工程和圆角裁剪报告，并记录 issue/负责人。
 2. 将 F01-F03 连同性能报告正式提交框架，并记录对应 issue/负责人；补充 T02 真实公式路径的 EGL/图片解码日志。
 
 ## 更新记录
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-30 | F04 | 使用 HBuilderX CLI 创建独立 Vapor bytecode 工程；Android 14 标准基座编译、启动并复现 flatten 父容器圆角裁剪失效，工程内保留 Issue 文案、日志、截图和结果 | 独立工程 `0b657a9`；本提交更新检查单 |
 | 2026-07-30 | T05 | Android 14 真机完成人工五场景验收：宽表和代码横滑不打开侧栏、垂直滚动不误触、左缘短滑打开及向左滑动关闭均通过 | 本提交（`test: 记录侧栏手势真机验收`） |
 | 2026-07-30 | T02 | 生产 Worker 输出稳定 key、七类块描述及 RichText/引用节点；七牛真机通过数据断言和正式渲染器可视化回归 | 本提交（`feat: 将渲染描述构建迁入 Worker`） |
 | 2026-07-30 | T02 | Android Worker 确定性验证七类描述、连续 RichText 合并、稳定 key、嵌套节点和 `attrs.style` 两批 JSON 快照 | 本提交（`test: 验证 Worker 渲染描述能力`） |
