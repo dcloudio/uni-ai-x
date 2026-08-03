@@ -48,6 +48,29 @@ const jsonList = parseMdRes.data;
 console.log(jsonList);
 ```
 
+## Android 端直接输出 HTML
+
+Android 端可使用 `md2html` 让 cmark-gfm 在原生层直接生成 HTML 字符串。该接口不创建
+`MarkdownToken[]`，也不执行 `JSON.parse`，适合在 Worker 中解析后将字符串传回主线程。
+
+```typescript
+// #ifdef APP-ANDROID
+import { isMd2htmlAvailable, md2html } from '@/uni_modules/uni-cmark'
+
+if (isMd2htmlAvailable()) {
+	const html = md2html('# 标题\n\n这是 **粗体**。')
+	// <h1>标题</h1>\n<p>这是 <strong>粗体</strong>。</p>\n
+}
+// #endif
+```
+
+`md2html` 默认启用 GFM 表格、删除线、自动链接和任务列表。为避免把不可信 Markdown
+中的脚本带入 `rich-text`，原始 HTML 和危险 URL 仍使用 cmark-gfm 的安全过滤行为。
+
+原生库的可复现构建入口位于
+`utssdk/app-android/native/build-android.sh`，固定使用 cmark-gfm `0.29.0.gfm.13`。
+新增或更新 `libcmarkhtml.so` 后必须重新制作自定义基座；运行时热同步无法更新 APK 中的原生库。
+
 
 ### 参数
 

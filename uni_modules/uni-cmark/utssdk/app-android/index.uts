@@ -46,6 +46,14 @@ export function md2json(markdown: string): ParseMdRes {
 	}
 }
 
+export function md2html(markdown: string): string {
+	return getCmarkInstance().md2html(markdown)
+}
+
+export function isMd2htmlAvailable(): boolean {
+	return getCmarkInstance().isMd2htmlAvailable()
+}
+
 export function asyncMd2json(markdown: string, callback: AsyncMd2JsonCallback): void {
 	cmarkExecutor.execute((): void => {
 		const activity = getAsyncCmarkInstance()

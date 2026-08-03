@@ -2,10 +2,40 @@ package com.dcloud.cmark
 // 这个 so 库来源 /Users/dcloud_linju/Desktop/appCode/cmark-gfm 和 markdown-converter
 class MainActivity {
     companion object {
+        private var cmarkHtmlLoadAttempted = false
+        private var cmarkHtmlAvailable = false
+
         init {
             System.loadLibrary("cmark")
+        }
+
+        @Synchronized
+        private fun loadCmarkHtml(): Boolean {
+            if (!cmarkHtmlLoadAttempted) {
+                cmarkHtmlAvailable = try {
+                    System.loadLibrary("cmarkhtml")
+                    true
+                } catch (_error: UnsatisfiedLinkError) {
+                    false
+                }
+                cmarkHtmlLoadAttempted = true
+            }
+            return cmarkHtmlAvailable
         }
     }
 		// md2json 函数声明
 		external fun md2json(text: String): String
+
+		private external fun md2htmlUtf8(markdownUtf8: ByteArray): ByteArray
+
+		fun isMd2htmlAvailable(): Boolean {
+			return loadCmarkHtml()
+		}
+
+		fun md2html(text: String): String {
+			if (!loadCmarkHtml()) {
+				throw IllegalStateException("libcmarkhtml.so is not installed in the current custom base")
+			}
+			return md2htmlUtf8(text.toByteArray(Charsets.UTF_8)).toString(Charsets.UTF_8)
+		}
 }
