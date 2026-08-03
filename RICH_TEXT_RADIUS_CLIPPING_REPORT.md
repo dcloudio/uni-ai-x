@@ -13,40 +13,39 @@
 - 设备：Xiaomi `M2102K1AC`
 - 系统：Android 14，API 34
 - 屏幕：`1440x3200`，560 dpi
-- 包名：`io.dcloud.ai.x`
+- 基座包名：`io.dcloud.uniappx`
+- 基座：标准调试基座
 - RichText：`mode="native"`
 
 ## 最小复现
 
-页面已经在 `pages.json` 注册。测试代码和本次原始结果均保留在仓库：
+最小复现、Issue 文案和原始证据已经迁移到独立工程；主项目不再注册或保留该页面：
 
-- 页面：[`pages/repro-rich-text-radius/index.uvue`](pages/repro-rich-text-radius/index.uvue)
-- 路由：`/pages/repro-rich-text-radius/index`
-- 原始截图：[`test-results/android-rich-text-radius-flatten.png`](test-results/android-rich-text-radius-flatten.png)
+- 工程：[`vapor-richtext-flatten-clip-bug`](../bug-project/vapor-richtext-flatten-clip-bug/README.md)，提交 `0b657a9`
+- 页面：[`pages/index/index.uvue`](../bug-project/vapor-richtext-flatten-clip-bug/pages/index/index.uvue)
+- Issue 文案：[`ISSUE.md`](../bug-project/vapor-richtext-flatten-clip-bug/ISSUE.md)
+- 原始截图：[`android-richtext-flatten-clip.png`](../bug-project/vapor-richtext-flatten-clip-bug/test-results/android-richtext-flatten-clip.png)
 
 ### 测试方法
 
-1. 临时将复现路由移到 `pages.json` 第一项。路由顺序变化后必须 clean build，不能依赖热更新同步新增的首屏字节码。
-2. 使用与其他 Android 性能复现相同的自定义基座全量编译并运行：
+1. 使用 HBuilderX 打开独立工程。
+2. 使用 Android 标准调试基座全量编译并运行：
 
 ```sh
 /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
-  --project /Users/json/Desktop/code/uni-ai-x \
-  --deviceId 192.168.2.5:5555 --playground custom \
+  --project /Users/json/Desktop/code/bug-project/vapor-richtext-flatten-clip-bug \
+  --deviceId fd07f76f --playground standard \
   --native-log true --cleanCache true
 ```
 
 3. 页面稳定显示五个用例后采集原始设备截图：
 
 ```sh
-adb -s 192.168.2.5:5555 shell screencap -p /sdcard/rich-text-radius-f04.png
-adb -s 192.168.2.5:5555 pull /sdcard/rich-text-radius-f04.png \
-  test-results/android-rich-text-radius-flatten.png
+adb -s fd07f76f exec-out screencap -p \
+  > test-results/android-richtext-flatten-clip.png
 ```
 
 4. 检查进程仍存活，并过滤 `AndroidRuntime`、`libc`、`DEBUG`、`CSSParser` 的错误日志。
-
-采集前有两次仅依赖路由热更新的启动失败（13:05:29、13:06:46）：原生层均因缺少 `GenPagesReproRichTextRadiusIndexSharedData.cpp.bytes` 抛出 `failed to open bundle file`，随后收到 `SIGABRT`。改用上述 clean build 后该错误消失，页面稳定启动；这是测试产物未完整同步，不计入圆角用例结果。
 
 ### 测试结果
 
@@ -62,15 +61,15 @@ adb -s 192.168.2.5:5555 pull /sdcard/rich-text-radius-f04.png \
 
 量化结果为：2 个非 flatten 对照全部正确，3 个 flatten 用例全部失败。用例 1/2 和用例 3/4 均只改变 `flatten`，因此变量已经收敛到 `flatten` 与原生 RichText 的组合；用例 5 进一步排除了“把 CSS 圆角下放到子级即可修复”的解释。
 
-原始截图为 `1440x3200` RGBA PNG，大小 272,259 字节，SHA-256：
+独立工程截图大小为 173,170 字节，SHA-256：
 
 ```text
-a16f320f0143441e3add44424dfdf1d62f0e5a9ada20d3c009a14a965192a0f9
+1d8b0e46b10d179d1b8df9413c9997b6ec52ddeb6011369497a3fd0171f953e3
 ```
 
 本轮 clean build 成功，截图后应用进程 `26307` 仍存活；上述四类错误日志过滤结果均为 0 条。
 
-![Android flatten 与原生 RichText 圆角裁剪配对结果](test-results/android-rich-text-radius-flatten.png)
+![Android flatten 与原生 RichText 圆角裁剪配对结果](../bug-project/vapor-richtext-flatten-clip-bug/test-results/android-richtext-flatten-clip.png)
 
 ## 期望结果
 

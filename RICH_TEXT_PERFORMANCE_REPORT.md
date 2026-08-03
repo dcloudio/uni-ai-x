@@ -7,28 +7,28 @@
 | Android 设备 | Xiaomi `M2102K1AC` |
 | 系统 | Android 14，API 34 |
 | 屏幕 | `1440x3200`，560 dpi，系统峰值刷新率 120Hz |
-| HBuilderX | 历史真实链路数据为 5.23；当前保留的最小复现为 `5.24.2026072917-dev` |
-| 编译模式 | uni-app x 蒸汽模式，视图层字节码，Android 自定义基座 |
-| 应用包名 | `io.dcloud.ai.x` |
+| HBuilderX | 历史真实链路数据为 5.23；独立复现为 `5.24.2026072917-dev` |
+| 编译模式 | uni-app x 蒸汽模式，视图层字节码；历史真实链路使用自定义基座，独立复现使用标准基座 |
+| 应用包名 | 历史真实链路 `io.dcloud.ai.x`；独立复现基座 `io.dcloud.uniappx` |
 | Rich Text | `rich-text mode="native"` |
 
-当前保留三份可独立运行的测试代码：
+三份复现代码已经迁移为独立工程；主项目不再注册或保留这些页面与专用统计脚本：
 
-| 编号 | 代码与路由 | 控制变量 | 当前重复轮次 |
+| 编号 | 独立工程与代码 | 控制变量 | 当前重复轮次 |
 | --- | --- | --- | ---: |
-| F01 | [`pages/repro-rich-text-performance/index.uvue`](pages/repro-rich-text-performance/index.uvue)，`/pages/repro-rich-text-performance/index` | 同尺寸 Rich Text；只改变是否更新已有 nodes | 5（其中 4 轮有精确阶段边界，另有 5.23 历史对照） |
-| F02 | [`pages/repro-native-view-performance/index.uvue`](pages/repro-native-view-performance/index.uvue)，`/pages/repro-native-view-performance/index` | 同为每 100ms 追加；对比普通文本 View 与新原生 Rich Text | 3 |
-| F03 | [`pages/repro-svg-image-performance/index.uvue`](pages/repro-svg-image-performance/index.uvue)，`/pages/repro-svg-image-performance/index` | 同源 `800x640` SVG；对比预挂载 opacity 与动态创建/销毁 | 2 |
+| F01 | [`vapor-richtext-nodes-update-snapshot-copy-bug`](../bug-project/vapor-richtext-nodes-update-snapshot-copy-bug/pages/index/index.uvue)，提交 `89a5cfb` | 同尺寸 Rich Text；只改变是否更新已有 nodes | 5（其中 4 轮有精确阶段边界，另有 5.23 历史对照） |
+| F02 | [`vapor-native-richtext-append-jank-bug`](../bug-project/vapor-native-richtext-append-jank-bug/pages/index/index.uvue)，提交 `3e44f36` | 同为每 100ms 追加；对比普通文本 View 与新原生 Rich Text | 3 |
+| F03 | [`vapor-svg-image-dynamic-mount-jank-bug`](../bug-project/vapor-svg-image-dynamic-mount-jank-bug/pages/index/index.uvue)，提交 `55cddbe` | 同源 `800x640` SVG；对比预挂载 opacity 与动态创建/销毁 | 2 |
 
 运行和采集方法：
 
-1. 将目标复现路由临时放到 `pages.json` 第一项。页面启动后自动预热，并按顺序运行每个 5 秒场景；操作间隔均为 100ms。
-2. 使用以下命令全量编译并运行；每次对照在同一进程、同一页面中连续完成：
+1. 在 HBuilderX 中打开目标独立工程。页面启动后自动预热，并按顺序运行每个 5 秒场景；操作间隔均为 100ms。
+2. 使用独立工程内 `TESTING.md` 记录的命令全量编译并运行；每次对照在同一进程、同一页面中连续完成。例如 F01：
 
 ```sh
 /Applications/HBuilderX-Dev.app/Contents/MacOS/cli launch app-android \
-  --project /Users/json/Desktop/code/uni-ai-x \
-  --deviceId 192.168.2.5:5555 --playground custom \
+  --project /Users/json/Desktop/code/bug-project/vapor-richtext-nodes-update-snapshot-copy-bug \
+  --deviceId 192.168.2.5:5555 --playground standard \
   --native-log true --cleanCache true
 ```
 
@@ -42,10 +42,10 @@ adb -s 192.168.2.5:5555 logcat -v threadtime \
 ```
 
 6. 原生任务结果取 `executeRenderTasks` 日志中的 `renderNativeLayoutTasks` 和 `appendViewTasks`；F01 另统计 `Tile RGBA->Bitmap copy` 与 `BuildTileSnapshotList`。所有结果均来自调试基座，应看同轮对照和数量级，不把一次 FPS 小数波动当成确定收益。
-7. F01 每轮运行前执行 `adb -s 192.168.2.5:5555 logcat -c`，运行结束后用保留在仓库中的脚本汇总最近一轮完整对照：
+7. F01 每轮运行前执行 `adb -s 192.168.2.5:5555 logcat -c`，运行结束后用独立工程中的脚本汇总最近一轮完整对照：
 
 ```sh
-node scripts/android-rich-text-perf-summary.mjs 192.168.2.5:5555
+node ../bug-project/vapor-richtext-nodes-update-snapshot-copy-bug/scripts/android-rich-text-perf-summary.mjs 192.168.2.5:5555
 ```
 
 脚本只统计 `fixed-start/result`、`updating-start/result` 之间的日志；RGBA 字节数按每条日志的 `width * height * 4` 求和，耗时按日志中的毫秒值求和并取最大值。若 logcat 中有多轮数据，脚本在新的 start 标记处重置，只输出最近一轮，避免跨轮累计。
@@ -62,7 +62,7 @@ node scripts/android-rich-text-perf-summary.mjs 192.168.2.5:5555
 
 复现步骤：
 
-1. 将最小复现路由临时放到 `pages.json` 第一项，使用 Android 蒸汽模式运行。
+1. 使用 HBuilderX 打开 F01 独立工程，并运行到 Android 标准调试基座。
 2. 等待页面自动完成两个场景，或点击“重跑对照”。
 3. 对比页面结果，并在日志中检索 `[RichTextPerfRepro]`、`Tile RGBA->Bitmap copy` 和 `BuildTileSnapshotList`。
 
@@ -123,7 +123,7 @@ HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现复测：
 
 ## 2. 原生布局和 View 追加仍产生主线程长任务
 
-最小复现页：[`pages/repro-native-view-performance/index.uvue`](pages/repro-native-view-performance/index.uvue)，路由为 `/pages/repro-native-view-performance/index`。页面自动对照“每 100ms 追加普通文本 View”和“每 100ms 追加一个全新的原生 Rich Text”。已有节点不会更新，且不经过联网和 Markdown 解析。
+独立复现页：[`vapor-native-richtext-append-jank-bug/pages/index/index.uvue`](../bug-project/vapor-native-richtext-append-jank-bug/pages/index/index.uvue)。页面自动对照“每 100ms 追加普通文本 View”和“每 100ms 追加一个全新的原生 Rich Text”。已有节点不会更新，且不经过联网和 Markdown 解析。
 
 ### 现象
 
@@ -131,7 +131,7 @@ HBuilderX 5.24（`5.24.2026072917-dev`）同机最小复现复测：
 
 复现步骤：
 
-1. 将最小复现路由临时放到 `pages.json` 第一项，使用 Android 蒸汽模式运行。
+1. 使用 HBuilderX 打开 F02 独立工程，并运行到 Android 标准调试基座。
 2. 等待两个 5 秒场景自动完成，或点击“重跑对照”。
 3. 对比页面 FPS 和慢帧数，并在日志中检索 `[NativeViewPerfRepro]`、`executeRenderTasks`、`renderNativeLayoutTasks` 和 `appendViewTasks`。
 
@@ -175,7 +175,7 @@ CMark 没有占用 UI 主线程，耗时也远低于布局和追加任务；卡�
 
 ## 3. 大图首次显示仍可能发生纹理上传尖峰
 
-最小复现页：[`pages/repro-svg-image-performance/index.uvue`](pages/repro-svg-image-performance/index.uvue)，路由为 `/pages/repro-svg-image-performance/index`。页面使用同一张 `800x640` SVG 自动对照“已加载 Image 只切换 opacity”和“同源 Image 动态创建/销毁”，不经过联网、Markdown 解析或主题切换。
+独立复现页：[`vapor-svg-image-dynamic-mount-jank-bug/pages/index/index.uvue`](../bug-project/vapor-svg-image-dynamic-mount-jank-bug/pages/index/index.uvue)。页面使用同一张 `800x640` SVG 自动对照“已加载 Image 只切换 opacity”和“同源 Image 动态创建/销毁”，不经过联网、Markdown 解析或主题切换。
 
 ### 现象
 
@@ -183,7 +183,7 @@ CMark 没有占用 UI 主线程，耗时也远低于布局和追加任务；卡�
 
 复现步骤：
 
-1. 将最小复现路由临时放到 `pages.json` 第一项，使用 Android 蒸汽模式运行。
+1. 使用 HBuilderX 打开 F03 独立工程，并运行到 Android 标准调试基座。
 2. 等待 SVG 预加载和两个 5 秒场景自动完成，或点击“重跑对照”。
 3. 对比页面 FPS、慢帧和动态 Image 的 `load` 次数，并在日志中检索 `[SvgImagePerfRepro]`、`executeRenderTasks` 和 `appendViewTasks`。
 

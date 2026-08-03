@@ -204,6 +204,8 @@ F04 的最小复现、条件矩阵和当前规避方案见 [`RICH_TEXT_RADIUS_CL
 
 F04 已从主项目迁移到独立工程 `~/Desktop/code/bug-project/vapor-richtext-flatten-clip-bug`。该工程由 HBuilderX CLI 创建，仅含内置 `view`、`scroll-view` 和 `rich-text`，不含 `uni_modules`、网络或业务代码；HBuilderX 5.24 在 Android 14 M2102K1AC 标准基座明确以 Vapor bytecode 编译并启动。真机截图中非 `flatten` 对照组裁剪正确，`flatten` 实验组仍以直角越过父级圆角，独立工程提交为 `0b657a9`。当前只差在 HBuilderX 中正式提交 Issue 并回填编号/负责人。
 
+F01-F04 完成独立工程验证后，主项目已移除四个复现页面、对应 `pages.json` 路由、F01 专用汇总脚本和重复的 F04 截图。合并后的性能报告与圆角报告只引用 `~/Desktop/code/bug-project/` 下的独立工程；主项目保留的三个 `repro-worker-*` 页面仍用于 T01/T02 生产 Worker 能力和回归验证，不属于本次框架 Bug 示例清理范围。
+
 F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark 线程证据、截图和导入对照见 [`WORKER_CAPABILITY_REPORT.md`](WORKER_CAPABILITY_REPORT.md)。网络、解码和 CMark 均已确认；“请求不返回”和“CMark 不能导入”都已证明是应用配置/路径问题，不提交框架。
 
 ### F05 已确认的边界
@@ -242,6 +244,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-31 | F01-F04 | 四个 Bug 示例完成独立工程迁移后，从主项目删除复现页、路由、专用脚本和重复截图；报告改指向独立工程；Android 自定义基座 6 页 clean build、同步和启动通过 | 本提交（`chore: 移除已独立的框架复现代码`） |
 | 2026-07-31 | F01 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现 nodes 更新产生 196 次拷贝、98 次快照和 4.068 GiB 拷贝量，保留自动汇总脚本、日志和截图 | 独立工程 `89a5cfb`；本提交更新检查单 |
 | 2026-07-31 | F02 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现原生 RichText 追加阶段 39.48ms `appendViewTasks` 和 157.7ms 最大帧间隔 | 独立工程 `3e44f36`；本提交更新检查单 |
 | 2026-07-31 | F03 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现同源 SVG Image 动态挂载 120.11ms `appendViewTasks`，并明确解码/纹理上传仍需框架 Trace | 独立工程 `55cddbe`；本提交更新检查单 |
