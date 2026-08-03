@@ -244,6 +244,7 @@ F05 的真机探针、测试代码、逐项耗时、流式分块数据、CMark �
 
 | 日期 | 编号 | 更新内容 | 提交/报告 |
 | --- | --- | --- | --- |
+| 2026-07-31 | T01/T02 | iOS 云打包兼容修改后完成 Android 14 防回归：6 页 clean compile 成功；SSE、流请求、CMark、6 批完整描述和取消重启八场景全部通过，失败扫描为空 | `69528b3`；[`test-results/android-worker-ios-compat-regression-results.txt`](test-results/android-worker-ios-compat-regression-results.txt) |
 | 2026-07-31 | F01-F04 | 四个 Bug 示例完成独立工程迁移后，从主项目删除复现页、路由、专用脚本和重复截图；报告改指向独立工程；Android 自定义基座 6 页 clean build、同步和启动通过 | 本提交（`chore: 移除已独立的框架复现代码`） |
 | 2026-07-31 | F01 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现 nodes 更新产生 196 次拷贝、98 次快照和 4.068 GiB 拷贝量，保留自动汇总脚本、日志和截图 | 独立工程 `89a5cfb`；本提交更新检查单 |
 | 2026-07-31 | F02 | 创建独立 Vapor bytecode 工程；Android 14 标准基座复现原生 RichText 追加阶段 39.48ms `appendViewTasks` 和 157.7ms 最大帧间隔 | 独立工程 `3e44f36`；本提交更新检查单 |

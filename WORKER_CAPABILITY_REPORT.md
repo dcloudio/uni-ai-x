@@ -148,6 +148,14 @@ Android 真机向真实 event-stream 地址发起 POST，Worker 核心耗时 342
 
 取消探针完成后不带 `--pagePath` 再做正常入口回归：8 个页面编译成功，`ready in 28466ms`；应用主 Activity 为 `topResumedActivity`，截图确认公式、完整流程图、分割线和后续正文正常，致命错误扫描为空。
 
+## iOS 兼容修改后的 Android 防回归
+
+2026-07-31 为解决 Xcode 26.3 云打包生成 Swift 时 `Int` 与 `NSNumber` 不兼容、正则重载冲突和未处理异常，对公共 Worker UTS 源码增加显式 `number` 桥接，并把公式起始匹配改为 `RegExp.exec`。修改后在 Android 14 真机先以 `--cleanCache true --compile true` 强制重新生成 Kotlin，6 个页面编译成功，`ready in 50281ms`；生成代码保留 `Number` 转换、`exec` 和 `slice`，没有 UTS/Kotlin 类型错误。
+
+随后运行保留的八场景自动探针：SSE 11 段/93 字节边界返回 2 个事件且无残留；流核心为 3 块/177 字节/3 事件；CMark 为 2 token；完整链路为 6 块/354 字节/6 事件/6 快照/6 token/6 描述，页面观察版本 `1..6` 严格递增；取消重启完整观察 `A:1,B:1,B:2,B:3`，A 迟到数据和终态均为 0。页面最终打印 `complete`，失败、超时、崩溃和类型异常扫描为空。
+
+完整命令、设备、生成文件路径、逐项耗时和断言保存在 [`test-results/android-worker-ios-compat-regression-results.txt`](test-results/android-worker-ios-compat-regression-results.txt)。该结果只证明提交 `69528b3` 未破坏 Android；iOS 仍以 Xcode 26.3 云端编译结果为最终判据。
+
 ## 能力矩阵
 
 | 能力 | 本次结果 | 结论 |
