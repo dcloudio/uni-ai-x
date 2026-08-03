@@ -18,11 +18,11 @@ function completeUtf8PrefixLength(bytes : Uint8Array) : number {
 		if (byte < 0x80 || byte > 0xbf) break
 		leadIndex--
 	}
-	if (leadIndex < 0) return bytes.length
+	if (leadIndex < 0) return bytes.length as number
 
 	const expectedLength = utf8SequenceLength(bytes[leadIndex])
 	const availableLength = bytes.length - leadIndex
-	return expectedLength > availableLength ? leadIndex : bytes.length
+	return expectedLength > availableLength ? leadIndex as number : bytes.length as number
 }
 
 /**
@@ -53,7 +53,7 @@ export class SSEStreamDecoder {
 			combined[index] = this.pendingBytes[index]
 		}
 		for (let index = 0; index < incoming.length; index++) {
-			combined[this.pendingBytes.length + index] = incoming[index]
+			combined[(this.pendingBytes.length as number) + index] = incoming[index]
 		}
 
 		const completeLength = completeUtf8PrefixLength(combined)
@@ -89,11 +89,11 @@ export class SSEStreamDecoder {
 	}
 
 	pendingByteLength() : number {
-		return this.pendingBytes.length
+		return this.pendingBytes.length as number
 	}
 
 	pendingTextLength() : number {
-		return this.textBuffer.length
+		return this.textBuffer.length as number
 	}
 
 	eventCount() : number {
@@ -124,7 +124,7 @@ export class SSEStreamDecoder {
 				separatorLength = 2
 			}
 			const line = this.textBuffer.substring(0, separatorIndex)
-			this.textBuffer = this.textBuffer.substring(separatorIndex + separatorLength)
+			this.textBuffer = this.textBuffer.slice(separatorIndex + separatorLength)
 			this.processLine(line)
 		}
 	}

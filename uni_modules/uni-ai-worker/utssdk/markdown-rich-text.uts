@@ -169,7 +169,10 @@ function listNode(token: MarkdownToken, nested: boolean): UTSJSONObject {
 	let listStyle = nested ? NESTED_LIST_STYLE : LIST_STYLE
 	if (taskList) listStyle = nested ? NESTED_TASK_LIST_STYLE : TASK_LIST_STYLE
 	const attrs = styleAttrs(listStyle)
-	if (ordered && token.start != null) attrs['start'] = token.start!.toString()
+	if (ordered && token.start != null) {
+		const start = token.start!
+		attrs['start'] = typeof start == 'number' ? (start as number).toString() : start as string
+	}
 	return richNode(ordered ? 'ol' : 'ul', itemNodes, attrs)
 }
 
@@ -254,7 +257,7 @@ function webTableNode(token: MarkdownToken, minimumTableWidth: number): UTSJSONO
 			const width = cellIndex < columnWidths.length ? columnWidths[cellIndex] : 80
 			const align = cellIndex < aligns.length && aligns[cellIndex] != null ? aligns[cellIndex] as string : 'left'
 			cellNodes.push(tableCellNode(cells[cellIndex], rowIndex == 0, align.length > 0 ? align : 'left', width,
-				rowIndex, rows.length, cellIndex, cells.length))
+				rowIndex, rows.length as number, cellIndex, cells.length as number))
 		}
 		trNodes.push(richNode('tr', cellNodes))
 	}
@@ -269,7 +272,7 @@ function tableCellContentWidth(cell: MarkdownToken | null): number {
 	if (cell == null) return 0
 	const measuredWidth = cell.width ?? 0
 	if (measuredWidth > 0) return measuredWidth
-	return tokenText(cell).length * 14
+	return (tokenText(cell).length as number) * 14
 }
 
 function markdownTableRowContentHeight(row: MarkdownToken | null, columnWidths: number[], isHeader: boolean): number {

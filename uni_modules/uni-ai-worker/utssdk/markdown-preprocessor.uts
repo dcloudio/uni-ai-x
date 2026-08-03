@@ -34,13 +34,13 @@ export class MarkdownPreprocessor {
 	private prepareMarkdownText(msgBody: string): string | null {
 		if (msgBody.length < this.oldMsgBodyLength) return null
 		this.markdownText += msgBody.slice(this.oldMsgBodyLength)
-		this.oldMsgBodyLength = msgBody.length
+		this.oldMsgBodyLength = msgBody.length as number
 		const withFindMathText = this.markdownText.slice(this.lastMathEndIndex)
 		const mathRange = this.findMathRangeOutsideFencedCode(withFindMathText)
 		if (mathRange == null) return this.markdownText
 		const endIndex = withFindMathText.slice(mathRange.contentStartIndex).indexOf(mathRange.endToken)
 		if (endIndex == -1) return this.createPendingMathMarkdown(withFindMathText, mathRange)
-		const mathEndIndex = endIndex + mathRange.contentStartIndex
+		const mathEndIndex = (endIndex as number) + mathRange.contentStartIndex
 		const mathText = withFindMathText.slice(mathRange.contentStartIndex, mathEndIndex)
 		const mathCodeText = '\n```math\n' + mathText + '\n```\n'
 		this.markdownText = this.markdownText.slice(0, this.lastMathEndIndex) +
@@ -55,7 +55,7 @@ export class MarkdownPreprocessor {
 		let inCodeBlock = false
 		while (cursor < text.length) {
 			const fenceIndex = text.indexOf('```', cursor)
-			const segmentEnd = fenceIndex == -1 ? text.length : fenceIndex
+			const segmentEnd = fenceIndex == -1 ? text.length as number : fenceIndex
 			if (!inCodeBlock) {
 				const mathRange = this.findMathRange(text.slice(cursor, segmentEnd))
 				if (mathRange != null) {
@@ -75,15 +75,16 @@ export class MarkdownPreprocessor {
 
 	private findMathRange(text: string): MathRange | null {
 		const mathStartPattern = /\$\$|\$|\\\[|\\\(|\\begin\{[a-zA-Z*]+\}/
-		const mathStartIndex = text.search(mathStartPattern)
-		if (mathStartIndex == -1) return null
-		const startToken = text.match(mathStartPattern)![0]!
+		const match = mathStartPattern.exec(text)
+		if (match == null) return null
+		const mathStartIndex = match.index
+		const startToken = match[0] as string
 		let endToken = mathMarkMap.get(startToken) ?? ''
 		if (startToken.startsWith('\\begin{')) {
 			const envName = startToken.slice('\\begin{'.length, startToken.length - 1)
 			endToken = '\\end{' + envName + '}'
 		}
-		if (endToken.length == 0) throw new Error('mathMarkMap中没有找到对应的结尾')
+		if (endToken.length == 0) return null
 		return {
 			startIndex: mathStartIndex,
 			endToken: endToken,
