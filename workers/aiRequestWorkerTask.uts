@@ -1,10 +1,11 @@
 // #ifdef APP-ANDROID
-import { isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
-import { ParseMdRes } from '../uni_modules/uni-cmark/utssdk/interface.uts'
+import { isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 // #endif
-import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
-import { MarkdownPreprocessor } from '../uni_modules/uni-ai-worker/utssdk/markdown-preprocessor.uts'
-import { buildMarkdownRenderDescriptions } from '../uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
+import {
+	createDemoMarkdownBlock,
+	MarkdownPreprocessor,
+	WorkerStreamRequest
+} from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 
 type WorkerAiDelta = {
 	content?: string,
@@ -21,10 +22,10 @@ type WorkerAiChunk = {
 
 export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private streamRequest: WorkerStreamRequest | null = null
-	private parseTimer: number = 0
+	private renderTimer: number = 0
 	private requestVersion: number = 0
 	private snapshotVersion: number = 0
-	private parseInterval: number = 300
+	private renderInterval: number = 300
 	private startedAt: number = 0
 	private content: string = ''
 	private reasoningContent: string = ''
@@ -35,6 +36,16 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private terminalSource: string = ''
 	private finished: boolean = false
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
+	private demoStreamTimer: number = 0
+	private demoScenarioId: string = ''
+	private demoStreamInterval: number = 100
+	private demoBatchSize: number = 10
+	private demoBlockInterval: number = 300
+	private demoBlockText: string = ''
+	private demoBlockOffset: number = 0
+	private demoBlockIndex: number = 0
+	private demoBlockCount: number = 0
+	private demoNextBlockAt: number = 0
 
 	constructor() {
 		super()
@@ -51,15 +62,35 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			if (payload.getNumber('requestVersion', 0) == this.requestVersion) this.cancelCurrent()
 			return
 		}
-		if (action != 'start') return
-		this.startRequest(payload)
+		if (action == 'append-markdown') {
+			if (payload.getNumber('requestVersion', 0) == this.requestVersion) {
+				this.appendExternalMarkdown(
+					payload.getString('content', ''),
+					payload.getString('reasoningContent', '')
+				)
+			}
+			return
+		}
+		if (action == 'complete-markdown') {
+			if (payload.getNumber('requestVersion', 0) == this.requestVersion) this.complete()
+			return
+		}
+		if (action == 'start') {
+			this.startRequest(payload)
+			return
+		}
+		if (action == 'start-demo') {
+			this.startDemo(payload)
+			return
+		}
+		if (action == 'start-markdown') this.startMarkdown(payload)
 	}
 
-	private resetState(requestVersion: number, parseInterval: number) {
+	private resetState(requestVersion: number, renderInterval: number) {
 		this.cancelCurrent()
 		this.requestVersion = requestVersion
 		this.snapshotVersion = 0
-		this.parseInterval = parseInterval
+		this.renderInterval = renderInterval
 		this.startedAt = Date.now()
 		this.content = ''
 		this.reasoningContent = ''
@@ -70,6 +101,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.terminalSource = ''
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
+		this.demoScenarioId = ''
+		this.demoBlockText = ''
+		this.demoBlockOffset = 0
+		this.demoBlockIndex = 0
+		this.demoBlockCount = 0
+		this.demoNextBlockAt = 0
 	}
 
 	private startRequest(payload: UTSJSONObject) {
@@ -78,7 +115,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		const authorization = payload.getString('authorization', '')
 		const bodyJson = payload.getString('bodyJson', '')
 		const timeout = payload.getNumber('timeout', 90000)
-		this.resetState(requestVersion, payload.getNumber('parseInterval', 300))
+		this.resetState(requestVersion, payload.getNumber('renderInterval', 300))
 		if (requestVersion <= 0 || url.length == 0 || authorization.length == 0 || bodyJson.length == 0) {
 			this.fail('invalid_request', 'Worker 请求参数不完整')
 			return
@@ -95,6 +132,66 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			}
 		)
 		this.streamRequest!.start(url, authorization, bodyJson, timeout)
+	}
+
+	private startDemo(payload: UTSJSONObject) {
+		const requestVersion = payload.getNumber('requestVersion', 0)
+		const scenarioId = payload.getString('scenarioId', '')
+		this.resetState(requestVersion, payload.getNumber('renderInterval', 300))
+		if (requestVersion <= 0 || scenarioId.length == 0) {
+			this.fail('invalid_demo_request', 'Worker Markdown 压测参数不完整')
+			return
+		}
+		this.demoScenarioId = scenarioId
+		this.demoStreamInterval = payload.getNumber('streamInterval', 100)
+		this.demoBatchSize = payload.getNumber('batchSize', 10)
+		this.demoBlockInterval = payload.getNumber('blockInterval', 300)
+		this.terminalSource = 'demo'
+		this.demoStreamTimer = setInterval(() => {
+			this.emitDemoChunk()
+		}, this.demoStreamInterval)
+	}
+
+	private emitDemoChunk() {
+		if (this.finished || Date.now() < this.demoNextBlockAt) return
+		if (this.demoBlockOffset >= this.demoBlockText.length) {
+			this.demoBlockIndex += 1
+			this.demoBlockText = createDemoMarkdownBlock(this.demoScenarioId, this.demoBlockIndex)
+			this.demoBlockOffset = 0
+		}
+		const chunkSize = this.demoScenarioId == 'math' ? this.demoBlockText.length : this.demoBatchSize
+		const endIndex = Math.min(this.demoBlockOffset + chunkSize, this.demoBlockText.length)
+		const chunkText = this.demoBlockText.slice(this.demoBlockOffset, endIndex)
+		this.demoBlockOffset = endIndex
+		this.content += chunkText
+		this.eventCount += 1
+		this.networkChunkCount += 1
+		this.receivedBytes += chunkText.length
+		this.scheduleHtmlSnapshot()
+		if (this.demoBlockOffset >= this.demoBlockText.length) {
+			this.demoBlockCount += 1
+			this.demoNextBlockAt = Date.now() + (this.demoScenarioId == 'math' ? 500 : this.demoBlockInterval)
+		}
+	}
+
+	private startMarkdown(payload: UTSJSONObject) {
+		const requestVersion = payload.getNumber('requestVersion', 0)
+		this.resetState(requestVersion, payload.getNumber('renderInterval', 300))
+		if (requestVersion <= 0) {
+			this.fail('invalid_markdown_request', 'Worker Markdown 请求参数不完整')
+			return
+		}
+		this.terminalSource = 'external'
+	}
+
+	private appendExternalMarkdown(contentDelta: string, reasoningDelta: string) {
+		if (this.finished) return
+		if (contentDelta.length > 0) this.content += contentDelta
+		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
+		this.eventCount += 1
+		this.networkChunkCount += 1
+		this.receivedBytes += contentDelta.length + reasoningDelta.length
+		if (contentDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
 	private handleSseEvent(data: string) {
@@ -131,22 +228,22 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
-		if (contentDelta.length > 0) this.scheduleParse()
+		if (contentDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
-	private scheduleParse() {
-		if (this.parseTimer != 0 || this.finished) return
-		this.parseTimer = setTimeout(() => {
-			this.parseTimer = 0
+	private scheduleHtmlSnapshot() {
+		if (this.renderTimer != 0 || this.finished) return
+		this.renderTimer = setTimeout(() => {
+			this.renderTimer = 0
 			this.publishSnapshot(false)
-		}, this.parseInterval)
+		}, this.renderInterval)
 	}
 
 	private complete() {
 		if (this.finished) return
 		this.finished = true
-		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
-		this.parseTimer = 0
+		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
+		this.renderTimer = 0
 		if (!this.content.endsWith('\n')) this.content += '\n'
 		this.publishSnapshot(true)
 		this.streamRequest = null
@@ -157,56 +254,17 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		const processedMarkdown = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdown == null) return
 		// #ifdef APP-ANDROID
-		let useHtmlRendering: boolean = false
-		if (!this.requiresStructuredRendering(processedMarkdown)) {
-			useHtmlRendering = isMd2htmlAvailable()
-		}
-		if (useHtmlRendering == true) {
-			let html = ''
-			try {
-				html = md2html(processedMarkdown)
-			} catch (error) {
-				this.fail('markdown_html_failed', error.message as string)
-				return
-			}
-			this.snapshotVersion += 1
-			const snapshot = {
-				requestVersion: this.requestVersion,
-				snapshotVersion: this.snapshotVersion,
-				phase: isDone ? 'complete' : 'snapshot',
-				msgBody: this.content,
-				thinkContent: this.reasoningContent.trim(),
-				renderMode: 'html',
-				html: html,
-				tokensJson: '[]',
-				renderListJson: '[]',
-				tokenCount: 0,
-				renderDescriptionCount: 0,
-				richNodeCount: 0,
-				htmlLength: html.length,
-				isDone: isDone,
-				eventCount: this.eventCount,
-				networkChunkCount: this.networkChunkCount,
-				receivedBytes: this.receivedBytes,
-				terminalSource: this.terminalSource,
-				elapsed: Date.now() - this.startedAt,
-				errCode: '',
-				errMsg: ''
-			} as UTSJSONObject
-			this.postMessage({
-				phase: 'snapshot',
-				snapshotJson: JSON.stringify(snapshot)
-			} as UTSJSONObject)
+		if (isMd2htmlAvailable() == false) {
+			this.fail('markdown_html_unavailable', '当前 Android 基座未安装 libcmarkhtml.so')
 			return
 		}
-		const parseResult = md2json(processedMarkdown) as ParseMdRes
-		if (parseResult.errorMsg.length > 0) {
-			this.fail('markdown_parse_failed', parseResult.errorMsg)
+		let html = ''
+		try {
+			html = md2html(processedMarkdown)
+		} catch (error) {
+			this.fail('markdown_html_failed', error.message as string)
 			return
 		}
-		const renderList = buildMarkdownRenderDescriptions(parseResult.data)
-		let richNodeCount = 0
-		for (let index = 0; index < renderList.length; index++) richNodeCount += renderList[index].nodes.length
 		this.snapshotVersion += 1
 		const snapshot = {
 			requestVersion: this.requestVersion,
@@ -214,14 +272,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			phase: isDone ? 'complete' : 'snapshot',
 			msgBody: this.content,
 			thinkContent: this.reasoningContent.trim(),
-			renderMode: 'structured',
-			html: '',
-			tokensJson: JSON.stringify(parseResult.data),
-			renderListJson: JSON.stringify(renderList),
-			tokenCount: parseResult.data.length,
-			renderDescriptionCount: renderList.length,
-			richNodeCount: richNodeCount,
-			htmlLength: 0,
+			renderMode: 'html',
+			html: html,
+			htmlLength: html.length,
+			demoBlockCount: this.demoBlockCount,
 			isDone: isDone,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -238,40 +292,17 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		return
 		// #endif
 		// #ifndef APP-ANDROID
-		this.fail('unsupported_platform', '当前平台暂未启用 AI Worker Markdown 解析')
+		this.fail('unsupported_platform', '当前平台暂未启用 AI Worker Markdown HTML 转换')
 		// #endif
 	}
 
-	private requiresStructuredRendering(markdown: string): boolean {
-		const lines = markdown.split('\n')
-		for (let index = 0; index < lines.length; index++) {
-			const line = lines[index]
-			if (/^\s{0,3}(```|~~~)/.test(line)) return true
-			if (/^( {4}|\t)\S/.test(line)) return true
-			if (/^\s*(?:[-+*]|\d+[.)])\s+\[[ xX]\]\s/.test(line)) return true
-			if (index > 0 && line.indexOf('|') != -1 && this.isTableDelimiter(line) &&
-				lines[index - 1].indexOf('|') != -1) return true
-		}
-		return false
-	}
-
-	private isTableDelimiter(line: string): boolean {
-		let normalized = line.trim()
-		if (normalized.startsWith('|')) normalized = normalized.slice(1)
-		if (normalized.endsWith('|')) normalized = normalized.slice(0, normalized.length - 1)
-		const cells = normalized.split('|')
-		if (cells.length < 2) return false
-		for (let index = 0; index < cells.length; index++) {
-			if (!/^\s*:?-{3,}:?\s*$/.test(cells[index])) return false
-		}
-		return true
-	}
-
 	private fail(code: string, message: string) {
-		if (this.finished && code != 'markdown_parse_failed' && code != 'markdown_html_failed') return
+		if (this.finished && code != 'markdown_html_unavailable' && code != 'markdown_html_failed') return
 		this.finished = true
-		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
-		this.parseTimer = 0
+		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
+		if (this.demoStreamTimer != 0) clearInterval(this.demoStreamTimer)
+		this.renderTimer = 0
+		this.demoStreamTimer = 0
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		this.snapshotVersion += 1
@@ -283,12 +314,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			thinkContent: this.reasoningContent.trim(),
 			renderMode: '',
 			html: '',
-			tokensJson: '[]',
-			renderListJson: '[]',
-			tokenCount: 0,
-			renderDescriptionCount: 0,
-			richNodeCount: 0,
 			htmlLength: 0,
+			demoBlockCount: this.demoBlockCount,
 			isDone: false,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -305,8 +332,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private cancelCurrent() {
-		if (this.parseTimer != 0) clearTimeout(this.parseTimer)
-		this.parseTimer = 0
+		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
+		if (this.demoStreamTimer != 0) clearInterval(this.demoStreamTimer)
+		this.renderTimer = 0
+		this.demoStreamTimer = 0
 		this.finished = true
 		this.streamRequest?.abort()
 		this.streamRequest = null

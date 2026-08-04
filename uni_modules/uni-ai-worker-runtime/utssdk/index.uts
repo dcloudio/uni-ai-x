@@ -1,11 +1,16 @@
-import { AiWorkerStartOptions } from './interface.uts'
+import { AiWorkerDemoStartOptions, AiWorkerMarkdownStartOptions, AiWorkerStartOptions } from './interface.uts'
 
 export * from './interface.uts'
 
-const WORKER_RENDER_PROTOCOL_VERSION = 2
+const WORKER_RENDER_PROTOCOL_VERSION = 3
 let worker: Worker | null = null
 let workerReady = false
 let pendingStart: AiWorkerStartOptions | null = null
+let pendingDemoStart: AiWorkerDemoStartOptions | null = null
+let pendingMarkdownStart: AiWorkerMarkdownStartOptions | null = null
+let pendingMarkdownContent = ''
+let pendingMarkdownReasoning = ''
+let pendingMarkdownComplete = false
 let latestSnapshotJson = ''
 let currentRequestVersion = 0
 let runtimeGeneration = 0
@@ -21,9 +26,58 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.url = options.url
 	message.authorization = options.authorization
 	message.bodyJson = options.bodyJson
-	message.parseInterval = options.parseInterval ?? 300
+	message.renderInterval = options.renderInterval ?? 300
 	message.timeout = options.timeout ?? 90000
 	worker!.postMessage(message, null)
+}
+
+function postDemoStart(options: AiWorkerDemoStartOptions): void {
+	if (worker == null || !workerReady) return
+	const message = new UTSJSONObject()
+	message.action = 'start-demo'
+	message.renderProtocolVersion = WORKER_RENDER_PROTOCOL_VERSION
+	message.requestVersion = options.requestVersion
+	message.scenarioId = options.scenarioId
+	message.renderInterval = options.renderInterval ?? 300
+	message.streamInterval = options.streamInterval ?? 100
+	message.batchSize = options.batchSize ?? 10
+	message.blockInterval = options.blockInterval ?? 300
+	worker!.postMessage(message, null)
+}
+
+function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
+	if (worker == null || !workerReady) return
+	worker!.postMessage({
+		action: 'start-markdown',
+		renderProtocolVersion: WORKER_RENDER_PROTOCOL_VERSION,
+		requestVersion: options.requestVersion,
+		renderInterval: options.renderInterval ?? 300
+	} as UTSJSONObject, null)
+	if (pendingMarkdownContent.length > 0 || pendingMarkdownReasoning.length > 0) {
+		postMarkdownChunk(options.requestVersion, pendingMarkdownContent, pendingMarkdownReasoning)
+		pendingMarkdownContent = ''
+		pendingMarkdownReasoning = ''
+	}
+	if (pendingMarkdownComplete) {
+		pendingMarkdownComplete = false
+		postMarkdownComplete(options.requestVersion)
+	}
+}
+
+function postMarkdownChunk(requestVersion: number, content: string, reasoningContent: string): void {
+	worker?.postMessage({
+		action: 'append-markdown',
+		requestVersion: requestVersion,
+		content: content,
+		reasoningContent: reasoningContent
+	} as UTSJSONObject, null)
+}
+
+function postMarkdownComplete(requestVersion: number): void {
+	worker?.postMessage({
+		action: 'complete-markdown',
+		requestVersion: requestVersion
+	} as UTSJSONObject, null)
 }
 
 export function createAiWorkerRuntime(): void {
@@ -39,7 +93,15 @@ export function createAiWorkerRuntime(): void {
 		const phase = result.getString('phase', '')
 		if (phase == 'ready') {
 			workerReady = true
-			if (pendingStart != null) {
+			if (pendingDemoStart != null) {
+				const options = pendingDemoStart!
+				pendingDemoStart = null
+				postDemoStart(options)
+			} else if (pendingMarkdownStart != null) {
+				const options = pendingMarkdownStart!
+				pendingMarkdownStart = null
+				postMarkdownStart(options)
+			} else if (pendingStart != null) {
 				const options = pendingStart!
 				pendingStart = null
 				postStart(options)
@@ -65,11 +127,59 @@ export function startAiWorkerRequest(options: AiWorkerStartOptions): void {
 	createAiWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
+	pendingDemoStart = null
+	pendingMarkdownStart = null
 	if (!workerReady) {
 		pendingStart = options
 		return
 	}
 	postStart(options)
+}
+
+export function startAiWorkerDemo(options: AiWorkerDemoStartOptions): void {
+	createAiWorkerRuntime()
+	currentRequestVersion = options.requestVersion
+	latestSnapshotJson = ''
+	pendingStart = null
+	pendingMarkdownStart = null
+	if (!workerReady) {
+		pendingDemoStart = options
+		return
+	}
+	postDemoStart(options)
+}
+
+export function startAiWorkerMarkdown(options: AiWorkerMarkdownStartOptions): void {
+	createAiWorkerRuntime()
+	currentRequestVersion = options.requestVersion
+	latestSnapshotJson = ''
+	pendingStart = null
+	pendingDemoStart = null
+	pendingMarkdownContent = ''
+	pendingMarkdownReasoning = ''
+	pendingMarkdownComplete = false
+	if (!workerReady) {
+		pendingMarkdownStart = options
+		return
+	}
+	postMarkdownStart(options)
+}
+
+export function appendAiWorkerMarkdown(requestVersion: number, content: string, reasoningContent: string): void {
+	if (!workerReady || pendingMarkdownStart != null) {
+		pendingMarkdownContent += content
+		pendingMarkdownReasoning += reasoningContent
+		return
+	}
+	postMarkdownChunk(requestVersion, content, reasoningContent)
+}
+
+export function completeAiWorkerMarkdown(requestVersion: number): void {
+	if (!workerReady || pendingMarkdownStart != null) {
+		pendingMarkdownComplete = true
+		return
+	}
+	postMarkdownComplete(requestVersion)
 }
 
 export function readAiWorkerSnapshot(): string {
@@ -78,6 +188,11 @@ export function readAiWorkerSnapshot(): string {
 
 export function cancelAiWorkerRequest(requestVersion: number): void {
 	if (pendingStart?.requestVersion == requestVersion) pendingStart = null
+	if (pendingDemoStart?.requestVersion == requestVersion) pendingDemoStart = null
+	if (pendingMarkdownStart?.requestVersion == requestVersion) pendingMarkdownStart = null
+	pendingMarkdownContent = ''
+	pendingMarkdownReasoning = ''
+	pendingMarkdownComplete = false
 	if (worker == null || !workerReady) return
 	worker!.postMessage({
 		action: 'cancel',
@@ -91,6 +206,11 @@ export function destroyAiWorkerRuntime(): void {
 	worker = null
 	workerReady = false
 	pendingStart = null
+	pendingDemoStart = null
+	pendingMarkdownStart = null
+	pendingMarkdownContent = ''
+	pendingMarkdownReasoning = ''
+	pendingMarkdownComplete = false
 	latestSnapshotJson = ''
 	currentRequestVersion = 0
 	if (previousWorker != null) {

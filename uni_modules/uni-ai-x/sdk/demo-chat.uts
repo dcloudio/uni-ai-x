@@ -94,6 +94,14 @@ export function reportDemoMarkdownChunk(charCount: number, blockCompleted: boole
 	if (blockCompleted) completedBlocks++
 }
 
+export function reportDemoMarkdownSnapshot(charCount: number, blockCount: number, elapsed: number) {
+	if (!demoMarkdownState.running) return
+	receivedChars = charCount
+	completedBlocks = blockCount
+	startedAt = Date.now() - elapsed
+	publishDemoStats()
+}
+
 export function finishDemoMarkdownRun() {
 	if (!demoMarkdownState.running) return
 	clearStatsTimer()

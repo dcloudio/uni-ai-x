@@ -1,13 +1,8 @@
 package com.dcloud.cmark
-// 这个 so 库来源 /Users/dcloud_linju/Desktop/appCode/cmark-gfm 和 markdown-converter
 class MainActivity {
     companion object {
         private var cmarkHtmlLoadAttempted = false
         private var cmarkHtmlAvailable = false
-
-        init {
-            System.loadLibrary("cmark")
-        }
 
         @Synchronized
         private fun loadCmarkHtml(): Boolean {
@@ -23,9 +18,6 @@ class MainActivity {
             return cmarkHtmlAvailable
         }
     }
-		// md2json 函数声明
-		external fun md2json(text: String): String
-
 		private external fun md2htmlUtf8(markdownUtf8: ByteArray): ByteArray
 
 		fun isMd2htmlAvailable(): Boolean {

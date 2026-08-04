@@ -1,5 +1,4 @@
 export * from './sse.uts'
 export * from './stream-request.uts'
 export * from './markdown-preprocessor.uts'
-export * from './markdown-rich-text.uts'
-export * from './render-descriptions.uts'
+export * from './demo-markdown.uts'

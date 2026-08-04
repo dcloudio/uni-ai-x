@@ -1,17 +1,4 @@
-import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 class Utils {
-	getTokensText(tokens?: MarkdownToken[]){
-		if (tokens == null) return ''
-		let text = ''
-		tokens.forEach((token: MarkdownToken)=>{
-			if(token.text != null){
-				text += token.text
-			}else if(token.tokens != null && token.tokens.length > 0){
-				text += this.getTokensText(token.tokens)
-			}
-		})
-		return text
-	}
 	// Android 原生 UTS 可切换调度器；蒸汽模式 JS 引擎下回退为当前线程执行。
 	runOnDispatcher(taskName : string, fn : () => void) {
 		// #ifdef APP-ANDROID

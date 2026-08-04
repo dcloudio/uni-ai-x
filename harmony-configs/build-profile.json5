@@ -40,10 +40,6 @@
   },
   "modules": [
     {
-      "name": "uni_modules__uni_highlight",
-      "srcPath": "./uni_modules/uni-highlight"
-    },
-    {
       "name": "entry",
       "srcPath": "./entry",
       "targets": [

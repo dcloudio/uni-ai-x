@@ -4,5 +4,5 @@
 第一版
 # 1.1.0（2026-08-03）
 
-- Android 新增原生 `md2html`，由 cmark-gfm 直接生成 HTML 字符串，避免 AST JSON 序列化和解析。
+- Android 新增原生 `md2html`，由 cmark-gfm 直接生成 HTML 字符串。
 - 增加可复现的 Android 四 ABI 构建脚本和原生测试。

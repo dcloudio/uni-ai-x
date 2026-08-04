@@ -13,10 +13,7 @@ const STORAGE_KEYS: T_STORAGE_KEYS = {
 	MSG_CONTENT_PREFIX: 'uni-ai-msg-'
 }
 
-function migrateLegacyMessage(rawMessage: string, message: MsgItem): MsgItem {
-	if (rawMessage.includes('"datasList"')) {
-		message.markdownElList = []
-	}
+function migrateLegacyMessage(message: MsgItem): MsgItem {
 	if (message.markdownHtml == null) message.markdownHtml = ''
 	return message
 }
@@ -100,7 +97,7 @@ export class StorageManager {
 			const result = uni.getStorageSync(key) as string
 			if (result.length == 0) return null
 			const msg = JSON.parse<MsgItem>(result as string) as MsgItem
-			return migrateLegacyMessage(result, msg)
+			return migrateLegacyMessage(msg)
 		} catch (error) {
 			console.error(`获取消息 ${msgId} 失败:`, error)
 			return null

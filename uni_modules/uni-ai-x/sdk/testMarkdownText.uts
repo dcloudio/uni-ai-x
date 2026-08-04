@@ -1,3 +1,5 @@
+import { createDemoMarkdownBlock } from '@/uni_modules/uni-ai-worker/utssdk/demo-markdown.uts'
+
 export type DemoMarkdownScenario = {
 	id: string
 	label: string
@@ -20,122 +22,7 @@ export const demoMarkdownScenarios: DemoMarkdownScenario[] = [
 	{ id: 'mixed', label: '混合', prompt: '持续生成混合 Markdown 测试数据' }
 ] as DemoMarkdownScenario[]
 
-const MIXED_GROUP_SIZE = 10
-const MIXED_GROUP_COUNT = 10
-
-function headingMarker(index: number): string {
-	const markers = ['#', '##', '###', '####', '#####', '######'] as string[]
-	return markers[(index - 1) % markers.length]
-}
-
-function headingBlock(index: number): string {
-	return headingMarker(index) + ' 标题渲染样本 ' + index.toString() + '\n\n'
-}
-
-function listBlock(index: number): string {
-	return '- 无序列表项目 ' + index.toString() + '-A\n'
-		+ '- 无序列表项目 ' + index.toString() + '-B\n'
-		+ '  - 嵌套项目 ' + index.toString() + '\n'
-		+ '1. 有序步骤 ' + index.toString() + '-1\n'
-		+ '2. 有序步骤 ' + index.toString() + '-2\n'
-		+ '- [x] 已完成任务 ' + index.toString() + '\n'
-		+ '- [ ] 待完成任务 ' + index.toString() + '\n\n'
-}
-
-function tableBlock(index: number): string {
-	return '| 序号 | 场景 | 内容 | 状态 | 备注 |\n'
-		+ '|:---|:---|:---|:---:|---:|\n'
-		+ '| ' + index.toString() + ' | 表格压力测试 | 第 ' + index.toString() + ' 轮较长单元格内容，用于观察窄屏排版与横向滚动 | 运行中 | A' + index.toString() + ' |\n'
-		+ '| ' + (index + 1).toString() + ' | 宽表格 | alpha-beta-gamma-' + index.toString() + ' | 正常 | B' + index.toString() + ' |\n\n'
-}
-
-function quoteBlock(index: number): string {
-	return '> 引用测试第 ' + index.toString() + ' 轮。\n'
-		+ '> 这是一段包含 **加粗内容**、`inline-code-' + index.toString() + '` 和多行排版的引用。\n'
-		+ '> 最后一行用于观察连续引用块的高度变化。\n\n'
-}
-
-function codeBlock(index: number): string {
-	return '```javascript\n'
-		+ 'const sample' + index.toString() + ' = { id: ' + index.toString() + ', name: "markdown-performance-' + index.toString() + '" }\n'
-		+ 'function formatSample' + index.toString() + '(value) {\n'
-		+ '  return `${value.name}:${value.id}`\n'
-		+ '}\n'
-		+ 'alert(formatSample' + index.toString() + '(sample' + index.toString() + '))\n'
-		+ '```\n\n'
-}
-
-function linkBlock(index: number): string {
-	return '[测试链接 ' + index.toString() + '](https://example.com/performance/' + index.toString() + ')  \n'
-		+ '[带标题的链接 ' + index.toString() + '](https://example.com/docs/' + index.toString() + ' "Markdown Test")  \n'
-		+ '正文中的自动链接：<https://example.com/item/' + index.toString() + '>\n\n'
-}
-
-function mathBlock(index: number): string {
-	const variant = index % 3
-	if (variant == 1) {
-		return '$$\\sum_{k=1}^{' + (index + 3).toString() + '} k^2 = \\frac{' + (index + 3).toString()
-			+ '(' + (index + 4).toString() + ')(2\\times' + (index + 3).toString() + '+1)}{6}$$\n\n'
-	}
-	if (variant == 2) {
-		return '$$\\int_{0}^{' + (index + 1).toString() + '} x^{' + (index % 5 + 2).toString()
-			+ '} \\, dx = \\frac{' + (index + 1).toString() + '^{' + (index % 5 + 3).toString()
-			+ '}}{' + (index % 5 + 3).toString() + '}$$\n\n'
-	}
-	return '$$\\begin{bmatrix} ' + index.toString() + ' & 1 \\\\ 0 & ' + (index + 1).toString()
-		+ ' \\end{bmatrix} \\begin{bmatrix} x \\\\ y \\end{bmatrix}$$\n\n'
-}
-
-function mermaidBlock(index: number): string {
-	return '```mermaid\n'
-		+ 'graph TD\n'
-		+ '  A' + index.toString() + '[开始 ' + index.toString() + '] --> B' + index.toString() + '{条件 ' + index.toString() + '}\n'
-		+ '  B' + index.toString() + ' -->|通过| C' + index.toString() + '[渲染表格 ' + index.toString() + ']\n'
-		+ '  B' + index.toString() + ' -->|拒绝| D' + index.toString() + '[渲染公式 ' + index.toString() + ']\n'
-		+ '  C' + index.toString() + ' --> E' + index.toString() + '[结束 ' + index.toString() + ']\n'
-		+ '  D' + index.toString() + ' --> E' + index.toString() + '\n'
-		+ '```\n\n'
-}
-
-function dividerBlock(index: number): string {
-	return '分割线前文本 ' + index.toString() + '\n\n---\n\n分割线后文本 ' + index.toString() + '\n\n'
-}
-
-function paragraphBlock(index: number): string {
-	return '第 ' + index.toString() + ' 轮长文本用于观察连续流式更新时的文字测量、自动换行和列表滚动性能。'
-		+ '这一段包含不同长度的中文句子与英文标识 markdown-render-cycle-' + index.toString() + '，'
-		+ '并通过重复但不完全相同的正文制造稳定、可比较的排版压力。'
-		+ '当内容持续增长时，可以结合最低帧率和平均帧率判断长消息重新解析与重新布局的成本。\n\n'
-}
-
-function mixedBlock(index: number): string {
-	const normalizedIndex = index > 0 ? index - 1 : 0
-	const groupIndex = Math.floor(normalizedIndex / MIXED_GROUP_SIZE) % MIXED_GROUP_COUNT
-	if (groupIndex == 0) return headingBlock(index)
-	if (groupIndex == 1) return listBlock(index)
-	if (groupIndex == 2) return tableBlock(index)
-	if (groupIndex == 3) return quoteBlock(index)
-	if (groupIndex == 4) return codeBlock(index)
-	if (groupIndex == 5) return linkBlock(index)
-	if (groupIndex == 6) return mathBlock(index)
-	if (groupIndex == 7) return mermaidBlock(index)
-	if (groupIndex == 8) return dividerBlock(index)
-	return paragraphBlock(index)
-}
-
-export function createDemoMarkdownBlock(scenarioId: string, index: number): string {
-	if (scenarioId == 'heading') return headingBlock(index)
-	if (scenarioId == 'list') return listBlock(index)
-	if (scenarioId == 'table') return tableBlock(index)
-	if (scenarioId == 'quote') return quoteBlock(index)
-	if (scenarioId == 'code') return codeBlock(index)
-	if (scenarioId == 'link') return linkBlock(index)
-	if (scenarioId == 'math') return mathBlock(index)
-	if (scenarioId == 'mermaid') return mermaidBlock(index)
-	if (scenarioId == 'divider') return dividerBlock(index)
-	if (scenarioId == 'paragraph') return paragraphBlock(index)
-	return mixedBlock(index)
-}
+export { createDemoMarkdownBlock }
 
 const testMarkdownText = DEMO_MARKDOWN_ENABLED ? createDemoMarkdownBlock('mixed', 1) : ''
 export default testMarkdownText

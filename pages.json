@@ -21,27 +21,6 @@
 			{
 				"navigationBarTitleText" : "选择文本"
 			}
-		},
-		{
-			"path" : "pages/repro-worker-capability/index",
-			"style" :
-			{
-				"navigationBarTitleText" : "Worker 能力探针"
-			}
-		},
-		{
-			"path" : "pages/repro-worker-real-ai/index",
-			"style" :
-			{
-				"navigationBarTitleText" : "Worker 真实 AI 探针"
-			}
-		},
-		{
-			"path" : "pages/repro-worker-render-descriptions/index",
-			"style" :
-			{
-				"navigationBarTitleText" : "Worker 渲染描述探针"
-			}
 		}
 	],
 	"globalStyle": {

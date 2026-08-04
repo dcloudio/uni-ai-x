@@ -1,26 +1,17 @@
 <template>
 	<rich-text class="uni-ai-md-rich-text-content" :style="richTextStyle"
-		:nodes="richNodes" mode="native" @itemclick="onItemClick"></rich-text>
+		:nodes="html" mode="native" @itemclick="onItemClick"></rich-text>
 </template>
 
 <script lang="uts" setup>
-	import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
-	import { markdownTokensToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 
 	type UniAiMdRichTextProps = {
-		markdownElList?: MarkdownToken[]
-		richNodes?: UTSJSONObject[]
-		html?: string
+		html: string
 	}
 
 	const props = defineProps<UniAiMdRichTextProps>()
-
-	const richNodes = computed<string | UTSJSONObject[]>(() => {
-		if (props.html != null) return props.html!
-		if (props.richNodes != null) return props.richNodes!
-		return markdownTokensToRichTextNodes(props.markdownElList ?? [] as MarkdownToken[])
-	})
+	const html = computed<string>(() => props.html)
 
 	const richTextStyle = computed<string>(() => {
 		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'

@@ -1,8 +1,5 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
-import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import { MarkdownRenderDescription } from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
-import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 import {
@@ -10,21 +7,22 @@ import {
 	beginDemoMarkdownRun,
 	finishDemoMarkdownRun,
 	isDemoMarkdownEnabled,
-	nextDemoMarkdownBlock,
-	reportDemoMarkdownChunk
+	reportDemoMarkdownSnapshot
 } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
 // #ifdef APP-ANDROID
 import {
+	appendAiWorkerMarkdown,
 	cancelAiWorkerRequest,
+	completeAiWorkerMarkdown,
 	destroyAiWorkerRuntime,
 	readAiWorkerSnapshot,
+	startAiWorkerDemo,
+	startAiWorkerMarkdown,
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
-type BeforeUpdateMdElList = (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => void;
 export type RequestAiRunnerCallbacks = {
-	onMarkdownElList: (markdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[]) => void,
 	onMarkdownHtml: (html: string) => void,
 	onThinkContent: (thinkContent: string) => void,
 	onMsgBody: (msgBody: string) => void,
@@ -56,19 +54,17 @@ type RequestAiServerOptions = {
 	onTaskCreate ?: RequestAiOnTaskCreateFn
 }
 
-const MARKDOWN_PARSE_INTERVAL = 300
+const MARKDOWN_RENDER_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 100
-const DEMO_BLOCK_INTERVAL = MARKDOWN_PARSE_INTERVAL
+const DEMO_BLOCK_INTERVAL = MARKDOWN_RENDER_INTERVAL
 
 class RequestAiRunner {
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
-	parseMarkdown : ParseMarkdown | null = null
 	private callbacks : RequestAiRunnerCallbacks | null = null
 	currentChatState : string = ''
-	beforeUpdateMdElList: BeforeUpdateMdElList = (_markdownTokenList: MarkdownToken[], _renderList: MarkdownRenderDescription[], _isParseDone: boolean) => {}
 	userAbort : boolean = false
 	hasThinkContent : boolean = false
 	private bodyEmitTimer: number = 0
@@ -77,28 +73,8 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
-	private demoStreamTimer: number = 0
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
-		this.beforeUpdateMdElList = (newMarkdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => {
-			this.callbacks?.onMarkdownElList(newMarkdownTokenList, renderList)
-			if (isParseDone) {
-				if (this.currentChatState == 'stop') {
-					this.callbacks?.onRendered(true)
-					this.parseMarkdown?.dispose()
-					this.callbacks = null
-					return
-				}
-				this.currentChatState = 'completed'
-				this.callbacks?.onState('completed')
-				this.callbacks?.onRendered(true)
-			}
-		}
-		this.resetParser()
-	}
-	resetParser() {
-		this.parseMarkdown?.dispose()
-		this.parseMarkdown = new ParseMarkdown(this.beforeUpdateMdElList, MARKDOWN_PARSE_INTERVAL)
 	}
 	private emitMsgBody(force: boolean = false) {
 		if (force) {
@@ -108,8 +84,8 @@ class RequestAiRunner {
 			this.callbacks?.onMsgBody(this.msgBody)
 			return
 		}
-		const elapsed = this.lastBodyEmitTime == 0 ? MARKDOWN_PARSE_INTERVAL : Date.now() - this.lastBodyEmitTime
-		if (elapsed >= MARKDOWN_PARSE_INTERVAL) {
+		const elapsed = this.lastBodyEmitTime == 0 ? MARKDOWN_RENDER_INTERVAL : Date.now() - this.lastBodyEmitTime
+		if (elapsed >= MARKDOWN_RENDER_INTERVAL) {
 			this.lastBodyEmitTime = Date.now()
 			this.callbacks?.onMsgBody(this.msgBody)
 			return
@@ -119,7 +95,7 @@ class RequestAiRunner {
 			this.bodyEmitTimer = 0
 			this.lastBodyEmitTime = Date.now()
 			this.callbacks?.onMsgBody(this.msgBody)
-		}, MARKDOWN_PARSE_INTERVAL - elapsed)
+		}, MARKDOWN_RENDER_INTERVAL - elapsed)
 	}
 	onChunkFn(chunkObj : Chunk) {
 		let reasoningContent: null | string = null
@@ -138,6 +114,12 @@ class RequestAiRunner {
 		}
 
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
+		// #ifdef APP-ANDROID
+		if (this.workerActive) {
+			appendAiWorkerMarkdown(this.workerRequestVersion, content ?? '', reasoningContent ?? '')
+			return
+		}
+		// #endif
 		if (content != null && content.length > 0) {
 			this.msgBody += content
 			this.emitMsgBody()
@@ -146,21 +128,10 @@ class RequestAiRunner {
 			this.callbacks?.onThinkContent(this.thinkContent.trim())
 		}
 
-		if (content != null) {
-			this.runMarkdownParse(false)
-		}
 	};
-	runMarkdownParse(isDone: boolean = false) {
-		this.parseMarkdown!.msgReceiveDone = isDone
-		if (isDone) {
-			this.parseMarkdown?.flush(this.msgBody)
-		} else {
-			this.parseMarkdown?.runTask(this.msgBody)
-		}
-	}
 	resetRequestState() {
 		this.stopWorkerRuntime(true)
-		this.stopDemoStream()
+		finishDemoMarkdownRun()
 		this.workerRequestVersion += 1
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
@@ -170,9 +141,9 @@ class RequestAiRunner {
 		this.currentChatState = ''
 		this.userAbort = false
 		this.hasThinkContent = false
-		this.resetParser()
 	}
 	handleRequestError(errRes: UTSJSONObject) {
+		if (this.workerActive) this.stopWorkerRuntime(true)
 		console.error('requestAiServer error', errRes)
 		const errCode = errRes.getString('errCode', '')
 		let errMsg = errRes.getString('errMsg', '未知错误')
@@ -189,11 +160,20 @@ class RequestAiRunner {
 		if (this.currentChatState == 'stop') {
 			return
 		}
+		// #ifdef APP-ANDROID
+		if (this.workerActive) {
+			completeAiWorkerMarkdown(this.workerRequestVersion)
+			return
+		}
+		// #endif
 		if (!this.msgBody.endsWith('\n')) {
 			this.msgBody += '\n'
 		}
 		this.emitMsgBody(true)
-		this.runMarkdownParse(true)
+		this.handleRequestError({
+			errCode: 'markdown_html_unsupported',
+			errMsg: '当前平台未启用 Markdown HTML Worker'
+		} as UTSJSONObject)
 	}
 	start(options: RequestAiStartOptions) {
 		this.requestAi(options.messages, options.llm, options.chat_id)
@@ -203,7 +183,15 @@ class RequestAiRunner {
 
 		if (isDemoMarkdownEnabled()) {
 			if (beginDemoMarkdownRun()) {
-				this.streamDemoMarkdown()
+				// #ifdef APP-ANDROID
+				this.streamDemoMarkdownInWorker()
+				// #endif
+				// #ifndef APP-ANDROID
+				this.handleRequestError({
+					errCode: 'markdown_html_unsupported',
+					errMsg: '当前平台未启用 Markdown HTML Worker'
+				} as UTSJSONObject)
+				// #endif
 			} else {
 				this.handleRequestError({
 					errCode: 'demo_scenario_missing',
@@ -212,6 +200,14 @@ class RequestAiRunner {
 			}
 			return
 		}
+
+		// #ifndef APP-ANDROID
+		this.handleRequestError({
+			errCode: 'markdown_html_unsupported',
+			errMsg: '当前平台未启用 Markdown HTML Worker'
+		} as UTSJSONObject)
+		return
+		// #endif
 
 		this.updateChatTitle(messages, llm)
 		this.requestRemoteAi(messages, llm, chat_id)
@@ -222,6 +218,7 @@ class RequestAiRunner {
 			this.requestRemoteAiInWorker(messages, llm, chat_id)
 			return
 		}
+		this.startMarkdownHtmlWorker()
 		// #endif
 		this.requestAiServer({
 			llm,
@@ -275,7 +272,7 @@ class RequestAiRunner {
 				url: config.baseURL!,
 				authorization: 'Bearer ' + tmpToken,
 				bodyJson: JSON.stringify(body),
-				parseInterval: MARKDOWN_PARSE_INTERVAL,
+				renderInterval: MARKDOWN_RENDER_INTERVAL,
 				timeout: 90000
 			})
 			this.workerPollTimer = setInterval(() => {
@@ -322,25 +319,16 @@ class RequestAiRunner {
 
 		this.msgBody = snapshot.getString('msgBody', this.msgBody)
 		this.thinkContent = snapshot.getString('thinkContent', this.thinkContent)
+		reportDemoMarkdownSnapshot(
+			this.msgBody.length,
+			snapshot.getNumber('demoBlockCount', 0),
+			snapshot.getNumber('elapsed', 0)
+		)
 		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
-		const renderMode = snapshot.getString('renderMode', 'structured')
-		let tokenList = [] as MarkdownToken[]
-		let renderList = [] as MarkdownRenderDescription[]
-		if (renderMode == 'structured') {
-			try {
-				tokenList = JSON.parseArray<MarkdownToken>(snapshot.getString('tokensJson', '[]')) as MarkdownToken[]
-				renderList = JSON.parseArray<MarkdownRenderDescription>(snapshot.getString('renderListJson', '[]')) as MarkdownRenderDescription[]
-			} catch (_error) {
-				this.handleWorkerSnapshotError('worker_render_data_invalid', 'Worker Markdown 渲染数据解析失败')
-				return
-			}
-			if (tokenList.length > 0 && renderList.length == 0) {
-				this.handleWorkerSnapshotError('worker_render_descriptions_missing', 'Worker 未返回 Markdown 渲染描述')
-				return
-			}
-		} else if (renderMode != 'html') {
-			this.handleWorkerSnapshotError('worker_render_mode_invalid', 'Worker Markdown 渲染模式无效')
+		const renderMode = snapshot.getString('renderMode', '')
+		if (renderMode != 'html') {
+			this.handleWorkerSnapshotError('worker_html_required', 'Worker 必须返回 Markdown HTML')
 			return
 		}
 		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
@@ -351,9 +339,6 @@ class RequestAiRunner {
 				eventCount: snapshot.getNumber('eventCount', 0),
 				networkChunkCount: snapshot.getNumber('networkChunkCount', 0),
 				receivedBytes: snapshot.getNumber('receivedBytes', 0),
-				tokenCount: snapshot.getNumber('tokenCount', 0),
-				renderDescriptionCount: snapshot.getNumber('renderDescriptionCount', 0),
-				richNodeCount: snapshot.getNumber('richNodeCount', 0),
 				renderMode: renderMode,
 				htmlLength: snapshot.getNumber('htmlLength', 0),
 				terminalSource: snapshot.getString('terminalSource', ''),
@@ -361,20 +346,17 @@ class RequestAiRunner {
 			} as UTSJSONObject))
 			this.stopWorkerRuntime(false)
 		}
-		if (renderMode == 'html') {
-			this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
-			if (isDone) {
-				this.currentChatState = 'completed'
-				this.callbacks?.onState('completed')
-				this.callbacks?.onRendered(true)
-			}
-			return
+		this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
+		if (isDone) {
+			this.currentChatState = 'completed'
+			this.callbacks?.onState('completed')
+			this.callbacks?.onRendered(true)
 		}
-		this.parseMarkdown?.applyParsedTokens(tokenList, renderList, isDone)
 	}
 
 	private handleWorkerSnapshotError(errCode: string, errMsg: string) {
 		this.stopWorkerRuntime(false)
+		finishDemoMarkdownRun()
 		this.handleRequestError({
 			errCode: errCode,
 			errMsg: errMsg
@@ -391,40 +373,41 @@ class RequestAiRunner {
 		// #endif
 		this.workerActive = false
 	}
-	streamDemoMarkdown() {
-		let blockText = ''
-		let blockOffset = 0
-		let nextBlockAt = 0
-		this.demoStreamTimer = setInterval(() => {
-			if (this.userAbort) {
-				this.stopDemoStream()
-				return
-			}
-			if (Date.now() < nextBlockAt) return
-			if (blockOffset >= blockText.length) {
-				blockText = nextDemoMarkdownBlock()
-				blockOffset = 0
-			}
-			const scenarioId = activeDemoMarkdownScenarioId()
-			const chunkSize = scenarioId == 'math' ? blockText.length : DEMO_STREAM_BATCH_SIZE
-			const endIndex = Math.min(blockOffset + chunkSize, blockText.length)
-			const chunkText = blockText.slice(blockOffset, endIndex)
-			this.msgBody += chunkText
-			this.emitMsgBody()
-			blockOffset = endIndex
-			const blockCompleted = blockOffset >= blockText.length
-			reportDemoMarkdownChunk(chunkText.length, blockCompleted)
-			this.runMarkdownParse(false)
-			if (blockCompleted) {
-				nextBlockAt = Date.now() + (scenarioId == 'math' ? 500 : DEMO_BLOCK_INTERVAL)
-			}
-		}, DEMO_STREAM_INTERVAL)
+
+	// #ifdef APP-ANDROID
+	private startMarkdownHtmlWorker() {
+		const requestVersion = this.workerRequestVersion + 1
+		this.workerRequestVersion = requestVersion
+		this.workerSnapshotVersion = 0
+		this.workerActive = true
+		startAiWorkerMarkdown({
+			requestVersion: requestVersion,
+			renderInterval: MARKDOWN_RENDER_INTERVAL
+		})
+		this.workerPollTimer = setInterval(() => {
+			this.pollWorkerSnapshot(requestVersion)
+		}, 50)
 	}
-	private stopDemoStream() {
-		if (this.demoStreamTimer != 0) clearInterval(this.demoStreamTimer)
-		this.demoStreamTimer = 0
-		finishDemoMarkdownRun()
+
+	private streamDemoMarkdownInWorker() {
+		const requestVersion = this.workerRequestVersion + 1
+		this.workerRequestVersion = requestVersion
+		this.workerSnapshotVersion = 0
+		this.workerActive = true
+		startAiWorkerDemo({
+			requestVersion: requestVersion,
+			scenarioId: activeDemoMarkdownScenarioId(),
+			renderInterval: MARKDOWN_RENDER_INTERVAL,
+			streamInterval: DEMO_STREAM_INTERVAL,
+			batchSize: DEMO_STREAM_BATCH_SIZE,
+			blockInterval: DEMO_BLOCK_INTERVAL
+		})
+		this.workerPollTimer = setInterval(() => {
+			this.pollWorkerSnapshot(requestVersion)
+		}, 50)
 	}
+	// #endif
+
 	async requestViaCustomProvider(options : RequestAiServerOptions) : Promise<UTSJSONObject> {
 		const adapter = getCustomProvider(options.llm.provider)
 		if (adapter == null) {
@@ -596,20 +579,10 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
-		if (this.demoStreamTimer != 0) {
-			this.stopDemoStream()
-			this.currentChatState = 'stop'
-			this.emitMsgBody(true)
-			this.callbacks?.onState('stop')
-			this.parseMarkdown!.msgReceiveDone = true
-			this.parseMarkdown?.flush(this.msgBody)
-			return
-		}
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
-		this.parseMarkdown?.dispose()
 		this.userAbort = true
-		this.stopDemoStream()
+		finishDemoMarkdownRun()
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
 		this.requestTask?.abort()

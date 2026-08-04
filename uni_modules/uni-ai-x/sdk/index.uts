@@ -1,13 +1,11 @@
 import { reactive, watch, nextTick } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, MarkdownElItem, ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
-export { MsgItem, ChatItem, BaseMsgItem, Userinfo, MarkdownElItem }
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
+export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
-import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import { StorageManager, AiChat } from './storage-manager.uts'
 import testMarkdownText from './testMarkdownText.uts';
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
-import { MarkdownRenderDescription } from '@/uni_modules/uni-ai-worker/utssdk/render-descriptions.uts'
 export {testMarkdownText}
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: RequestAiRunner | null = null
@@ -135,15 +133,8 @@ class UniAi {
 	}
 	private watchSetting() {
 		watch((): Setting => this.setting, () => {
-			this.syncSettingToProxyWeb()
 			this.saveSetting()
 		}, { deep: true, immediate: true })
-	}
-	private syncSettingToProxyWeb() {
-		proxyWeb.callMethod({
-			action: 'setSetting',
-			data: this.setting
-		}, () => {})
 	}
 	private saveSetting() {
 		uni.setStorage({
@@ -256,8 +247,6 @@ class UniAi {
 			_id: this.getLocalMsgId(),
 			create_time: Date.now(),
 			state: 0,
-				markdownElList: [] as MarkdownElItem[],
-				markdownRenderList: [] as MarkdownRenderDescription[],
 				markdownHtml: '',
 			rendered: false
 		} as MsgItem
@@ -326,33 +315,20 @@ class UniAi {
 		msg.rendered = false
 		msg.error_msg = null
 		msg.thinkContent = null
-			msg.markdownElList = []
-			msg.markdownRenderList = []
-			msg.markdownHtml = ''
+		msg.markdownHtml = ''
 		this.updateMsg2Storage(msg)
 	}
 	
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
-		// 重新回答问题了，之前的回调需要清除
-		proxyWeb.callbackMap.clear()
 		requestAiRunner?.abortRequest()
 		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
 		requestAiRunner = new RequestAiRunner({
-				onMarkdownElList: (markdownElList: MarkdownElItem[], renderList: MarkdownRenderDescription[]) => {
-					if (this.currentChat!.state == 'stop') return
-					aiMsgItem.markdownElList = markdownElList
-					aiMsgItem.markdownRenderList = renderList
-					aiMsgItem.markdownHtml = ''
-				this.updateMsg2Storage(aiMsgItem)
-			},
 			onMarkdownHtml: (html: string) => {
 				if (this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownHtml = html
-				aiMsgItem.markdownElList = []
-				aiMsgItem.markdownRenderList = []
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {

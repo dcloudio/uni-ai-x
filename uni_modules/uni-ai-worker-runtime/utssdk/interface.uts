@@ -5,6 +5,20 @@ export type AiWorkerStartOptions = {
 	url: string,
 	authorization: string,
 	bodyJson: string,
-	parseInterval?: number,
+	renderInterval?: number,
 	timeout?: number
+}
+
+export type AiWorkerDemoStartOptions = {
+	requestVersion: number,
+	scenarioId: string,
+	renderInterval?: number,
+	streamInterval?: number,
+	batchSize?: number,
+	blockInterval?: number
+}
+
+export type AiWorkerMarkdownStartOptions = {
+	requestVersion: number,
+	renderInterval?: number
 }
