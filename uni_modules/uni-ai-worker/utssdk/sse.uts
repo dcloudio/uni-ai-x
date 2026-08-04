@@ -124,7 +124,12 @@ export class SSEStreamDecoder {
 				separatorLength = 2
 			}
 			const line = this.textBuffer.substring(0, separatorIndex)
+			// #ifdef APP-HARMONY
+			this.textBuffer = this.textBuffer.slice(separatorIndex + separatorLength)
+			// #endif
+			// #ifndef APP-HARMONY
 			this.textBuffer = this.textBuffer.slice(Number.from(separatorIndex) + separatorLength)
+			// #endif
 			this.processLine(line)
 		}
 	}

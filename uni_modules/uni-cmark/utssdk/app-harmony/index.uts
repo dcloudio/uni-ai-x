@@ -1,4 +1,5 @@
 import { ParseMdRes, MarkdownToken } from '../interface.uts'
+export * from '../interface.uts'
 import cmark from 'libcmark.so'
 
 export function md2json(markdown: string): ParseMdRes {
