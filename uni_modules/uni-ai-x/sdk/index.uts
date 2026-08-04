@@ -399,6 +399,10 @@ class UniAi {
 	onBeforeRequestAi(fn: BeforeRequestAiFn) {
 		this.beforeRequestAiFns.push(fn)
 	}
+	offBeforeRequestAi(fn: BeforeRequestAiFn) {
+		const index = this.beforeRequestAiFns.indexOf(fn)
+		if (index != -1) this.beforeRequestAiFns.splice(index, 1)
+	}
 	emitBeforeRequestAi() {
 		this.beforeRequestAiFns.forEach((fn) => {
 			fn()

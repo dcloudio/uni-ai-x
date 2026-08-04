@@ -1,7 +1,118 @@
-import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+import { reactive } from 'vue'
+import {
+	createDemoMarkdownBlock,
+	demoMarkdownScenarios,
+	DEMO_MARKDOWN_ENABLED,
+	DemoMarkdownScenario
+} from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
 
-export const demoPrompt = '给我 markdown 的各级标题，列表（含有序无序任务列表），简单的表格，引用，简单的 js 代码示例，链接，分割线，常见 LaTeX 数学公式，简单的流程图。注意：不要包裹在代码块里面'
+export type DemoMarkdownRuntimeState = {
+	runId: number
+	scenarioId: string
+	scenarioLabel: string
+	running: boolean
+	blockCount: number
+	receivedChars: number
+	elapsed: number
+}
 
-export const isDemoMarkdownEnabled = (): boolean => {
-	return testMarkdownText.length > 0
+export const demoMarkdownState = reactive<DemoMarkdownRuntimeState>({
+	runId: 0,
+	scenarioId: '',
+	scenarioLabel: '',
+	running: false,
+	blockCount: 0,
+	receivedChars: 0,
+	elapsed: 0
+})
+
+export { demoMarkdownScenarios }
+
+let selectedScenarioId = ''
+let nextBlockIndex = 0
+let startedAt = 0
+let receivedChars = 0
+let completedBlocks = 0
+let statsTimer = 0
+
+function scenarioById(scenarioId: string): DemoMarkdownScenario | null {
+	return demoMarkdownScenarios.find((item: DemoMarkdownScenario): boolean => item.id == scenarioId) ?? null
+}
+
+function publishDemoStats() {
+	demoMarkdownState.blockCount = completedBlocks
+	demoMarkdownState.receivedChars = receivedChars
+	demoMarkdownState.elapsed = startedAt == 0 ? 0 : Date.now() - startedAt
+}
+
+function clearStatsTimer() {
+	if (statsTimer != 0) clearInterval(statsTimer)
+	statsTimer = 0
+}
+
+export function isDemoMarkdownEnabled(): boolean {
+	return DEMO_MARKDOWN_ENABLED
+}
+
+export function selectDemoMarkdownScenario(scenarioId: string): DemoMarkdownScenario | null {
+	const scenario = scenarioById(scenarioId)
+	if (scenario == null) return null
+	selectedScenarioId = scenario.id
+	return scenario
+}
+
+export function beginDemoMarkdownRun(): boolean {
+	const scenario = scenarioById(selectedScenarioId)
+	if (scenario == null) return false
+	clearStatsTimer()
+	nextBlockIndex = 0
+	receivedChars = 0
+	completedBlocks = 0
+	startedAt = Date.now()
+	demoMarkdownState.runId++
+	demoMarkdownState.scenarioId = scenario.id
+	demoMarkdownState.scenarioLabel = scenario.label
+	demoMarkdownState.running = true
+	publishDemoStats()
+	statsTimer = setInterval(() => {
+		publishDemoStats()
+	}, 500)
+	return true
+}
+
+export function nextDemoMarkdownBlock(): string {
+	nextBlockIndex++
+	return createDemoMarkdownBlock(demoMarkdownState.scenarioId, nextBlockIndex)
+}
+
+export function activeDemoMarkdownScenarioId(): string {
+	return demoMarkdownState.scenarioId
+}
+
+export function reportDemoMarkdownChunk(charCount: number, blockCompleted: boolean) {
+	receivedChars += charCount
+	if (blockCompleted) completedBlocks++
+}
+
+export function finishDemoMarkdownRun() {
+	if (!demoMarkdownState.running) return
+	clearStatsTimer()
+	publishDemoStats()
+	demoMarkdownState.running = false
+}
+
+export function resetDemoMarkdownStats() {
+	finishDemoMarkdownRun()
+	selectedScenarioId = ''
+	nextBlockIndex = 0
+	startedAt = 0
+	receivedChars = 0
+	completedBlocks = 0
+	demoMarkdownState.runId++
+	demoMarkdownState.scenarioId = ''
+	demoMarkdownState.scenarioLabel = ''
+	demoMarkdownState.running = false
+	demoMarkdownState.blockCount = 0
+	demoMarkdownState.receivedChars = 0
+	demoMarkdownState.elapsed = 0
 }

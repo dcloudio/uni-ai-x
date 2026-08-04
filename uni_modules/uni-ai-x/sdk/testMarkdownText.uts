@@ -1,133 +1,141 @@
-let testMarkdownText = `# Markdown 示例文档
-
-## 二级标题
-### 三级标题
-#### 四级标题
-##### 五级标题
-###### 六级标题
-
----
-
-## 列表示例
-
-### 无序列表
-- 项目一
-- 项目二
-  - 子项目A
-  - 子项目B
-- 项目三
-
-### 有序列表
-1. 第一步
-2. 第二步
-   1. 子步骤
-   2. 子步骤
-3. 第三步
-
-### 任务列表
-- [x] 完成设计
-- [ ] 编写代码
-- [ ] 测试功能
-
----
-
-## 表格示例
-
-| 姓名 | 年龄 | 职业 |
-|------|------|------|
-| 张三 | 28   | 工程师工程师工程师工程师工程师 |
-| 李四李四李四李四 | 32   | 设计师 |
-| 王五 | 25   | 学生 |
-
-### 宽表格横向滚动
-
-| 模型 | 提供商 | 上下文窗口 | 输入价格 | 输出价格 | 多模态 | 工具调用 | 备注 |
-|:--- |:--- |:--- |:--- |:--- |:--- |:--- |:--- |
-| 示例模型 Alpha | 示例云服务 | 128K tokens | 0.50 元/百万tokens | 1.50 元/百万tokens | 图片、文本 | 支持 | 这一列用于验证窄屏下不会压缩到无法阅读，由原生 ScrollView 横向滚动 |
-| 示例模型 Beta | 示例云服务 | 32K tokens | 0.25 元/百万tokens | 0.75 元/百万tokens | 仅文本 | 不支持 | 轻量版本，适合简单文本问答场景 |
-
----
-
-## 引用示例
-
-> 这是引用的内容。  
-> 引用可以跨越多行。
-
----
-
-## JavaScript 代码示例
-
-\`\`\`javascript
-function greet(name) {
-  return \`Hello, \${name}!\`;
+export type DemoMarkdownScenario = {
+	id: string
+	label: string
+	prompt: string
 }
 
-alert(greet('World'));
+export const DEMO_MARKDOWN_ENABLED = true
 
-const veryLongLine = "这是一条专门用于验证代码块横向滚动的超长单行内容：abcdefghijklmnopqrstuvwxyz-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-\`\`\`
+export const demoMarkdownScenarios: DemoMarkdownScenario[] = [
+	{ id: 'heading', label: '标题', prompt: '持续生成 Markdown 标题测试数据' },
+	{ id: 'list', label: '列表', prompt: '持续生成 Markdown 列表测试数据' },
+	{ id: 'table', label: '表格', prompt: '持续生成 Markdown 表格测试数据' },
+	{ id: 'quote', label: '引用', prompt: '持续生成 Markdown 引用测试数据' },
+	{ id: 'code', label: '代码', prompt: '持续生成 Markdown 代码块测试数据' },
+	{ id: 'link', label: '链接', prompt: '持续生成 Markdown 链接测试数据' },
+	{ id: 'math', label: '公式', prompt: '持续生成 Markdown 数学公式测试数据' },
+	{ id: 'mermaid', label: '流程图', prompt: '持续生成 Mermaid 流程图测试数据' },
+	{ id: 'divider', label: '分割线', prompt: '持续生成 Markdown 分割线测试数据' },
+	{ id: 'paragraph', label: '长文本', prompt: '持续生成 Markdown 长文本测试数据' },
+	{ id: 'mixed', label: '混合', prompt: '持续生成混合 Markdown 测试数据' }
+] as DemoMarkdownScenario[]
 
----
+const MIXED_GROUP_SIZE = 10
+const MIXED_GROUP_COUNT = 10
 
-## 链接示例
+function headingMarker(index: number): string {
+	const markers = ['#', '##', '###', '####', '#####', '######'] as string[]
+	return markers[(index - 1) % markers.length]
+}
 
-[访问Google](https://www.google.com)  
-[相对链接](./example.md)
+function headingBlock(index: number): string {
+	return headingMarker(index) + ' 标题渲染样本 ' + index.toString() + '\n\n'
+}
 
----
+function listBlock(index: number): string {
+	return '- 无序列表项目 ' + index.toString() + '-A\n'
+		+ '- 无序列表项目 ' + index.toString() + '-B\n'
+		+ '  - 嵌套项目 ' + index.toString() + '\n'
+		+ '1. 有序步骤 ' + index.toString() + '-1\n'
+		+ '2. 有序步骤 ' + index.toString() + '-2\n'
+		+ '- [x] 已完成任务 ' + index.toString() + '\n'
+		+ '- [ ] 待完成任务 ' + index.toString() + '\n\n'
+}
 
-## 数学公式示例
+function tableBlock(index: number): string {
+	return '| 序号 | 场景 | 内容 | 状态 | 备注 |\n'
+		+ '|:---|:---|:---|:---:|---:|\n'
+		+ '| ' + index.toString() + ' | 表格压力测试 | 第 ' + index.toString() + ' 轮较长单元格内容，用于观察窄屏排版与横向滚动 | 运行中 | A' + index.toString() + ' |\n'
+		+ '| ' + (index + 1).toString() + ' | 宽表格 | alpha-beta-gamma-' + index.toString() + ' | 正常 | B' + index.toString() + ' |\n\n'
+}
 
-行内公式：$E=mc^2$
+function quoteBlock(index: number): string {
+	return '> 引用测试第 ' + index.toString() + ' 轮。\n'
+		+ '> 这是一段包含 **加粗内容**、`inline-code-' + index.toString() + '` 和多行排版的引用。\n'
+		+ '> 最后一行用于观察连续引用块的高度变化。\n\n'
+}
 
-块级公式：
-$$
-\\sum_{i=1}^n i = \\frac{n(n+1)}{2}
-$$
+function codeBlock(index: number): string {
+	return '```javascript\n'
+		+ 'const sample' + index.toString() + ' = { id: ' + index.toString() + ', name: "markdown-performance-' + index.toString() + '" }\n'
+		+ 'function formatSample' + index.toString() + '(value) {\n'
+		+ '  return `${value.name}:${value.id}`\n'
+		+ '}\n'
+		+ 'alert(formatSample' + index.toString() + '(sample' + index.toString() + '))\n'
+		+ '```\n\n'
+}
 
-常见公式：
-- 二次方程求根公式：$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$
-- 欧拉公式：$e^{i\\pi} + 1 = 0$
+function linkBlock(index: number): string {
+	return '[测试链接 ' + index.toString() + '](https://example.com/performance/' + index.toString() + ')  \n'
+		+ '[带标题的链接 ' + index.toString() + '](https://example.com/docs/' + index.toString() + ' "Markdown Test")  \n'
+		+ '正文中的自动链接：<https://example.com/item/' + index.toString() + '>\n\n'
+}
 
-矩阵公式：
-$$
-\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}
-\\begin{bmatrix} x \\\\ y \\end{bmatrix}
-=
-\\begin{bmatrix} ax + by \\\\ cx + dy \\end{bmatrix}
-$$
+function mathBlock(index: number): string {
+	const variant = index % 3
+	if (variant == 1) {
+		return '$$\\sum_{k=1}^{' + (index + 3).toString() + '} k^2 = \\frac{' + (index + 3).toString()
+			+ '(' + (index + 4).toString() + ')(2\\times' + (index + 3).toString() + '+1)}{6}$$\n\n'
+	}
+	if (variant == 2) {
+		return '$$\\int_{0}^{' + (index + 1).toString() + '} x^{' + (index % 5 + 2).toString()
+			+ '} \\, dx = \\frac{' + (index + 1).toString() + '^{' + (index % 5 + 3).toString()
+			+ '}}{' + (index % 5 + 3).toString() + '}$$\n\n'
+	}
+	return '$$\\begin{bmatrix} ' + index.toString() + ' & 1 \\\\ 0 & ' + (index + 1).toString()
+		+ ' \\end{bmatrix} \\begin{bmatrix} x \\\\ y \\end{bmatrix}$$\n\n'
+}
 
-化学公式：
-$$
-\\ce{2H2 + O2 -> 2H2O}
-$$
+function mermaidBlock(index: number): string {
+	return '```mermaid\n'
+		+ 'graph TD\n'
+		+ '  A' + index.toString() + '[开始 ' + index.toString() + '] --> B' + index.toString() + '{条件 ' + index.toString() + '}\n'
+		+ '  B' + index.toString() + ' -->|通过| C' + index.toString() + '[渲染表格 ' + index.toString() + ']\n'
+		+ '  B' + index.toString() + ' -->|拒绝| D' + index.toString() + '[渲染公式 ' + index.toString() + ']\n'
+		+ '  C' + index.toString() + ' --> E' + index.toString() + '[结束 ' + index.toString() + ']\n'
+		+ '  D' + index.toString() + ' --> E' + index.toString() + '\n'
+		+ '```\n\n'
+}
 
-超宽公式：
-$$
-\\prod_{k=1}^{n} \\left(1 + \\frac{x}{k}\\right)
-= 1 + \\sum_{r=1}^{n} \\left(\\sum_{1 \\le i_1 < \\cdots < i_r \\le n} \\frac{x^r}{i_1 \\cdots i_r}\\right)
-$$
+function dividerBlock(index: number): string {
+	return '分割线前文本 ' + index.toString() + '\n\n---\n\n分割线后文本 ' + index.toString() + '\n\n'
+}
 
----
+function paragraphBlock(index: number): string {
+	return '第 ' + index.toString() + ' 轮长文本用于观察连续流式更新时的文字测量、自动换行和列表滚动性能。'
+		+ '这一段包含不同长度的中文句子与英文标识 markdown-render-cycle-' + index.toString() + '，'
+		+ '并通过重复但不完全相同的正文制造稳定、可比较的排版压力。'
+		+ '当内容持续增长时，可以结合最低帧率和平均帧率判断长消息重新解析与重新布局的成本。\n\n'
+}
 
-## 流程图示例
+function mixedBlock(index: number): string {
+	const normalizedIndex = index > 0 ? index - 1 : 0
+	const groupIndex = Math.floor(normalizedIndex / MIXED_GROUP_SIZE) % MIXED_GROUP_COUNT
+	if (groupIndex == 0) return headingBlock(index)
+	if (groupIndex == 1) return listBlock(index)
+	if (groupIndex == 2) return tableBlock(index)
+	if (groupIndex == 3) return quoteBlock(index)
+	if (groupIndex == 4) return codeBlock(index)
+	if (groupIndex == 5) return linkBlock(index)
+	if (groupIndex == 6) return mathBlock(index)
+	if (groupIndex == 7) return mermaidBlock(index)
+	if (groupIndex == 8) return dividerBlock(index)
+	return paragraphBlock(index)
+}
 
-\`\`\`mermaid
-graph TD
-  A[开始] --> B{条件判断}
-  B -->|是| C[执行操作1]
-  B -->|否| D[执行操作2]
-  C --> E[结束]
-  D --> E
-\`\`\`
+export function createDemoMarkdownBlock(scenarioId: string, index: number): string {
+	if (scenarioId == 'heading') return headingBlock(index)
+	if (scenarioId == 'list') return listBlock(index)
+	if (scenarioId == 'table') return tableBlock(index)
+	if (scenarioId == 'quote') return quoteBlock(index)
+	if (scenarioId == 'code') return codeBlock(index)
+	if (scenarioId == 'link') return linkBlock(index)
+	if (scenarioId == 'math') return mathBlock(index)
+	if (scenarioId == 'mermaid') return mermaidBlock(index)
+	if (scenarioId == 'divider') return dividerBlock(index)
+	if (scenarioId == 'paragraph') return paragraphBlock(index)
+	return mixedBlock(index)
+}
 
----
-
-## 分割线示例
-
-上面是分割线
-***
-下面也是分割线`
-
-// testMarkdownText = '' // 清空测试文本，切换为非演示模式
+const testMarkdownText = DEMO_MARKDOWN_ENABLED ? createDemoMarkdownBlock('mixed', 1) : ''
 export default testMarkdownText

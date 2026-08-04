@@ -41,7 +41,7 @@
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
-	import { demoPrompt, isDemoMarkdownEnabled } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
+	import { demoMarkdownState } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -107,8 +107,6 @@
 		})
 	}
 	
-	const autoDemoRequested = ref<boolean>(false)
-
 	function clearTimer(timer: number): number {
 		if (timer != 0) {
 			clearTimeout(timer)
@@ -162,6 +160,7 @@
 	}
 	
 	watch(chatActiveId, () => {
+		if (demoMarkdownState.running) uniAi.abortRequest()
 		scrollToLastMsg(false)
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
@@ -264,30 +263,14 @@
 		}
 	}
 
-	function startDemoChat() {
-		if (!isDemoMarkdownEnabled() || autoDemoRequested.value) return
-		autoDemoRequested.value = true
-		if (msgList.value.length > 0 || state.value != 'none') {
-			uniAi.addChat(false)
-		}
-		if (uniAi.currentChat != null) {
-			uniAi.currentChat!.inputContent = demoPrompt
-		}
-		nextTick(() => {
-			uniAi.sendMsg(demoPrompt)
-			if (uniAi.currentChat != null) {
-				uniAi.currentChat!.inputContent = ''
-			}
-		})
+	const beforeRequestAi = () => {
+		autoToLastMsg = true
+		needSetLockAutoToLastMsg = true
+		scrollToLastMsg(false)
 	}
 	
 	onMounted(() => {
-		startDemoChat()
-		uniAi.onBeforeRequestAi(() => {
-			autoToLastMsg = true
-			needSetLockAutoToLastMsg = true
-			scrollToLastMsg(false)
-		})
+		uniAi.onBeforeRequestAi(beforeRequestAi)
 		// #ifdef H5
 		window.addEventListener('wheel', () => {
 			mouseScroll = true
@@ -306,6 +289,16 @@
 			syncScrollToBottomBtn()
 		})
 		// #endif
+	})
+
+	onBeforeUnmount(() => {
+		if (demoMarkdownState.running || state.value == 'processing') uniAi.abortRequest()
+		uniAi.offBeforeRequestAi(beforeRequestAi)
+		scrollingT = clearTimer(scrollingT)
+		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
+		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
+		mouseScrollTimer = clearTimer(mouseScrollTimer)
+		touchClearTimer = clearTimer(touchClearTimer)
 	})
 </script>
 

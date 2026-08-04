@@ -1,4 +1,3 @@
-import testMarkdownText from './testMarkdownText.uts';
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
@@ -6,6 +5,14 @@ import { MarkdownRenderDescription } from '@/uni_modules/uni-ai-worker/utssdk/re
 import ParseMarkdown from '@/uni_modules/uni-ai-x/sdk/parseMarkdown.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
+import {
+	activeDemoMarkdownScenarioId,
+	beginDemoMarkdownRun,
+	finishDemoMarkdownRun,
+	isDemoMarkdownEnabled,
+	nextDemoMarkdownBlock,
+	reportDemoMarkdownChunk
+} from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
 // #ifdef APP-ANDROID
 import {
 	cancelAiWorkerRequest,
@@ -52,6 +59,7 @@ type RequestAiServerOptions = {
 const MARKDOWN_PARSE_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 100
+const DEMO_BLOCK_INTERVAL = MARKDOWN_PARSE_INTERVAL
 
 class RequestAiRunner {
 	requestTask : RequestTask | null = null
@@ -69,11 +77,18 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
+	private demoStreamTimer: number = 0
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 		this.beforeUpdateMdElList = (newMarkdownTokenList: MarkdownToken[], renderList: MarkdownRenderDescription[], isParseDone: boolean) => {
 			this.callbacks?.onMarkdownElList(newMarkdownTokenList, renderList)
 			if (isParseDone) {
+				if (this.currentChatState == 'stop') {
+					this.callbacks?.onRendered(true)
+					this.parseMarkdown?.dispose()
+					this.callbacks = null
+					return
+				}
 				this.currentChatState = 'completed'
 				this.callbacks?.onState('completed')
 				this.callbacks?.onRendered(true)
@@ -145,6 +160,7 @@ class RequestAiRunner {
 	}
 	resetRequestState() {
 		this.stopWorkerRuntime(true)
+		this.stopDemoStream()
 		this.workerRequestVersion += 1
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
@@ -185,8 +201,15 @@ class RequestAiRunner {
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
 		this.resetRequestState()
 
-		if (testMarkdownText.length > 0) {
-			this.streamDemoMarkdown()
+		if (isDemoMarkdownEnabled()) {
+			if (beginDemoMarkdownRun()) {
+				this.streamDemoMarkdown()
+			} else {
+				this.handleRequestError({
+					errCode: 'demo_scenario_missing',
+					errMsg: '请先选择 Markdown 测试类型'
+				} as UTSJSONObject)
+			}
 			return
 		}
 
@@ -369,21 +392,38 @@ class RequestAiRunner {
 		this.workerActive = false
 	}
 	streamDemoMarkdown() {
-		let index = 0
-		let timer: number = 0
-		timer = setInterval(() => {
-			if (this.userAbort || index >= testMarkdownText.length) {
-				clearInterval(timer)
-				this.emitMsgBody(true)
-				this.runMarkdownParse(true)
+		let blockText = ''
+		let blockOffset = 0
+		let nextBlockAt = 0
+		this.demoStreamTimer = setInterval(() => {
+			if (this.userAbort) {
+				this.stopDemoStream()
 				return
 			}
-			const endIndex = Math.min(index + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
-			this.msgBody += testMarkdownText.slice(index, endIndex)
+			if (Date.now() < nextBlockAt) return
+			if (blockOffset >= blockText.length) {
+				blockText = nextDemoMarkdownBlock()
+				blockOffset = 0
+			}
+			const scenarioId = activeDemoMarkdownScenarioId()
+			const chunkSize = scenarioId == 'math' ? blockText.length : DEMO_STREAM_BATCH_SIZE
+			const endIndex = Math.min(blockOffset + chunkSize, blockText.length)
+			const chunkText = blockText.slice(blockOffset, endIndex)
+			this.msgBody += chunkText
 			this.emitMsgBody()
-			index = endIndex
+			blockOffset = endIndex
+			const blockCompleted = blockOffset >= blockText.length
+			reportDemoMarkdownChunk(chunkText.length, blockCompleted)
 			this.runMarkdownParse(false)
+			if (blockCompleted) {
+				nextBlockAt = Date.now() + (scenarioId == 'math' ? 500 : DEMO_BLOCK_INTERVAL)
+			}
 		}, DEMO_STREAM_INTERVAL)
+	}
+	private stopDemoStream() {
+		if (this.demoStreamTimer != 0) clearInterval(this.demoStreamTimer)
+		this.demoStreamTimer = 0
+		finishDemoMarkdownRun()
 	}
 	async requestViaCustomProvider(options : RequestAiServerOptions) : Promise<UTSJSONObject> {
 		const adapter = getCustomProvider(options.llm.provider)
@@ -556,10 +596,20 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
+		if (this.demoStreamTimer != 0) {
+			this.stopDemoStream()
+			this.currentChatState = 'stop'
+			this.emitMsgBody(true)
+			this.callbacks?.onState('stop')
+			this.parseMarkdown!.msgReceiveDone = true
+			this.parseMarkdown?.flush(this.msgBody)
+			return
+		}
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
 		this.parseMarkdown?.dispose()
 		this.userAbort = true
+		this.stopDemoStream()
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
 		this.requestTask?.abort()
