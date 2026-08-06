@@ -362,6 +362,12 @@ function markCodeBlocks(source: string, isDone: boolean): string {
 function prepareRichMarkdownHtml(html: string, isDone: boolean): string {
 	let result = replaceTaskInputs(html)
 	result = styleTaskListItems(result)
+	result = styleOpenTags(result, 'h1', 'font-size:30px;line-height:36px;font-weight:700;margin:8px 0 6px;')
+	result = styleOpenTags(result, 'h2', 'font-size:26px;line-height:34px;font-weight:700;margin:8px 0 6px;')
+	result = styleOpenTags(result, 'h3', 'font-size:22px;line-height:32px;font-weight:700;margin:8px 0 6px;')
+	result = styleOpenTags(result, 'h4', 'font-size:20px;line-height:30px;font-weight:700;margin:8px 0 6px;')
+	result = styleOpenTags(result, 'h5', 'font-size:18px;line-height:28px;font-weight:700;margin:8px 0 6px;')
+	result = styleOpenTags(result, 'h6', 'font-size:16px;line-height:24px;font-weight:700;margin:8px 0 6px;')
 	result = styleOpenTags(result, 'ul', 'margin:4px 0;padding-left:24px;')
 	result = styleOpenTags(result, 'ol', 'margin:4px 0;padding-left:24px;')
 	result = styleOpenTags(result, 'li', 'margin:2px 0;line-height:26px;')
