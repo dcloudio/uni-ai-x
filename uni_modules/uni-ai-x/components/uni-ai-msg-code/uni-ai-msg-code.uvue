@@ -207,7 +207,7 @@ function highlightCode() {
 	codeHighlightRequestVersion += 1
 	const requestVersion = codeHighlightRequestVersion
 	highlightedCodeTokens.value = [] as IToken[][]
-	if (props.isClose != 1 || props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') return
+	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') return
 	const lines = normalizeCodeText(props.codeText).split('\n')
 	if (lines.length == 0) return
 	const nextTokens = [] as IToken[][]
@@ -306,7 +306,7 @@ const mermaidGenerationFailed = computed<boolean>(() => {
 })
 
 function syncMermaidImageTheme() {
-	if (props.language != 'mermaid' || props.isClose != 1) return
+	if (props.language != 'mermaid') return
 	const theme = uiTheme.value
 	const sourceHref = props.href ?? ''
 	if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
@@ -334,7 +334,7 @@ function syncMermaidImageTheme() {
 }
 
 watch((): string => {
-	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language + '\n' + props.isClose.toString()
+	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language
 		+ '\n' + props.codeText + '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
 }, () => {
 	syncMermaidImageTheme()
@@ -348,7 +348,7 @@ watch((): string => props.language, (language: string) => {
 	//#endif
 }, {immediate: true})
 
-watch((): string => props.language + '\n' + props.isClose.toString() + '\n' + props.codeText, () => {
+watch((): string => props.language + '\n' + props.codeText, () => {
 	highlightCode()
 }, { immediate: true })
 

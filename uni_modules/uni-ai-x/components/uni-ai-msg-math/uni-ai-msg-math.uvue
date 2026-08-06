@@ -191,7 +191,6 @@
     function stopDrawerGesture(_event: TouchEvent) {}
 
 	    function syncMathImageTheme() {
-	        if ((props.isClose ?? 0) != 1) return
 	        const theme = uiTheme.value
 	        const sourceHref = props.href ?? ''
 	        if (sourceHref.length > 0 && activeImageHref.value.length == 0) queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
@@ -212,7 +211,7 @@
 
 	    watch((): string => {
 	        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n'
-	            + (props.isClose ?? 0).toString() + '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
+	            + ((props.href ?? '').length > 0 ? '1' : '0')
     }, () => {
         syncMathImageTheme()
     }, { immediate: true })
