@@ -6,6 +6,11 @@
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 		<fps v-if="showFps" />
+		<!-- #ifndef MP-WEIXIN -->
+		<web-view class="uni-ai-proxy-web" id="proxy-web"
+			src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html"
+			@load="proxyWebLoad" @message="proxyWebMsg"></web-view>
+		<!-- #endif -->
 	</view>
 </template>
 
@@ -13,6 +18,7 @@
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
+	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 
 	const MENU_WIDTH = 260
@@ -132,18 +138,58 @@
 		setMenu(false)
 	}
 
+	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
+		proxyWeb.onWebMsg(e)
+	}
+
+	const proxyWebLoad = (_e: UniWebViewLoadEvent) => {
+		// #ifdef WEB
+		const proxyWebContext = document.getElementById('proxy-web')
+		// #endif
+		// #ifdef APP
+		const proxyWebContext = uni.getElementById('proxy-web') as UniWebViewElement
+		// #endif
+		// #ifdef MP-WEIXIN
+		const proxyWebContext = uni.createWebviewContext('proxy-web')
+		// #endif
+		// #ifndef MP-WEIXIN
+		proxyWeb.init(proxyWebContext!)
+		// #endif
+		proxyWeb.markReady()
+	}
+
 	onMounted(() => {
 		// #ifdef WEB
 		window.addEventListener('resize', () => {
 			setMenu(window.innerWidth > 960)
 		})
 		setMenu(window.innerWidth > 960)
+		const proxyWebContext = document.getElementById('proxy-web')
+		// #endif
+		// #ifdef APP
+		const proxyWebContext = uni.getElementById('proxy-web')
+		// #endif
+		// #ifdef MP-WEIXIN
+		const proxyWebContext = uni.createWebviewContext('proxy-web')
+		// #endif
+		// #ifndef MP-WEIXIN
+		proxyWeb.init(proxyWebContext!)
 		// #endif
 	})
 </script>
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.uni-ai-proxy-web {
+	position: fixed;
+	top: -1100px;
+	right: 0;
+	width: 100%;
+	height: 400px;
+	z-index: 100;
+}
+
 .uni-ai-page {
 	position: absolute;	
 	// #ifdef H5

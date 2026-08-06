@@ -1,0 +1,76 @@
+import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+
+export type ThemedSvgResult = {
+	imageDataURL: string
+	width: number
+	height: number
+	theme: string
+}
+
+type ThemedSvgCallback = (result: ThemedSvgResult) => void
+
+const mathCache = new Map<string, ThemedSvgResult>()
+const mermaidCache = new Map<string, ThemedSvgResult>()
+
+function normalizedTheme(theme: string): string {
+	return theme == 'dark' ? 'dark' : 'light'
+}
+
+function cacheKey(theme: string, source: string): string {
+	return normalizedTheme(theme) + '\n' + source
+}
+
+function deliverResult(callback: ThemedSvgCallback, result: ThemedSvgResult) {
+	utils.runOnDispatcher('main', () => {
+		callback(result)
+	})
+}
+
+export function renderMathSvgForTheme(mathText: string, theme: string, callback: ThemedSvgCallback) {
+	const renderTheme = normalizedTheme(theme)
+	const key = cacheKey(renderTheme, mathText)
+	const cached = mathCache.get(key)
+	if (cached != null) {
+		deliverResult(callback, cached)
+		return
+	}
+	proxyWeb.callMethod({
+		action: 'mathSvgRender',
+		pureMathText: mathText,
+		theme: renderTheme
+	}, (param: UTSJSONObject) => {
+		const result: ThemedSvgResult = {
+			imageDataURL: param['imageDataURL'] as string,
+			width: (param['width'] as number | null) ?? 0,
+			height: (param['height'] as number | null) ?? 0,
+			theme: (param['theme'] as string | null) ?? renderTheme
+		}
+		if (result.imageDataURL.length > 0) mathCache.set(key, result)
+		deliverResult(callback, result)
+	})
+}
+
+export function renderMermaidSvgForTheme(mermaidText: string, theme: string, callback: ThemedSvgCallback) {
+	const renderTheme = normalizedTheme(theme)
+	const key = cacheKey(renderTheme, mermaidText)
+	const cached = mermaidCache.get(key)
+	if (cached != null) {
+		deliverResult(callback, cached)
+		return
+	}
+	proxyWeb.callMethod({
+		action: 'renderMermaid',
+		mermaidText,
+		theme: renderTheme
+	}, (param: UTSJSONObject) => {
+		const result: ThemedSvgResult = {
+			imageDataURL: param['imageDataURL'] as string,
+			width: (param['width'] as number | null) ?? 0,
+			height: (param['height'] as number | null) ?? 0,
+			theme: (param['theme'] as string | null) ?? renderTheme
+		}
+		if (result.imageDataURL.length > 0) mermaidCache.set(key, result)
+		deliverResult(callback, result)
+	})
+}

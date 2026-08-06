@@ -1,0 +1,38 @@
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import {
+	markdownBlockquoteTokenToRichTextNodes as workerMarkdownBlockquoteTokenToRichTextNodes,
+	markdownCodeTokenToRichTextNodes as workerMarkdownCodeTokenToRichTextNodes,
+	markdownTableColumnWidths as workerMarkdownTableColumnWidths,
+	markdownTableContentHeight as workerMarkdownTableContentHeight,
+	markdownTableContentWidth as workerMarkdownTableContentWidth,
+	markdownTableTokenToRichTextNodes as workerMarkdownTableTokenToRichTextNodes,
+	markdownTokensToRichTextNodes as workerMarkdownTokensToRichTextNodes
+} from '@/uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts'
+
+export function markdownTokensToRichTextNodes(tokens: MarkdownToken[] | null): UTSJSONObject[] {
+	return workerMarkdownTokensToRichTextNodes(tokens)
+}
+
+export function markdownCodeTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
+	return workerMarkdownCodeTokenToRichTextNodes(token)
+}
+
+export function markdownBlockquoteTokenToRichTextNodes(token: MarkdownToken | null): UTSJSONObject[] {
+	return workerMarkdownBlockquoteTokenToRichTextNodes(token)
+}
+
+export function markdownTableColumnWidths(token: MarkdownToken | null): number[] {
+	return workerMarkdownTableColumnWidths(token)
+}
+
+export function markdownTableContentWidth(token: MarkdownToken | null, minimumTableWidth: number = 0): number {
+	return workerMarkdownTableContentWidth(token, minimumTableWidth)
+}
+
+export function markdownTableContentHeight(token: MarkdownToken | null, minimumTableWidth: number = 0): number {
+	return workerMarkdownTableContentHeight(token, minimumTableWidth)
+}
+
+export function markdownTableTokenToRichTextNodes(token: MarkdownToken | null, minimumTableWidth: number = 0): UTSJSONObject[] {
+	return workerMarkdownTableTokenToRichTextNodes(token, minimumTableWidth)
+}

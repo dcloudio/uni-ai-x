@@ -1,17 +1,39 @@
 <template>
-	<rich-text class="uni-ai-md-rich-text-content" :style="richTextStyle"
-		:nodes="html" mode="native" @itemclick="onItemClick"></rich-text>
+	<view class="uni-ai-md-rich-text" :class="[`ui-theme-${uiTheme}`]" flatten>
+		<template v-for="block in renderBlocks" :key="block.key">
+			<uni-ai-msg-html-table v-if="block.kind == 'table'"
+				:html="block.html" :column-widths="block.columnWidths" :row-text-widths="block.rowTextWidths" />
+			<uni-ai-msg-quote v-else-if="block.kind == 'quote'" :html="block.html" />
+			<view v-else-if="block.kind == 'divider'" class="uni-ai-md-divider" flatten></view>
+			<uni-ai-msg-code v-else-if="block.kind == 'code' || block.kind == 'mermaid'"
+				:code-text="block.text" :language="block.language" :is-close="block.isComplete ? 1 : 0" />
+			<uni-ai-msg-math v-else-if="block.kind == 'math'"
+				:text="block.text" :is-close="block.isComplete ? 1 : 0" />
+			<rich-text v-else class="uni-ai-md-rich-text-content" :style="richTextStyle"
+				:nodes="block.html" mode="native" @itemclick="onItemClick"></rich-text>
+		</template>
+	</view>
 </template>
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import { buildMarkdownHtmlBlocks, MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
+	import uniAiMsgQuote from '@/uni_modules/uni-ai-x/components/uni-ai-msg-quote/uni-ai-msg-quote.uvue'
+	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
+	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
 
 	type UniAiMdRichTextProps = {
 		html: string
+		complete?: boolean
 	}
 
 	const props = defineProps<UniAiMdRichTextProps>()
 	const html = computed<string>(() => props.html)
+
+	const renderBlocks = computed<MarkdownHtmlBlock[]>(() => {
+		return buildMarkdownHtmlBlocks(html.value, props.complete ?? false)
+	})
 
 	const richTextStyle = computed<string>(() => {
 		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
@@ -36,7 +58,16 @@
 </script>
 
 <style>
+	.uni-ai-md-rich-text,
 	.uni-ai-md-rich-text-content {
 		width: 100%;
+	}
+
+	.uni-ai-md-divider {
+		width: 100%;
+		height: 1px;
+		margin: 12px 0;
+		flex-shrink: 0;
+		background-color: var(--border-primary);
 	}
 </style>

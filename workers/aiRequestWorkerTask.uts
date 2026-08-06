@@ -4,6 +4,7 @@ import { isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app
 import {
 	createDemoMarkdownBlock,
 	MarkdownPreprocessor,
+	prepareMarkdownHtml,
 	WorkerStreamRequest
 } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 
@@ -260,7 +261,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		let html = ''
 		try {
-			html = md2html(processedMarkdown)
+			html = prepareMarkdownHtml(md2html(processedMarkdown), isDone)
 		} catch (error) {
 			this.fail('markdown_html_failed', error.message as string)
 			return

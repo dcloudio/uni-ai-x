@@ -7,8 +7,10 @@ export type DemoMarkdownScenario = {
 }
 
 export const DEMO_MARKDOWN_ENABLED = true
+export const FULL_MARKDOWN_SCENARIO_ID = 'full'
 
 export const demoMarkdownScenarios: DemoMarkdownScenario[] = [
+	{ id: FULL_MARKDOWN_SCENARIO_ID, label: '完整的Markdown', prompt: '生成完整的 Markdown 测试文档' },
 	{ id: 'heading', label: '标题', prompt: '持续生成 Markdown 标题测试数据' },
 	{ id: 'list', label: '列表', prompt: '持续生成 Markdown 列表测试数据' },
 	{ id: 'table', label: '表格', prompt: '持续生成 Markdown 表格测试数据' },
@@ -22,7 +24,145 @@ export const demoMarkdownScenarios: DemoMarkdownScenario[] = [
 	{ id: 'mixed', label: '混合', prompt: '持续生成混合 Markdown 测试数据' }
 ] as DemoMarkdownScenario[]
 
-export { createDemoMarkdownBlock }
+let testMarkdownText = `# Markdown 示例文档
 
-const testMarkdownText = DEMO_MARKDOWN_ENABLED ? createDemoMarkdownBlock('mixed', 1) : ''
+## 二级标题
+### 三级标题
+#### 四级标题
+##### 五级标题
+###### 六级标题
+
+---
+
+## 列表示例
+
+### 无序列表
+- 项目一
+- 项目二
+  - 子项目A
+  - 子项目B
+- 项目三
+
+### 有序列表
+1. 第一步
+2. 第二步
+   1. 子步骤
+   2. 子步骤
+3. 第三步
+
+### 任务列表
+- [x] 完成设计
+- [ ] 编写代码
+- [ ] 测试功能
+
+---
+
+## 表格示例
+
+| 姓名 | 年龄 | 职业 |
+|------|------|------|
+| 张三 | 28   | 工程师工程师工程师工程师工程师 |
+| 李四李四李四李四 | 32   | 设计师 |
+| 王五 | 25   | 学生 |
+
+## 短表格
+
+| 姓名 | 年龄 |
+|------|------|
+| 张三 | 28   |
+| 李四 | 32   |
+| 王五 | 25   |
+
+### 宽表格横向滚动
+
+| 模型 | 提供商 | 上下文窗口 | 输入价格 | 输出价格 | 多模态 | 工具调用 | 备注 |
+|:--- |:--- |:--- |:--- |:--- |:--- |:--- |:--- |
+| 示例模型 Alpha | 示例云服务 | 128K tokens | 0.50 元/百万tokens | 1.50 元/百万tokens | 图片、文本 | 支持 | 这一列用于验证窄屏下不会压缩到无法阅读，由原生 ScrollView 横向滚动 |
+| 示例模型 Beta | 示例云服务 | 32K tokens | 0.25 元/百万tokens | 0.75 元/百万tokens | 仅文本 | 不支持 | 轻量版本，适合简单文本问答场景 |
+
+---
+
+## 引用示例
+
+> 这是引用的内容。\u0020\u0020
+> 引用可以跨越多行。
+
+---
+
+## JavaScript 代码示例
+
+\`\`\`javascript
+function greet(name) {
+  return \`Hello, \${name}!\`;
+}
+
+alert(greet('World'));
+
+const veryLongLine = "这是一条专门用于验证代码块横向滚动的超长单行内容：abcdefghijklmnopqrstuvwxyz-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+\`\`\`
+
+---
+
+## 链接示例
+
+[访问Google](https://www.google.com)\u0020\u0020
+[相对链接](./example.md)
+
+---
+
+## 数学公式示例
+
+行内公式：$E=mc^2$
+
+块级公式：
+$$
+\\sum_{i=1}^n i = \\frac{n(n+1)}{2}
+$$
+
+常见公式：
+- 二次方程求根公式：$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$
+- 欧拉公式：$e^{i\\pi} + 1 = 0$
+
+矩阵公式：
+$$
+\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}
+\\begin{bmatrix} x \\\\ y \\end{bmatrix}
+=
+\\begin{bmatrix} ax + by \\\\ cx + dy \\end{bmatrix}
+$$
+
+化学公式：
+$$
+\\ce{2H2 + O2 -> 2H2O}
+$$
+
+超宽公式：
+$$
+\\prod_{k=1}^{n} \\left(1 + \\frac{x}{k}\\right)
+= 1 + \\sum_{r=1}^{n} \\left(\\sum_{1 \\le i_1 < \\cdots < i_r \\le n} \\frac{x^r}{i_1 \\cdots i_r}\\right)
+$$
+
+---
+
+## 流程图示例
+
+\`\`\`mermaid
+graph TD
+  A[开始] --> B{条件判断}
+  B -->|是| C[执行操作1]
+  B -->|否| D[执行操作2]
+  C --> E[结束]
+  D --> E
+\`\`\`
+
+---
+
+## 分割线示例
+
+上面是分割线
+***
+下面也是分割线`
+
+// testMarkdownText = '' // 清空测试文本，切换为非演示模式
+export { createDemoMarkdownBlock }
 export default testMarkdownText

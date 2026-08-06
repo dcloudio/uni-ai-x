@@ -1,3 +1,4 @@
+import testMarkdownText, { FULL_MARKDOWN_SCENARIO_ID } from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
@@ -73,6 +74,7 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
+	private fullMarkdownStreamTimer: number = 0
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 	}
@@ -184,7 +186,11 @@ class RequestAiRunner {
 		if (isDemoMarkdownEnabled()) {
 			if (beginDemoMarkdownRun()) {
 				// #ifdef APP-ANDROID
-				this.streamDemoMarkdownInWorker()
+				if (activeDemoMarkdownScenarioId() == FULL_MARKDOWN_SCENARIO_ID) {
+					this.streamFullMarkdownInWorker()
+				} else {
+					this.streamDemoMarkdownInWorker()
+				}
 				// #endif
 				// #ifndef APP-ANDROID
 				this.handleRequestError({
@@ -319,9 +325,12 @@ class RequestAiRunner {
 
 		this.msgBody = snapshot.getString('msgBody', this.msgBody)
 		this.thinkContent = snapshot.getString('thinkContent', this.thinkContent)
+		const demoBlockCount = activeDemoMarkdownScenarioId() == FULL_MARKDOWN_SCENARIO_ID && this.msgBody.length > 0
+			? 1
+			: snapshot.getNumber('demoBlockCount', 0)
 		reportDemoMarkdownSnapshot(
 			this.msgBody.length,
-			snapshot.getNumber('demoBlockCount', 0),
+			demoBlockCount,
 			snapshot.getNumber('elapsed', 0)
 		)
 		this.emitMsgBody(true)
@@ -345,6 +354,7 @@ class RequestAiRunner {
 				elapsed: snapshot.getNumber('elapsed', 0)
 			} as UTSJSONObject))
 			this.stopWorkerRuntime(false)
+			finishDemoMarkdownRun()
 		}
 		this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
 		if (isDone) {
@@ -365,6 +375,8 @@ class RequestAiRunner {
 	// #endif
 
 	private stopWorkerRuntime(cancelRequest: boolean) {
+		if (this.fullMarkdownStreamTimer != 0) clearInterval(this.fullMarkdownStreamTimer)
+		this.fullMarkdownStreamTimer = 0
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
 		// #ifdef APP-ANDROID
@@ -387,6 +399,27 @@ class RequestAiRunner {
 		this.workerPollTimer = setInterval(() => {
 			this.pollWorkerSnapshot(requestVersion)
 		}, 50)
+	}
+
+	private streamFullMarkdownInWorker() {
+		this.startMarkdownHtmlWorker()
+		const requestVersion = this.workerRequestVersion
+		let offset = 0
+		this.fullMarkdownStreamTimer = setInterval(() => {
+			if (this.userAbort || requestVersion != this.workerRequestVersion) {
+				if (this.fullMarkdownStreamTimer != 0) clearInterval(this.fullMarkdownStreamTimer)
+				this.fullMarkdownStreamTimer = 0
+				return
+			}
+			const endOffset = Math.min(offset + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
+			appendAiWorkerMarkdown(requestVersion, testMarkdownText.slice(offset, endOffset), '')
+			offset = endOffset
+			if (offset >= testMarkdownText.length) {
+				clearInterval(this.fullMarkdownStreamTimer)
+				this.fullMarkdownStreamTimer = 0
+				completeAiWorkerMarkdown(requestVersion)
+			}
+		}, DEMO_STREAM_INTERVAL)
 	}
 
 	private streamDemoMarkdownInWorker() {

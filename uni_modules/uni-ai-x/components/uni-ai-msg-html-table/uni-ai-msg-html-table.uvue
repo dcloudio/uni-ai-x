@@ -1,0 +1,121 @@
+<template>
+	<view class="uni-ai-msg-html-table" :class="[`ui-theme-${uiTheme}`]">
+		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
+			direction="horizontal" :show-scrollbar="false" :style="{height: tableViewportHeight}"
+			@touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
+			<rich-text class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
+				:nodes="tableHtml" mode="native" @itemclick="onItemClick"></rich-text>
+		</scroll-view>
+		<view class="uni-ai-msg-html-table-border uni-ai-msg-html-table-border-left"></view>
+		<view class="uni-ai-msg-html-table-border uni-ai-msg-html-table-border-right"></view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import {
+		applyMarkdownTableColumnWidths,
+		markdownTableContentHeight,
+		markdownTableContentWidth,
+		resolveMarkdownTableColumnWidths
+	} from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+
+	type UniAiMsgHtmlTableProps = {
+		html: string
+		columnWidths: number[]
+		rowTextWidths: number[][]
+	}
+
+	const props = defineProps<UniAiMsgHtmlTableProps>()
+	const tableScroll = ref<UniScrollViewElement | null>(null)
+	const windowInfo = uni.getWindowInfo()
+	const initialWindowWidth = windowInfo.windowWidth > 0 ? windowInfo.windowWidth : windowInfo.screenWidth
+	const tableViewportContentWidth = ref(Math.max(1, initialWindowWidth - 92))
+
+	const renderColumnWidths = computed<number[]>(() => {
+		return resolveMarkdownTableColumnWidths(props.columnWidths, tableViewportContentWidth.value)
+	})
+	const tableContentWidth = computed<number>(() => {
+		return markdownTableContentWidth(renderColumnWidths.value)
+	})
+	const tableContentHeight = computed<number>(() => {
+		return markdownTableContentHeight(props.rowTextWidths, renderColumnWidths.value)
+	})
+	const tableViewportHeight = computed<string>(() => {
+		return (tableContentHeight.value + 3).toString() + 'px'
+	})
+	const tableHtml = computed<string>(() => {
+		return applyMarkdownTableColumnWidths(props.html, renderColumnWidths.value)
+	})
+	const tableRichTextStyle = computed<string>(() => {
+		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
+		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+		return 'width:' + tableContentWidth.value.toString() + 'px;height:' + tableContentHeight.value.toString() + 'px;font-size:14px;line-height:22px;color:'
+			+ color + ';background-color:' + backgroundColor + ';'
+	})
+
+	function stopDrawerGesture(_event: TouchEvent) {}
+
+	onMounted(() => {
+		nextTick(() => {
+			tableScroll.value?.getBoundingClientRectAsync()?.then((rect: DOMRect) => {
+				tableViewportContentWidth.value = Math.max(1, rect.width - 2)
+			})
+		})
+	})
+
+	function onItemClick(e: UniRichTextItemClickEvent) {
+		if (e.detail.href != null && e.detail.href!.length > 0) {
+			uni.navigateTo({
+				url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + e.detail.href!,
+				fail: (err) => {
+					console.error(err)
+				}
+			})
+			return
+		}
+		if (e.detail.src != null && e.detail.src!.length > 0) {
+			uni.previewImage({ urls: [e.detail.src!] as string[] })
+		}
+	}
+</script>
+
+<style lang="scss" scoped>
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+	.uni-ai-msg-html-table {
+		position: relative;
+		width: 100%;
+		margin: 6px 0;
+	}
+
+	.uni-ai-msg-html-table-scroll {
+		width: 100%;
+		box-sizing: border-box;
+		border: 1px solid var(--border-primary);
+		background-color: var(--bg-primary);
+		flex-direction: row;
+	}
+
+	.uni-ai-msg-html-table-content {
+		align-self: flex-start;
+		flex-shrink: 0;
+	}
+
+	.uni-ai-msg-html-table-border {
+		position: absolute;
+		top: 0;
+		width: 1px;
+		height: 100%;
+		z-index: 1;
+		background-color: var(--border-primary);
+	}
+
+	.uni-ai-msg-html-table-border-left {
+		left: 0;
+	}
+
+	.uni-ai-msg-html-table-border-right {
+		right: 0;
+	}
+</style>

@@ -1,0 +1,736 @@
+const TABLE_MIN_COLUMN_WIDTH = 80
+const TABLE_MAX_COLUMN_WIDTH = 320
+const TABLE_FONT_SIZE = 14
+const TABLE_BODY_MEASURE_FONT_SIZE = 13
+const TABLE_CELL_HORIZONTAL_PADDING = 16
+const TABLE_CELL_VERTICAL_PADDING = 12
+const TABLE_LINE_HEIGHT = 22
+const TABLE_BORDER_COLOR = 'rgba(127,127,127,0.38)'
+const TABLE_HEADER_BACKGROUND = 'rgba(127,127,127,0.14)'
+const TABLE_WIDTH_PLACEHOLDER = '__UNI_AI_TABLE_WIDTH__'
+const TABLE_COLUMN_PLACEHOLDER_PREFIX = '__UNI_AI_TABLE_COLUMN_'
+const TABLE_COLUMN_PLACEHOLDER_SUFFIX = '__'
+const TASK_CHECKED_IMAGE_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACPTkDJAAACyklEQVRYCcVXS2gTQRj+0sQ2Zq0VD0HwgaKWXnoSfIAUVDTQCor4KPhCe1Pw0h71pEe9eqz10eIhoqVaiQVFESyiICgqLYr4QouIVXeTNA+df9LZzGwz68Yk2x/CzmT++b7v/2d2dv7AH2aYRQs5uSd+55EYz+LjZB65vHP0//rBOmBJUx1iq0OIzmMdyRQBZx+kceZeCums5FHFZgNjO7kpjJ62Bhs1IJaAyE+NpOyBWjZOby2K4AIo7c3nftUscmcwlImx7ka+HHxBaM1rlXYnOfWJizjJuADacH6b4OQCqrXbywlCcKrvRDkIHny3sdeOfm7mPuo202WsPggMdEbQ0TKHe/U+mcLxwWTJGVXPAO3w+P4iObHubS0IKaWgqhkIM7RrBwxsXqnCjn7Qn2yqZymJHv+LsCCvHzTQtkKFfPk1h6546fQTtOrtkczpZtQDNxj5xuUq3PMvObRfMPHN0n/v1BkSclMYOLa+cGafH01jUnNKNzKXwUMGNixToZ59zqGjz8T3pJ6c6NRZkoD+fRFsWVXYPLSJYr0mJkwVbD4jHzpsYO1SFebppyy291n4kVL9JXi7qX0L1kmgLdEgEkcNRI2APXFBOIDhIzPJH7MNR2n3Qk5gWgHxFxmbjBqyiIVzA7jNyNcsViN/9J5FftHEz7Qy1bWjIkiuJ4aSPOL26cOEhoSIDPt0tC5ip41kD99lsfOyCXNK+tNDU5uBTA7ovGph+PXMTDjJ77/NYsel8slJn1YADepE0Jiwu28KkVuqTjH8z6erAJrtJmJkPINdV0yk9Add5QJkETdfFcO8xZZmd79V8UVGuwmd0ikTewYsxJpDoIv8nekbjdOv3L5nAQI4MVZBvgWI9OR7gO7tfpvg5NRUNPhtgpMzU8VCFwm/jLiIk4wLoHKJKha/jLhEiWbHLcqlWSvNRPR+F6d2bSgE+P38C3xt+fmTHwizAAAAAElFTkSuQmCC'
+const TASK_UNCHECKED_IMAGE_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACPTkDJAAABZUlEQVRYCe1XsYqDQBQcl4h+gNhYW9jaxUIryxSWfmFKC0ur2NjZpsgfiB+QIJjLLDzwIMfBsV6anea5K8y8nVV44zxfwAbLsuB2u2GaJjwej82bvz96nocwDBHHMVzX/UZ0kBX76PseXdfhfr/LttHq+z7KskSe53AcR3M7dOAFnM9njONoVPAnsjRNUde1bkI7wJNvxYMgQJIkYMcmQEev1yvmedZ01IqiCEVR4MA7p+2C4/GIqqqglJItI/V0OqFpGgzDoPmomWUZFD84uXOefA9xKvJA5KYGQU1qK37tAtpu+uTCzUpuagiorba/mqk7F4F3datBbbMX/U7xlz3bgHXAOmAdsA5YB6wD1gHF0CCQ2VDWe9StBrUVE4uAo/O6rrI0XslNDQG1FeOSzGmc2zk679EEOckt2YCa1NbJ6HK5oG1baUyPznsGEwoxJzCYfDya6QbYEfPhx8IpGxD8dzz/ArBdxT/Y5wcjAAAAAElFTkSuQmCC'
+
+function isFullWidthChar(code: number): boolean {
+	return (code >= 0x1100 && code <= 0x115f)
+		|| (code >= 0x2e80 && code <= 0xa4cf)
+		|| (code >= 0xac00 && code <= 0xd7a3)
+		|| (code >= 0xf900 && code <= 0xfaff)
+		|| (code >= 0xff01 && code <= 0xff60)
+		|| (code >= 0xffe0 && code <= 0xffe6)
+}
+
+function charWidthRatio(code: number): number {
+	if (code == 9) return 1.2
+	if (isFullWidthChar(code)) return 1
+	if ((code >= 65 && code <= 90) || code == 64 || code == 37) return 0.68
+	if (code >= 48 && code <= 57) return 0.56
+	if (code == 32) return 0.32
+	return 0.52
+}
+
+function estimateTextWidth(text: string, fontSize: number): number {
+	let width = 0
+	for (let index = 0; index < text.length; index++) width += fontSize * charWidthRatio(text.charCodeAt(index) ?? 0)
+	return Math.ceil(width)
+}
+
+function estimateMaxLineTextWidth(lines: string[], fontSize: number): number {
+	let width = 0
+	for (let index = 0; index < lines.length; index++) width = Math.max(width, estimateTextWidth(lines[index], fontSize))
+	return Math.max(1, width)
+}
+
+type HtmlTableRow = {
+	start: number
+	end: number
+	html: string
+	cellTextWidths: number[]
+}
+
+type HtmlTagPosition = {
+	start: number
+	tag: string
+}
+
+export type MarkdownHtmlBlock = {
+	kind: string
+	key: string
+	html: string
+	text: string
+	language: string
+	isComplete: boolean
+	columnWidths: number[]
+	rowTextWidths: number[][]
+}
+
+function replaceAllText(source: string, needle: string, replacement: string): string {
+	if (needle.length == 0 || source.indexOf(needle) < 0) return source
+	return source.split(needle).join(replacement)
+}
+
+function findOpenTag(source: string, tag: string, fromIndex: number): number {
+	const marker = '<' + tag
+	let cursor = fromIndex
+	while (cursor < source.length) {
+		const index = source.indexOf(marker, cursor)
+		if (index < 0) return -1
+		const nextIndex = index + marker.length
+		if (nextIndex >= source.length) return index
+		const next = source.charAt(nextIndex)
+		if (next == '>' || next == ' ' || next == '\t' || next == '\r' || next == '\n' || next == '/') return index
+		cursor = nextIndex
+	}
+	return -1
+}
+
+function findNextCellTag(source: string, fromIndex: number): HtmlTagPosition | null {
+	const headerStart = findOpenTag(source, 'th', fromIndex)
+	const cellStart = findOpenTag(source, 'td', fromIndex)
+	if (headerStart < 0 && cellStart < 0) return null
+	if (headerStart >= 0 && (cellStart < 0 || headerStart < cellStart)) {
+		return { start: headerStart, tag: 'th' } as HtmlTagPosition
+	}
+	return { start: cellStart, tag: 'td' } as HtmlTagPosition
+}
+
+function decodeCellText(html: string): string {
+	return html
+		.replace(/<br\s*\/?\s*>/gi, '\n')
+		.replace(/<[^>]+>/g, '')
+		.replace(/&nbsp;/g, '\u00A0')
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&#39;/g, "'")
+}
+
+function cellTextWidth(cellHtml: string, fontSize: number): number {
+	const lines = decodeCellText(cellHtml).split('\n')
+	return estimateMaxLineTextWidth(lines, fontSize)
+}
+
+function collectCellTextWidths(rowHtml: string, fontSize: number): number[] {
+	const widths = [] as number[]
+	let cursor = 0
+	while (cursor < rowHtml.length) {
+		const cellPosition = findNextCellTag(rowHtml, cursor)
+		if (cellPosition == null) break
+		const openEnd = rowHtml.indexOf('>', cellPosition.start)
+		if (openEnd < 0) break
+		const closeTag = '</' + cellPosition.tag + '>'
+		const closeStart = rowHtml.indexOf(closeTag, openEnd + 1)
+		if (closeStart < 0) break
+		widths.push(cellTextWidth(rowHtml.slice(openEnd + 1, closeStart), fontSize))
+		cursor = closeStart + closeTag.length
+	}
+	return widths
+}
+
+function collectRows(tableHtml: string): HtmlTableRow[] {
+	const rows = [] as HtmlTableRow[]
+	let cursor = 0
+	while (cursor < tableHtml.length) {
+		const rowStart = findOpenTag(tableHtml, 'tr', cursor)
+		if (rowStart < 0) break
+		const rowOpenEnd = tableHtml.indexOf('>', rowStart)
+		if (rowOpenEnd < 0) break
+		const rowCloseStart = tableHtml.indexOf('</tr>', rowOpenEnd + 1)
+		if (rowCloseStart < 0) break
+		const rowEnd = rowCloseStart + '</tr>'.length
+		const rowHtml = tableHtml.slice(rowStart, rowEnd)
+		const measureFontSize = rows.length == 0 ? TABLE_FONT_SIZE : TABLE_BODY_MEASURE_FONT_SIZE
+		rows.push({
+			start: rowStart,
+			end: rowEnd,
+			html: rowHtml,
+			cellTextWidths: collectCellTextWidths(rowHtml, measureFontSize)
+		} as HtmlTableRow)
+		cursor = rowEnd
+	}
+	return rows
+}
+
+function naturalColumnWidths(rows: HtmlTableRow[]): number[] {
+	let columnCount = 0
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		columnCount = Math.max(columnCount, rows[rowIndex].cellTextWidths.length)
+	}
+	const widths = [] as number[]
+	for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+		let width = TABLE_MIN_COLUMN_WIDTH
+		for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+			if (columnIndex >= rows[rowIndex].cellTextWidths.length) continue
+			width = Math.max(width, Math.min(rows[rowIndex].cellTextWidths[columnIndex] + TABLE_CELL_HORIZONTAL_PADDING, TABLE_MAX_COLUMN_WIDTH))
+		}
+		widths.push(Math.ceil(width))
+	}
+	return widths
+}
+
+function appendTagStyle(openTag: string, style: string): string {
+	const styleMarker = 'style="'
+	const styleIndex = openTag.indexOf(styleMarker)
+	if (styleIndex >= 0) {
+		const valueStart = styleIndex + styleMarker.length
+		const valueEnd = openTag.indexOf('"', valueStart)
+		if (valueEnd >= valueStart) {
+			const separator = valueEnd > valueStart && openTag.charAt(valueEnd - 1) != ';' ? ';' : ''
+			return openTag.slice(0, valueEnd) + separator + style + openTag.slice(valueEnd)
+		}
+	}
+	const closeIndex = openTag.lastIndexOf('>')
+	if (closeIndex < 0) return openTag
+	return openTag.slice(0, closeIndex) + ' style="' + style + '"' + openTag.slice(closeIndex)
+}
+
+function appendTagAttributes(openTag: string, attributes: string): string {
+	const closeIndex = openTag.lastIndexOf('>')
+	if (closeIndex < 0) return openTag
+	return openTag.slice(0, closeIndex) + attributes + openTag.slice(closeIndex)
+}
+
+function styleOpenTags(source: string, tag: string, style: string): string {
+	let result = ''
+	let cursor = 0
+	while (cursor < source.length) {
+		const start = findOpenTag(source, tag, cursor)
+		if (start < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const end = source.indexOf('>', start)
+		if (end < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		result += source.slice(cursor, start)
+		result += appendTagStyle(source.slice(start, end + 1), style)
+		cursor = end + 1
+	}
+	return result
+}
+
+function taskImageTag(checked: boolean): string {
+	const src = checked ? TASK_CHECKED_IMAGE_SRC : TASK_UNCHECKED_IMAGE_SRC
+	return '<img data-uni-ai-task="1" data-uni-ai-task-checked="' + (checked ? '1' : '0') +
+		'" src="' + src + '" width="16" height="16" style="width:16px;height:16px;vertical-align:middle;" />'
+}
+
+function taskImageHtml(checked: boolean): string {
+	return taskImageTag(checked) + '&nbsp;'
+}
+
+function replaceTaskInputs(source: string): string {
+	let result = ''
+	let cursor = 0
+	while (cursor < source.length) {
+		const start = findOpenTag(source, 'input', cursor)
+		if (start < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const end = source.indexOf('>', start)
+		if (end < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const openTag = source.slice(start, end + 1)
+		const normalizedTag = openTag.toLowerCase()
+		result += source.slice(cursor, start)
+		if (normalizedTag.indexOf('checkbox') >= 0) {
+			const checked = /\schecked(?:\s*=|\s|\/|>)/i.test(openTag)
+			result += taskImageHtml(checked)
+		} else {
+			result += openTag
+		}
+		cursor = end + 1
+	}
+	return normalizeTaskImages(normalizeTaskMarkers(result))
+}
+
+function normalizeTaskImages(source: string): string {
+	let result = ''
+	let cursor = 0
+	while (cursor < source.length) {
+		const start = findOpenTag(source, 'img', cursor)
+		if (start < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const end = source.indexOf('>', start)
+		if (end < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		result += source.slice(cursor, start)
+		const openTag = source.slice(start, end + 1)
+		result += openTag.indexOf('data-uni-ai-task="1"') >= 0
+			? taskImageTag(openTag.indexOf('data-uni-ai-task-checked="1"') >= 0)
+			: openTag
+		cursor = end + 1
+	}
+	return result
+}
+
+function normalizeTaskMarkers(source: string): string {
+	let result = ''
+	let cursor = 0
+	while (cursor < source.length) {
+		const start = findOpenTag(source, 'span', cursor)
+		if (start < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const openEnd = source.indexOf('>', start)
+		const closeStart = openEnd >= 0 ? source.indexOf('</span>', openEnd + 1) : -1
+		if (openEnd < 0 || closeStart < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		result += source.slice(cursor, start)
+		const openTag = source.slice(start, openEnd + 1)
+		if (openTag.indexOf('data-uni-ai-task="1"') < 0) {
+			result += source.slice(start, closeStart + '</span>'.length)
+			cursor = closeStart + '</span>'.length
+			continue
+		}
+		const content = source.slice(openEnd + 1, closeStart)
+		const checked = openTag.indexOf('data-uni-ai-task-checked="1"') >= 0 ||
+			content.indexOf('▣') >= 0 || content.indexOf('☑') >= 0 ||
+			content.toLowerCase().indexOf('&#xe607;') >= 0
+		result += taskImageHtml(checked)
+		cursor = closeStart + '</span>'.length
+	}
+	return result
+}
+
+function styleTaskListItems(source: string): string {
+	let result = ''
+	let cursor = 0
+	while (cursor < source.length) {
+		const start = findOpenTag(source, 'li', cursor)
+		if (start < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const openEnd = source.indexOf('>', start)
+		const closeStart = openEnd >= 0 ? source.indexOf('</li>', openEnd + 1) : -1
+		if (openEnd < 0 || closeStart < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		result += source.slice(cursor, start)
+		const openTag = source.slice(start, openEnd + 1)
+		const itemHtml = source.slice(openEnd + 1, closeStart)
+		result += itemHtml.indexOf('data-uni-ai-task="1"') >= 0
+			? appendTagStyle(openTag, 'margin:2px 0;line-height:26px;list-style-type:none;')
+			: openTag
+		result += itemHtml + '</li>'
+		cursor = closeStart + '</li>'.length
+	}
+	return result
+}
+
+function markCodeBlocks(source: string, isDone: boolean): string {
+	let result = ''
+	let cursor = 0
+	let blockIndex = 0
+	while (cursor < source.length) {
+		const start = findOpenTag(source, 'pre', cursor)
+		if (start < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		const end = source.indexOf('>', start)
+		if (end < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		result += source.slice(cursor, start)
+		result += appendTagAttributes(source.slice(start, end + 1),
+			' data-uni-ai-code-key="code-' + blockIndex.toString() + '" data-uni-ai-complete="' + (isDone ? '1' : '0') + '"')
+		cursor = end + 1
+		blockIndex += 1
+	}
+	return result
+}
+
+function prepareRichMarkdownHtml(html: string, isDone: boolean): string {
+	let result = replaceTaskInputs(html)
+	result = styleTaskListItems(result)
+	result = styleOpenTags(result, 'ul', 'margin:4px 0;padding-left:24px;')
+	result = styleOpenTags(result, 'ol', 'margin:4px 0;padding-left:24px;')
+	result = styleOpenTags(result, 'li', 'margin:2px 0;line-height:26px;')
+	result = styleOpenTags(result, 'code', 'background-color:rgba(127,127,127,0.18);')
+	return markCodeBlocks(result, isDone)
+}
+
+function styleTableRow(row: HtmlTableRow, rowIndex: number, rowCount: number): string {
+	let result = ''
+	let cursor = 0
+	let cellIndex = 0
+	const cellCount = row.cellTextWidths.length
+	while (cursor < row.html.length) {
+		const cellPosition = findNextCellTag(row.html, cursor)
+		if (cellPosition == null) {
+			result += row.html.slice(cursor)
+			break
+		}
+		const openEnd = row.html.indexOf('>', cellPosition.start)
+		if (openEnd < 0) {
+			result += row.html.slice(cursor)
+			break
+		}
+		result += row.html.slice(cursor, cellPosition.start)
+		let cellStyle = 'border:1px solid ' + TABLE_BORDER_COLOR + ';padding:6px 8px;font-size:14px;line-height:22px;'
+		const sourceOpenTag = row.html.slice(cellPosition.start, openEnd + 1)
+		const align = tagAttribute(sourceOpenTag, 'align')
+		if (align.length > 0) cellStyle += 'text-align:' + align + ';'
+		if (rowIndex == 0) cellStyle += 'border-top-width:0;'
+		if (rowIndex == rowCount - 1) cellStyle += 'border-bottom-width:0;'
+		if (cellIndex == 0) cellStyle += 'border-left-width:0;'
+		if (cellIndex == cellCount - 1) cellStyle += 'border-right-width:0;'
+		if (cellPosition.tag == 'th') cellStyle += 'font-weight:700;background-color:' + TABLE_HEADER_BACKGROUND + ';'
+		cellStyle += 'width:' + TABLE_COLUMN_PLACEHOLDER_PREFIX + cellIndex.toString() + TABLE_COLUMN_PLACEHOLDER_SUFFIX + 'px;'
+		let openTag = appendTagStyle(sourceOpenTag, cellStyle)
+		openTag = appendTagAttributes(openTag, ' data-uni-ai-column="' + cellIndex.toString() + '"')
+		result += openTag
+		cursor = openEnd + 1
+		cellIndex += 1
+	}
+	return result
+}
+
+function encodeNumberList(values: number[]): string {
+	const parts = [] as string[]
+	for (let index = 0; index < values.length; index++) parts.push(Math.ceil(values[index]).toString())
+	return parts.join(',')
+}
+
+function encodeRowWidths(rows: HtmlTableRow[]): string {
+	const parts = [] as string[]
+	for (let index = 0; index < rows.length; index++) parts.push(encodeNumberList(rows[index].cellTextWidths))
+	return parts.join(';')
+}
+
+function prepareTableHtml(tableHtml: string, tableIndex: number): string {
+	const rows = collectRows(tableHtml)
+	if (rows.length == 0) return tableHtml
+	const columnWidths = naturalColumnWidths(rows)
+	let styledRows = ''
+	let cursor = 0
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		styledRows += tableHtml.slice(cursor, rows[rowIndex].start)
+		styledRows += styleTableRow(rows[rowIndex], rowIndex, rows.length)
+		cursor = rows[rowIndex].end
+	}
+	styledRows += tableHtml.slice(cursor)
+
+	const tableStart = findOpenTag(styledRows, 'table', 0)
+	const tableOpenEnd = tableStart >= 0 ? styledRows.indexOf('>', tableStart) : -1
+	if (tableStart < 0 || tableOpenEnd < 0) return styledRows
+	const tableStyle = 'border-collapse:collapse;width:' + TABLE_WIDTH_PLACEHOLDER + 'px;margin:0;'
+	let tableOpenTag = appendTagStyle(styledRows.slice(tableStart, tableOpenEnd + 1), tableStyle)
+	tableOpenTag = appendTagAttributes(tableOpenTag,
+		' data-uni-ai-table-key="table-' + tableIndex.toString() + '"' +
+		' data-uni-ai-column-widths="' + encodeNumberList(columnWidths) + '"' +
+		' data-uni-ai-row-widths="' + encodeRowWidths(rows) + '"')
+	return styledRows.slice(0, tableStart) + tableOpenTag + styledRows.slice(tableOpenEnd + 1)
+}
+
+export function prepareMarkdownHtml(html: string, isDone: boolean = false): string {
+	html = prepareRichMarkdownHtml(html, isDone)
+	let result = ''
+	let cursor = 0
+	let tableIndex = 0
+	while (cursor < html.length) {
+		const tableStart = findOpenTag(html, 'table', cursor)
+		if (tableStart < 0) {
+			result += html.slice(cursor)
+			break
+		}
+		const tableCloseStart = html.indexOf('</table>', tableStart)
+		if (tableCloseStart < 0) {
+			result += html.slice(cursor)
+			break
+		}
+		const tableEnd = tableCloseStart + '</table>'.length
+		result += html.slice(cursor, tableStart)
+		result += prepareTableHtml(html.slice(tableStart, tableEnd), tableIndex)
+		cursor = tableEnd
+		tableIndex += 1
+	}
+	return result
+}
+
+function tagAttribute(openTag: string, name: string): string {
+	const marker = name + '="'
+	const start = openTag.indexOf(marker)
+	if (start < 0) return ''
+	const valueStart = start + marker.length
+	const end = openTag.indexOf('"', valueStart)
+	return end >= valueStart ? openTag.slice(valueStart, end) : ''
+}
+
+function parseNumberList(value: string): number[] {
+	const values = [] as number[]
+	if (value.length == 0) return values
+	const parts = value.split(',')
+	for (let index = 0; index < parts.length; index++) {
+		const numberValue = parseFloat(parts[index])
+		if (!isNaN(numberValue)) values.push(numberValue)
+	}
+	return values
+}
+
+function parseRowWidths(value: string): number[][] {
+	const rows = [] as number[][]
+	if (value.length == 0) return rows
+	const parts = value.split(';')
+	for (let index = 0; index < parts.length; index++) rows.push(parseNumberList(parts[index]))
+	return rows
+}
+
+function richBlock(key: string, html: string): MarkdownHtmlBlock {
+	return {
+		kind: 'rich',
+		key: key,
+		html: html,
+		text: '',
+		language: '',
+		isComplete: true,
+		columnWidths: [] as number[],
+		rowTextWidths: [] as number[][]
+	} as MarkdownHtmlBlock
+}
+
+type HtmlSpecialBlock = {
+	kind: string
+	start: number
+	openEnd: number
+	closeStart: number
+	end: number
+}
+
+function findClosedBlock(source: string, tag: string, kind: string, fromIndex: number): HtmlSpecialBlock | null {
+	const start = findOpenTag(source, tag, fromIndex)
+	if (start < 0) return null
+	const openEnd = source.indexOf('>', start)
+	if (openEnd < 0) return null
+	const closeTag = '</' + tag + '>'
+	let closeStart = source.indexOf(closeTag, openEnd + 1)
+	if (closeStart < 0) return null
+	if (tag == 'blockquote') {
+		let depth = 1
+		let cursor = openEnd + 1
+		while (depth > 0) {
+			const nextOpen = findOpenTag(source, tag, cursor)
+			const nextClose = source.indexOf(closeTag, cursor)
+			if (nextClose < 0) return null
+			if (nextOpen >= 0 && nextOpen < nextClose) {
+				depth += 1
+				cursor = source.indexOf('>', nextOpen) + 1
+			} else {
+				depth -= 1
+				closeStart = nextClose
+				cursor = nextClose + closeTag.length
+			}
+		}
+	}
+	return {
+		kind: kind,
+		start: start,
+		openEnd: openEnd,
+		closeStart: closeStart,
+		end: closeStart + closeTag.length
+	} as HtmlSpecialBlock
+}
+
+function findDividerBlock(source: string, fromIndex: number): HtmlSpecialBlock | null {
+	const start = findOpenTag(source, 'hr', fromIndex)
+	if (start < 0) return null
+	const end = source.indexOf('>', start)
+	if (end < 0) return null
+	return { kind: 'divider', start: start, openEnd: end, closeStart: end, end: end + 1 } as HtmlSpecialBlock
+}
+
+function earlierBlock(current: HtmlSpecialBlock | null, candidate: HtmlSpecialBlock | null): HtmlSpecialBlock | null {
+	if (candidate == null) return current
+	if (current == null || candidate.start < current.start) return candidate
+	return current
+}
+
+function findNextSpecialBlock(source: string, fromIndex: number): HtmlSpecialBlock | null {
+	let block = null as HtmlSpecialBlock | null
+	block = earlierBlock(block, findClosedBlock(source, 'table', 'table', fromIndex))
+	block = earlierBlock(block, findClosedBlock(source, 'blockquote', 'quote', fromIndex))
+	block = earlierBlock(block, findClosedBlock(source, 'pre', 'code', fromIndex))
+	block = earlierBlock(block, findDividerBlock(source, fromIndex))
+	return block
+}
+
+function emptyHtmlBlock(kind: string, key: string): MarkdownHtmlBlock {
+	return {
+		kind: kind,
+		key: key,
+		html: '',
+		text: '',
+		language: '',
+		isComplete: true,
+		columnWidths: [] as number[],
+		rowTextWidths: [] as number[][]
+	} as MarkdownHtmlBlock
+}
+
+function decodeHtmlText(html: string): string {
+	return html
+		.replace(/<br\s*\/?\s*>/gi, '\n')
+		.replace(/<[^>]+>/g, '')
+		.replace(/&nbsp;/g, '\u00A0')
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&#39;/g, "'")
+}
+
+function codeLanguage(codeOpenTag: string): string {
+	const className = tagAttribute(codeOpenTag, 'class')
+	const marker = 'language-'
+	const markerIndex = className.indexOf(marker)
+	if (markerIndex < 0) return 'text'
+	const language = className.slice(markerIndex + marker.length).split(' ')[0]
+	return language.length > 0 ? language : 'text'
+}
+
+function buildCodeBlock(source: string, range: HtmlSpecialBlock, codeIndex: number, messageComplete: boolean): MarkdownHtmlBlock {
+	const preOpenTag = source.slice(range.start, range.openEnd + 1)
+	const codeStart = findOpenTag(source, 'code', range.openEnd + 1)
+	const codeOpenEnd = codeStart >= 0 ? source.indexOf('>', codeStart) : -1
+	const codeCloseStart = codeOpenEnd >= 0 ? source.indexOf('</code>', codeOpenEnd + 1) : -1
+	const codeOpenTag = codeStart >= 0 && codeOpenEnd >= 0 ? source.slice(codeStart, codeOpenEnd + 1) : ''
+	const codeHtml = codeOpenEnd >= 0 && codeCloseStart >= codeOpenEnd ? source.slice(codeOpenEnd + 1, codeCloseStart) : ''
+	const language = codeLanguage(codeOpenTag)
+	const block = emptyHtmlBlock(language == 'math' || language == 'math-pending' ? 'math'
+		: (language == 'mermaid' ? 'mermaid' : 'code'), 'code-' + codeIndex.toString())
+	const sourceKey = tagAttribute(preOpenTag, 'data-uni-ai-code-key')
+	block.key = sourceKey.length > 0 ? sourceKey : block.key
+	block.text = decodeHtmlText(codeHtml).replace(/\n$/, '')
+	block.language = language
+	const completeAttribute = tagAttribute(preOpenTag, 'data-uni-ai-complete')
+	block.isComplete = (completeAttribute == '1' || (completeAttribute.length == 0 && messageComplete))
+		&& language != 'math-pending'
+	return block
+}
+
+function buildTableBlock(source: string, range: HtmlSpecialBlock, tableIndex: number): MarkdownHtmlBlock {
+	let tableHtml = source.slice(range.start, range.end)
+	let openEnd = tableHtml.indexOf('>')
+	let openTag = openEnd >= 0 ? tableHtml.slice(0, openEnd + 1) : ''
+	let columnWidths = parseNumberList(tagAttribute(openTag, 'data-uni-ai-column-widths'))
+	let rowTextWidths = parseRowWidths(tagAttribute(openTag, 'data-uni-ai-row-widths'))
+	if (columnWidths.length == 0 || rowTextWidths.length == 0) {
+		tableHtml = prepareTableHtml(tableHtml, tableIndex)
+		openEnd = tableHtml.indexOf('>')
+		openTag = openEnd >= 0 ? tableHtml.slice(0, openEnd + 1) : ''
+		columnWidths = parseNumberList(tagAttribute(openTag, 'data-uni-ai-column-widths'))
+		rowTextWidths = parseRowWidths(tagAttribute(openTag, 'data-uni-ai-row-widths'))
+	}
+	const key = tagAttribute(openTag, 'data-uni-ai-table-key')
+	const block = emptyHtmlBlock('table', key.length > 0 ? key : 'table-' + tableIndex.toString())
+	block.html = tableHtml
+	block.columnWidths = columnWidths
+	block.rowTextWidths = rowTextWidths
+	return block
+}
+
+export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean = false): MarkdownHtmlBlock[] {
+	html = prepareRichMarkdownHtml(html, messageComplete)
+	const blocks = [] as MarkdownHtmlBlock[]
+	let cursor = 0
+	let richIndex = 0
+	let tableIndex = 0
+	let quoteIndex = 0
+	let codeIndex = 0
+	let dividerIndex = 0
+	while (cursor < html.length) {
+		const range = findNextSpecialBlock(html, cursor)
+		if (range == null) {
+			const trailingHtml = html.slice(cursor)
+			if (trailingHtml.length > 0) blocks.push(richBlock('rich-' + richIndex.toString(), trailingHtml))
+			break
+		}
+		if (range.start > cursor) {
+			blocks.push(richBlock('rich-' + richIndex.toString(), html.slice(cursor, range.start)))
+			richIndex += 1
+		}
+		if (range.kind == 'table') {
+			blocks.push(buildTableBlock(html, range, tableIndex))
+			tableIndex += 1
+		} else if (range.kind == 'quote') {
+			const block = emptyHtmlBlock('quote', 'quote-' + quoteIndex.toString())
+			block.html = html.slice(range.openEnd + 1, range.closeStart)
+			blocks.push(block)
+			quoteIndex += 1
+		} else if (range.kind == 'code') {
+			blocks.push(buildCodeBlock(html, range, codeIndex, messageComplete))
+			codeIndex += 1
+		} else {
+			blocks.push(emptyHtmlBlock('divider', 'divider-' + dividerIndex.toString()))
+			dividerIndex += 1
+		}
+		cursor = range.end
+	}
+	if (blocks.length == 0 && html.length > 0) blocks.push(richBlock('rich-0', html))
+	return blocks
+}
+
+export function resolveMarkdownTableColumnWidths(naturalWidths: number[], minimumTableWidth: number): number[] {
+	const widths = naturalWidths.slice()
+	if (widths.length == 0 || minimumTableWidth <= 0) return widths
+	let naturalWidth = 0
+	for (let index = 0; index < widths.length; index++) naturalWidth += widths[index]
+	if (naturalWidth >= minimumTableWidth) return widths
+	const equalWidth = minimumTableWidth / widths.length
+	for (let index = 0; index < widths.length; index++) widths[index] = equalWidth
+	return widths
+}
+
+export function markdownTableContentWidth(columnWidths: number[]): number {
+	let width = 0
+	for (let index = 0; index < columnWidths.length; index++) width += columnWidths[index]
+	return Math.max(1, width)
+}
+
+export function markdownTableContentHeight(rowTextWidths: number[][], columnWidths: number[]): number {
+	if (rowTextWidths.length == 0) return TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING
+	let height = 0
+	for (let rowIndex = 0; rowIndex < rowTextWidths.length; rowIndex++) {
+		let maxLineCount = 1
+		const renderWidthScale = rowIndex == 0 ? 1 : TABLE_FONT_SIZE / TABLE_BODY_MEASURE_FONT_SIZE
+		const cells = rowTextWidths[rowIndex]
+		for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+			const columnWidth = cellIndex < columnWidths.length ? columnWidths[cellIndex] : TABLE_MIN_COLUMN_WIDTH
+			const availableTextWidth = Math.max(1, columnWidth - TABLE_CELL_HORIZONTAL_PADDING)
+			const lineCount = Math.max(1, Math.ceil(cells[cellIndex] * renderWidthScale / availableTextWidth))
+			maxLineCount = Math.max(maxLineCount, lineCount)
+		}
+		height += maxLineCount * TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING
+		if (rowIndex < rowTextWidths.length - 1) height += 1
+	}
+	return Math.max(1, height)
+}
+
+export function applyMarkdownTableColumnWidths(html: string, columnWidths: number[]): string {
+	let result = replaceAllText(html, TABLE_WIDTH_PLACEHOLDER, markdownTableContentWidth(columnWidths).toString())
+	for (let columnIndex = 0; columnIndex < columnWidths.length; columnIndex++) {
+		result = replaceAllText(result,
+			TABLE_COLUMN_PLACEHOLDER_PREFIX + columnIndex.toString() + TABLE_COLUMN_PLACEHOLDER_SUFFIX,
+			columnWidths[columnIndex].toString())
+	}
+	return result
+}

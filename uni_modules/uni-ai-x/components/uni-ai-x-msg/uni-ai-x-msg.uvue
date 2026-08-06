@@ -12,7 +12,7 @@
 					<text class="msg-root-think-content-text" flatten>{{msg.thinkContent}}</text>
 				</view>
 			</view>
-			<uni-ai-md-rich-text v-if="hasMarkdownHtml" :html="msg.markdownHtml!" />
+			<uni-ai-md-rich-text v-if="hasMarkdownHtml" :html="msg.markdownHtml!" :complete="msg.rendered" />
 			<text v-else-if="msg.body.length > 0" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 			<template v-if="isLastAiMsg && msg.body == ''">
 				<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>

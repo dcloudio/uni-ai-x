@@ -1,0 +1,268 @@
+<template>
+    <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, imageReady ? 'math-el-image-ready math-el-scroll-image-ready' : 'math-el-source-pending']"
+        direction="horizontal" :show-scrollbar="false" @touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
+        <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
+            <image v-if="buffer0Href.length > 0" :src="buffer0Href" class="math-el-image" mode="scaleToFill"
+                :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
+            <image v-if="buffer1Href.length > 0" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
+                :style="buffer1ImageStyle" @load="onMathBuffer1Load" @error="onMathBuffer1Error" />
+            <rich-text v-if="!imageReady" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
+        </view>
+    </scroll-view>
+</template>
+
+<script lang="uts" setup>
+    import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+    import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+    import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+    import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+    import { renderMathSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
+    const props = defineProps<{
+        href?: string
+        width?: number
+        height?: number
+	        text?: string
+	        codeTokens?: MarkdownToken[][]
+	        renderTheme?: string
+	        isClose?: number
+    }>()
+
+    const buffer0Href = ref<string>('')
+    const buffer0Width = ref<number>(0)
+    const buffer0Height = ref<number>(0)
+    const buffer0Loaded = ref<boolean>(false)
+    const buffer1Href = ref<string>('')
+    const buffer1Width = ref<number>(0)
+    const buffer1Height = ref<number>(0)
+    const buffer1Loaded = ref<boolean>(false)
+    const activeBuffer = ref<number>(0)
+    const pendingBuffer = ref<number>(-1)
+    const windowWidth = ref<number>(0)
+    let mathRenderRequestKey = ''
+    let mathBufferLoadRequest = 0
+
+    const activeImageHref = computed<string>(() => {
+        return activeBuffer.value == 0 ? buffer0Href.value : buffer1Href.value
+    })
+
+    const activeImageWidth = computed<number>(() => {
+        return activeBuffer.value == 0 ? buffer0Width.value : buffer1Width.value
+    })
+
+    const activeImageHeight = computed<number>(() => {
+        return activeBuffer.value == 0 ? buffer0Height.value : buffer1Height.value
+    })
+
+    const imageReady = computed<boolean>(() => {
+        const loaded = activeBuffer.value == 0 ? buffer0Loaded.value : buffer1Loaded.value
+        return activeImageHref.value.length > 0 && loaded
+    })
+
+    const buffer0ImageStyle = computed<string>(() => {
+        const opacity = activeBuffer.value == 0 && buffer0Loaded.value ? 1 : 0
+        return 'width:' + Math.max(1, Math.ceil(buffer0Width.value)).toString() + 'px;height:'
+            + Math.max(1, Math.ceil(buffer0Height.value)).toString() + 'px;opacity:' + opacity.toString() + ';'
+    })
+
+    const buffer1ImageStyle = computed<string>(() => {
+        const opacity = activeBuffer.value == 1 && buffer1Loaded.value ? 1 : 0
+        return 'width:' + Math.max(1, Math.ceil(buffer1Width.value)).toString() + 'px;height:'
+            + Math.max(1, Math.ceil(buffer1Height.value)).toString() + 'px;opacity:' + opacity.toString() + ';'
+    })
+
+    const sourceRichNodes = computed<UTSJSONObject[]>(() => {
+        const token: MarkdownToken = {
+            type: 'code_block',
+            lang: 'math',
+            text: props.text ?? '',
+            codeTokens: props.codeTokens ?? [] as MarkdownToken[][]
+        }
+        return markdownCodeTokenToRichTextNodes(token)
+    })
+
+    function visibleMathWidth(): number {
+        const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
+        return Math.max(160, Math.min(currentWindowWidth, 800) - 90)
+    }
+
+    const sourceContentWidthValue = computed<number>(() => {
+        const sourceWidth = estimateMaxLineTextWidth((props.text ?? '').split('\n'), 14, 'mono') + 28
+        return Math.max(1, Math.min(sourceWidth, visibleMathWidth()))
+    })
+
+    const sourceContentWidth = computed<string>(() => {
+        return sourceContentWidthValue.value.toString() + 'px'
+    })
+
+    const sourceContentHeight = computed<string>(() => {
+        const lines = (props.text ?? '').split('\n')
+        let visualLineCount = 0
+        for (let i = 0; i < lines.length; i++) {
+            const lineWidth = estimateMaxLineTextWidth([lines[i]] as string[], 14, 'mono') + 28
+            visualLineCount += Math.max(1, Math.ceil(lineWidth / sourceContentWidthValue.value))
+        }
+        return Math.max(44, visualLineCount * 22).toString() + 'px'
+    })
+
+    const sourceRichTextStyle = computed<string>(() => {
+        return 'width:' + sourceContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
+    })
+
+    const mathWidth = computed<string>(() => {
+        const width = activeImageWidth.value > 0 ? activeImageWidth.value : (props.width ?? 1)
+        return Math.max(1, Math.ceil(width)).toString() + 'px'
+    })
+
+    const mathHeight = computed<string>(() => {
+        const height = activeImageHeight.value > 0 ? activeImageHeight.value : (props.height ?? 1)
+        return Math.max(1, Math.ceil(height)).toString() + 'px'
+    })
+
+    const mathContentWidth = computed<string>(() => {
+        return imageReady.value ? mathWidth.value : sourceContentWidth.value
+    })
+
+    const mathContentHeight = computed<string>(() => {
+        return imageReady.value ? mathHeight.value : sourceContentHeight.value
+    })
+
+    function queueMathImage(href: string, width: number, height: number) {
+        if (href.length == 0) return
+        const safeWidth = Math.max(1, width)
+        const safeHeight = Math.max(1, height)
+        if (activeImageHref.value == href) {
+            mathBufferLoadRequest++
+            pendingBuffer.value = -1
+            if (activeBuffer.value == 0) {
+                buffer0Width.value = safeWidth
+                buffer0Height.value = safeHeight
+            } else {
+                buffer1Width.value = safeWidth
+                buffer1Height.value = safeHeight
+            }
+            return
+        }
+
+        const targetBuffer = activeBuffer.value == 0 ? 1 : 0
+        const loadRequest = ++mathBufferLoadRequest
+        pendingBuffer.value = targetBuffer
+        if (targetBuffer == 0) {
+            buffer0Width.value = safeWidth
+            buffer0Height.value = safeHeight
+            buffer0Loaded.value = false
+            buffer0Href.value = ''
+        } else {
+            buffer1Width.value = safeWidth
+            buffer1Height.value = safeHeight
+            buffer1Loaded.value = false
+            buffer1Href.value = ''
+        }
+        nextTick(() => {
+            if (mathBufferLoadRequest != loadRequest || pendingBuffer.value != targetBuffer) return
+            if (targetBuffer == 0) buffer0Href.value = href
+            else buffer1Href.value = href
+        })
+    }
+
+    function onMathBufferLoad(buffer: number) {
+        if (buffer == 0) buffer0Loaded.value = true
+        else buffer1Loaded.value = true
+        if (pendingBuffer.value != buffer) return
+        activeBuffer.value = buffer
+        pendingBuffer.value = -1
+    }
+
+    function onMathBufferError(buffer: number) {
+        if (buffer == 0) {
+            buffer0Loaded.value = false
+            if (activeBuffer.value != 0) buffer0Href.value = ''
+        } else {
+            buffer1Loaded.value = false
+            if (activeBuffer.value != 1) buffer1Href.value = ''
+        }
+        if (pendingBuffer.value == buffer) pendingBuffer.value = -1
+    }
+
+    function onMathBuffer0Load(_event: ImageLoadEvent) { onMathBufferLoad(0) }
+    function onMathBuffer1Load(_event: ImageLoadEvent) { onMathBufferLoad(1) }
+    function onMathBuffer0Error(_event: ImageErrorEvent) { onMathBufferError(0) }
+    function onMathBuffer1Error(_event: ImageErrorEvent) { onMathBufferError(1) }
+
+    function stopDrawerGesture(_event: TouchEvent) {}
+
+	    function syncMathImageTheme() {
+	        if ((props.isClose ?? 0) != 1) return
+	        const theme = uiTheme.value
+	        const sourceHref = props.href ?? ''
+	        if (sourceHref.length > 0 && activeImageHref.value.length == 0) queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
+	        if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
+	            mathRenderRequestKey = ''
+	            queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
+            return
+        }
+        const mathText = (props.text ?? '').trim()
+        if (mathText.length == 0) return
+        const requestKey = theme + '\n' + mathText
+        mathRenderRequestKey = requestKey
+        renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
+            if (mathRenderRequestKey != requestKey || uiTheme.value != theme || result.imageDataURL.length == 0) return
+            queueMathImage(result.imageDataURL, result.width, result.height)
+        })
+    }
+
+	    watch((): string => {
+	        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n'
+	            + (props.isClose ?? 0).toString() + '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
+    }, () => {
+        syncMathImageTheme()
+    }, { immediate: true })
+
+    onMounted(() => {
+        windowWidth.value = uni.getWindowInfo().windowWidth
+    })
+
+</script>
+
+<style lang="scss" scoped>
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+    .math-el {
+        width: 100%;
+        min-height: 44px;
+        margin: 6px 0;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .math-el-source-pending {
+        background-color: #111827;
+    }
+
+    .math-el-image-ready {
+        background-color: var(--bg-primary);
+    }
+
+    .math-el-scroll-image-ready {
+        padding: 10px 12px;
+    }
+
+    .math-el-content {
+        position: relative;
+        align-self: flex-start;
+        flex-shrink: 0;
+    }
+
+    .math-el-image {
+        position: absolute;
+        left: 0;
+        top: 0;
+        align-self: flex-start;
+        flex-shrink: 0;
+    }
+
+    .math-el-source {
+        position: absolute;
+        left: 0;
+        top: 0;
+        align-self: flex-start;
+    }
+</style>
