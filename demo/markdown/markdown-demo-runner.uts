@@ -8,7 +8,7 @@ import {
 	reportDemoMarkdownSnapshot
 } from '@/demo/markdown/demo-chat.uts'
 import { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts'
-// #ifdef APP-ANDROID
+// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
 	cancelAiWorkerRequest,
@@ -23,6 +23,21 @@ const DEMO_RENDER_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 200
 const DEMO_BLOCK_INTERVAL = DEMO_RENDER_INTERVAL
+
+function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
+	const value = snapshot[key] as string | null
+	return value == null ? defaultValue : value as string
+}
+
+function readSnapshotNumber(snapshot: UTSJSONObject, key: string, defaultValue: number = 0): number {
+	const value = snapshot[key] as number | null
+	return value == null ? defaultValue : value as number
+}
+
+function readSnapshotBoolean(snapshot: UTSJSONObject, key: string, defaultValue: boolean = false): boolean {
+	const value = snapshot[key] as boolean | null
+	return value == null ? defaultValue : value as boolean
+}
 
 export default class MarkdownDemoRunner {
 	private callbacks: RequestAiRunnerCallbacks | null
@@ -46,16 +61,22 @@ export default class MarkdownDemoRunner {
 			this.fail('请先选择 Markdown 测试类型')
 			return
 		}
-		// #ifdef APP-ANDROID
-		this.startAndroidWorker()
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		this.startWorker()
 		// #endif
 		// #ifndef APP-ANDROID
+		// #ifndef WEB
+		// #ifndef MP-WEIXIN
+		// #ifndef APP-HARMONY
 		this.fail('当前平台未启用 Markdown HTML Worker')
+		// #endif
+		// #endif
+		// #endif
 		// #endif
 	}
 
-	// #ifdef APP-ANDROID
-	private startAndroidWorker() {
+	// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+	private startWorker() {
 		this.requestVersion += 1
 		this.snapshotVersion = 0
 		this.workerActive = true
@@ -124,19 +145,19 @@ export default class MarkdownDemoRunner {
 			this.fail('Worker 返回数据解析失败')
 			return
 		}
-		if (snapshot.getNumber('requestVersion', 0) != this.requestVersion) return
-		const phase = snapshot.getString('phase', '')
-		const nextSnapshotVersion = snapshot.getNumber('snapshotVersion', 0)
+		if (readSnapshotNumber(snapshot, 'requestVersion') != this.requestVersion) return
+		const phase = readSnapshotString(snapshot, 'phase')
+		const nextSnapshotVersion = readSnapshotNumber(snapshot, 'snapshotVersion')
 		if (phase != 'error' && nextSnapshotVersion <= this.snapshotVersion) return
 		if (nextSnapshotVersion > this.snapshotVersion) this.snapshotVersion = nextSnapshotVersion
 		if (phase == 'error') {
-			this.fail(snapshot.getString('errMsg', 'Worker 请求失败'))
+			this.fail(readSnapshotString(snapshot, 'errMsg', 'Worker 请求失败'))
 			return
 		}
 		if (phase != 'snapshot' && phase != 'complete') return
 
-		const msgBody = snapshot.getString('msgBody', '')
-		const thinkContent = snapshot.getString('thinkContent', '')
+		const msgBody = readSnapshotString(snapshot, 'msgBody')
+		const thinkContent = readSnapshotString(snapshot, 'thinkContent')
 		const scenarioId = activeDemoMarkdownScenarioId()
 		const blockCount = scenarioId == FULL_MARKDOWN_SCENARIO_ID && msgBody.length > 0
 			? 1
@@ -144,16 +165,16 @@ export default class MarkdownDemoRunner {
 		reportDemoMarkdownSnapshot(
 			msgBody.length,
 			blockCount,
-			snapshot.getNumber('elapsed', 0)
+			readSnapshotNumber(snapshot, 'elapsed')
 		)
 		this.callbacks?.onMsgBody(msgBody)
 		this.callbacks?.onThinkContent(thinkContent)
-		if (snapshot.getString('renderMode', '') != 'html') {
+		if (readSnapshotString(snapshot, 'renderMode') != 'html') {
 			this.fail('Worker 必须返回 Markdown HTML')
 			return
 		}
-		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
-		this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
+		const isDone = phase == 'complete' || readSnapshotBoolean(snapshot, 'isDone')
+		this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
 		if (!isDone) return
 
 		this.stopWorkerRuntime(false)
@@ -175,7 +196,7 @@ export default class MarkdownDemoRunner {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.streamTimer = 0
 		this.workerPollTimer = 0
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.requestVersion)
 		destroyAiWorkerRuntime()
 		// #endif
