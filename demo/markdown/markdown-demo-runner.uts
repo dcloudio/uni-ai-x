@@ -1,4 +1,4 @@
-import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+import testMarkdownText from '@/demo/markdown/testMarkdownText.uts'
 import {
 	activeDemoMarkdownScenarioId,
 	beginDemoMarkdownRun,
@@ -6,7 +6,8 @@ import {
 	FULL_MARKDOWN_SCENARIO_ID,
 	nextDemoMarkdownBlock,
 	reportDemoMarkdownSnapshot
-} from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
+} from '@/demo/markdown/demo-chat.uts'
+import { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts'
 // #ifdef APP-ANDROID
 import {
 	appendAiWorkerMarkdown,
@@ -18,23 +19,13 @@ import {
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
-export type MarkdownDemoRunnerCallbacks = {
-	onMarkdownHtml: (html: string) => void,
-	onThinkContent: (thinkContent: string) => void,
-	onMsgBody: (msgBody: string) => void,
-	onState: (state: string) => void,
-	onErrorMsg: (errorMsg: string) => void,
-	onRendered: (rendered: boolean) => void,
-	onChatTitle: (title: string) => void
-}
-
 const DEMO_RENDER_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
 const DEMO_STREAM_INTERVAL = 200
 const DEMO_BLOCK_INTERVAL = DEMO_RENDER_INTERVAL
 
 export default class MarkdownDemoRunner {
-	private callbacks: MarkdownDemoRunnerCallbacks | null
+	private callbacks: RequestAiRunnerCallbacks | null
 	private requestVersion: number = 0
 	private snapshotVersion: number = 0
 	private workerActive: boolean = false
@@ -46,7 +37,7 @@ export default class MarkdownDemoRunner {
 	private nextBlockAt: number = 0
 	private stopped: boolean = false
 
-	constructor(callbacks: MarkdownDemoRunnerCallbacks) {
+	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 	}
 

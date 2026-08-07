@@ -18,7 +18,7 @@
 
 ## 首页模式
 
-- `uni_modules/uni-ai-x/sdk/testMarkdownText.uts` 留空时，首页按正式业务模式运行。
+- `main.uts` 中的 `demo/markdown/install.uts` 导入保持注释时，首页按正式业务模式运行。
 - 需要隔离验证内置 Markdown 示例时，优先使用单独验证页和独立示例数据源，不要直接污染首页真实业务入口。
 
 ## 协作约定

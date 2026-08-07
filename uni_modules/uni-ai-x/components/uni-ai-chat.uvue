@@ -25,7 +25,7 @@
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
-			<uni-ai-chat-demo-input v-if="isDemo" />
+			<uni-ai-chat-extension-input v-if="hasInputExtension" />
 			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
 			<text class="chat-box-tip">内容由ai生成，仅供参考</text>
 		</view>
@@ -41,9 +41,9 @@
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
-	import uniAiChatDemoInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-demo-input/uni-ai-chat-demo-input.uvue'
+	import uniAiChatExtensionInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-extension-input/uni-ai-chat-extension-input.uvue'
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
-	import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -74,7 +74,7 @@
 	let mouseScrollTimer = 0
 	let mouseScroll = false
 	let needSetLockAutoToLastMsg = true
-	const isDemo = testMarkdownText.length > 0
+	const hasInputExtension = getChatInputExtension() != null
 	
 	const state = computed<string>(() => {
 		return uniAi.currentChat?.state ?? 'none'

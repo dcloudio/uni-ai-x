@@ -1,4 +1,5 @@
 import App from './App.uvue'
+// import '@/demo/markdown/install.uts' // 取消注释以启用 Markdown 演示模式
 
 import { createSSRApp } from 'vue'
 export function createApp() {

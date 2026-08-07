@@ -1,0 +1,42 @@
+import { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts'
+
+export type AiRequestRunnerHandle = {
+	abortRequest: () => void
+}
+
+export type AiRequestRunnerFactory = (callbacks: RequestAiRunnerCallbacks) => AiRequestRunnerHandle
+
+export type ChatInputExtensionAction = {
+	id: string
+	label: string
+}
+
+export type ChatInputExtension = {
+	actions: ChatInputExtensionAction[]
+	activeActionId: () => string
+	statusText: () => string
+	runAction: (actionId: string) => void
+	clear: () => void
+	stop: () => void
+	onChatChanged: () => void
+	dispose: () => void
+}
+
+let requestAiRunnerFactory: AiRequestRunnerFactory | null = null
+let chatInputExtension: ChatInputExtension | null = null
+
+export function registerAiRequestRunnerFactory(factory: AiRequestRunnerFactory) {
+	requestAiRunnerFactory = factory
+}
+
+export function getAiRequestRunnerFactory(): AiRequestRunnerFactory | null {
+	return requestAiRunnerFactory
+}
+
+export function registerChatInputExtension(extension: ChatInputExtension) {
+	chatInputExtension = extension
+}
+
+export function getChatInputExtension(): ChatInputExtension | null {
+	return chatInputExtension
+}

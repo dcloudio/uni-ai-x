@@ -1,6 +1,5 @@
 import { reactive } from 'vue'
-import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
-import { createDemoMarkdownBlock } from '@/uni_modules/uni-ai-worker/utssdk/demo-markdown.uts'
+import { createDemoMarkdownBlock } from '@/demo/markdown/demo-markdown.uts'
 
 export type DemoMarkdownScenario = {
 	id: string
@@ -65,10 +64,6 @@ function publishDemoStats() {
 function clearStatsTimer() {
 	if (statsTimer != 0) clearInterval(statsTimer)
 	statsTimer = 0
-}
-
-export function isDemoMarkdownEnabled(): boolean {
-	return testMarkdownText.length > 0
 }
 
 export function selectDemoMarkdownScenario(scenarioId: string): DemoMarkdownScenario | null {

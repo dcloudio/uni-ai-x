@@ -1,3 +1,4 @@
+// Test-only Markdown block generator, loaded by demo/markdown/install.uts.
 const MIXED_GROUP_SIZE = 10
 const MIXED_GROUP_COUNT = 10
 

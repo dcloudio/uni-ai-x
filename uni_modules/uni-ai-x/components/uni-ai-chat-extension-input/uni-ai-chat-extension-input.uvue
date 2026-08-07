@@ -1,0 +1,171 @@
+<template>
+	<view class="chat-extension-input">
+		<view class="chat-extension-input-actions">
+			<view v-for="action in actions" :key="action.id"
+				class="chat-extension-input-action"
+				:class="[activeActionId == action.id ? 'chat-extension-input-action-active' : '', aiState == 'processing' ? 'chat-extension-input-action-disabled' : '']"
+				@click.stop="runAction(action.id)">
+				<text class="chat-extension-input-action-text"
+					:class="activeActionId == action.id ? 'chat-extension-input-action-text-active' : ''">{{action.label}}</text>
+			</view>
+			<view class="chat-extension-input-action chat-extension-input-clear"
+				:class="aiState == 'processing' ? 'chat-extension-input-action-disabled' : ''"
+				@click.stop="clear">
+				<text class="chat-extension-input-clear-text">清空</text>
+			</view>
+		</view>
+		<view class="chat-extension-input-status-row">
+			<text class="chat-extension-input-status-text">{{statusText}}</text>
+			<view class="chat-extension-input-stop-slot">
+				<view class="chat-extension-input-stop" :style="{visibility: aiState == 'processing' ? 'visible' : 'hidden'}" @click.stop="stop">
+					<uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
+				</view>
+			</view>
+		</view>
+		<view class="chat-extension-input-safe-area"></view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
+
+	const extension = getChatInputExtension()!
+	const actions = extension.actions
+	const aiState = computed<string>(() => uniAi.currentChat?.state ?? 'none')
+	const activeActionId = computed<string>(() => extension.activeActionId())
+	const statusText = computed<string>(() => extension.statusText())
+
+	function runAction(actionId: string) {
+		if (aiState.value == 'processing') return
+		extension.runAction(actionId)
+	}
+
+	function clear() {
+		if (aiState.value == 'processing') return
+		extension.clear()
+	}
+
+	function stop() {
+		extension.stop()
+	}
+
+	watch((): string => uniAi.chat.activeId, () => {
+		extension.onChatChanged()
+	})
+
+	onBeforeUnmount(() => {
+		extension.dispose()
+	})
+</script>
+
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.chat-extension-input {
+	width: 100%;
+	flex-direction: column;
+	background-color: var(--bg-primary);
+	padding: 15px 15px 5px 15px;
+	border-radius: 15px 15px 0 0;
+	border: 1px solid var(--border-secondary);
+}
+
+.chat-extension-input-actions {
+	width: 100%;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.chat-extension-input-action {
+	height: 32px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	padding: 0 12px;
+	margin-right: 8px;
+	margin-bottom: 8px;
+	border-radius: 6px;
+	border: 1px solid var(--border-primary);
+	background-color: var(--bg-secondary);
+}
+
+.chat-extension-input-action-active {
+	border-color: var(--accent-primary);
+	background-color: var(--bg-tertiary);
+}
+
+.chat-extension-input-action-disabled {
+	opacity: 0.45;
+}
+
+.chat-extension-input-action-text {
+	font-size: 13px;
+	color: var(--text-secondary);
+}
+
+.chat-extension-input-action-text-active {
+	color: var(--accent-primary);
+}
+
+.chat-extension-input-clear {
+	border-color: var(--error);
+}
+
+.chat-extension-input-clear-text {
+	font-size: 13px;
+	color: var(--error);
+}
+
+.chat-extension-input-status-row {
+	width: 100%;
+	height: 34px;
+	flex-direction: row;
+	align-items: center;
+}
+
+.chat-extension-input-status-text {
+	flex: 1;
+	font-size: 11px;
+	line-height: 18px;
+	color: var(--text-tertiary);
+}
+
+.chat-extension-input-stop-slot {
+	width: 34px;
+	height: 34px;
+	margin-left: 8px;
+	align-items: center;
+	justify-content: center;
+}
+
+.chat-extension-input-stop {
+	width: 30px;
+	height: 30px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 100px;
+	background-color: var(--accent-primary);
+}
+
+.chat-extension-input-safe-area {
+	/* #ifdef APP-ANDROID */
+	margin-bottom: env(safe-area-inset-bottom);
+	/* #endif */
+	/* #ifndef APP-ANDROID */
+	padding-bottom: env(safe-area-inset-bottom);
+	/* #endif */
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.chat-extension-input {
+		border-radius: 15px;
+		margin: 10px;
+		margin-top: 0;
+	}
+}
+/* #endif */
+</style>

@@ -1,0 +1,86 @@
+import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import {
+	AiRequestRunnerHandle,
+	ChatInputExtension,
+	ChatInputExtensionAction,
+	registerAiRequestRunnerFactory,
+	registerChatInputExtension
+} from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
+import MarkdownDemoRunner from '@/demo/markdown/markdown-demo-runner.uts'
+import {
+	demoMarkdownScenarios,
+	demoMarkdownState,
+	finishDemoMarkdownRun,
+	resetDemoMarkdownStats,
+	selectDemoMarkdownScenario
+} from '@/demo/markdown/demo-chat.uts'
+
+const actions = [] as ChatInputExtensionAction[]
+demoMarkdownScenarios.forEach((scenario) => {
+	actions.push({
+		id: scenario.id,
+		label: scenario.label
+	} as ChatInputExtensionAction)
+})
+
+function statusText(): string {
+	if (demoMarkdownState.runId == 0 || demoMarkdownState.scenarioLabel.length == 0) return '未运行'
+	const elapsedSeconds = (demoMarkdownState.elapsed / 1000).toFixed(1)
+	const stateText = demoMarkdownState.running ? '运行中' : '已停止'
+	return stateText + ' · ' + demoMarkdownState.scenarioLabel + ' · ' + demoMarkdownState.blockCount.toString()
+		+ ' 块 · ' + demoMarkdownState.receivedChars.toString() + ' 字符 · ' + elapsedSeconds + 's'
+}
+
+async function runAction(actionId: string) {
+	if (uniAi.currentChat?.state == 'processing') return
+	const scenario = selectDemoMarkdownScenario(actionId)
+	if (scenario == null) return
+	try {
+		await uniAi.sendMsg(scenario.prompt)
+	} catch (error) {
+		finishDemoMarkdownRun()
+		console.error('[uni-ai-x][Markdown测试] 启动失败', error)
+	}
+}
+
+function clear() {
+	if (uniAi.currentChat?.state == 'processing') return
+	resetDemoMarkdownStats()
+	uniAi.addChat(false)
+}
+
+function stop() {
+	if (uniAi.currentChat != null) uniAi.currentChat!.state = 'stop'
+	uniAi.abortRequest()
+}
+
+function abortRunningDemo() {
+	if (demoMarkdownState.running) uniAi.abortRequest()
+}
+
+registerAiRequestRunnerFactory((callbacks): AiRequestRunnerHandle => {
+	const runner = new MarkdownDemoRunner(callbacks)
+	runner.start()
+	return runner as AiRequestRunnerHandle
+})
+
+registerChatInputExtension({
+	actions: actions,
+	activeActionId: (): string => demoMarkdownState.scenarioId,
+	statusText: (): string => statusText(),
+	runAction: (actionId: string) => {
+		runAction(actionId)
+	},
+	clear: () => {
+		clear()
+	},
+	stop: () => {
+		stop()
+	},
+	onChatChanged: () => {
+		abortRunningDemo()
+	},
+	dispose: () => {
+		abortRunningDemo()
+	}
+} as ChatInputExtension)

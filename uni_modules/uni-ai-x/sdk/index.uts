@@ -3,14 +3,11 @@ import { defaultLLM, currentUser } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
-import MarkdownDemoRunner from '@/uni_modules/uni-ai-x/sdk/markdown-demo-runner.uts';
-import { isDemoMarkdownEnabled } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts';
+import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
 import { StorageManager, AiChat } from './storage-manager.uts'
-import testMarkdownText from './testMarkdownText.uts';
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
-export {testMarkdownText}
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
-let requestAiRunner: RequestAiRunner | MarkdownDemoRunner | null = null
+let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
 class UniAi {
 	// 存储管理器
@@ -360,10 +357,9 @@ class UniAi {
 				this.updateChatTitle(aiMsgItem.chat_id, title)
 			}
 		}
-		if (isDemoMarkdownEnabled()) {
-			const demoRunner = new MarkdownDemoRunner(runnerCallbacks)
-			requestAiRunner = demoRunner
-			demoRunner.start()
+		const runnerFactory = getAiRequestRunnerFactory()
+		if (runnerFactory != null) {
+			requestAiRunner = runnerFactory!(runnerCallbacks)
 			return
 		}
 		const remoteRunner = new RequestAiRunner(runnerCallbacks)
