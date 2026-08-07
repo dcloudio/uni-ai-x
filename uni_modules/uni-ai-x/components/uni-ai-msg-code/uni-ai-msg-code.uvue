@@ -221,7 +221,7 @@ function highlightCode() {
 	const cachedTokens = highlightedCodeTokens.value
 	const canReuseHighlightedLines = highlightedCodeLanguage == props.language
 	let completed = 0
-	// #ifdef APP
+	// #ifdef APP || WEB
 	for (let index = 0; index < lines.length; index++) {
 		const lineIndex = index
 		if (canReuseHighlightedLines
