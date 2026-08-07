@@ -87,6 +87,8 @@ const activeMermaidBuffer = ref<number>(0)
 const pendingMermaidBuffer = ref<number>(-1)
 let mermaidRenderRequestKey = ''
 let codeHighlightRequestVersion = 0
+let highlightedCodeLanguage = ''
+let highlightedCodeLines = [] as string[]
 const highlightedCodeTokens = ref<IToken[][]>([] as IToken[][])
 const codeLineHeight = 22
 const codeVerticalPadding = 16
@@ -206,16 +208,30 @@ const safeCodeTokens = computed<IToken[][]>(() => {
 function highlightCode() {
 	codeHighlightRequestVersion += 1
 	const requestVersion = codeHighlightRequestVersion
-	highlightedCodeTokens.value = [] as IToken[][]
-	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') return
+	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') {
+		highlightedCodeLanguage = ''
+		highlightedCodeLines = [] as string[]
+		highlightedCodeTokens.value = [] as IToken[][]
+		return
+	}
 	const lines = normalizeCodeText(props.codeText).split('\n')
 	if (lines.length == 0) return
 	const nextTokens = [] as IToken[][]
 	for (let index = 0; index < lines.length; index++) nextTokens.push([] as IToken[])
+	const cachedTokens = highlightedCodeTokens.value
+	const canReuseHighlightedLines = highlightedCodeLanguage == props.language
 	let completed = 0
 	// #ifdef APP
 	for (let index = 0; index < lines.length; index++) {
 		const lineIndex = index
+		if (canReuseHighlightedLines
+			&& lineIndex < highlightedCodeLines.length
+			&& lineIndex < cachedTokens.length
+			&& highlightedCodeLines[lineIndex] == lines[lineIndex]) {
+			nextTokens[lineIndex] = cachedTokens[lineIndex]
+			completed += 1
+			continue
+		}
 		proxyWeb.callMethod({
 			action: 'highlightCodeLine',
 			language: props.language,
@@ -228,8 +244,17 @@ function highlightCode() {
 				nextTokens[lineIndex] = JSON.parseArray<IToken>(tokensJson) as IToken[]
 			}
 			completed += 1
-			if (completed == lines.length) highlightedCodeTokens.value = nextTokens
+			if (completed == lines.length) {
+				highlightedCodeLanguage = props.language
+				highlightedCodeLines = lines
+				highlightedCodeTokens.value = nextTokens
+			}
 		})
+	}
+	if (completed == lines.length && requestVersion == codeHighlightRequestVersion) {
+		highlightedCodeLanguage = props.language
+		highlightedCodeLines = lines
+		highlightedCodeTokens.value = nextTokens
 	}
 	// #endif
 }
