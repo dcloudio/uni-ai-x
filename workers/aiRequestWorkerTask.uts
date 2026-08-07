@@ -1,11 +1,22 @@
 // #ifdef APP-ANDROID
-import { isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+// #endif
+// #ifdef WEB
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/web/index.uts'
+// #endif
+// #ifdef MP-WEIXIN
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
+// #endif
+// #ifdef APP-HARMONY
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
 // #endif
 import {
 	MarkdownPreprocessor,
-	prepareMarkdownHtml,
-	WorkerStreamRequest
+	prepareMarkdownHtml
 } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
+// #ifdef APP-ANDROID
+import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
+// #endif
 
 type WorkerAiDelta = {
 	content?: string,
@@ -20,8 +31,20 @@ type WorkerAiChunk = {
 	choices?: WorkerAiChoice[]
 }
 
+function readMessageString(message: UTSJSONObject, key: string, defaultValue: string = ''): string {
+	const value = message[key] as string | null
+	return value == null ? defaultValue : value as string
+}
+
+function readMessageNumber(message: UTSJSONObject, key: string, defaultValue: number = 0): number {
+	const value = message[key] as number | null
+	return value == null ? defaultValue : value as number
+}
+
 export class AiRequestWorkerTask extends WorkerTaskImpl {
+	// #ifdef APP-ANDROID
 	private streamRequest: WorkerStreamRequest | null = null
+	// #endif
 	private renderTimer: number = 0
 	private requestVersion: number = 0
 	private snapshotVersion: number = 0
@@ -42,33 +65,46 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	override entry() {
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		initMd2html().then(() => {
+			this.postMessage({ phase: 'ready' } as UTSJSONObject)
+		}).catch((error: any | null) => {
+			this.postMessage({
+				phase: 'init-error',
+				errMsg: error instanceof Error ? error.message : 'cmark-gfm WebAssembly 初始化失败'
+			} as UTSJSONObject)
+		})
+		return
+		// #endif
 		this.postMessage({ phase: 'ready' } as UTSJSONObject)
 	}
 
 	override onMessage(message: any) {
 		const payload = message as UTSJSONObject
-		const action = payload.getString('action', '')
+		const action = readMessageString(payload, 'action')
 		if (action == 'cancel') {
-			if (payload.getNumber('requestVersion', 0) == this.requestVersion) this.cancelCurrent()
+			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) this.cancelCurrent()
 			return
 		}
 		if (action == 'append-markdown') {
-			if (payload.getNumber('requestVersion', 0) == this.requestVersion) {
+			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) {
 				this.appendExternalMarkdown(
-					payload.getString('content', ''),
-					payload.getString('reasoningContent', '')
+					readMessageString(payload, 'content'),
+					readMessageString(payload, 'reasoningContent')
 				)
 			}
 			return
 		}
 		if (action == 'complete-markdown') {
-			if (payload.getNumber('requestVersion', 0) == this.requestVersion) this.complete()
+			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) this.complete()
 			return
 		}
+		// #ifdef APP-ANDROID
 		if (action == 'start') {
 			this.startRequest(payload)
 			return
 		}
+		// #endif
 		if (action == 'start-markdown') this.startMarkdown(payload)
 	}
 
@@ -89,13 +125,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.preprocessor = new MarkdownPreprocessor()
 	}
 
+	// #ifdef APP-ANDROID
 	private startRequest(payload: UTSJSONObject) {
-		const requestVersion = payload.getNumber('requestVersion', 0)
-		const url = payload.getString('url', '')
-		const authorization = payload.getString('authorization', '')
-		const bodyJson = payload.getString('bodyJson', '')
-		const timeout = payload.getNumber('timeout', 90000)
-		this.resetState(requestVersion, payload.getNumber('renderInterval', 300))
+		const requestVersion = readMessageNumber(payload, 'requestVersion')
+		const url = readMessageString(payload, 'url')
+		const authorization = readMessageString(payload, 'authorization')
+		const bodyJson = readMessageString(payload, 'bodyJson')
+		const timeout = readMessageNumber(payload, 'timeout', 90000)
+		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
 		if (requestVersion <= 0 || url.length == 0 || authorization.length == 0 || bodyJson.length == 0) {
 			this.fail('invalid_request', 'Worker 请求参数不完整')
 			return
@@ -113,10 +150,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		)
 		this.streamRequest!.start(url, authorization, bodyJson, timeout)
 	}
+	// #endif
 
 	private startMarkdown(payload: UTSJSONObject) {
-		const requestVersion = payload.getNumber('requestVersion', 0)
-		this.resetState(requestVersion, payload.getNumber('renderInterval', 300))
+		const requestVersion = readMessageNumber(payload, 'requestVersion')
+		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
 		if (requestVersion <= 0) {
 			this.fail('invalid_markdown_request', 'Worker Markdown 请求参数不完整')
 			return
@@ -134,6 +172,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
+	// #ifdef APP-ANDROID
 	private handleSseEvent(data: string) {
 		if (this.finished) return
 		let raw: UTSJSONObject
@@ -170,6 +209,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
 		if (contentDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
+	// #endif
 
 	private scheduleHtmlSnapshot() {
 		if (this.renderTimer != 0 || this.finished) return
@@ -186,16 +226,18 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.renderTimer = 0
 		if (!this.content.endsWith('\n')) this.content += '\n'
 		this.publishSnapshot(true)
+		// #ifdef APP-ANDROID
 		this.streamRequest = null
+		// #endif
 	}
 
 	private publishSnapshot(isDone: boolean) {
 		if (this.content.length == 0 && !isDone) return
 		const processedMarkdown = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdown == null) return
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 		if (isMd2htmlAvailable() == false) {
-			this.fail('markdown_html_unavailable', '当前 Android 基座未安装 libcmarkhtml.so')
+			this.fail('markdown_html_unavailable', 'cmark-gfm Markdown HTML 转换器不可用')
 			return
 		}
 		let html = ''
@@ -231,7 +273,13 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		return
 		// #endif
 		// #ifndef APP-ANDROID
+		// #ifndef WEB
+		// #ifndef MP-WEIXIN
+		// #ifndef APP-HARMONY
 		this.fail('unsupported_platform', '当前平台暂未启用 AI Worker Markdown HTML 转换')
+		// #endif
+		// #endif
+		// #endif
 		// #endif
 	}
 
@@ -240,8 +288,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
+		// #ifdef APP-ANDROID
 		this.streamRequest?.abort()
 		this.streamRequest = null
+		// #endif
 		this.snapshotVersion += 1
 		const snapshot = {
 			requestVersion: this.requestVersion,
@@ -271,7 +321,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		this.finished = true
+		// #ifdef APP-ANDROID
 		this.streamRequest?.abort()
 		this.streamRequest = null
+		// #endif
 	}
 }

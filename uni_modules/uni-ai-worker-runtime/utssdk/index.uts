@@ -14,6 +14,11 @@ let latestSnapshotJson = ''
 let currentRequestVersion = 0
 let runtimeGeneration = 0
 
+function readMessageString(message: UTSJSONObject, key: string, defaultValue: string = ''): string {
+	const value = message[key] as string | null
+	return value == null ? defaultValue : value as string
+}
+
 function postStart(options: AiWorkerStartOptions): void {
 	if (worker == null || !workerReady) return
 	const message = new UTSJSONObject()
@@ -75,7 +80,7 @@ export function createAiWorkerRuntime(): void {
 	worker!.onMessage((message: any) => {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
-		const phase = result.getString('phase', '')
+		const phase = readMessageString(result, 'phase')
 		if (phase == 'ready') {
 			workerReady = true
 			if (pendingMarkdownStart != null) {
@@ -89,7 +94,22 @@ export function createAiWorkerRuntime(): void {
 			}
 			return
 		}
-		const snapshotJson = result.getString('snapshotJson', '')
+		if (phase == 'init-error') {
+			pendingStart = null
+			pendingMarkdownStart = null
+			pendingMarkdownContent = ''
+			pendingMarkdownReasoning = ''
+			pendingMarkdownComplete = false
+			latestSnapshotJson = JSON.stringify({
+				requestVersion: currentRequestVersion,
+				snapshotVersion: 1,
+				phase: 'error',
+				errCode: 'markdown_html_unavailable',
+				errMsg: readMessageString(result, 'errMsg', 'Markdown HTML Worker 初始化失败')
+			} as UTSJSONObject)
+			return
+		}
+		const snapshotJson = readMessageString(result, 'snapshotJson')
 		if (snapshotJson.length > 0) latestSnapshotJson = snapshotJson
 	})
 	worker!.onError((_error: any) => {

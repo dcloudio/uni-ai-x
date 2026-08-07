@@ -1,0 +1,23 @@
+// @ts-ignore
+import cmarkGfm from './cmark-gfm-loader.js'
+
+let initialized = false
+let initialization: Promise<void> | null = null
+
+export function initMd2html(): Promise<void> {
+	if (initialized) return Promise.resolve()
+	if (initialization != null) return initialization!
+	initialization = cmarkGfm.init().then(() => {
+		initialized = true
+	})
+	return initialization!
+}
+
+export function isMd2htmlAvailable(): boolean {
+	return initialized
+}
+
+export function md2html(markdown: string): string {
+	if (!initialized) throw new Error('cmark-gfm WebAssembly module is not initialized')
+	return cmarkGfm.md2html(markdown) as string
+}

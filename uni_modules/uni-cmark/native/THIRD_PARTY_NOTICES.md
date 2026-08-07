@@ -1,6 +1,8 @@
 # Third-party notices
 
-`libcmarkhtml.so` statically links cmark-gfm 0.29.0.gfm.13.
+The Android and HarmonyOS native libraries and the Web/WeChat WebAssembly
+modules statically link cmark-gfm 0.29.0.gfm.13 from the same `md2html.c` entry
+point.
 
 Copyright (c) 2014, John MacFarlane
 

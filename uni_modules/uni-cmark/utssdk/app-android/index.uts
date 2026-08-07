@@ -1,6 +1,11 @@
 import { MainActivity } from 'com.dcloud.cmark'
 
 let cmarkInstance: MainActivity | null = null
+
+export function initMd2html(): Promise<void> {
+	return Promise.resolve()
+}
+
 function getCmarkInstance(): MainActivity {
 	if (cmarkInstance == null) {
 		cmarkInstance = new MainActivity()

@@ -1,8 +1,8 @@
 # Architecture
 
-## Android Markdown pipeline
+## Markdown HTML pipelines
 
-Android has one Markdown rendering path:
+Android keeps network streaming and Markdown conversion in its Worker:
 
 ```text
 AI/demo Markdown stream
@@ -22,19 +22,26 @@ latest message body and HTML snapshot through `uni-ai-worker-runtime`.
 
 The application does not expose a Markdown-to-token API. It does not transport,
 store, or render Markdown AST/token JSON. `uni-cmark` exports only `md2html` and
-`isMd2htmlAvailable` on Android.
+`isMd2htmlAvailable`.
+
+Web, WeChat Mini Program, and HarmonyOS keep network streaming on the main
+thread and send Markdown deltas through the same Worker snapshot protocol as
+Android. Web and WeChat run the same `md2html.c` as WebAssembly; HarmonyOS uses
+the same C entry point through a native N-API HAR. Every platform then uses the
+shared `MarkdownPreprocessor` and `prepareMarkdownHtml` stages.
 
 ## Main modules
 
 - `workers/aiRequestWorkerTask.uts`: AI/demo stream owner and HTML snapshot producer.
 - `uni_modules/uni-ai-worker`: SSE, stream request, Markdown preprocessing, and demo fixtures.
 - `uni_modules/uni-ai-worker-runtime`: Worker lifecycle and snapshot bridge.
-- `uni_modules/uni-cmark`: Android C bridge for direct Markdown-to-HTML conversion.
-- `uni_modules/uni-ai-x/sdk/requestAiRunner.uts`: starts the Worker and accepts HTML snapshots only.
+- `uni_modules/uni-cmark`: one cmark-gfm Markdown-to-HTML core compiled as Android `.so`, HarmonyOS HAR, and Web/WeChat WebAssembly.
+- `uni_modules/uni-ai-x/sdk/requestAiRunner.uts`: starts the shared Markdown Worker protocol and accepts HTML snapshots.
 - `uni_modules/uni-ai-x/components/uni-ai-md-rich-text`: passes HTML to native RichText.
 
 ## Platform boundary
 
-The production HTML Worker pipeline is currently enabled for Android. Other
-platforms return an explicit unsupported error instead of falling back to a
-token renderer.
+Android, Web, WeChat Mini Program, and HarmonyOS use the production HTML Worker
+pipeline. Android can also own the network request in the Worker; the other
+supported platforms send main-thread network deltas to it. Unsupported
+platforms return an explicit error instead of falling back to a token renderer.

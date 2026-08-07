@@ -1,0 +1,18 @@
+{
+  "name": "cmark",
+  "version": "1.2.0",
+  "description": "cmark-gfm Markdown to HTML native library for HarmonyOS",
+  "main": "index.ets",
+  "author": "DCloud",
+  "license": "BSD-2-Clause",
+  "compatibleSdkVersion": 17,
+  "compatibleSdkType": "HarmonyOS",
+  "nativeComponents": [
+    {
+      "name": "libcmark.so",
+      "compatibleSdkVersion": 17,
+      "compatibleSdkType": "HarmonyOS",
+      "linkLibraries": []
+    }
+  ]
+}

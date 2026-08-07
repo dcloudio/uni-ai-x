@@ -2,7 +2,7 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-PLUGIN_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+ANDROID_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/../utssdk/app-android" && pwd)
 CMARK_VERSION=0.29.0.gfm.13
 CMARK_ARCHIVE_SHA256=5abc61798ebd9de5660bc076443c07abad2b8d15dbc11094a3a79644b8ad243a
 CMARK_URL="https://codeload.github.com/github/cmark-gfm/tar.gz/refs/tags/$CMARK_VERSION"
@@ -46,8 +46,8 @@ for ABI in armeabi-v7a arm64-v8a x86 x86_64; do
     -DCMAKE_BUILD_TYPE=Release \
     -DCMARK_GFM_SOURCE_DIR="$CMARK_SOURCE"
   "$CMAKE" --build "$BUILD_DIR" --target cmarkhtml --parallel
-  mkdir -p "$PLUGIN_DIR/libs/$ABI"
-  cp "$BUILD_DIR/libcmarkhtml.so" "$PLUGIN_DIR/libs/$ABI/libcmarkhtml.so"
+  mkdir -p "$ANDROID_DIR/libs/$ABI"
+  cp "$BUILD_DIR/libcmarkhtml.so" "$ANDROID_DIR/libs/$ABI/libcmarkhtml.so"
 done
 
 echo "Built libcmarkhtml.so for armeabi-v7a, arm64-v8a, x86, and x86_64"

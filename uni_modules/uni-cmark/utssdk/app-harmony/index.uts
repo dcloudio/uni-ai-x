@@ -1,0 +1,13 @@
+import cmark from 'libcmark.so'
+
+export function initMd2html(): Promise<void> {
+	return Promise.resolve()
+}
+
+export function md2html(markdown: string): string {
+	return cmark.md2html(markdown)
+}
+
+export function isMd2htmlAvailable(): boolean {
+	return true
+}

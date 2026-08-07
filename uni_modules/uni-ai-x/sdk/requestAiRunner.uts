@@ -2,7 +2,7 @@ import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
-// #ifdef APP-ANDROID
+// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
 	cancelAiWorkerRequest,
@@ -47,6 +47,21 @@ type RequestAiServerOptions = {
 }
 
 const MARKDOWN_RENDER_INTERVAL = 300
+
+function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
+	const value = snapshot[key] as string | null
+	return value == null ? defaultValue : value as string
+}
+
+function readSnapshotNumber(snapshot: UTSJSONObject, key: string, defaultValue: number = 0): number {
+	const value = snapshot[key] as number | null
+	return value == null ? defaultValue : value as number
+}
+
+function readSnapshotBoolean(snapshot: UTSJSONObject, key: string, defaultValue: boolean = false): boolean {
+	const value = snapshot[key] as boolean | null
+	return value == null ? defaultValue : value as boolean
+}
 
 class RequestAiRunner {
 	requestTask : RequestTask | null = null
@@ -103,7 +118,7 @@ class RequestAiRunner {
 		}
 
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
 			appendAiWorkerMarkdown(this.workerRequestVersion, content ?? '', reasoningContent ?? '')
 			return
@@ -133,8 +148,10 @@ class RequestAiRunner {
 	handleRequestError(errRes: UTSJSONObject) {
 		if (this.workerActive) this.stopWorkerRuntime(true)
 		console.error('requestAiServer error', errRes)
-		const errCode = errRes.getString('errCode', '')
-		let errMsg = errRes.getString('errMsg', '未知错误')
+		const errCodeValue = errRes['errCode'] as string | number | null
+		const errCode = errCodeValue == null ? '' : `${errCodeValue}`
+		const errMsgValue = errRes['errMsg'] as string | null
+		let errMsg = errMsgValue == null ? '未知错误' : errMsgValue as string
 		if (errCode == 'data_inspection_failed') {
 			errMsg = '数据检查失败，疑似包含敏感信息'
 		}
@@ -148,7 +165,7 @@ class RequestAiRunner {
 		if (this.currentChatState == 'stop') {
 			return
 		}
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
 			completeAiWorkerMarkdown(this.workerRequestVersion)
 			return
@@ -170,11 +187,17 @@ class RequestAiRunner {
 		this.resetRequestState()
 
 		// #ifndef APP-ANDROID
+		// #ifndef WEB
+		// #ifndef MP-WEIXIN
+		// #ifndef APP-HARMONY
 		this.handleRequestError({
 			errCode: 'markdown_html_unsupported',
 			errMsg: '当前平台未启用 Markdown HTML Worker'
 		} as UTSJSONObject)
 		return
+		// #endif
+		// #endif
+		// #endif
 		// #endif
 
 		this.updateChatTitle(messages, llm)
@@ -186,6 +209,8 @@ class RequestAiRunner {
 			this.requestRemoteAiInWorker(messages, llm, chat_id)
 			return
 		}
+		// #endif
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 		this.startMarkdownHtmlWorker()
 		// #endif
 		this.requestAiServer({
@@ -250,7 +275,9 @@ class RequestAiRunner {
 			// getProviderConfig/requestProviderToken 已通过 requestOptions.onError 上报。
 		}
 	}
+	// #endif
 
+	// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 	private pollWorkerSnapshot(requestVersion: number) {
 		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
 		const snapshotJson = readAiWorkerSnapshot()
@@ -262,54 +289,54 @@ class RequestAiRunner {
 			this.handleWorkerSnapshotError('worker_snapshot_invalid', 'Worker 返回数据解析失败')
 			return
 		}
-		if (snapshot.getNumber('requestVersion', 0) != requestVersion) return
-		const phase = snapshot.getString('phase', '')
-		const snapshotVersion = snapshot.getNumber('snapshotVersion', 0)
+		if (readSnapshotNumber(snapshot, 'requestVersion') != requestVersion) return
+		const phase = readSnapshotString(snapshot, 'phase')
+		const snapshotVersion = readSnapshotNumber(snapshot, 'snapshotVersion')
 		if (phase != 'error' && snapshotVersion <= this.workerSnapshotVersion) return
 		if (snapshotVersion > this.workerSnapshotVersion) this.workerSnapshotVersion = snapshotVersion
 		if (phase == 'error') {
 			console.log('[uni-ai-x][AI Worker] error', JSON.stringify({
 				requestVersion: requestVersion,
 				snapshotVersion: snapshotVersion,
-				eventCount: snapshot.getNumber('eventCount', 0),
-				networkChunkCount: snapshot.getNumber('networkChunkCount', 0),
-				receivedBytes: snapshot.getNumber('receivedBytes', 0),
-				elapsed: snapshot.getNumber('elapsed', 0),
-				errCode: snapshot.getString('errCode', 'worker_error')
+				eventCount: readSnapshotNumber(snapshot, 'eventCount'),
+				networkChunkCount: readSnapshotNumber(snapshot, 'networkChunkCount'),
+				receivedBytes: readSnapshotNumber(snapshot, 'receivedBytes'),
+				elapsed: readSnapshotNumber(snapshot, 'elapsed'),
+				errCode: readSnapshotString(snapshot, 'errCode', 'worker_error')
 			} as UTSJSONObject))
 			this.handleWorkerSnapshotError(
-				snapshot.getString('errCode', 'worker_error'),
-				snapshot.getString('errMsg', 'Worker 请求失败')
+				readSnapshotString(snapshot, 'errCode', 'worker_error'),
+				readSnapshotString(snapshot, 'errMsg', 'Worker 请求失败')
 			)
 			return
 		}
 		if (phase != 'snapshot' && phase != 'complete') return
 
-		this.msgBody = snapshot.getString('msgBody', this.msgBody)
-		this.thinkContent = snapshot.getString('thinkContent', this.thinkContent)
+		this.msgBody = readSnapshotString(snapshot, 'msgBody', this.msgBody)
+		this.thinkContent = readSnapshotString(snapshot, 'thinkContent', this.thinkContent)
 		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
-		const renderMode = snapshot.getString('renderMode', '')
+		const renderMode = readSnapshotString(snapshot, 'renderMode')
 		if (renderMode != 'html') {
 			this.handleWorkerSnapshotError('worker_html_required', 'Worker 必须返回 Markdown HTML')
 			return
 		}
-		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
+		const isDone = phase == 'complete' || readSnapshotBoolean(snapshot, 'isDone')
 		if (isDone) {
 			console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
 				requestVersion: requestVersion,
 				snapshotVersion: snapshotVersion,
-				eventCount: snapshot.getNumber('eventCount', 0),
-				networkChunkCount: snapshot.getNumber('networkChunkCount', 0),
-				receivedBytes: snapshot.getNumber('receivedBytes', 0),
+				eventCount: readSnapshotNumber(snapshot, 'eventCount'),
+				networkChunkCount: readSnapshotNumber(snapshot, 'networkChunkCount'),
+				receivedBytes: readSnapshotNumber(snapshot, 'receivedBytes'),
 				renderMode: renderMode,
-				htmlLength: snapshot.getNumber('htmlLength', 0),
-				terminalSource: snapshot.getString('terminalSource', ''),
-				elapsed: snapshot.getNumber('elapsed', 0)
+				htmlLength: readSnapshotNumber(snapshot, 'htmlLength'),
+				terminalSource: readSnapshotString(snapshot, 'terminalSource'),
+				elapsed: readSnapshotNumber(snapshot, 'elapsed')
 			} as UTSJSONObject))
 			this.stopWorkerRuntime(false)
 		}
-		this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
+		this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
 		if (isDone) {
 			this.currentChatState = 'completed'
 			this.callbacks?.onState('completed')
@@ -329,14 +356,14 @@ class RequestAiRunner {
 	private stopWorkerRuntime(cancelRequest: boolean) {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
 		destroyAiWorkerRuntime()
 		// #endif
 		this.workerActive = false
 	}
 
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
 	private startMarkdownHtmlWorker() {
 		const requestVersion = this.workerRequestVersion + 1
 		this.workerRequestVersion = requestVersion

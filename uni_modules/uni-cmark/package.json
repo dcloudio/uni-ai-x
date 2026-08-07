@@ -1,8 +1,8 @@
 {
   "id": "uni-cmark",
   "displayName": "uni-cmark",
-  "version": "1.1.0",
-  "description": "基于 cmark-gfm 的 Android Markdown 转 HTML UTS 插件",
+  "version": "1.2.0",
+  "description": "支持 Android、Web、微信小程序和鸿蒙的 Markdown 转 HTML UTS 插件",
   "keywords": [
     "uni-cmark"
 ],
@@ -79,19 +79,31 @@
         },
         "uni-app-x": {
           "web": {
-            "safari": "-",
-            "chrome": "-"
+            "safari": {
+                "extVersion": "1.2.0",
+                "minVersion": ""
+            },
+            "chrome": {
+                "extVersion": "1.2.0",
+                "minVersion": ""
+            }
           },
           "app": {
             "android": {
-                "extVersion": "1.0.0",
+                "extVersion": "1.1.0",
                 "minVersion": ""
             },
             "ios": "-",
-            "harmony": "-"
+            "harmony": {
+                "extVersion": "1.2.0",
+                "minVersion": ""
+            }
           },
           "mp": {
-            "weixin": "-"
+            "weixin": {
+                "extVersion": "1.2.0",
+                "minVersion": ""
+            }
           }
         }
       }
