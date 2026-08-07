@@ -1,7 +1,6 @@
 <template>
-    <view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`, isDemo && aiState != 'processing' ? 'input-tool-bar-demo-idle' : '']">
-		<template v-if="!isDemo">
-			<view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
+    <view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
+		<view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
             <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666')"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考 (R1)</text>
 			</view>
@@ -10,12 +9,11 @@
             <text class="input-tool-bar-text" :class="[!canWebSearch ? 'input-tool-bar-text-disable' : '', webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
 			</view>
 			<uni-icons v-if="canParseImg" @click="uploadImage" class="input-tool-bar-upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
-		</template>
 		<view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active"
-			:class="isDemo ? 'input-tool-bar-stop-demo' : ''" @click="stop">
+			@click="stop">
             <uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
         </view>
-		<view v-else-if="!isDemo" class="input-tool-bar-send" @click="send" :class="inputContent.length > 0 && allUploaded ? 'input-tool-bar-send-active' : ''"
+		<view v-else class="input-tool-bar-send" @click="send" :class="inputContent.length > 0 && allUploaded ? 'input-tool-bar-send-active' : ''"
 					<!-- #ifdef WEB -->
 					:title="allUploaded ? '发送' : '请等待图片上传完成'"
 					<!-- #endif -->
@@ -29,13 +27,11 @@ import uniAi, { uiTheme, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, defaultLLM, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts';
-import { isDemoMarkdownEnabled } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts';
 
 const modelCapabilitySummary = getModelCapabilitySummary()
 const canWebSearchLLmList = modelCapabilitySummary.webSearchModelNames
 const hasDeepseekR1Model = modelCapabilitySummary.hasDeepseekR1Model
 const hasDoubaoSeed16Model = modelCapabilitySummary.hasDoubaoSeed16Model
-const isDemo = computed<boolean>(() => isDemoMarkdownEnabled())
 
 const isOpenClaw = computed<boolean>(() => {
     return isCustomProvider(uniAi.llm.provider);
@@ -186,10 +182,6 @@ onMounted(() => {
     padding: 5px 0;
 }
 
-.input-tool-bar-demo-idle {
-	display: none;
-}
-
 .input-tool-bar-btn {
     flex-direction: row;
     align-items: center;
@@ -234,10 +226,6 @@ onMounted(() => {
 .input-tool-bar-stop-active,
 .input-tool-bar-send-active {
     background-color: var(--accent-primary);
-}
-
-.input-tool-bar-stop-demo {
-	margin-left: auto;
 }
 
 .input-tool-bar-upload-image-btn {

@@ -1,10 +1,29 @@
 import { reactive } from 'vue'
-import {
-	createDemoMarkdownBlock,
-	demoMarkdownScenarios,
-	DEMO_MARKDOWN_ENABLED,
-	DemoMarkdownScenario
-} from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+import { createDemoMarkdownBlock } from '@/uni_modules/uni-ai-worker/utssdk/demo-markdown.uts'
+
+export type DemoMarkdownScenario = {
+	id: string
+	label: string
+	prompt: string
+}
+
+export const FULL_MARKDOWN_SCENARIO_ID = 'full'
+
+export const demoMarkdownScenarios: DemoMarkdownScenario[] = [
+	{ id: FULL_MARKDOWN_SCENARIO_ID, label: '完整的Markdown', prompt: '生成完整的 Markdown 测试文档' },
+	{ id: 'heading', label: '标题', prompt: '持续生成 Markdown 标题测试数据' },
+	{ id: 'list', label: '列表', prompt: '持续生成 Markdown 列表测试数据' },
+	{ id: 'table', label: '表格', prompt: '持续生成 Markdown 表格测试数据' },
+	{ id: 'quote', label: '引用', prompt: '持续生成 Markdown 引用测试数据' },
+	{ id: 'code', label: '代码', prompt: '持续生成 Markdown 代码块测试数据' },
+	{ id: 'link', label: '链接', prompt: '持续生成 Markdown 链接测试数据' },
+	{ id: 'math', label: '公式', prompt: '持续生成 Markdown 数学公式测试数据' },
+	{ id: 'mermaid', label: '流程图', prompt: '持续生成 Mermaid 流程图测试数据' },
+	{ id: 'divider', label: '分割线', prompt: '持续生成 Markdown 分割线测试数据' },
+	{ id: 'paragraph', label: '长文本', prompt: '持续生成 Markdown 长文本测试数据' },
+	{ id: 'mixed', label: '混合', prompt: '持续生成混合 Markdown 测试数据' }
+] as DemoMarkdownScenario[]
 
 export type DemoMarkdownRuntimeState = {
 	runId: number
@@ -25,8 +44,6 @@ export const demoMarkdownState = reactive<DemoMarkdownRuntimeState>({
 	receivedChars: 0,
 	elapsed: 0
 })
-
-export { demoMarkdownScenarios }
 
 let selectedScenarioId = ''
 let nextBlockIndex = 0
@@ -51,7 +68,7 @@ function clearStatsTimer() {
 }
 
 export function isDemoMarkdownEnabled(): boolean {
-	return DEMO_MARKDOWN_ENABLED
+	return testMarkdownText.length > 0
 }
 
 export function selectDemoMarkdownScenario(scenarioId: string): DemoMarkdownScenario | null {
@@ -87,11 +104,6 @@ export function nextDemoMarkdownBlock(): string {
 
 export function activeDemoMarkdownScenarioId(): string {
 	return demoMarkdownState.scenarioId
-}
-
-export function reportDemoMarkdownChunk(charCount: number, blockCompleted: boolean) {
-	receivedChars += charCount
-	if (blockCompleted) completedBlocks++
 }
 
 export function reportDemoMarkdownSnapshot(charCount: number, blockCount: number, elapsed: number) {

@@ -1,0 +1,191 @@
+<template>
+	<view class="chat-demo-input">
+		<view class="chat-demo-input-tags">
+			<view v-for="scenario in demoMarkdownScenarios" :key="scenario.id"
+				class="chat-demo-input-tag"
+				:class="[demoMarkdownState.scenarioId == scenario.id ? 'chat-demo-input-tag-active' : '', aiState == 'processing' ? 'chat-demo-input-tag-disabled' : '']"
+				@click.stop="runDemoScenario(scenario.id)">
+				<text class="chat-demo-input-tag-text"
+					:class="demoMarkdownState.scenarioId == scenario.id ? 'chat-demo-input-tag-text-active' : ''">{{scenario.label}}</text>
+			</view>
+			<view class="chat-demo-input-tag chat-demo-input-clear"
+				:class="aiState == 'processing' ? 'chat-demo-input-tag-disabled' : ''"
+				@click.stop="clearDemoMessages">
+				<text class="chat-demo-input-clear-text">清空</text>
+			</view>
+		</view>
+		<view class="chat-demo-input-status-row">
+			<text class="chat-demo-input-status-text">{{demoStatusText}}</text>
+			<view class="chat-demo-input-stop-slot">
+				<view class="chat-demo-input-stop" :style="{visibility: aiState == 'processing' ? 'visible' : 'hidden'}" @click.stop="stop">
+					<uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
+				</view>
+			</view>
+		</view>
+		<view class="chat-demo-input-safe-area"></view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+	import {
+		demoMarkdownScenarios,
+		demoMarkdownState,
+		finishDemoMarkdownRun,
+		resetDemoMarkdownStats,
+		selectDemoMarkdownScenario
+	} from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
+
+	const aiState = computed<string>(() => uniAi.currentChat?.state ?? 'none')
+
+	const demoStatusText = computed<string>(() => {
+		if (demoMarkdownState.runId == 0 || demoMarkdownState.scenarioLabel.length == 0) return '未运行'
+		const elapsedSeconds = (demoMarkdownState.elapsed / 1000).toFixed(1)
+		const stateText = demoMarkdownState.running ? '运行中' : '已停止'
+		return stateText + ' · ' + demoMarkdownState.scenarioLabel + ' · ' + demoMarkdownState.blockCount.toString()
+			+ ' 块 · ' + demoMarkdownState.receivedChars.toString() + ' 字符 · ' + elapsedSeconds + 's'
+	})
+
+	async function runDemoScenario(scenarioId: string) {
+		if (aiState.value == 'processing') return
+		const scenario = selectDemoMarkdownScenario(scenarioId)
+		if (scenario == null) return
+		try {
+			await uniAi.sendMsg(scenario.prompt)
+		} catch (error) {
+			finishDemoMarkdownRun()
+			console.error('[uni-ai-x][Markdown测试] 启动失败', error)
+		}
+	}
+
+	function clearDemoMessages() {
+		if (aiState.value == 'processing') return
+		resetDemoMarkdownStats()
+		uniAi.addChat(false)
+	}
+
+	async function stop() {
+		if (uniAi.currentChat != null) uniAi.currentChat!.state = 'stop'
+		uniAi.abortRequest()
+		await nextTick()
+	}
+
+	watch((): string => uniAi.chat.activeId, () => {
+		if (demoMarkdownState.running) uniAi.abortRequest()
+	})
+
+	onBeforeUnmount(() => {
+		if (demoMarkdownState.running) uniAi.abortRequest()
+	})
+</script>
+
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.chat-demo-input {
+	width: 100%;
+	flex-direction: column;
+	background-color: var(--bg-primary);
+	padding: 15px 15px 5px 15px;
+	border-radius: 15px 15px 0 0;
+	border: 1px solid var(--border-secondary);
+}
+
+.chat-demo-input-tags {
+	width: 100%;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.chat-demo-input-tag {
+	height: 32px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	padding: 0 12px;
+	margin-right: 8px;
+	margin-bottom: 8px;
+	border-radius: 6px;
+	border: 1px solid var(--border-primary);
+	background-color: var(--bg-secondary);
+}
+
+.chat-demo-input-tag-active {
+	border-color: var(--accent-primary);
+	background-color: var(--bg-tertiary);
+}
+
+.chat-demo-input-tag-disabled {
+	opacity: 0.45;
+}
+
+.chat-demo-input-tag-text {
+	font-size: 13px;
+	color: var(--text-secondary);
+}
+
+.chat-demo-input-tag-text-active {
+	color: var(--accent-primary);
+}
+
+.chat-demo-input-clear {
+	border-color: var(--error);
+}
+
+.chat-demo-input-clear-text {
+	font-size: 13px;
+	color: var(--error);
+}
+
+.chat-demo-input-status-row {
+	width: 100%;
+	height: 34px;
+	flex-direction: row;
+	align-items: center;
+}
+
+.chat-demo-input-status-text {
+	flex: 1;
+	font-size: 11px;
+	line-height: 18px;
+	color: var(--text-tertiary);
+}
+
+.chat-demo-input-stop-slot {
+	width: 34px;
+	height: 34px;
+	margin-left: 8px;
+	align-items: center;
+	justify-content: center;
+}
+
+.chat-demo-input-stop {
+	width: 30px;
+	height: 30px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 100px;
+	background-color: var(--accent-primary);
+}
+
+.chat-demo-input-safe-area {
+	/* #ifdef APP-ANDROID */
+	margin-bottom: env(safe-area-inset-bottom);
+	/* #endif */
+	/* #ifndef APP-ANDROID */
+	padding-bottom: env(safe-area-inset-bottom);
+	/* #endif */
+}
+
+/* #ifdef H5 */
+@media screen and (min-device-width:960px){
+	.chat-demo-input {
+		border-radius: 15px;
+		margin: 10px;
+		margin-top: 0;
+	}
+}
+/* #endif */
+</style>

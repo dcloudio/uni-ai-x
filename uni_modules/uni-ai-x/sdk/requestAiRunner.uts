@@ -1,15 +1,7 @@
-import testMarkdownText, { FULL_MARKDOWN_SCENARIO_ID } from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
-import {
-	activeDemoMarkdownScenarioId,
-	beginDemoMarkdownRun,
-	finishDemoMarkdownRun,
-	isDemoMarkdownEnabled,
-	reportDemoMarkdownSnapshot
-} from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
 // #ifdef APP-ANDROID
 import {
 	appendAiWorkerMarkdown,
@@ -17,7 +9,6 @@ import {
 	completeAiWorkerMarkdown,
 	destroyAiWorkerRuntime,
 	readAiWorkerSnapshot,
-	startAiWorkerDemo,
 	startAiWorkerMarkdown,
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
@@ -56,9 +47,6 @@ type RequestAiServerOptions = {
 }
 
 const MARKDOWN_RENDER_INTERVAL = 300
-const DEMO_STREAM_BATCH_SIZE = 10
-const DEMO_STREAM_INTERVAL = 100
-const DEMO_BLOCK_INTERVAL = MARKDOWN_RENDER_INTERVAL
 
 class RequestAiRunner {
 	requestTask : RequestTask | null = null
@@ -74,7 +62,6 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
-	private fullMarkdownStreamTimer: number = 0
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 	}
@@ -133,7 +120,6 @@ class RequestAiRunner {
 	};
 	resetRequestState() {
 		this.stopWorkerRuntime(true)
-		finishDemoMarkdownRun()
 		this.workerRequestVersion += 1
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
@@ -182,30 +168,6 @@ class RequestAiRunner {
 	}
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
 		this.resetRequestState()
-
-		if (isDemoMarkdownEnabled()) {
-			if (beginDemoMarkdownRun()) {
-				// #ifdef APP-ANDROID
-				if (activeDemoMarkdownScenarioId() == FULL_MARKDOWN_SCENARIO_ID) {
-					this.streamFullMarkdownInWorker()
-				} else {
-					this.streamDemoMarkdownInWorker()
-				}
-				// #endif
-				// #ifndef APP-ANDROID
-				this.handleRequestError({
-					errCode: 'markdown_html_unsupported',
-					errMsg: '当前平台未启用 Markdown HTML Worker'
-				} as UTSJSONObject)
-				// #endif
-			} else {
-				this.handleRequestError({
-					errCode: 'demo_scenario_missing',
-					errMsg: '请先选择 Markdown 测试类型'
-				} as UTSJSONObject)
-			}
-			return
-		}
 
 		// #ifndef APP-ANDROID
 		this.handleRequestError({
@@ -325,14 +287,6 @@ class RequestAiRunner {
 
 		this.msgBody = snapshot.getString('msgBody', this.msgBody)
 		this.thinkContent = snapshot.getString('thinkContent', this.thinkContent)
-		const demoBlockCount = activeDemoMarkdownScenarioId() == FULL_MARKDOWN_SCENARIO_ID && this.msgBody.length > 0
-			? 1
-			: snapshot.getNumber('demoBlockCount', 0)
-		reportDemoMarkdownSnapshot(
-			this.msgBody.length,
-			demoBlockCount,
-			snapshot.getNumber('elapsed', 0)
-		)
 		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
 		const renderMode = snapshot.getString('renderMode', '')
@@ -354,7 +308,6 @@ class RequestAiRunner {
 				elapsed: snapshot.getNumber('elapsed', 0)
 			} as UTSJSONObject))
 			this.stopWorkerRuntime(false)
-			finishDemoMarkdownRun()
 		}
 		this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
 		if (isDone) {
@@ -366,7 +319,6 @@ class RequestAiRunner {
 
 	private handleWorkerSnapshotError(errCode: string, errMsg: string) {
 		this.stopWorkerRuntime(false)
-		finishDemoMarkdownRun()
 		this.handleRequestError({
 			errCode: errCode,
 			errMsg: errMsg
@@ -375,8 +327,6 @@ class RequestAiRunner {
 	// #endif
 
 	private stopWorkerRuntime(cancelRequest: boolean) {
-		if (this.fullMarkdownStreamTimer != 0) clearInterval(this.fullMarkdownStreamTimer)
-		this.fullMarkdownStreamTimer = 0
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
 		// #ifdef APP-ANDROID
@@ -395,45 +345,6 @@ class RequestAiRunner {
 		startAiWorkerMarkdown({
 			requestVersion: requestVersion,
 			renderInterval: MARKDOWN_RENDER_INTERVAL
-		})
-		this.workerPollTimer = setInterval(() => {
-			this.pollWorkerSnapshot(requestVersion)
-		}, 50)
-	}
-
-	private streamFullMarkdownInWorker() {
-		this.startMarkdownHtmlWorker()
-		const requestVersion = this.workerRequestVersion
-		let offset = 0
-		this.fullMarkdownStreamTimer = setInterval(() => {
-			if (this.userAbort || requestVersion != this.workerRequestVersion) {
-				if (this.fullMarkdownStreamTimer != 0) clearInterval(this.fullMarkdownStreamTimer)
-				this.fullMarkdownStreamTimer = 0
-				return
-			}
-			const endOffset = Math.min(offset + DEMO_STREAM_BATCH_SIZE, testMarkdownText.length)
-			appendAiWorkerMarkdown(requestVersion, testMarkdownText.slice(offset, endOffset), '')
-			offset = endOffset
-			if (offset >= testMarkdownText.length) {
-				clearInterval(this.fullMarkdownStreamTimer)
-				this.fullMarkdownStreamTimer = 0
-				completeAiWorkerMarkdown(requestVersion)
-			}
-		}, DEMO_STREAM_INTERVAL)
-	}
-
-	private streamDemoMarkdownInWorker() {
-		const requestVersion = this.workerRequestVersion + 1
-		this.workerRequestVersion = requestVersion
-		this.workerSnapshotVersion = 0
-		this.workerActive = true
-		startAiWorkerDemo({
-			requestVersion: requestVersion,
-			scenarioId: activeDemoMarkdownScenarioId(),
-			renderInterval: MARKDOWN_RENDER_INTERVAL,
-			streamInterval: DEMO_STREAM_INTERVAL,
-			batchSize: DEMO_STREAM_BATCH_SIZE,
-			blockInterval: DEMO_BLOCK_INTERVAL
 		})
 		this.workerPollTimer = setInterval(() => {
 			this.pollWorkerSnapshot(requestVersion)
@@ -615,7 +526,6 @@ class RequestAiRunner {
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
 		this.userAbort = true
-		finishDemoMarkdownRun()
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
 		this.requestTask?.abort()

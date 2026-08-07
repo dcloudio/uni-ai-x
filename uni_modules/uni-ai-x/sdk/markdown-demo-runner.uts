@@ -1,0 +1,206 @@
+import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
+import {
+	activeDemoMarkdownScenarioId,
+	beginDemoMarkdownRun,
+	finishDemoMarkdownRun,
+	FULL_MARKDOWN_SCENARIO_ID,
+	nextDemoMarkdownBlock,
+	reportDemoMarkdownSnapshot
+} from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
+// #ifdef APP-ANDROID
+import {
+	appendAiWorkerMarkdown,
+	cancelAiWorkerRequest,
+	completeAiWorkerMarkdown,
+	destroyAiWorkerRuntime,
+	readAiWorkerSnapshot,
+	startAiWorkerMarkdown
+} from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
+
+export type MarkdownDemoRunnerCallbacks = {
+	onMarkdownHtml: (html: string) => void,
+	onThinkContent: (thinkContent: string) => void,
+	onMsgBody: (msgBody: string) => void,
+	onState: (state: string) => void,
+	onErrorMsg: (errorMsg: string) => void,
+	onRendered: (rendered: boolean) => void,
+	onChatTitle: (title: string) => void
+}
+
+const DEMO_RENDER_INTERVAL = 300
+const DEMO_STREAM_BATCH_SIZE = 10
+const DEMO_STREAM_INTERVAL = 200
+const DEMO_BLOCK_INTERVAL = DEMO_RENDER_INTERVAL
+
+export default class MarkdownDemoRunner {
+	private callbacks: MarkdownDemoRunnerCallbacks | null
+	private requestVersion: number = 0
+	private snapshotVersion: number = 0
+	private workerActive: boolean = false
+	private workerPollTimer: number = 0
+	private streamTimer: number = 0
+	private blockText: string = ''
+	private blockOffset: number = 0
+	private completedBlockCount: number = 0
+	private nextBlockAt: number = 0
+	private stopped: boolean = false
+
+	constructor(callbacks: MarkdownDemoRunnerCallbacks) {
+		this.callbacks = callbacks
+	}
+
+	start() {
+		if (!beginDemoMarkdownRun()) {
+			this.fail('请先选择 Markdown 测试类型')
+			return
+		}
+		// #ifdef APP-ANDROID
+		this.startAndroidWorker()
+		// #endif
+		// #ifndef APP-ANDROID
+		this.fail('当前平台未启用 Markdown HTML Worker')
+		// #endif
+	}
+
+	// #ifdef APP-ANDROID
+	private startAndroidWorker() {
+		this.requestVersion += 1
+		this.snapshotVersion = 0
+		this.workerActive = true
+		this.stopped = false
+		startAiWorkerMarkdown({
+			requestVersion: this.requestVersion,
+			renderInterval: DEMO_RENDER_INTERVAL
+		})
+		this.workerPollTimer = setInterval(() => {
+			this.pollWorkerSnapshot()
+		}, 50)
+		this.streamTimer = setInterval(() => {
+			this.emitDemoChunk()
+		}, DEMO_STREAM_INTERVAL)
+	}
+
+	private emitDemoChunk() {
+		if (this.stopped || !this.workerActive || Date.now() < this.nextBlockAt) return
+		const scenarioId = activeDemoMarkdownScenarioId()
+		if (scenarioId.length == 0) {
+			this.fail('Markdown 测试类型已失效')
+			return
+		}
+		if (this.blockOffset >= this.blockText.length) {
+			if (scenarioId == FULL_MARKDOWN_SCENARIO_ID) {
+				if (this.completedBlockCount > 0) return
+				this.blockText = testMarkdownText
+			} else {
+				this.blockText = nextDemoMarkdownBlock()
+			}
+			this.blockOffset = 0
+		}
+		if (this.blockText.length == 0) {
+			this.fail('Markdown 测试内容为空')
+			return
+		}
+
+		const chunkSize = scenarioId == 'math' ? this.blockText.length : DEMO_STREAM_BATCH_SIZE
+		const endOffset = Math.min(this.blockOffset + chunkSize, this.blockText.length)
+		appendAiWorkerMarkdown(
+			this.requestVersion,
+			this.blockText.slice(this.blockOffset, endOffset),
+			''
+		)
+		this.blockOffset = endOffset
+		if (this.blockOffset < this.blockText.length) return
+
+		this.completedBlockCount += 1
+		if (scenarioId == FULL_MARKDOWN_SCENARIO_ID) {
+			if (this.streamTimer != 0) clearInterval(this.streamTimer)
+			this.streamTimer = 0
+			completeAiWorkerMarkdown(this.requestVersion)
+			return
+		}
+		this.nextBlockAt = Date.now() + (scenarioId == 'math' ? 500 : DEMO_BLOCK_INTERVAL)
+	}
+
+	private pollWorkerSnapshot() {
+		if (!this.workerActive || this.stopped) return
+		const snapshotJson = readAiWorkerSnapshot()
+		if (snapshotJson.length == 0) return
+		let snapshot: UTSJSONObject
+		try {
+			snapshot = JSON.parse<UTSJSONObject>(snapshotJson) as UTSJSONObject
+		} catch (_error) {
+			this.fail('Worker 返回数据解析失败')
+			return
+		}
+		if (snapshot.getNumber('requestVersion', 0) != this.requestVersion) return
+		const phase = snapshot.getString('phase', '')
+		const nextSnapshotVersion = snapshot.getNumber('snapshotVersion', 0)
+		if (phase != 'error' && nextSnapshotVersion <= this.snapshotVersion) return
+		if (nextSnapshotVersion > this.snapshotVersion) this.snapshotVersion = nextSnapshotVersion
+		if (phase == 'error') {
+			this.fail(snapshot.getString('errMsg', 'Worker 请求失败'))
+			return
+		}
+		if (phase != 'snapshot' && phase != 'complete') return
+
+		const msgBody = snapshot.getString('msgBody', '')
+		const thinkContent = snapshot.getString('thinkContent', '')
+		const scenarioId = activeDemoMarkdownScenarioId()
+		const blockCount = scenarioId == FULL_MARKDOWN_SCENARIO_ID && msgBody.length > 0
+			? 1
+			: this.completedBlockCount
+		reportDemoMarkdownSnapshot(
+			msgBody.length,
+			blockCount,
+			snapshot.getNumber('elapsed', 0)
+		)
+		this.callbacks?.onMsgBody(msgBody)
+		this.callbacks?.onThinkContent(thinkContent)
+		if (snapshot.getString('renderMode', '') != 'html') {
+			this.fail('Worker 必须返回 Markdown HTML')
+			return
+		}
+		const isDone = phase == 'complete' || snapshot.getBoolean('isDone', false)
+		this.callbacks?.onMarkdownHtml(snapshot.getString('html', ''))
+		if (!isDone) return
+
+		this.stopWorkerRuntime(false)
+		finishDemoMarkdownRun()
+		this.callbacks?.onState('completed')
+		this.callbacks?.onRendered(true)
+	}
+	// #endif
+
+	private fail(message: string) {
+		this.stopWorkerRuntime(true)
+		finishDemoMarkdownRun()
+		this.callbacks?.onErrorMsg(message)
+		this.callbacks?.onState('stop')
+	}
+
+	private stopWorkerRuntime(cancelRequest: boolean) {
+		if (this.streamTimer != 0) clearInterval(this.streamTimer)
+		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
+		this.streamTimer = 0
+		this.workerPollTimer = 0
+		// #ifdef APP-ANDROID
+		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.requestVersion)
+		destroyAiWorkerRuntime()
+		// #endif
+		this.workerActive = false
+	}
+
+	dispose(notifyStopped: boolean = false) {
+		if (this.stopped) return
+		this.stopped = true
+		finishDemoMarkdownRun()
+		this.stopWorkerRuntime(true)
+		if (notifyStopped) this.callbacks?.onState('stop')
+		this.callbacks = null
+	}
+
+	abortRequest() {
+		this.dispose(true)
+	}
+}

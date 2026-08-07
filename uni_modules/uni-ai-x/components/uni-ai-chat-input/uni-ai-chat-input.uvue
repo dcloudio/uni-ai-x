@@ -1,30 +1,10 @@
 <template>
-	<view class="chat-input" @click="markQA">
-		<template v-if="!isDemo">
-			<uni-ai-draft-images />
-			<textarea class="chat-input-textarea" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
-				:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
-				@focus="scrollToLastMsg" :auto-height="true"
-			></textarea>
-		</template>
-		<template v-else>
-			<view class="chat-input-demo-tags">
-				<view v-for="scenario in demoMarkdownScenarios" :key="scenario.id"
-					class="chat-input-demo-tag"
-					:class="[demoMarkdownState.scenarioId == scenario.id ? 'chat-input-demo-tag-active' : '', aiState == 'processing' ? 'chat-input-demo-tag-disabled' : '']"
-					@click.stop="runDemoScenario(scenario.id)">
-					<text class="chat-input-demo-tag-text"
-						:class="demoMarkdownState.scenarioId == scenario.id ? 'chat-input-demo-tag-text-active' : ''">{{scenario.label}}</text>
-				</view>
-				<view class="chat-input-demo-tag chat-input-demo-clear"
-					:class="aiState == 'processing' ? 'chat-input-demo-tag-disabled' : ''" @click.stop="clearDemoMessages">
-					<text class="chat-input-demo-clear-text">清空</text>
-				</view>
-			</view>
-			<view class="chat-input-demo-status">
-				<text class="chat-input-demo-status-text">{{demoStatusText}}</text>
-			</view>
-		</template>
+	<view class="chat-input">
+		<uni-ai-draft-images />
+		<textarea class="chat-input-textarea" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
+			:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
+			@focus="scrollToLastMsg" :auto-height="true"
+		></textarea>
 		<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
 		<view class="chat-input-keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
 	</view>
@@ -34,22 +14,12 @@
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
 	import uniAiDraftImages from '@/uni_modules/uni-ai-x/components/uni-ai-draft-images.uvue'
-	import {
-		demoMarkdownScenarios,
-		demoMarkdownState,
-		finishDemoMarkdownRun,
-		isDemoMarkdownEnabled,
-		resetDemoMarkdownStats,
-		selectDemoMarkdownScenario
-	} from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
 
 	const emit = defineEmits<{
 		'scroll-to-last-msg': []
 	}>()
 
 	const keyboardHeight = ref<number>(0)
-	const isDemo = computed<boolean>(() => isDemoMarkdownEnabled())
-	const aiState = computed<string>(() => uniAi.currentChat?.state ?? 'none')
 	const chatInputContent = computed<string>({
 		get: (): string => {
 			return uniAi.currentChat?.inputContent ?? ''
@@ -63,36 +33,6 @@
 
 	function scrollToLastMsg() {
 		emit('scroll-to-last-msg')
-	}
-
-	function markQA() {
-		if (isDemo.value) return
-	}
-
-	const demoStatusText = computed<string>(() => {
-		if (demoMarkdownState.runId == 0 || demoMarkdownState.scenarioLabel.length == 0) return '未运行'
-		const elapsedSeconds = (demoMarkdownState.elapsed / 1000).toFixed(1)
-		const stateText = demoMarkdownState.running ? '运行中' : '已停止'
-		return stateText + ' · ' + demoMarkdownState.scenarioLabel + ' · ' + demoMarkdownState.blockCount.toString()
-			+ ' 块 · ' + demoMarkdownState.receivedChars.toString() + ' 字符 · ' + elapsedSeconds + 's'
-	})
-
-	async function runDemoScenario(scenarioId: string) {
-		if (aiState.value == 'processing') return
-		const scenario = selectDemoMarkdownScenario(scenarioId)
-		if (scenario == null) return
-		try {
-			await uniAi.sendMsg(scenario.prompt)
-		} catch (error) {
-			finishDemoMarkdownRun()
-			console.error('[uni-ai-x][Markdown测试] 启动失败', error)
-		}
-	}
-
-	function clearDemoMessages() {
-		if (aiState.value == 'processing') return
-		resetDemoMarkdownStats()
-		uniAi.addChat(false)
 	}
 
 	function onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent) {
@@ -119,66 +59,6 @@
 
 .chat-input-placeholder {
 	color: var(--text-disabled);
-}
-
-.chat-input-demo-tags {
-	width: 100%;
-	flex-direction: row;
-	flex-wrap: wrap;
-	align-items: center;
-}
-
-.chat-input-demo-tag {
-	height: 32px;
-	flex-direction: row;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-	padding: 0 12px;
-	margin-right: 8px;
-	margin-bottom: 8px;
-	border-radius: 6px;
-	border: 1px solid var(--border-primary);
-	background-color: var(--bg-secondary);
-}
-
-.chat-input-demo-tag-active {
-	border-color: var(--accent-primary);
-	background-color: var(--bg-tertiary);
-}
-
-.chat-input-demo-tag-disabled {
-	opacity: 0.45;
-}
-
-.chat-input-demo-tag-text {
-	font-size: 13px;
-	color: var(--text-secondary);
-}
-
-.chat-input-demo-tag-text-active {
-	color: var(--accent-primary);
-}
-
-.chat-input-demo-clear {
-	border-color: var(--error);
-}
-
-.chat-input-demo-clear-text {
-	font-size: 13px;
-	color: var(--error);
-}
-
-.chat-input-demo-status {
-	min-height: 24px;
-	flex-direction: row;
-	align-items: center;
-}
-
-.chat-input-demo-status-text {
-	font-size: 11px;
-	line-height: 18px;
-	color: var(--text-tertiary);
 }
 
 .chat-input-keyboard-cover {

@@ -1,4 +1,4 @@
-import { AiWorkerDemoStartOptions, AiWorkerMarkdownStartOptions, AiWorkerStartOptions } from './interface.uts'
+import { AiWorkerMarkdownStartOptions, AiWorkerStartOptions } from './interface.uts'
 
 export * from './interface.uts'
 
@@ -6,7 +6,6 @@ const WORKER_RENDER_PROTOCOL_VERSION = 3
 let worker: Worker | null = null
 let workerReady = false
 let pendingStart: AiWorkerStartOptions | null = null
-let pendingDemoStart: AiWorkerDemoStartOptions | null = null
 let pendingMarkdownStart: AiWorkerMarkdownStartOptions | null = null
 let pendingMarkdownContent = ''
 let pendingMarkdownReasoning = ''
@@ -28,20 +27,6 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.bodyJson = options.bodyJson
 	message.renderInterval = options.renderInterval ?? 300
 	message.timeout = options.timeout ?? 90000
-	worker!.postMessage(message, null)
-}
-
-function postDemoStart(options: AiWorkerDemoStartOptions): void {
-	if (worker == null || !workerReady) return
-	const message = new UTSJSONObject()
-	message.action = 'start-demo'
-	message.renderProtocolVersion = WORKER_RENDER_PROTOCOL_VERSION
-	message.requestVersion = options.requestVersion
-	message.scenarioId = options.scenarioId
-	message.renderInterval = options.renderInterval ?? 300
-	message.streamInterval = options.streamInterval ?? 100
-	message.batchSize = options.batchSize ?? 10
-	message.blockInterval = options.blockInterval ?? 300
 	worker!.postMessage(message, null)
 }
 
@@ -93,11 +78,7 @@ export function createAiWorkerRuntime(): void {
 		const phase = result.getString('phase', '')
 		if (phase == 'ready') {
 			workerReady = true
-			if (pendingDemoStart != null) {
-				const options = pendingDemoStart!
-				pendingDemoStart = null
-				postDemoStart(options)
-			} else if (pendingMarkdownStart != null) {
+			if (pendingMarkdownStart != null) {
 				const options = pendingMarkdownStart!
 				pendingMarkdownStart = null
 				postMarkdownStart(options)
@@ -127,7 +108,6 @@ export function startAiWorkerRequest(options: AiWorkerStartOptions): void {
 	createAiWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
-	pendingDemoStart = null
 	pendingMarkdownStart = null
 	if (!workerReady) {
 		pendingStart = options
@@ -136,25 +116,11 @@ export function startAiWorkerRequest(options: AiWorkerStartOptions): void {
 	postStart(options)
 }
 
-export function startAiWorkerDemo(options: AiWorkerDemoStartOptions): void {
-	createAiWorkerRuntime()
-	currentRequestVersion = options.requestVersion
-	latestSnapshotJson = ''
-	pendingStart = null
-	pendingMarkdownStart = null
-	if (!workerReady) {
-		pendingDemoStart = options
-		return
-	}
-	postDemoStart(options)
-}
-
 export function startAiWorkerMarkdown(options: AiWorkerMarkdownStartOptions): void {
 	createAiWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
 	pendingStart = null
-	pendingDemoStart = null
 	pendingMarkdownContent = ''
 	pendingMarkdownReasoning = ''
 	pendingMarkdownComplete = false
@@ -188,7 +154,6 @@ export function readAiWorkerSnapshot(): string {
 
 export function cancelAiWorkerRequest(requestVersion: number): void {
 	if (pendingStart?.requestVersion == requestVersion) pendingStart = null
-	if (pendingDemoStart?.requestVersion == requestVersion) pendingDemoStart = null
 	if (pendingMarkdownStart?.requestVersion == requestVersion) pendingMarkdownStart = null
 	pendingMarkdownContent = ''
 	pendingMarkdownReasoning = ''
@@ -206,7 +171,6 @@ export function destroyAiWorkerRuntime(): void {
 	worker = null
 	workerReady = false
 	pendingStart = null
-	pendingDemoStart = null
 	pendingMarkdownStart = null
 	pendingMarkdownContent = ''
 	pendingMarkdownReasoning = ''

@@ -25,7 +25,8 @@
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
-			<uni-ai-chat-input @scroll-to-last-msg="scrollToLastMsg(true)" />
+			<uni-ai-chat-demo-input v-if="isDemo" />
+			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
 			<text class="chat-box-tip">内容由ai生成，仅供参考</text>
 		</view>
 		<view class="chat-box-mask" v-if="translateX != -260" @click="closeMenu" :style="{
@@ -40,8 +41,9 @@
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
+	import uniAiChatDemoInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-demo-input/uni-ai-chat-demo-input.uvue'
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
-	import { demoMarkdownState } from '@/uni_modules/uni-ai-x/sdk/demo-chat.uts'
+	import testMarkdownText from '@/uni_modules/uni-ai-x/sdk/testMarkdownText.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -72,6 +74,7 @@
 	let mouseScrollTimer = 0
 	let mouseScroll = false
 	let needSetLockAutoToLastMsg = true
+	const isDemo = testMarkdownText.length > 0
 	
 	const state = computed<string>(() => {
 		return uniAi.currentChat?.state ?? 'none'
@@ -160,7 +163,6 @@
 	}
 	
 	watch(chatActiveId, () => {
-		if (demoMarkdownState.running) uniAi.abortRequest()
 		scrollToLastMsg(false)
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
@@ -292,7 +294,7 @@
 	})
 
 	onBeforeUnmount(() => {
-		if (demoMarkdownState.running || state.value == 'processing') uniAi.abortRequest()
+		if (state.value == 'processing') uniAi.abortRequest()
 		uniAi.offBeforeRequestAi(beforeRequestAi)
 		scrollingT = clearTimer(scrollingT)
 		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
