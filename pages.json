@@ -5,7 +5,8 @@
 			"style" : 
 			{
 				"navigationStyle" : "custom",
-				"navigationBarTitleText" : "uni-ai x"
+				"navigationBarTitleText" : "uni-ai x",
+				"disableScroll": true
 			}
 		},
 		{
