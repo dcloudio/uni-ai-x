@@ -1,87 +1,94 @@
 {
-	"name": "uni-ai-x",
-	"appid": "__UNI__C50103A",
-	"description": "",
-	"versionName": "2.1.2",
-	"versionCode": "26080301",
-	"uni-app-x": {
-		"vapor": true,
-		"styleIsolationVersion": "2",
-		"vapor-render-target": "bytecode"
-	},
-	/* 快应用特有相关 */
-	"quickapp": {},
-	/* 小程序特有相关 */
-	"mp-weixin": {
-		"appid": "",
-		"setting": {
-			"urlCheck": false
-		},
-		"usingComponents": true
-	},
-	"mp-alipay": {
-		"usingComponents": true
-	},
-	"mp-baidu": {
-		"usingComponents": true
-	},
-	"mp-toutiao": {
-		"usingComponents": true
-	},
-	"uniStatistics": {
-		"enable": false
-	},
-	"vueVersion": "3",
-	"workers": "workers",
-	"app": {
-		"distribute": {
-			"icons": {
-				"android": {
-					"hdpi": "",
-					"xhdpi": "",
-					"xxhdpi": "",
-					"xxxhdpi": ""
-				}
-			}
-		}
-	},
-	"app-android": {
-		"distribute": {
-			"modules": {},
-			"icons": {
-				"hdpi": "",
-				"xhdpi": "",
-				"xxhdpi": "",
-				"xxxhdpi": ""
-			},
-			"splashScreens": {
-				"default": {}
-			},
-			"abiFilters": [
-				"armeabi-v7a",
-				"arm64-v8a"
-			]
-		}
-	},
-	"app-ios": {
-		"distribute": {
-			"modules": {},
-			"icons": {},
-			"splashScreens": {}
-		}
-	},
-	"web": {
-		"router": {
-			"mode": "",
-			"base": "./"
-		}
-	},
-	"app-harmony": {
-		"distribute": {
-			"bundleName": "",
-			"deviceTypes": [
-				"phone"
-			]
-		}
-	}
+    "name" : "uni-ai-x",
+    "appid" : "__UNI__C50103A",
+    "description" : "",
+    "versionName" : "2.1.2",
+    "versionCode" : "26080301",
+    "uni-app-x" : {
+        "vapor" : true,
+        "styleIsolationVersion" : "2",
+        "vapor-render-target" : "bytecode"
+    },
+    /* 快应用特有相关 */
+    "quickapp" : {},
+    /* 小程序特有相关 */
+    "mp-weixin" : {
+        "appid" : "",
+        "setting" : {
+            "urlCheck" : false
+        },
+        "usingComponents" : true
+    },
+    "mp-alipay" : {
+        "usingComponents" : true
+    },
+    "mp-baidu" : {
+        "usingComponents" : true
+    },
+    "mp-toutiao" : {
+        "usingComponents" : true
+    },
+    "uniStatistics" : {
+        "enable" : false
+    },
+    "vueVersion" : "3",
+    "workers" : "workers",
+    "app" : {
+        "distribute" : {
+            "icons" : {
+                "android" : {
+                    "hdpi" : "",
+                    "xhdpi" : "",
+                    "xxhdpi" : "",
+                    "xxxhdpi" : ""
+                }
+            }
+        }
+    },
+    "app-android" : {
+        "distribute" : {
+            "modules" : {},
+            "icons" : {
+                "hdpi" : "",
+                "xhdpi" : "",
+                "xxhdpi" : "",
+                "xxxhdpi" : ""
+            },
+            "splashScreens" : {
+                "default" : {}
+            },
+            "abiFilters" : [ "armeabi-v7a", "arm64-v8a" ]
+        }
+    },
+    "app-ios" : {
+        "distribute" : {
+            "modules" : {},
+            "icons" : {},
+            "splashScreens" : {}
+        }
+    },
+    "web" : {
+        "router" : {
+            "mode" : "",
+            "base" : "./"
+        }
+    },
+    "app-harmony" : {
+        "distribute" : {
+            "bundleName" : "io.dcloud.uniappx",
+            "deviceTypes" : [ "phone" ],
+            "deviceArchs" : [ "arm64-v8a" ],
+            "signingConfigs" : {
+                "default" : {
+                    "certpath" : "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1782879524847.cer",
+                    "keyAlias" : "debugKey",
+                    "keyPassword" : "0000001B291F0A4869F4D01D03E3F789B41BA18F24CF0A4EEB4B69B0A803EEA8C06A2F939543A795DBB1E1",
+                    "profile" : "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1782879524847.p7b",
+                    "signAlg" : "SHA256withECDSA",
+                    "storeFile" : "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1782879524847.p12",
+                    "storePassword" : "0000001B291F0A4869F4D01D03E3F789B41BA18F24CF0A4EEB4B69B0A803EEA8C06A2F939543A795DBB1E1"
+                }
+            }
+        }
+    }
 }
