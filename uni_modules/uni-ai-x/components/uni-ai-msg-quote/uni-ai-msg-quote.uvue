@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-msg-quote" :class="[`ui-theme-${uiTheme}`]" flatten>
+	<view class="uni-ai-msg-quote" :class="[`ui-theme-${uiTheme}`]">
 		<rich-text class="uni-ai-msg-quote-content" :style="richTextStyle"
 				:nodes="html" mode="native" @itemclick="onItemClick"></rich-text>
 	</view>
