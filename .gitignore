@@ -25,3 +25,4 @@ package.json
 # uni-agent 调试产物目录：截图、临时验证素材等统一放这里，不要散落到项目根目录
 /uni-agent-artifacts/*
 !/uni-agent-artifacts/.gitkeep
+selfIdentity.plist
