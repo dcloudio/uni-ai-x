@@ -1,4 +1,15 @@
-import { AiWorkerMarkdownStartOptions, AiWorkerStartOptions } from './interface.uts'
+import {
+	AiWorkerMarkdownStartOptions,
+	AiWorkerStartOptions,
+	AppendAiWorkerMarkdown,
+	CancelAiWorkerRequest,
+	CompleteAiWorkerMarkdown,
+	CreateAiWorkerRuntime,
+	DestroyAiWorkerRuntime,
+	ReadAiWorkerSnapshot,
+	StartAiWorkerMarkdown,
+	StartAiWorkerRequest
+} from './interface.uts'
 
 export * from './interface.uts'
 
@@ -122,7 +133,7 @@ function createWorkerNow(generation: number): void {
 	})
 }
 
-export function createAiWorkerRuntime(): void {
+export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
 	if (worker != null) return
 	runtimeGeneration += 1
 	const generation = runtimeGeneration
@@ -131,7 +142,7 @@ export function createAiWorkerRuntime(): void {
 	createWorkerNow(generation)
 }
 
-export function startAiWorkerRequest(options: AiWorkerStartOptions): void {
+export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
 	createAiWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
@@ -143,7 +154,7 @@ export function startAiWorkerRequest(options: AiWorkerStartOptions): void {
 	postStart(options)
 }
 
-export function startAiWorkerMarkdown(options: AiWorkerMarkdownStartOptions): void {
+export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
 	createAiWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
@@ -158,7 +169,11 @@ export function startAiWorkerMarkdown(options: AiWorkerMarkdownStartOptions): vo
 	postMarkdownStart(options)
 }
 
-export function appendAiWorkerMarkdown(requestVersion: number, content: string, reasoningContent: string): void {
+export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
+	requestVersion: number,
+	content: string,
+	reasoningContent: string
+): void {
 	if (!workerReady || pendingMarkdownStart != null) {
 		pendingMarkdownContent += content
 		pendingMarkdownReasoning += reasoningContent
@@ -167,7 +182,7 @@ export function appendAiWorkerMarkdown(requestVersion: number, content: string, 
 	postMarkdownChunk(requestVersion, content, reasoningContent)
 }
 
-export function completeAiWorkerMarkdown(requestVersion: number): void {
+export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
 	if (!workerReady || pendingMarkdownStart != null) {
 		pendingMarkdownComplete = true
 		return
@@ -175,11 +190,11 @@ export function completeAiWorkerMarkdown(requestVersion: number): void {
 	postMarkdownComplete(requestVersion)
 }
 
-export function readAiWorkerSnapshot(): string {
+export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 	return latestSnapshotJson
 }
 
-export function cancelAiWorkerRequest(requestVersion: number): void {
+export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
 	if (pendingStart?.requestVersion == requestVersion) pendingStart = null
 	if (pendingMarkdownStart?.requestVersion == requestVersion) pendingMarkdownStart = null
 	pendingMarkdownContent = ''
@@ -192,7 +207,7 @@ export function cancelAiWorkerRequest(requestVersion: number): void {
 	} as UTSJSONObject, null)
 }
 
-export function destroyAiWorkerRuntime(): void {
+export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	const previousWorker = worker
 	runtimeGeneration += 1
 	worker = null

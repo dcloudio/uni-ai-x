@@ -13,3 +13,16 @@ export type AiWorkerMarkdownStartOptions = {
 	requestVersion: number,
 	renderInterval?: number
 }
+
+export type CreateAiWorkerRuntime = () => void
+export type StartAiWorkerRequest = (options: AiWorkerStartOptions) => void
+export type StartAiWorkerMarkdown = (options: AiWorkerMarkdownStartOptions) => void
+export type AppendAiWorkerMarkdown = (
+	requestVersion: number,
+	content: string,
+	reasoningContent: string
+) => void
+export type CompleteAiWorkerMarkdown = (requestVersion: number) => void
+export type ReadAiWorkerSnapshot = () => string
+export type CancelAiWorkerRequest = (requestVersion: number) => void
+export type DestroyAiWorkerRuntime = () => void
