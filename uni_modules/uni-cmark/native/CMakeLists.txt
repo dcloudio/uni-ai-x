@@ -85,6 +85,40 @@ if(EMSCRIPTEN)
   return()
 endif()
 
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  enable_language(OBJC)
+  add_library(scopeparser4ios SHARED
+    md2html.c
+    ios/ScopeparserBridge.m
+  )
+  target_compile_definitions(scopeparser4ios PRIVATE
+    UNI_CMARK_NO_JNI
+    CMARK_GFM_STATIC_DEFINE
+    CMARK_GFM_EXTENSIONS_STATIC_DEFINE
+  )
+  target_include_directories(scopeparser4ios PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMARK_GFM_SOURCE_DIR}/src"
+    "${CMARK_GFM_SOURCE_DIR}/extensions"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/src"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/extensions"
+  )
+  target_link_libraries(scopeparser4ios PRIVATE
+    ${UNI_CMARK_HTML_LIBRARIES}
+    "-framework Foundation"
+  )
+  target_compile_options(scopeparser4ios PRIVATE "$<$<COMPILE_LANGUAGE:OBJC>:-fobjc-arc>")
+  set_target_properties(scopeparser4ios PROPERTIES
+    FRAMEWORK TRUE
+    FRAMEWORK_VERSION A
+    MACOSX_FRAMEWORK_IDENTIFIER "com.dcloud.scopeparser4ios"
+    MACOSX_FRAMEWORK_SHORT_VERSION_STRING "1.0.0"
+    MACOSX_FRAMEWORK_BUNDLE_VERSION "1"
+    PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/ios/scopeparser4ios.h;${CMAKE_CURRENT_SOURCE_DIR}/ios/ScopeparserBridge.h"
+  )
+  return()
+endif()
+
 add_library(cmarkhtml SHARED md2html.c)
 target_compile_definitions(cmarkhtml PRIVATE
   CMARK_GFM_STATIC_DEFINE

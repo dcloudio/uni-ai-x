@@ -2,7 +2,7 @@
   "id": "uni-cmark",
   "displayName": "uni-cmark",
   "version": "1.2.0",
-  "description": "支持 Android、Web、微信小程序和鸿蒙的 Markdown 转 HTML UTS 插件",
+  "description": "支持 Android、iOS、Web、微信小程序和鸿蒙的 Markdown 转 HTML UTS 插件",
   "keywords": [
     "uni-cmark"
 ],
@@ -93,7 +93,10 @@
                 "extVersion": "1.1.0",
                 "minVersion": ""
             },
-            "ios": "-",
+            "ios": {
+                "extVersion": "1.2.0",
+                "minVersion": "13"
+            },
             "harmony": {
                 "extVersion": "1.2.0",
                 "minVersion": ""

@@ -1,7 +1,7 @@
 # uni-cmark
 
-`uni-cmark` converts Markdown directly to HTML with one pinned cmark-gfm core.
-It supports uni-app x on Android, Web, WeChat Mini Program, and HarmonyOS.
+`uni-cmark` 使用固定版本的 cmark-gfm 内核将 Markdown 直接转换为 HTML，支持
+uni-app x 的 Android、iOS、Web、微信小程序和鸿蒙平台。
 
 ```uts
 import {
@@ -16,26 +16,27 @@ if (isMd2htmlAvailable()) {
 }
 ```
 
-The plugin intentionally does not expose Markdown AST, node, token, or JSON
-conversion APIs. All supported platforms use cmark-gfm `0.29.0.gfm.13`, the
-same `md2html.c`, extensions, safe HTML options, and shared HTML postprocessor.
+插件不对外提供 Markdown AST、节点、Token 或 JSON 转换接口。所有支持的平台统一
+使用 cmark-gfm `0.29.0.gfm.13`、相同的 `md2html.c`、扩展、安全 HTML 选项和
+HTML 后处理逻辑。
 
-- Android loads `libcmarkhtml.so`.
-- HarmonyOS loads the native N-API library in `cmark.har`.
-- Web loads a single-file ESM/WASM module in the Markdown Worker.
-- WeChat Mini Program loads a standalone WASM module with `WXWebAssembly` in
-  the same Worker protocol.
+- Android 加载 `libcmarkhtml.so`。
+- iOS 通过原生 UTS 桥接加载 `scopeparser4ios.xcframework`。
+- 鸿蒙加载 `cmark.har` 中的原生 N-API 库。
+- Web 在 Markdown Worker 中加载单文件 ESM/WASM 模块。
+- 微信小程序使用同一套 Worker 协议，通过 `WXWebAssembly` 加载独立 WASM 模块。
 
-The checked-in native and WASM artifacts are reproducibly generated with:
+仓库内的原生和 WASM 产物可通过以下命令重新生成：
 
 ```sh
 . /path/to/emsdk_env.sh
 ./native/build-web.sh
 ./native/build-mp-weixin.sh
 ./native/build-harmony.sh
+./native/build-ios.sh
 ```
 
-The checked-in Web module was built with Emscripten 4.0.20. Its WASM binary is
-embedded in the ESM output so Worker loading does not depend on deployment
-paths or Web-only `uni` APIs. The WeChat artifact is kept as a standalone WASM
-file because `WXWebAssembly.instantiate` loads a mini-program resource path.
+仓库内的 Web 模块使用 Emscripten 4.0.20 构建。WASM 二进制已嵌入 ESM 输出，使
+Worker 加载不依赖部署路径或仅限 Web 的 `uni` API。由于
+`WXWebAssembly.instantiate` 需要加载小程序资源路径，微信小程序产物保留为独立的
+WASM 文件。

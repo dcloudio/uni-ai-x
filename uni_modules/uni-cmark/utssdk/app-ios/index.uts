@@ -1,0 +1,40 @@
+import { ScopeparserBridge } from "scopeparser4ios"
+
+let scopeparserBridge: ScopeparserBridge | null = null
+let cmarkInitialized = false
+let cmarkInitializationAttempted = false
+
+function getScopeparserBridge(): ScopeparserBridge {
+	if (scopeparserBridge == null) {
+		scopeparserBridge = new ScopeparserBridge()
+	}
+	return scopeparserBridge!
+}
+
+function ensureCmarkInitialized(): boolean {
+	if (!cmarkInitializationAttempted) {
+		cmarkInitializationAttempted = true
+		cmarkInitialized = getScopeparserBridge().initializeCmarkGfm()
+	}
+	return cmarkInitialized
+}
+
+export function initMd2html(): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		if (ensureCmarkInitialized()) {
+			resolve()
+		} else {
+			reject(new Error('cmark-gfm iOS 初始化失败'))
+		}
+	})
+}
+
+export function isMd2htmlAvailable(): boolean {
+	return ensureCmarkInitialized()
+}
+
+export function md2html(markdown: string): string {
+	if (!ensureCmarkInitialized()) return ''
+	const html = getScopeparserBridge().md2html(markdown) as string | null
+	return html == null ? '' : html as string
+}
