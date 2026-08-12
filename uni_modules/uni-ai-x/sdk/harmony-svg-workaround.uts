@@ -1,0 +1,23 @@
+export type HarmonySvgWorkaroundConfig = {
+	rasterScale: number
+	enabled: boolean
+	cacheVariant: string
+}
+
+const HARMONY_SVG_WORKAROUND_VERSION = '1'
+
+export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
+	let rasterScale = 1
+	let enabled = false
+	// #ifdef APP-HARMONY
+	rasterScale = Math.max(1, Math.min(uni.getWindowInfo().pixelRatio, 3))
+	enabled = true
+	// #endif
+	return {
+		rasterScale,
+		enabled,
+		cacheVariant: enabled
+			? 'harmony-v' + HARMONY_SVG_WORKAROUND_VERSION + ':' + rasterScale.toString()
+			: 'default'
+	}
+}

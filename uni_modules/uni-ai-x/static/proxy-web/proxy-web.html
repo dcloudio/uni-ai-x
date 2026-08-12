@@ -23,6 +23,7 @@
     <script type="text/javascript" src="./libs/uni.webview.1.5.5.js"></script>
     <script type="text/javascript" src="./libs/mermaid.min.js"></script>
     <script type="text/javascript" src="./libs/highlight.min.js"></script>
+    <script type="text/javascript" src="./harmony-svg-workaround.js"></script>
 
     <script type="text/javascript">
         class ProxyWebHandler {
@@ -175,6 +176,7 @@
               svgElement.setAttribute('width', viewBox[2].toString());
               svgElement.setAttribute('height', viewBox[3].toString());
             }
+            window.harmonySvgWorkaround.applyDecodeScale(svgElement, options.rasterScale);
             svgElement.setAttribute('preserveAspectRatio', options.preserveAspectRatio || 'xMidYMid meet');
 
             if (options.styleText) {
@@ -212,14 +214,21 @@
               }
             }
 
+            const serializedElement = window.harmonySvgWorkaround.prepareForDecode(svgElement, options);
             return {
-              svgText: new XMLSerializer().serializeToString(svgElement),
+              svgText: new XMLSerializer().serializeToString(serializedElement),
               width: size.width,
               height: size.height
             };
           }
 
-          async renderMermaid({ mermaidText, theme, requestId }) {
+          async renderMermaid({
+            mermaidText,
+            theme,
+            requestId,
+            rasterScale = 1,
+            harmonyWorkaround = false
+          }) {
             const renderTheme = this.resolveTheme(theme);
             const mermaidId = 'mermaid-' + requestId.replace(/[^a-zA-Z0-9_-]/g, '');
             const renderTask = this.mermaidRenderQueue.then(async () => {
@@ -235,7 +244,9 @@
               const normalized = this.normalizeSvg(mermaidRenderResult.svg, {
                 frameAspectRatio: 5 / 4,
                 theme: renderTheme,
-                styleText: 'svg{background:transparent!important}'
+                styleText: 'svg{background:transparent!important}',
+                rasterScale,
+                harmonyWorkaround
               });
               const imageDataURL = this.svgDataURL(normalized.svgText);
               this.postMessage({
@@ -367,7 +378,7 @@
               console.log(action + '方法执行失败', error);
             }
           }
-          async createMathSvg(pureMathText, theme) {
+          async createMathSvg(pureMathText, theme, rasterScale = 1) {
             if (window.MathJax == null) throw new Error('MathJax 未加载');
             await window.MathJax.startup.promise;
             const mathNode = await window.MathJax.tex2svgPromise(pureMathText, {
@@ -387,6 +398,7 @@
               preserveAspectRatio: 'xMinYMid meet',
               em: 16,
               ex: 8,
+              rasterScale,
               styleText: [
                 'svg{background:transparent!important;color:' + foreground + '}',
                 'svg a{fill:#0066cc;stroke:#0066cc}',
@@ -400,11 +412,11 @@
             });
           }
 
-          async mathSvgRender({ pureMathText, theme, requestId }) {
+          async mathSvgRender({ pureMathText, theme, requestId, rasterScale = 1 }) {
             const renderTheme = this.resolveTheme(theme);
             const renderTask = this.mathRenderQueue.then(
-              () => this.createMathSvg(pureMathText, renderTheme),
-              () => this.createMathSvg(pureMathText, renderTheme)
+              () => this.createMathSvg(pureMathText, renderTheme, rasterScale),
+              () => this.createMathSvg(pureMathText, renderTheme, rasterScale)
             );
             this.mathRenderQueue = renderTask.then(() => undefined, () => undefined);
             const param = {

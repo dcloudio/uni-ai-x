@@ -1,5 +1,6 @@
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import { getHarmonySvgWorkaroundConfig } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
 
 export type ThemedSvgResult = {
 	imageDataURL: string
@@ -17,8 +18,8 @@ function normalizedTheme(theme: string): string {
 	return theme == 'dark' ? 'dark' : 'light'
 }
 
-function cacheKey(theme: string, source: string): string {
-	return normalizedTheme(theme) + '\n' + source
+function cacheKey(theme: string, source: string, workaroundVariant: string): string {
+	return normalizedTheme(theme) + '\n' + workaroundVariant + '\n' + source
 }
 
 function deliverResult(callback: ThemedSvgCallback, result: ThemedSvgResult) {
@@ -29,7 +30,8 @@ function deliverResult(callback: ThemedSvgCallback, result: ThemedSvgResult) {
 
 export function renderMathSvgForTheme(mathText: string, theme: string, callback: ThemedSvgCallback) {
 	const renderTheme = normalizedTheme(theme)
-	const key = cacheKey(renderTheme, mathText)
+	const workaround = getHarmonySvgWorkaroundConfig()
+	const key = cacheKey(renderTheme, mathText, workaround.cacheVariant)
 	const cached = mathCache.get(key)
 	if (cached != null) {
 		deliverResult(callback, cached)
@@ -38,7 +40,8 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 	proxyWeb.callMethod({
 		action: 'mathSvgRender',
 		pureMathText: mathText,
-		theme: renderTheme
+		theme: renderTheme,
+		rasterScale: workaround.rasterScale
 	}, (param: UTSJSONObject) => {
 		const result: ThemedSvgResult = {
 			imageDataURL: param['imageDataURL'] as string,
@@ -53,7 +56,8 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 
 export function renderMermaidSvgForTheme(mermaidText: string, theme: string, callback: ThemedSvgCallback) {
 	const renderTheme = normalizedTheme(theme)
-	const key = cacheKey(renderTheme, mermaidText)
+	const workaround = getHarmonySvgWorkaroundConfig()
+	const key = cacheKey(renderTheme, mermaidText, workaround.cacheVariant)
 	const cached = mermaidCache.get(key)
 	if (cached != null) {
 		deliverResult(callback, cached)
@@ -62,7 +66,9 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 	proxyWeb.callMethod({
 		action: 'renderMermaid',
 		mermaidText,
-		theme: renderTheme
+		theme: renderTheme,
+		rasterScale: workaround.rasterScale,
+		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {
 		const result: ThemedSvgResult = {
 			imageDataURL: param['imageDataURL'] as string,
