@@ -4,7 +4,6 @@
 			<uni-ai-msg-html-table v-if="block.kind == 'table'"
 				:html="block.html" :column-widths="block.columnWidths" :row-text-widths="block.rowTextWidths" />
 			<uni-ai-msg-quote v-else-if="block.kind == 'quote'" :html="block.html" />
-			<view v-else-if="block.kind == 'divider'" class="uni-ai-md-divider" flatten></view>
 			<uni-ai-msg-code v-else-if="block.kind == 'code' || block.kind == 'mermaid'"
 				:code-text="block.text" :language="block.language" :is-close="block.isComplete ? 1 : 0" />
 			<uni-ai-msg-math v-else-if="block.kind == 'math'"
@@ -61,13 +60,5 @@
 	.uni-ai-md-rich-text,
 	.uni-ai-md-rich-text-content {
 		width: 100%;
-	}
-
-	.uni-ai-md-divider {
-		width: 100%;
-		height: 1px;
-		margin: 12px 0;
-		flex-shrink: 0;
-		background-color: var(--border-primary);
 	}
 </style>

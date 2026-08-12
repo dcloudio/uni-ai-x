@@ -559,14 +559,6 @@ function findClosedBlock(source: string, tag: string, kind: string, fromIndex: n
 	} as HtmlSpecialBlock
 }
 
-function findDividerBlock(source: string, fromIndex: number): HtmlSpecialBlock | null {
-	const start = findOpenTag(source, 'hr', fromIndex)
-	if (start < 0) return null
-	const end = source.indexOf('>', start)
-	if (end < 0) return null
-	return { kind: 'divider', start: start, openEnd: end, closeStart: end, end: end + 1 } as HtmlSpecialBlock
-}
-
 function earlierBlock(current: HtmlSpecialBlock | null, candidate: HtmlSpecialBlock | null): HtmlSpecialBlock | null {
 	if (candidate == null) return current
 	if (current == null || candidate.start < current.start) return candidate
@@ -578,7 +570,6 @@ function findNextSpecialBlock(source: string, fromIndex: number): HtmlSpecialBlo
 	block = earlierBlock(block, findClosedBlock(source, 'table', 'table', fromIndex))
 	block = earlierBlock(block, findClosedBlock(source, 'blockquote', 'quote', fromIndex))
 	block = earlierBlock(block, findClosedBlock(source, 'pre', 'code', fromIndex))
-	block = earlierBlock(block, findDividerBlock(source, fromIndex))
 	return block
 }
 
@@ -665,7 +656,6 @@ export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean =
 	let tableIndex = 0
 	let quoteIndex = 0
 	let codeIndex = 0
-	let dividerIndex = 0
 	while (cursor < html.length) {
 		const range = findNextSpecialBlock(html, cursor)
 		if (range == null) {
@@ -685,12 +675,9 @@ export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean =
 			block.html = html.slice(range.openEnd + 1, range.closeStart)
 			blocks.push(block)
 			quoteIndex += 1
-		} else if (range.kind == 'code') {
+		} else {
 			blocks.push(buildCodeBlock(html, range, codeIndex, messageComplete))
 			codeIndex += 1
-		} else {
-			blocks.push(emptyHtmlBlock('divider', 'divider-' + dividerIndex.toString()))
-			dividerIndex += 1
 		}
 		cursor = range.end
 	}

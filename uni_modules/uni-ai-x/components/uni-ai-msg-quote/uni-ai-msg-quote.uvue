@@ -1,7 +1,10 @@
 <template>
 	<view class="uni-ai-msg-quote" :class="[`ui-theme-${uiTheme}`]" flatten>
-		<rich-text class="uni-ai-msg-quote-content" :style="richTextStyle"
+		<view class="uni-ai-msg-quote-line"></view>
+		<view class="uni-ai-msg-quote-body">
+			<rich-text class="uni-ai-msg-quote-content" :style="richTextStyle"
 				:nodes="html" mode="native" @itemclick="onItemClick"></rich-text>
+		</view>
 	</view>
 </template>
 
@@ -14,39 +17,52 @@
 
 	const html = computed<string>(() => props.html)
 
-const richTextStyle = computed<string>(() => {
-	const color = uiTheme.value == 'dark' ? '#e0e0e0' : '#555555'
-	return 'font-size:16px;line-height:1.625;color:' + color + ';'
-})
+	const richTextStyle = computed<string>(() => {
+		const color = uiTheme.value == 'dark' ? '#e0e0e0' : '#555555'
+		return 'font-size:16px;line-height:1.625;color:' + color + ';'
+	})
 
-function onItemClick(e: UniRichTextItemClickEvent) {
-	if (e.detail.href != null && e.detail.href!.length > 0) {
-		uni.navigateTo({
-			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + e.detail.href!,
-			fail: (err) => {
-				console.error(err)
-			}
-		})
-		return
+	function onItemClick(e: UniRichTextItemClickEvent) {
+		if (e.detail.href != null && e.detail.href!.length > 0) {
+			uni.navigateTo({
+				url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + e.detail.href!,
+				fail: (err) => {
+					console.error(err)
+				}
+			})
+			return
+		}
+		if (e.detail.src != null && e.detail.src!.length > 0) {
+			uni.previewImage({ urls: [e.detail.src!] as string[] })
+		}
 	}
-	if (e.detail.src != null && e.detail.src!.length > 0) {
-		uni.previewImage({ urls: [e.detail.src!] as string[] })
-	}
-}
 </script>
 
 <style lang="scss" scoped>
-@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 
-.uni-ai-msg-quote {
-	width: 100%;
-	margin: 8px 0;
-	padding: 8px 12px;
-	border-left: 3px solid var(--border-primary);
-	background-color: var(--bg-secondary);
-}
+	.uni-ai-msg-quote {
+		width: 100%;
+		margin: 8px 0;
+		flex-direction: row;
+		align-items: stretch;
+		background-color: var(--bg-secondary);
+	}
 
-.uni-ai-msg-quote-content {
-	width: 100%;
-}
+	.uni-ai-msg-quote-line {
+		width: 3px;
+		align-self: stretch;
+		flex-shrink: 0;
+		background-color: var(--border-primary);
+	}
+
+	.uni-ai-msg-quote-body {
+		min-width: 0;
+		padding: 8px 12px;
+		flex: 1;
+	}
+
+	.uni-ai-msg-quote-content {
+		width: 100%;
+	}
 </style>
