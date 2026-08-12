@@ -2,7 +2,7 @@ import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
-// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
 	cancelAiWorkerRequest,
@@ -118,7 +118,7 @@ class RequestAiRunner {
 		}
 
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
 			appendAiWorkerMarkdown(this.workerRequestVersion, content ?? '', reasoningContent ?? '')
 			return
@@ -165,7 +165,7 @@ class RequestAiRunner {
 		if (this.currentChatState == 'stop') {
 			return
 		}
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
 			completeAiWorkerMarkdown(this.workerRequestVersion)
 			return
@@ -187,6 +187,7 @@ class RequestAiRunner {
 		this.resetRequestState()
 
 		// #ifndef APP-ANDROID
+		// #ifndef APP-IOS
 		// #ifndef WEB
 		// #ifndef MP-WEIXIN
 		// #ifndef APP-HARMONY
@@ -195,6 +196,7 @@ class RequestAiRunner {
 			errMsg: '当前平台未启用 Markdown HTML Worker'
 		} as UTSJSONObject)
 		return
+		// #endif
 		// #endif
 		// #endif
 		// #endif
@@ -210,7 +212,7 @@ class RequestAiRunner {
 			return
 		}
 		// #endif
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		this.startMarkdownHtmlWorker()
 		// #endif
 		this.requestAiServer({
@@ -277,7 +279,7 @@ class RequestAiRunner {
 	}
 	// #endif
 
-	// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private pollWorkerSnapshot(requestVersion: number) {
 		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
 		const snapshotJson = readAiWorkerSnapshot()
@@ -356,14 +358,14 @@ class RequestAiRunner {
 	private stopWorkerRuntime(cancelRequest: boolean) {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
 		destroyAiWorkerRuntime()
 		// #endif
 		this.workerActive = false
 	}
 
-	// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private startMarkdownHtmlWorker() {
 		const requestVersion = this.workerRequestVersion + 1
 		this.workerRequestVersion = requestVersion

@@ -8,7 +8,7 @@ import {
 	reportDemoMarkdownSnapshot
 } from '@/demo/markdown/demo-chat.uts'
 import { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts'
-// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
 	cancelAiWorkerRequest,
@@ -61,10 +61,11 @@ export default class MarkdownDemoRunner {
 			this.fail('请先选择 Markdown 测试类型')
 			return
 		}
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		this.startWorker()
 		// #endif
 		// #ifndef APP-ANDROID
+		// #ifndef APP-IOS
 		// #ifndef WEB
 		// #ifndef MP-WEIXIN
 		// #ifndef APP-HARMONY
@@ -73,9 +74,10 @@ export default class MarkdownDemoRunner {
 		// #endif
 		// #endif
 		// #endif
+		// #endif
 	}
 
-	// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private startWorker() {
 		this.requestVersion += 1
 		this.snapshotVersion = 0
@@ -196,7 +198,7 @@ export default class MarkdownDemoRunner {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.streamTimer = 0
 		this.workerPollTimer = 0
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.requestVersion)
 		destroyAiWorkerRuntime()
 		// #endif

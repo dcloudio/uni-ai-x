@@ -156,13 +156,15 @@ function collectRows(tableHtml: string): HtmlTableRow[] {
 
 function naturalColumnWidths(rows: HtmlTableRow[]): number[] {
 	let columnCount = 0
-	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-		columnCount = Math.max(columnCount, rows[rowIndex].cellTextWidths.length)
+	const rowCount = rows.length as number
+	for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+		const cellCount = rows[rowIndex].cellTextWidths.length as number
+		columnCount = Math.max(columnCount, cellCount)
 	}
 	const widths = [] as number[]
 	for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
 		let width = TABLE_MIN_COLUMN_WIDTH
-		for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
 			if (columnIndex >= rows[rowIndex].cellTextWidths.length) continue
 			width = Math.max(width, Math.min(rows[rowIndex].cellTextWidths[columnIndex] + TABLE_CELL_HORIZONTAL_PADDING, TABLE_MAX_COLUMN_WIDTH))
 		}
@@ -426,12 +428,13 @@ function encodeRowWidths(rows: HtmlTableRow[]): string {
 function prepareTableHtml(tableHtml: string, tableIndex: number): string {
 	const rows = collectRows(tableHtml)
 	if (rows.length == 0) return tableHtml
+	const rowCount = rows.length as number
 	const columnWidths = naturalColumnWidths(rows)
 	let styledRows = ''
 	let cursor = 0
-	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+	for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
 		styledRows += tableHtml.slice(cursor, rows[rowIndex].start)
-		styledRows += styleTableRow(rows[rowIndex], rowIndex, rows.length)
+		styledRows += styleTableRow(rows[rowIndex], rowIndex, rowCount)
 		cursor = rows[rowIndex].end
 	}
 	styledRows += tableHtml.slice(cursor)

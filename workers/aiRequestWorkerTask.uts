@@ -1,6 +1,9 @@
 // #ifdef APP-ANDROID
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 // #endif
+// #ifdef APP-IOS
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
+// #endif
 // #ifdef WEB
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/web/index.uts'
 // #endif
@@ -65,7 +68,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	override entry() {
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		initMd2html().then(() => {
 			this.postMessage({ phase: 'ready' } as UTSJSONObject)
 		}).catch((error: any | null) => {
@@ -233,16 +236,28 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private publishSnapshot(isDone: boolean) {
 		if (this.content.length == 0 && !isDone) return
-		const processedMarkdown = this.preprocessor.process(this.content, isDone)
-		if (processedMarkdown == null) return
-		// #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
+		if (processedMarkdownValue == null) return
+		const processedMarkdown = processedMarkdownValue!
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (isMd2htmlAvailable() == false) {
 			this.fail('markdown_html_unavailable', 'cmark-gfm Markdown HTML 转换器不可用')
 			return
 		}
 		let html = ''
 		try {
-			html = prepareMarkdownHtml(md2html(processedMarkdown), isDone)
+			const rawHtmlValue = md2html(processedMarkdown) as string | null
+			const rawHtml = rawHtmlValue ?? ''
+			if (processedMarkdown.length > 0 && rawHtml.length == 0) {
+				this.fail('markdown_html_failed', 'cmark-gfm Markdown HTML 转换失败')
+				return
+			}
+			const preparedHtml = prepareMarkdownHtml(rawHtml, isDone) as string | null
+			html = preparedHtml ?? ''
+			if (processedMarkdown.length > 0 && html.length == 0) {
+				this.fail('markdown_html_failed', 'Markdown HTML 后处理失败')
+				return
+			}
 		} catch (error) {
 			this.fail('markdown_html_failed', error.message as string)
 			return
@@ -268,7 +283,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		} as UTSJSONObject
 		this.postMessage({
 			phase: 'snapshot',
-			snapshotJson: JSON.stringify(snapshot)
+			snapshotJson: JSON.stringify(snapshot) ?? ''
 		} as UTSJSONObject)
 		return
 		// #endif
@@ -276,7 +291,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #ifndef WEB
 		// #ifndef MP-WEIXIN
 		// #ifndef APP-HARMONY
+		// #ifndef APP-IOS
 		this.fail('unsupported_platform', '当前平台暂未启用 AI Worker Markdown HTML 转换')
+		// #endif
 		// #endif
 		// #endif
 		// #endif
@@ -313,7 +330,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		} as UTSJSONObject
 		this.postMessage({
 			phase: 'snapshot',
-			snapshotJson: JSON.stringify(snapshot)
+			snapshotJson: JSON.stringify(snapshot) ?? ''
 		} as UTSJSONObject)
 	}
 
