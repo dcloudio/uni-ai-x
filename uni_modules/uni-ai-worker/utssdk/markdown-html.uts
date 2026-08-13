@@ -614,7 +614,8 @@ function buildCodeBlock(source: string, range: HtmlSpecialBlock, codeIndex: numb
 	const codeCloseStart = codeOpenEnd >= 0 ? source.indexOf('</code>', codeOpenEnd + 1) : -1
 	const codeOpenTag = codeStart >= 0 && codeOpenEnd >= 0 ? source.slice(codeStart, codeOpenEnd + 1) : ''
 	const codeHtml = codeOpenEnd >= 0 && codeCloseStart >= codeOpenEnd ? source.slice(codeOpenEnd + 1, codeCloseStart) : ''
-	const language = codeLanguage(codeOpenTag)
+	const sourceLanguage = codeLanguage(codeOpenTag)
+	const language = sourceLanguage == 'mermaid-pending' ? 'mermaid' : sourceLanguage
 	const block = emptyHtmlBlock(language == 'math' || language == 'math-pending' ? 'math'
 		: (language == 'mermaid' ? 'mermaid' : 'code'), 'code-' + codeIndex.toString())
 	const sourceKey = tagAttribute(preOpenTag, 'data-uni-ai-code-key')
@@ -622,8 +623,13 @@ function buildCodeBlock(source: string, range: HtmlSpecialBlock, codeIndex: numb
 	block.text = decodeHtmlText(codeHtml).replace(/\n$/, '')
 	block.language = language
 	const completeAttribute = tagAttribute(preOpenTag, 'data-uni-ai-complete')
-	block.isComplete = (completeAttribute == '1' || (completeAttribute.length == 0 && messageComplete))
-		&& language != 'math-pending'
+	if (sourceLanguage == 'math-pending' || sourceLanguage == 'mermaid-pending') {
+		block.isComplete = false
+	} else if (sourceLanguage == 'math' || sourceLanguage == 'mermaid') {
+		block.isComplete = true
+	} else {
+		block.isComplete = completeAttribute == '1' || (completeAttribute.length == 0 && messageComplete)
+	}
 	return block
 }
 

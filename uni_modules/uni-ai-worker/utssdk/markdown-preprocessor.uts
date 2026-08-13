@@ -17,7 +17,10 @@ export class MarkdownPreprocessor {
 	private markdownText: string = ''
 
 	process(msgBody: string, isDone: boolean): string | null {
-		if (!isDone) return this.prepareMarkdownText(msgBody)
+		if (!isDone) {
+			const processedMarkdownText = this.prepareMarkdownText(msgBody)
+			return processedMarkdownText == null ? null : this.markPendingMermaidFence(processedMarkdownText)
+		}
 		let processedMarkdownText = this.prepareMarkdownText(msgBody)
 		if (processedMarkdownText == null) return null
 		let previousMathEndIndex = -1
@@ -28,7 +31,64 @@ export class MarkdownPreprocessor {
 			if (nextMarkdownText != null) processedMarkdownText = nextMarkdownText
 			passCount++
 		}
-		return processedMarkdownText
+		return this.markPendingMermaidFence(processedMarkdownText as string)
+	}
+
+	private markPendingMermaidFence(markdownText: string): string {
+		let cursor = 0
+		let fenceMarker = ''
+		let fenceLength = 0
+		let mermaidTokenStart = -1
+		let mermaidTokenEnd = -1
+		while (cursor <= markdownText.length) {
+			let lineEnd = markdownText.indexOf('\n', cursor)
+			if (lineEnd < 0) lineEnd = markdownText.length as number
+			const line = markdownText.slice(cursor, lineEnd)
+			let markerStart = 0
+			while (markerStart < line.length && markerStart < 4 && line.slice(markerStart, markerStart + 1) == ' ') {
+				markerStart++
+			}
+			if (markerStart <= 3 && markerStart < line.length) {
+				const marker = line.slice(markerStart, markerStart + 1)
+				if (marker == '`' || marker == '~') {
+					let markerEnd = markerStart
+					while (markerEnd < line.length && line.slice(markerEnd, markerEnd + 1) == marker) markerEnd++
+					const markerCount = markerEnd - markerStart
+					if (fenceMarker.length == 0 && markerCount >= 3) {
+						const infoText = line.slice(markerEnd)
+						if (marker != '`' || infoText.indexOf('`') < 0) {
+							fenceMarker = marker
+							fenceLength = markerCount
+							let tokenStart = markerEnd
+							while (tokenStart < line.length) {
+								const char = line.slice(tokenStart, tokenStart + 1)
+								if (char != ' ' && char != '\t') break
+								tokenStart++
+							}
+							let tokenEnd = tokenStart
+							while (tokenEnd < line.length) {
+								const char = line.slice(tokenEnd, tokenEnd + 1)
+								if (char == ' ' || char == '\t') break
+								tokenEnd++
+							}
+							if (line.slice(tokenStart, tokenEnd).toLowerCase() == 'mermaid') {
+								mermaidTokenStart = cursor + tokenStart
+								mermaidTokenEnd = cursor + tokenEnd
+							}
+						}
+					} else if (marker == fenceMarker && markerCount >= fenceLength && line.slice(markerEnd).trim().length == 0) {
+						fenceMarker = ''
+						fenceLength = 0
+						mermaidTokenStart = -1
+						mermaidTokenEnd = -1
+					}
+				}
+			}
+			if (lineEnd >= markdownText.length) break
+			cursor = lineEnd + 1
+		}
+		if (fenceMarker.length == 0 || mermaidTokenStart < 0 || mermaidTokenEnd < 0) return markdownText
+		return markdownText.slice(0, mermaidTokenStart) + 'mermaid-pending' + markdownText.slice(mermaidTokenEnd)
 	}
 
 	private prepareMarkdownText(msgBody: string): string | null {
