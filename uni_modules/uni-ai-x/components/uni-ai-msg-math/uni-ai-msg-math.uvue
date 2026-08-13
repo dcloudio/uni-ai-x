@@ -1,12 +1,12 @@
 <template>
-    <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, imageReady ? 'math-el-image-ready math-el-scroll-image-ready' : 'math-el-source-pending']"
+    <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, showMathSource ? 'math-el-source-pending' : 'math-el-image-ready math-el-scroll-image-ready']"
         direction="horizontal" :show-scrollbar="false" @touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
         <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
             <image v-if="buffer0Href.length > 0" :src="buffer0Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
             <image v-if="buffer1Href.length > 0" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer1ImageStyle" @load="onMathBuffer1Load" @error="onMathBuffer1Error" />
-            <rich-text v-if="!imageReady" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
+            <rich-text v-if="showMathSource" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
         </view>
     </scroll-view>
 </template>
@@ -38,8 +38,12 @@
     const activeBuffer = ref<number>(0)
     const pendingBuffer = ref<number>(-1)
     const windowWidth = ref<number>(0)
+    const mathImageModeLatched = ref<boolean>((props.isClose ?? 0) == 1)
+    const mathImageLoadFailed = ref<boolean>(false)
     let mathRenderRequestKey = ''
     let mathBufferLoadRequest = 0
+    let mathSourceKey = ''
+    let mathWasClosed = false
 
     const activeImageHref = computed<string>(() => {
         return activeBuffer.value == 0 ? buffer0Href.value : buffer1Href.value
@@ -56,6 +60,10 @@
     const imageReady = computed<boolean>(() => {
         const loaded = activeBuffer.value == 0 ? buffer0Loaded.value : buffer1Loaded.value
         return activeImageHref.value.length > 0 && loaded
+    })
+
+    const showMathSource = computed<boolean>(() => {
+        return !mathImageModeLatched.value || mathImageLoadFailed.value
     })
 
     const buffer0ImageStyle = computed<string>(() => {
@@ -109,22 +117,42 @@
     })
 
     const mathWidth = computed<string>(() => {
-        const width = activeImageWidth.value > 0 ? activeImageWidth.value : (props.width ?? 1)
+        let width = activeImageWidth.value
+        if (activeImageHref.value.length == 0 && pendingBuffer.value == 0) width = buffer0Width.value
+        if (activeImageHref.value.length == 0 && pendingBuffer.value == 1) width = buffer1Width.value
+        if (width <= 0) width = props.width ?? sourceContentWidthValue.value
         return Math.max(1, Math.ceil(width)).toString() + 'px'
     })
 
     const mathHeight = computed<string>(() => {
-        const height = activeImageHeight.value > 0 ? activeImageHeight.value : (props.height ?? 1)
+        let height = activeImageHeight.value
+        if (activeImageHref.value.length == 0 && pendingBuffer.value == 0) height = buffer0Height.value
+        if (activeImageHref.value.length == 0 && pendingBuffer.value == 1) height = buffer1Height.value
+        if (height <= 0) height = props.height ?? Math.max(44, (props.text ?? '').split('\n').length * 22)
         return Math.max(1, Math.ceil(height)).toString() + 'px'
     })
 
     const mathContentWidth = computed<string>(() => {
-        return imageReady.value ? mathWidth.value : sourceContentWidth.value
+        return showMathSource.value ? sourceContentWidth.value : mathWidth.value
     })
 
     const mathContentHeight = computed<string>(() => {
-        return imageReady.value ? mathHeight.value : sourceContentHeight.value
+        return showMathSource.value ? sourceContentHeight.value : mathHeight.value
     })
+
+    function resetMathImages() {
+        mathBufferLoadRequest++
+        buffer0Href.value = ''
+        buffer0Width.value = 0
+        buffer0Height.value = 0
+        buffer0Loaded.value = false
+        buffer1Href.value = ''
+        buffer1Width.value = 0
+        buffer1Height.value = 0
+        buffer1Loaded.value = false
+        activeBuffer.value = 0
+        pendingBuffer.value = -1
+    }
 
     function queueMathImage(href: string, width: number, height: number) {
         if (href.length == 0) return
@@ -170,6 +198,7 @@
         if (pendingBuffer.value != buffer) return
         activeBuffer.value = buffer
         pendingBuffer.value = -1
+        mathImageLoadFailed.value = false
     }
 
     function onMathBufferError(buffer: number) {
@@ -181,6 +210,7 @@
             if (activeBuffer.value != 1) buffer1Href.value = ''
         }
         if (pendingBuffer.value == buffer) pendingBuffer.value = -1
+        if (!imageReady.value) mathImageLoadFailed.value = true
     }
 
     function onMathBuffer0Load(_event: ImageLoadEvent) { onMathBufferLoad(0) }
@@ -191,6 +221,22 @@
     function stopDrawerGesture(_event: TouchEvent) {}
 
 	    function syncMathImageTheme() {
+	        const mathText = (props.text ?? '').trim()
+	        if (mathSourceKey != mathText) {
+	            mathSourceKey = mathText
+	            mathImageLoadFailed.value = false
+	            resetMathImages()
+	        }
+	        const isClosed = (props.isClose ?? 0) == 1
+	        if (!isClosed) {
+	            if (mathWasClosed) resetMathImages()
+	            mathWasClosed = false
+	            mathImageModeLatched.value = false
+	            mathRenderRequestKey = ''
+	            return
+	        }
+	        mathWasClosed = true
+	        mathImageModeLatched.value = true
 	        const theme = uiTheme.value
 	        const sourceHref = props.href ?? ''
 	        if (sourceHref.length > 0 && activeImageHref.value.length == 0) queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
@@ -199,18 +245,22 @@
 	            queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
             return
         }
-        const mathText = (props.text ?? '').trim()
         if (mathText.length == 0) return
         const requestKey = theme + '\n' + mathText
         mathRenderRequestKey = requestKey
         renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
-            if (mathRenderRequestKey != requestKey || uiTheme.value != theme || result.imageDataURL.length == 0) return
+            if (mathRenderRequestKey != requestKey || uiTheme.value != theme) return
+            if (result.imageDataURL.length == 0) {
+                if (!imageReady.value) mathImageLoadFailed.value = true
+                return
+            }
             queueMathImage(result.imageDataURL, result.width, result.height)
         })
     }
 
 	    watch((): string => {
 	        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n'
+	            + (props.isClose ?? 0).toString() + '\n'
 	            + ((props.href ?? '').length > 0 ? '1' : '0')
     }, () => {
         syncMathImageTheme()

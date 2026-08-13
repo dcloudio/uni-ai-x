@@ -75,7 +75,11 @@ function hasMermaidImage(href: string | null): boolean {
 	return href != null && href.length > 0
 }
 
-const showMermaidImage = ref<boolean>(false)
+const mermaidImageModeLatched = ref<boolean>(props.language == 'mermaid' && props.isClose == 1)
+const showMermaidImage = ref<boolean>(mermaidImageModeLatched.value)
+//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
+showMermaidImage.value = false
+//#endif
 const mermaidViewSelectedByUser = ref<boolean>(false)
 const mermaidImageLoadFailed = ref<boolean>(false)
 const mermaidRenderPending = ref<boolean>(false)
@@ -86,6 +90,8 @@ const buffer1MermaidLoaded = ref<boolean>(false)
 const activeMermaidBuffer = ref<number>(0)
 const pendingMermaidBuffer = ref<number>(-1)
 let mermaidRenderRequestKey = ''
+let mermaidSourceKey = ''
+let mermaidWasClosed = false
 let codeHighlightRequestVersion = 0
 let highlightedCodeLanguage = ''
 let highlightedCodeLines = [] as string[]
@@ -120,7 +126,7 @@ const buffer1MermaidImageStyle = computed<string>(() => {
 
 function setMermaidView(showImage: boolean) {
 	mermaidViewSelectedByUser.value = true
-	showMermaidImage.value = showImage
+	showMermaidImage.value = showImage && !mermaidImageLoadFailed.value
 }
 
 const previewMermaidImage = () => {
@@ -130,6 +136,15 @@ const previewMermaidImage = () => {
 
 function hasQueuedMermaidImage(): boolean {
 	return buffer0MermaidHref.value.length > 0 || buffer1MermaidHref.value.length > 0
+}
+
+function resetMermaidImages() {
+	buffer0MermaidHref.value = ''
+	buffer0MermaidLoaded.value = false
+	buffer1MermaidHref.value = ''
+	buffer1MermaidLoaded.value = false
+	activeMermaidBuffer.value = 0
+	pendingMermaidBuffer.value = -1
 }
 
 function queueMermaidImage(href: string) {
@@ -166,6 +181,7 @@ function onMermaidBufferLoad(buffer: number) {
 	activeMermaidBuffer.value = buffer
 	pendingMermaidBuffer.value = -1
 	mermaidImageLoadFailed.value = false
+	mermaidImageModeLatched.value = true
 	if (!mermaidViewSelectedByUser.value) showMermaidImage.value = true
 }
 
@@ -178,7 +194,10 @@ function onMermaidBufferError(buffer: number) {
 		if (activeMermaidBuffer.value != 1) buffer1MermaidHref.value = ''
 	}
 	if (pendingMermaidBuffer.value == buffer) pendingMermaidBuffer.value = -1
-	if (!mermaidImageReady.value) mermaidImageLoadFailed.value = true
+	if (!mermaidImageReady.value) {
+		mermaidImageLoadFailed.value = true
+		showMermaidImage.value = false
+	}
 }
 
 function onMermaidBuffer0Load(_event: ImageLoadEvent) { onMermaidBufferLoad(0) }
@@ -331,7 +350,34 @@ const mermaidGenerationFailed = computed<boolean>(() => {
 })
 
 function syncMermaidImageTheme() {
-	if (props.language != 'mermaid') return
+	if (props.language != 'mermaid') {
+		mermaidImageModeLatched.value = false
+		showMermaidImage.value = false
+		return
+	}
+	const nextSourceKey = props.language + '\n' + props.codeText
+	if (mermaidSourceKey != nextSourceKey) {
+		mermaidSourceKey = nextSourceKey
+		mermaidImageLoadFailed.value = false
+		mermaidViewSelectedByUser.value = false
+		resetMermaidImages()
+	}
+	const isClosed = props.isClose == 1
+	if (!isClosed) {
+		if (mermaidWasClosed) resetMermaidImages()
+		mermaidWasClosed = false
+		mermaidImageModeLatched.value = false
+		showMermaidImage.value = false
+		mermaidRenderRequestKey = ''
+		mermaidRenderPending.value = false
+		return
+	}
+	mermaidWasClosed = true
+	mermaidImageModeLatched.value = true
+	if (!mermaidViewSelectedByUser.value && mermaidImageModeLatched.value && !mermaidImageLoadFailed.value) showMermaidImage.value = true
+	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
+	showMermaidImage.value = false
+	//#endif
 	const theme = uiTheme.value
 	const sourceHref = props.href ?? ''
 	if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
@@ -352,6 +398,7 @@ function syncMermaidImageTheme() {
 		mermaidRenderPending.value = false
 		if (result.imageDataURL.length == 0) {
 			mermaidImageLoadFailed.value = true
+			showMermaidImage.value = false
 			return
 		}
 		queueMermaidImage(result.imageDataURL)
@@ -360,18 +407,11 @@ function syncMermaidImageTheme() {
 
 watch((): string => {
 	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language
-		+ '\n' + props.codeText + '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
+		+ '\n' + props.codeText + '\n' + props.isClose.toString()
+		+ '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
 }, () => {
 	syncMermaidImageTheme()
 }, { immediate: true })
-
-watch((): string => props.language, (language: string) => {
-	mermaidViewSelectedByUser.value = false
-	showMermaidImage.value = language == 'mermaid' && mermaidImageReady.value
-	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
-	showMermaidImage.value = false
-	//#endif
-}, {immediate: true})
 
 watch((): string => props.language + '\n' + props.codeText, () => {
 	highlightCode()
