@@ -52,7 +52,9 @@ export class MarkdownPreprocessor {
 				const marker = line.slice(markerStart, markerStart + 1)
 				if (marker == '`' || marker == '~') {
 					let markerEnd = markerStart
-					while (markerEnd < line.length && line.slice(markerEnd, markerEnd + 1) == marker) markerEnd++
+					while (markerEnd < line.length && line.slice(markerEnd, markerEnd + 1) == marker) {
+						markerEnd++
+					}
 					const markerCount = markerEnd - markerStart
 					if (fenceMarker.length == 0 && markerCount >= 3) {
 						const infoText = line.slice(markerEnd)
