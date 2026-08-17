@@ -250,11 +250,11 @@
         mathRenderRequestKey = requestKey
         renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
             if (mathRenderRequestKey != requestKey || uiTheme.value != theme) return
-            if (result.imageDataURL.length == 0) {
+            if (result.imageSource.length == 0) {
                 if (!imageReady.value) mathImageLoadFailed.value = true
                 return
             }
-            queueMathImage(result.imageDataURL, result.width, result.height)
+            queueMathImage(result.imageSource, result.width, result.height)
         })
     }
 

@@ -1,23 +1,126 @@
 export type HarmonySvgWorkaroundConfig = {
 	rasterScale: number
 	enabled: boolean
+	useFileSource: boolean
+	sdkApiVersion: number
 	cacheVariant: string
 }
 
-const HARMONY_SVG_WORKAROUND_VERSION = '1'
+type SvgImageSourceCallback = (source: string, cacheable: boolean) => void
+
+const HARMONY_SVG_WORKAROUND_VERSION = '2'
+const HARMONY_NATIVE_DATA_URL_MIN_API = 26
+const SVG_DATA_URL_PREFIX = 'data:image/svg+xml;base64,'
+let cachedHarmonySdkApiVersion = -1
+let svgCacheDirectoryReady = false
+let svgCacheDirectoryCreating = false
+let svgCacheDirectoryWaiters = [] as ((ready: boolean) => void)[]
+let svgCacheFileSequence = 0
+
+function getHarmonySdkApiVersion(): number {
+	let sdkApiVersion = 0
+	// #ifdef APP-HARMONY
+	if (cachedHarmonySdkApiVersion < 0) {
+		const reportedVersion = uni.getSystemInfoSync().osHarmonySDKAPIVersion
+		cachedHarmonySdkApiVersion = reportedVersion ?? 0
+	}
+	sdkApiVersion = cachedHarmonySdkApiVersion
+	// #endif
+	return sdkApiVersion
+}
+
+function finishSvgCacheDirectoryCreation(ready: boolean) {
+	svgCacheDirectoryReady = ready
+	svgCacheDirectoryCreating = false
+	const waiters = svgCacheDirectoryWaiters
+	svgCacheDirectoryWaiters = [] as ((ready: boolean) => void)[]
+	for (let i = 0; i < waiters.length; i++) waiters[i](ready)
+}
+
+function ensureSvgCacheDirectory(callback: (ready: boolean) => void) {
+	if (svgCacheDirectoryReady) {
+		callback(true)
+		return
+	}
+	svgCacheDirectoryWaiters.push(callback)
+	if (svgCacheDirectoryCreating) return
+	svgCacheDirectoryCreating = true
+
+	// #ifdef APP-HARMONY
+	uni.getFileSystemManager().mkdir({
+		dirPath: uni.env.CACHE_PATH + '/ai-svg-cache',
+		recursive: true,
+		success: () => {
+			finishSvgCacheDirectoryCreation(true)
+		},
+		fail: (error) => {
+			if (error.errCode == 1301005) {
+				finishSvgCacheDirectoryCreation(true)
+				return
+			}
+			console.error('[HarmonySvg] create cache directory failed: ' + error.errMsg)
+			finishSvgCacheDirectoryCreation(false)
+		}
+	} as MkDirOptions)
+	// #endif
+	// #ifndef APP-HARMONY
+	finishSvgCacheDirectoryCreation(false)
+	// #endif
+}
 
 export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
 	let rasterScale = 1
 	let enabled = false
+	let sdkApiVersion = 0
+	let useFileSource = false
 	// #ifdef APP-HARMONY
 	rasterScale = Math.max(1, Math.min(uni.getWindowInfo().pixelRatio, 3))
 	enabled = true
+	sdkApiVersion = getHarmonySdkApiVersion()
+	useFileSource = sdkApiVersion < HARMONY_NATIVE_DATA_URL_MIN_API
 	// #endif
 	return {
 		rasterScale,
 		enabled,
+		useFileSource,
+		sdkApiVersion,
 		cacheVariant: enabled
 			? 'harmony-v' + HARMONY_SVG_WORKAROUND_VERSION + ':' + rasterScale.toString()
+				+ ':' + (useFileSource ? 'file' : 'data')
 			: 'default'
 	}
+}
+
+export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boolean, callback: SvgImageSourceCallback) {
+	if (!useFileSource || !dataURL.startsWith(SVG_DATA_URL_PREFIX)) {
+		callback(dataURL, true)
+		return
+	}
+
+	ensureSvgCacheDirectory((ready: boolean) => {
+		if (!ready) {
+			callback(dataURL, false)
+			return
+		}
+		svgCacheFileSequence += 1
+		const filePath = uni.env.CACHE_PATH + '/ai-svg-cache/' + Date.now().toString()
+			+ '-' + svgCacheFileSequence.toString() + '.svg'
+		// #ifdef APP-HARMONY
+		uni.getFileSystemManager().writeFile({
+			filePath,
+			data: dataURL.substring(SVG_DATA_URL_PREFIX.length),
+			encoding: 'base64',
+			success: () => {
+				callback(filePath, true)
+			},
+			fail: (error) => {
+				console.error('[HarmonySvg] write cache file failed: ' + error.errMsg)
+				callback(dataURL, false)
+			}
+		} as WriteFileOptions)
+		// #endif
+		// #ifndef APP-HARMONY
+		callback(dataURL, false)
+		// #endif
+	})
 }

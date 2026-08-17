@@ -1,9 +1,9 @@
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-import { getHarmonySvgWorkaroundConfig } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
+import { getHarmonySvgWorkaroundConfig, prepareHarmonySvgImageSource } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
 
 export type ThemedSvgResult = {
-	imageDataURL: string
+	imageSource: string
 	width: number
 	height: number
 	theme: string
@@ -43,14 +43,17 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 		theme: renderTheme,
 		rasterScale: workaround.rasterScale
 	}, (param: UTSJSONObject) => {
-		const result: ThemedSvgResult = {
-			imageDataURL: param['imageDataURL'] as string,
-			width: (param['width'] as number | null) ?? 0,
-			height: (param['height'] as number | null) ?? 0,
-			theme: (param['theme'] as string | null) ?? renderTheme
-		}
-		if (result.imageDataURL.length > 0) mathCache.set(key, result)
-		deliverResult(callback, result)
+		prepareHarmonySvgImageSource(param['imageDataURL'] as string, workaround.useFileSource,
+			(imageSource: string, cacheable: boolean) => {
+				const result: ThemedSvgResult = {
+					imageSource,
+					width: (param['width'] as number | null) ?? 0,
+					height: (param['height'] as number | null) ?? 0,
+					theme: (param['theme'] as string | null) ?? renderTheme
+				}
+				if (cacheable && result.imageSource.length > 0) mathCache.set(key, result)
+				deliverResult(callback, result)
+			})
 	})
 }
 
@@ -70,13 +73,16 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		rasterScale: workaround.rasterScale,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {
-		const result: ThemedSvgResult = {
-			imageDataURL: param['imageDataURL'] as string,
-			width: (param['width'] as number | null) ?? 0,
-			height: (param['height'] as number | null) ?? 0,
-			theme: (param['theme'] as string | null) ?? renderTheme
-		}
-		if (result.imageDataURL.length > 0) mermaidCache.set(key, result)
-		deliverResult(callback, result)
+		prepareHarmonySvgImageSource(param['imageDataURL'] as string, workaround.useFileSource,
+			(imageSource: string, cacheable: boolean) => {
+				const result: ThemedSvgResult = {
+					imageSource,
+					width: (param['width'] as number | null) ?? 0,
+					height: (param['height'] as number | null) ?? 0,
+					theme: (param['theme'] as string | null) ?? renderTheme
+				}
+				if (cacheable && result.imageSource.length > 0) mermaidCache.set(key, result)
+				deliverResult(callback, result)
+			})
 	})
 }

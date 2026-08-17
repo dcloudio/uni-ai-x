@@ -393,12 +393,12 @@ function syncMermaidImageTheme() {
 		if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme) return
 		mermaidRenderRequestKey = ''
 		mermaidRenderPending.value = false
-		if (result.imageDataURL.length == 0) {
+		if (result.imageSource.length == 0) {
 			mermaidImageLoadFailed.value = true
 			showMermaidImage.value = false
 			return
 		}
-		queueMermaidImage(result.imageDataURL)
+		queueMermaidImage(result.imageSource)
 	})
 }
 
