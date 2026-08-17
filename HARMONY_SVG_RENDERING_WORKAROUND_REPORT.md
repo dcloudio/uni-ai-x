@@ -12,7 +12,7 @@
 
 应用层规避实现已抽离为两个独立模块：
 
-- `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；
+- `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；MathJax 可按版本使用文件缓存，Mermaid 保持 data URL；
 - `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：解码缩放、样式内联和文字补偿。
 
 原有流程仅保留调用点：
@@ -59,14 +59,15 @@ Set Svg Desired Size: 500, 400
 1. SVG 内 `<style>` 的复杂选择器没有被 HarmonyOS 原生 SVG 解码器完整应用，最初出现黑块、线条或颜色丢失等问题。
 2. 样式修复后，`<text>` / `<tspan>` 的文字基线行为仍与浏览器不同，节点文字整体显示在方框上沿附近；连线标签“是/否”基本正常。
 
-此外，Harmony SDK API 26 以下版本无法把 SVG data URL 直接交给系统原生 Image 链路，大量 SVG 会进入自绘解码并带来明显内存峰值和页面卡顿。因此，本次问题不是一个单一原因，而是四个相互独立的兼容性问题：
+此外，Harmony SDK API 26 以下版本无法把 SVG data URL 直接交给系统原生 Image 链路，大量 SVG 会进入自绘解码并带来明显内存峰值和页面卡顿。但 API 24 真机验证同时发现，系统 `Image` 加载文件形式的 Mermaid SVG 时不会显示 `<text>/<tspan>`。因此，文件路径只能用于已确认兼容的 SVG，不能按系统版本无条件套用到所有 SVG。
 
 | 问题 | 表现 | 应用层处理 |
 | --- | --- | --- |
 | SVG 解码尺寸使用逻辑像素 | 整体模糊 | 根 `width/height` 乘 DPR，布局尺寸保持不变 |
 | SVG CSS 规则未完整生效 | 黑块、颜色和线条异常 | 在浏览器中计算样式并转成 presentation attributes |
 | Mermaid 文本基线不一致 | 节点文字位于方框上方 | 只对 `.node text` 增加结构级 Y 轴平移 |
-| 低版本 data URL 进入自绘解码 | 大量 SVG 时内存高、页面卡顿 | API < 26 写入缓存文件，API >= 26 保持 data URL |
+| 低版本 data URL 进入自绘解码 | 大量 SVG 时内存高、页面卡顿 | API < 26 的 MathJax 写入缓存文件，API >= 26 保持 data URL |
+| 低版本文件 SVG 丢失文字 | Mermaid 图形存在但节点和连线标签为空 | Mermaid 始终保持 data URL，不进入文件 SVG 解码链路 |
 
 ## 3. 应用层处理流程
 
@@ -87,10 +88,11 @@ WebView 生成标准 SVG DOM
 序列化 SVG -> data:image/svg+xml;base64,...
         |
         v
-读取 getSystemInfo().osHarmonySDKAPIVersion
+按 SVG 类型和 getSystemInfo().osHarmonySDKAPIVersion 分流
         |
-        +-- API < 26：base64 写入 CACHE_PATH/ai-svg-cache/*.svg
-        +-- API >= 26：保持 data URL
+        +-- Mermaid：保持 data URL，避免文件 SVG 丢失 text/tspan
+        +-- MathJax 且 API < 26：base64 写入 CACHE_PATH/ai-svg-cache/*.svg
+        +-- MathJax 且 API >= 26：保持 data URL
         |
         v
 原生 image 组件解码高分辨率 SVG
@@ -139,7 +141,7 @@ export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
 }
 ```
 
-该逻辑只在 HarmonyOS 生效，其他平台保持 `1`。上限暂定为 `3`，避免异常设备参数产生过大的 PixelMap。系统未返回 API 版本时按低版本处理，优先避免再次进入高内存的自绘路径。
+该逻辑只在 HarmonyOS 生效，其他平台保持 `1`。上限暂定为 `3`，避免异常设备参数产生过大的 PixelMap。系统未返回 API 版本时按低版本处理，优先避免 MathJax 再次进入高内存的自绘路径。调用方可以按 SVG 内容停用文件来源；Mermaid 因包含 `<text>/<tspan>`，固定保留 data URL。
 
 渲染请求会把该值发送给 WebView：
 
@@ -350,11 +352,17 @@ Issue 原复现记录中，18 张图一次加载会把 `VmHWM` 从约 `497740 kB
 | API 24 自动文件路径 | 1 | `109430 kB` | `176496 kB` | `+39846 kB` | 18/18，121 FPS，最大帧间隔 58 ms |
 | API 24 自动文件路径 | 2 | `108097 kB` | `174004 kB` | `+36531 kB` | 18/18，120 FPS，最大帧间隔 59 ms |
 
-两条路径、四轮运行均加载成功且无 SVG 错误，解码日志中的目标尺寸始终为 `88/106 x 43`，没有再按 `viewBox` 解码。因此，API 24 文件路径兜底已避免 Issue 32152 的内存暴涨和滚动卡顿。
+两条路径、四轮运行均加载成功且无 SVG 错误，解码日志中的目标尺寸始终为 `88/106 x 43`，没有再按 `viewBox` 解码。因此，API 24 文件路径兜底已避免 Issue 32152 中 MathJax 的内存暴涨和滚动卡顿。
 
 同时需要注意：在当前 HBuilderX 5.26 测试包中，直接 data URL 路径也没有复现原问题，而且比文件路径少约 `36-40 MiB` 的 PSS 增量。但该路径的日志仍先出现 `Desired Size: 0,0`，说明 API 24 并没有获得系统原生 data URL 支持，只是当前 ImageKnife 回退解码最终选用了 `88/106 x 43`。
 
-进一步比对发现，5.25 与 5.26 虽然都声明 `imageknifepro 1.0.13-rc.0`，实际打包的 `imageknifepro.har` 及其中的 arm64 `libimageknifepro.so` 哈希均不相同。结合开发人员确认未对该功能做正式修复，不能把本次直接 data URL 的结果视为稳定的版本能力或兼容承诺。因此正式策略仍以 Harmony SDK API 为准：API `< 26` 写入缓存文件，API `>= 26` 才直接使用 data URL；直接路径数据只作为依赖行为变化的诊断记录。
+进一步比对发现，5.25 与 5.26 虽然都声明 `imageknifepro 1.0.13-rc.0`，实际打包的 `imageknifepro.har` 及其中的 arm64 `libimageknifepro.so` 哈希均不相同。结合开发人员确认未对该功能做正式修复，不能把本次直接 data URL 的结果视为稳定的版本能力或兼容承诺。因此 MathJax 仍以 Harmony SDK API 为准：API `< 26` 写入缓存文件，API `>= 26` 才直接使用 data URL；直接路径数据只作为依赖行为变化的诊断记录。
+
+### 7.2 Mermaid 文件 SVG 文字回归
+
+在同一台 API 24 真机上对同一份 Mermaid 流程图做单变量 A/B：文件路径模式下，方框、菱形、连线和箭头均能显示，但所有节点 `<text>/<tspan>` 以及边标签“通过/拒绝”均为空；只把 Mermaid 图片来源切回 data URL 后，节点和边标签全部恢复，其他处理不变。
+
+这说明问题位于 `Image` 加载外部 SVG 文件的解码路径，不能由 ArkUI SVG 组件文档列出的标签能力推导出文件图片解码器也支持相同标签。当前应用层因此让 Mermaid 固定使用 data URL，仅让不依赖文字标签且已验证的 MathJax 使用 API `< 26` 文件兜底。
 
 ## 8. 建议的框架层修复
 
@@ -455,9 +463,10 @@ desiredDecodeSize == layoutLogicalSize * DPR
 3. `translate(0 16)` 只适用于已验证的 Mermaid 输出，不适合任意 SVG、字体或字号。
 4. 这些处理均通过 HarmonyOS 条件开关启用，避免改变 Android、iOS 和 Web 已经正确的路径。
 5. 框架升级后需要关闭应用层处理重新测试，防止框架修复与业务补偿叠加。
+6. API `< 26` 的文件缓存只适用于已经验证过系统文件 SVG 解码兼容性的内容；含 `<text>/<tspan>` 的 Mermaid 必须保留 data URL。
 
 ## 11. 结论
 
-本次问题由四个层面叠加造成：低版本 data URL 加载路径的内存压力、解码目标没有按 DPR 转为物理像素、SVG CSS 级联兼容不完整，以及 `<text>/<tspan>` 基线语义与浏览器不一致。
+本次问题由五个层面叠加造成：低版本 data URL 加载路径的内存压力、文件 SVG 解码遗漏 `<text>/<tspan>`、解码目标没有按 DPR 转为物理像素、SVG CSS 级联兼容不完整，以及文字基线语义与浏览器不一致。
 
 应用层通过“高分辨率解码、计算样式内联、节点文字结构平移”完成了规避，并已人工验证最终效果正常。框架层的最终目标应是让业务直接提交标准 SVG，即可在正确的目标像素尺寸下得到与浏览器一致的样式和文字布局，而不需要改写 SVG 内容。

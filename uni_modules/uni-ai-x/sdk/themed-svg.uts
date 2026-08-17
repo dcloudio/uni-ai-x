@@ -73,7 +73,8 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		rasterScale: workaround.rasterScale,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {
-		prepareHarmonySvgImageSource(param['imageDataURL'] as string, workaround.useFileSource,
+		// File-backed SVG decoding drops Mermaid <text>/<tspan> on pre-26 HarmonyOS.
+		prepareHarmonySvgImageSource(param['imageDataURL'] as string, false,
 			(imageSource: string, cacheable: boolean) => {
 				const result: ThemedSvgResult = {
 					imageSource,
