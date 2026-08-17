@@ -4,7 +4,7 @@
 
 本文记录 `uni-ai-x` 在 HarmonyOS 端使用 `image` 组件显示 MathJax 和 Mermaid SVG 时遇到的问题、应用层规避方案及验证结果，供 uni-app x / HarmonyOS 图片解码链路相关工程师定位并在框架层修复。
 
-当前方案已经在本项目的 HarmonyOS 模拟器上人工验证：
+当前方案已经在本项目的 HarmonyOS 模拟器及 API 24 真机上人工验证：
 
 - 数学公式清晰且位置正常；
 - Mermaid 方框、连线、箭头、颜色和文字均正常；
@@ -12,7 +12,7 @@
 
 应用层规避实现已抽离为两个独立模块：
 
-- `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR 和缓存变体；
+- `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；
 - `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：解码缩放、样式内联和文字补偿。
 
 原有流程仅保留调用点：
@@ -25,6 +25,7 @@
 ```text
 themed-svg.uts
   -> getHarmonySvgWorkaroundConfig()
+  -> prepareHarmonySvgImageSource()
 
 proxy-web.html
   -> harmonySvgWorkaround.applyDecodeScale()
@@ -58,13 +59,14 @@ Set Svg Desired Size: 500, 400
 1. SVG 内 `<style>` 的复杂选择器没有被 HarmonyOS 原生 SVG 解码器完整应用，最初出现黑块、线条或颜色丢失等问题。
 2. 样式修复后，`<text>` / `<tspan>` 的文字基线行为仍与浏览器不同，节点文字整体显示在方框上沿附近；连线标签“是/否”基本正常。
 
-因此，本次问题不是一个单一原因，而是三个相互独立的兼容性问题：
+此外，Harmony SDK API 26 以下版本无法把 SVG data URL 直接交给系统原生 Image 链路，大量 SVG 会进入自绘解码并带来明显内存峰值和页面卡顿。因此，本次问题不是一个单一原因，而是四个相互独立的兼容性问题：
 
 | 问题 | 表现 | 应用层处理 |
 | --- | --- | --- |
 | SVG 解码尺寸使用逻辑像素 | 整体模糊 | 根 `width/height` 乘 DPR，布局尺寸保持不变 |
 | SVG CSS 规则未完整生效 | 黑块、颜色和线条异常 | 在浏览器中计算样式并转成 presentation attributes |
 | Mermaid 文本基线不一致 | 节点文字位于方框上方 | 只对 `.node text` 增加结构级 Y 轴平移 |
+| 低版本 data URL 进入自绘解码 | 大量 SVG 时内存高、页面卡顿 | API < 26 写入缓存文件，API >= 26 保持 data URL |
 
 ## 3. 应用层处理流程
 
@@ -83,6 +85,12 @@ WebView 生成标准 SVG DOM
         |
         v
 序列化 SVG -> data:image/svg+xml;base64,...
+        |
+        v
+读取 getSystemInfo().osHarmonySDKAPIVersion
+        |
+        +-- API < 26：base64 写入 CACHE_PATH/ai-svg-cache/*.svg
+        +-- API >= 26：保持 data URL
         |
         v
 原生 image 组件解码高分辨率 SVG
@@ -105,25 +113,33 @@ layoutHeight = logicalHeight
 
 ### 4.1 HarmonyOS 平台获取缩放比例
 
-当前真实代码：
+核心判断如下（实际实现会缓存系统 API 版本，避免重复读取）：
 
 ```uts
 export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
 	let rasterScale = 1
 	let enabled = false
+	let sdkApiVersion = 0
+	let useFileSource = false
 	// #ifdef APP-HARMONY
 	rasterScale = Math.max(1, Math.min(uni.getWindowInfo().pixelRatio, 3))
 	enabled = true
+	sdkApiVersion = uni.getSystemInfoSync().osHarmonySDKAPIVersion ?? 0
+	useFileSource = sdkApiVersion < 26
 	// #endif
 	return {
 		rasterScale,
 		enabled,
-		cacheVariant: enabled ? 'harmony-v1:' + rasterScale.toString() : 'default'
+		useFileSource,
+		sdkApiVersion,
+		cacheVariant: enabled
+			? 'harmony-v2:' + rasterScale.toString() + ':' + (useFileSource ? 'file' : 'data')
+			: 'default'
 	}
 }
 ```
 
-该逻辑只在 HarmonyOS 生效，其他平台保持 `1`。上限暂定为 `3`，避免异常设备参数产生过大的 PixelMap。
+该逻辑只在 HarmonyOS 生效，其他平台保持 `1`。上限暂定为 `3`，避免异常设备参数产生过大的 PixelMap。系统未返回 API 版本时按低版本处理，优先避免再次进入高内存的自绘路径。
 
 渲染请求会把该值发送给 WebView：
 
@@ -321,6 +337,25 @@ const MERMAID_NODE_TEXT_OFFSET = 16;
 
 验证过程中始终把数学公式、节点文字和边标签作为三个独立观察项，避免为修复流程图而破坏已经正常的公式或“是/否”标签。
 
+### 7.1 Issue 32152 真机内存回归
+
+本次使用 Issue 32152 原复现工程中的 18 个不同 MathJax SVG data URL 做 A/B 回归。测试设备为 nova 12（BLK-AL00），系统版本为 `6.1.0.135`，`osHarmonySDKAPIVersion` 为 `24`，运行基座为 HBuilderX `5.26.2026081704-dev`。这些 SVG 的组件显示尺寸为 `88/106 x 43`，但原始 `viewBox` 达到 `4851/5851 x 2400`。
+
+Issue 原复现记录中，18 张图一次加载会把 `VmHWM` 从约 `497740 kB` 推高至 `1375200 kB`，增量约 `856.9 MiB`，日志中的 SVG 解码目标曾达到 `5851 x 2400`。
+
+| 分支 | 轮次 | 稳定后 PSS | `VmHWM` | PSS 增量 | 屏幕指标 |
+| --- | --- | ---: | ---: | ---: | --- |
+| 直接 data URL | 1 | `89473 kB` | `152996 kB` | `+2532 kB` | 18/18，119 FPS，最大帧间隔 75 ms |
+| 直接 data URL | 2 | `90614 kB` | `152300 kB` | 启动基线过早，不计 | 18/18，119 FPS，最大帧间隔 67 ms |
+| API 24 自动文件路径 | 1 | `109430 kB` | `176496 kB` | `+39846 kB` | 18/18，121 FPS，最大帧间隔 58 ms |
+| API 24 自动文件路径 | 2 | `108097 kB` | `174004 kB` | `+36531 kB` | 18/18，120 FPS，最大帧间隔 59 ms |
+
+两条路径、四轮运行均加载成功且无 SVG 错误，解码日志中的目标尺寸始终为 `88/106 x 43`，没有再按 `viewBox` 解码。因此，API 24 文件路径兜底已避免 Issue 32152 的内存暴涨和滚动卡顿。
+
+同时需要注意：在当前 HBuilderX 5.26 测试包中，直接 data URL 路径也没有复现原问题，而且比文件路径少约 `36-40 MiB` 的 PSS 增量。但该路径的日志仍先出现 `Desired Size: 0,0`，说明 API 24 并没有获得系统原生 data URL 支持，只是当前 ImageKnife 回退解码最终选用了 `88/106 x 43`。
+
+进一步比对发现，5.25 与 5.26 虽然都声明 `imageknifepro 1.0.13-rc.0`，实际打包的 `imageknifepro.har` 及其中的 arm64 `libimageknifepro.so` 哈希均不相同。结合开发人员确认未对该功能做正式修复，不能把本次直接 data URL 的结果视为稳定的版本能力或兼容承诺。因此正式策略仍以 Harmony SDK API 为准：API `< 26` 写入缓存文件，API `>= 26` 才直接使用 data URL；直接路径数据只作为依赖行为变化的诊断记录。
+
 ## 8. 建议的框架层修复
 
 ### 8.1 正确传递 SVG 解码目标尺寸
@@ -423,6 +458,6 @@ desiredDecodeSize == layoutLogicalSize * DPR
 
 ## 11. 结论
 
-本次问题由三个层面叠加造成：解码目标没有按 DPR 转为物理像素、SVG CSS 级联兼容不完整，以及 `<text>/<tspan>` 基线语义与浏览器不一致。
+本次问题由四个层面叠加造成：低版本 data URL 加载路径的内存压力、解码目标没有按 DPR 转为物理像素、SVG CSS 级联兼容不完整，以及 `<text>/<tspan>` 基线语义与浏览器不一致。
 
 应用层通过“高分辨率解码、计算样式内联、节点文字结构平移”完成了规避，并已人工验证最终效果正常。框架层的最终目标应是让业务直接提交标准 SVG，即可在正确的目标像素尺寸下得到与浏览器一致的样式和文字布局，而不需要改写 SVG 内容。
