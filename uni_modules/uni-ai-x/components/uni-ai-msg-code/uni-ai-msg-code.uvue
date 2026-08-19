@@ -321,7 +321,7 @@ function visibleCodeWidth(): number {
 
 const codeContentWidth = computed<string>(() => {
 	if (props.isClose != 1) return visibleCodeWidth().toString() + 'px'
-	return Math.max(1, getCodeTextWidth(props.codeText)).toString() + 'px'
+	return Math.max(visibleCodeWidth(), getCodeTextWidth(props.codeText)).toString() + 'px'
 })
 
 function pendingCodeVisualLineCount(): number {
@@ -518,6 +518,8 @@ const copyCode = () => {
 .uni-code-msg-code-scroll-view {
 	width: 100%;
 	height: auto;
+	flex-direction: row;
+	align-items: flex-start;
 	background-color: #111827;
 }
 
