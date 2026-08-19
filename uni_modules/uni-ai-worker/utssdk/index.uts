@@ -1,4 +1,4 @@
 export * from './sse.uts'
 export * from './stream-request.uts'
-export * from './markdown-preprocessor.uts'
+export * from './markdown-preprocessor.uts' // Includes iOS-safe trailing-newline scanning.
 export * from './markdown-html.uts'

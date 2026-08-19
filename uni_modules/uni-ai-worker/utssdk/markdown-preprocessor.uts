@@ -40,7 +40,7 @@ export class MarkdownPreprocessor {
 		let fenceLength = 0
 		let mermaidTokenStart = -1
 		let mermaidTokenEnd = -1
-		while (cursor <= markdownText.length) {
+		while (cursor < markdownText.length) {
 			let lineEnd = markdownText.indexOf('\n', cursor)
 			if (lineEnd < 0) lineEnd = markdownText.length as number
 			const line = markdownText.slice(cursor, lineEnd)

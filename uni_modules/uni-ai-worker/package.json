@@ -1,7 +1,7 @@
 {
   "id": "uni-ai-worker",
   "displayName": "uni-ai Worker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "uni-ai-x 的流式请求与 Markdown Worker 核心",
   "keywords": [
     "worker",
