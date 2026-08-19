@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]" flatten>
+	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]">
 		<view class="uni-code-msg-code-header">
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
 				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">流程图</text>
