@@ -311,7 +311,7 @@ const rawCodeLines = computed<string[]>(() => {
 
 function getCodeTextWidth(text: string): number {
 	const lines = normalizeCodeText(text).split('\n')
-	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono') + codeHorizontalPadding * 2
+	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono')
 }
 
 function visibleCodeWidth(): number {
@@ -319,13 +319,17 @@ function visibleCodeWidth(): number {
 	return Math.max(160, Math.min(currentWindowWidth, 800) - estimatedCardHorizontalInset)
 }
 
+function visibleCodeContentWidth(): number {
+	return Math.max(1, visibleCodeWidth() - codeHorizontalPadding * 2)
+}
+
 const codeContentWidth = computed<string>(() => {
-	if (props.isClose != 1) return visibleCodeWidth().toString() + 'px'
-	return Math.max(visibleCodeWidth(), getCodeTextWidth(props.codeText)).toString() + 'px'
+	if (props.isClose != 1) return visibleCodeContentWidth().toString() + 'px'
+	return Math.max(visibleCodeContentWidth(), getCodeTextWidth(props.codeText)).toString() + 'px'
 })
 
 function pendingCodeVisualLineCount(): number {
-	const contentWidth = Math.max(1, visibleCodeWidth() - codeHorizontalPadding * 2)
+	const contentWidth = visibleCodeContentWidth()
 	let visualLineCount = 0
 	for (let i = 0; i < rawCodeLines.value.length; i++) {
 		const lineWidth = estimateMaxLineTextWidth([rawCodeLines.value[i]] as string[], codeFontSize, 'mono')
@@ -520,15 +524,15 @@ const copyCode = () => {
 	height: auto;
 	flex-direction: row;
 	align-items: flex-start;
+	padding-left: 14px;
+	padding-right: 14px;
+	box-sizing: border-box;
 	background-color: #111827;
 }
 
 .uni-code-msg-rich-text {
 	align-self: flex-start;
 	flex-shrink: 0;
-	padding-left: 14px;
-	padding-right: 14px;
-	box-sizing: border-box;
 }
 
 .uni-code-msg-mermaid-image-box {
