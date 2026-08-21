@@ -13,7 +13,7 @@
 应用层规避实现已抽离为两个独立模块：
 
 - `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；MathJax 可按版本使用文件缓存，Mermaid 保持 data URL；
-- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：解码缩放、样式内联和文字补偿。
+- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：解码缩放、样式内联和文字补偿；样式内联和 Mermaid 节点文字补偿同时供 iOS 使用，其他处理仍仅限 HarmonyOS。
 
 原有流程仅保留调用点：
 
@@ -151,6 +151,8 @@ proxyWeb.callMethod({
 	mermaidText,
 	theme: renderTheme,
 	rasterScale: workaround.rasterScale,
+	inlineComputedStyles,
+	offsetMermaidNodeText,
 	harmonyWorkaround: workaround.enabled
 }, callback)
 ```
@@ -262,7 +264,7 @@ inlineComputedStyles(svgElement) {
 </g>
 ```
 
-此处理只在 HarmonyOS Mermaid 路径启用。MathJax 和其他平台不做无意义的 DOM 复制与样式展开。
+此处理在 HarmonyOS 和 iOS 的 Mermaid 路径启用。MathJax、Web 和 Android 不做无意义的 DOM 复制与样式展开；节点文字补偿由独立的 `offsetMermaidNodeText` 开关控制。
 
 ## 6. Mermaid 文字偏移修复
 
@@ -299,7 +301,7 @@ offsetMermaidNodeText(svgElement) {
 }
 ```
 
-HarmonyOS 当前使用的补偿值集中定义在独立模块中：
+HarmonyOS 和 iOS 当前使用的补偿值集中定义在独立模块中：
 
 ```js
 const MERMAID_NODE_TEXT_OFFSET = 16;
@@ -461,7 +463,7 @@ desiredDecodeSize == layoutLogicalSize * DPR
 1. `width/height * DPR` 是为了适配当前解码器行为，框架正确传递物理像素目标后应移除。
 2. `getComputedStyle()` 展开依赖浏览器 DOM，会增加一次 DOM 挂载、样式计算和序列化开销，应配合缓存使用。
 3. `translate(0 16)` 只适用于已验证的 Mermaid 输出，不适合任意 SVG、字体或字号。
-4. 这些处理均通过 HarmonyOS 条件开关启用，避免改变 Android、iOS 和 Web 已经正确的路径。
+4. 计算样式内联和 Mermaid 节点文字补偿在 HarmonyOS 和 iOS 启用；解码缩放和文件来源分流仍仅通过 HarmonyOS 条件开关启用，Web 与 Android 保持原路径。
 5. 框架升级后需要关闭应用层处理重新测试，防止框架修复与业务补偿叠加。
 6. API `< 26` 的文件缓存只适用于已经验证过系统文件 SVG 解码兼容性的内容；含 `<text>/<tspan>` 的 Mermaid 必须保留 data URL。
 

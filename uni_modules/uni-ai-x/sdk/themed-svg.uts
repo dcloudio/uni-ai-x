@@ -22,6 +22,22 @@ function cacheKey(theme: string, source: string, workaroundVariant: string): str
 	return normalizedTheme(theme) + '\n' + workaroundVariant + '\n' + source
 }
 
+function shouldInlineMermaidComputedStyles(): boolean {
+	let enabled = false
+	// #ifdef APP-IOS || APP-HARMONY
+	enabled = true
+	// #endif
+	return enabled
+}
+
+function shouldOffsetMermaidNodeText(): boolean {
+	let enabled = false
+	// #ifdef APP-IOS || APP-HARMONY
+	enabled = true
+	// #endif
+	return enabled
+}
+
 function deliverResult(callback: ThemedSvgCallback, result: ThemedSvgResult) {
 	utils.runOnDispatcher('main', () => {
 		callback(result)
@@ -60,7 +76,11 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 export function renderMermaidSvgForTheme(mermaidText: string, theme: string, callback: ThemedSvgCallback) {
 	const renderTheme = normalizedTheme(theme)
 	const workaround = getHarmonySvgWorkaroundConfig()
-	const key = cacheKey(renderTheme, mermaidText, workaround.cacheVariant)
+	const inlineComputedStyles = shouldInlineMermaidComputedStyles()
+	const offsetMermaidNodeText = shouldOffsetMermaidNodeText()
+	const renderVariant = workaround.cacheVariant + ':' + (inlineComputedStyles ? 'inline-styles' : 'external-styles')
+		+ ':' + (offsetMermaidNodeText ? 'offset-node-text' : 'native-node-text')
+	const key = cacheKey(renderTheme, mermaidText, renderVariant)
 	const cached = mermaidCache.get(key)
 	if (cached != null) {
 		deliverResult(callback, cached)
@@ -71,6 +91,8 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		mermaidText,
 		theme: renderTheme,
 		rasterScale: workaround.rasterScale,
+		inlineComputedStyles,
+		offsetMermaidNodeText,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {
 		// File-backed SVG decoding drops Mermaid <text>/<tspan> on pre-26 HarmonyOS.

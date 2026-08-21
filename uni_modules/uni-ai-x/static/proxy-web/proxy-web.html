@@ -227,6 +227,8 @@
             theme,
             requestId,
             rasterScale = 1,
+            inlineComputedStyles = false,
+            offsetMermaidNodeText = false,
             harmonyWorkaround = false
           }) {
             const renderTheme = this.resolveTheme(theme);
@@ -246,6 +248,8 @@
                 theme: renderTheme,
                 styleText: 'svg{background:transparent!important}',
                 rasterScale,
+                inlineComputedStyles,
+                offsetMermaidNodeText,
                 harmonyWorkaround
               });
               const imageDataURL = this.svgDataURL(normalized.svgText);

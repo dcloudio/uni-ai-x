@@ -72,8 +72,14 @@
   }
 
   function prepareForDecode(svgElement, options) {
-    if (options.harmonyWorkaround !== true) return svgElement;
-    return offsetMermaidNodeText(inlineComputedStyles(svgElement));
+    let preparedSvgElement = svgElement;
+    if (options.inlineComputedStyles === true || options.harmonyWorkaround === true) {
+      preparedSvgElement = inlineComputedStyles(preparedSvgElement);
+    }
+    if (options.offsetMermaidNodeText === true || options.harmonyWorkaround === true) {
+      preparedSvgElement = offsetMermaidNodeText(preparedSvgElement);
+    }
+    return preparedSvgElement;
   }
 
   global.harmonySvgWorkaround = Object.freeze({
