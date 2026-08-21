@@ -229,6 +229,7 @@
             rasterScale = 1,
             inlineComputedStyles = false,
             offsetMermaidNodeText = false,
+            iosCoreSvgCompatibility = false,
             harmonyWorkaround = false
           }) {
             const renderTheme = this.resolveTheme(theme);
@@ -250,6 +251,7 @@
                 rasterScale,
                 inlineComputedStyles,
                 offsetMermaidNodeText,
+                iosCoreSvgCompatibility,
                 harmonyWorkaround
               });
               const imageDataURL = this.svgDataURL(normalized.svgText);

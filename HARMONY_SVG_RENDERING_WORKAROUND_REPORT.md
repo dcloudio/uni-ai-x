@@ -13,7 +13,7 @@
 应用层规避实现已抽离为两个独立模块：
 
 - `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；MathJax 可按版本使用文件缓存，Mermaid 保持 data URL；
-- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：解码缩放、样式内联和文字补偿；样式内联和 Mermaid 节点文字补偿同时供 iOS 使用，其他处理仍仅限 HarmonyOS。
+- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：HarmonyOS 解码缩放和文字补偿、HarmonyOS/iOS 共用的完整样式内联，以及独立的 iOS CoreSVG 结构兼容处理。
 
 原有流程仅保留调用点：
 
@@ -153,6 +153,7 @@ proxyWeb.callMethod({
 	rasterScale: workaround.rasterScale,
 	inlineComputedStyles,
 	offsetMermaidNodeText,
+	iosCoreSvgCompatibility,
 	harmonyWorkaround: workaround.enabled
 }, callback)
 ```
@@ -264,7 +265,7 @@ inlineComputedStyles(svgElement) {
 </g>
 ```
 
-此处理在 HarmonyOS 和 iOS 的 Mermaid 路径启用。MathJax、Web 和 Android 不做无意义的 DOM 复制与样式展开；节点文字补偿由独立的 `offsetMermaidNodeText` 开关控制。
+此处的完整样式展开在 HarmonyOS 和 iOS Mermaid 路径启用。iOS 先让浏览器完成 CSS 级联并删除原始 `<style>`，再执行第 6.3 节的定向 CoreSVG 结构兼容处理；MathJax、Web 和 Android 不做该 DOM 复制与样式展开。
 
 ## 6. Mermaid 文字偏移修复
 
@@ -278,7 +279,7 @@ text.setAttribute('dy', '0.35em');
 
 真机截图显示几乎没有变化。Mermaid 的实际文字位置还受子 `<tspan>` 的 `x/y/dx/dy` 和基线属性影响，父 `<text>` 上的 `dy` 可能被子节点坐标覆盖；HarmonyOS 对这些属性的组合处理也与浏览器不一致。
 
-### 6.2 最终有效方案
+### 6.2 HarmonyOS 最终有效方案
 
 最终使用 SVG 结构变换包裹节点文字。`transform` 作用于整棵文字子树，不会被 `<tspan>` 自身坐标覆盖：
 
@@ -301,7 +302,7 @@ offsetMermaidNodeText(svgElement) {
 }
 ```
 
-HarmonyOS 和 iOS 当前使用的补偿值集中定义在独立模块中：
+HarmonyOS 当前使用的补偿值集中定义在独立模块中：
 
 ```js
 const MERMAID_NODE_TEXT_OFFSET = 16;
@@ -328,6 +329,17 @@ const MERMAID_NODE_TEXT_OFFSET = 16;
 ```
 
 `16` 是当前 Mermaid 版本、字体和图形配置下的应用层经验值，不是通用 SVG 基线规则，框架层不应直接硬编码该数值。
+
+### 6.3 iOS CoreSVG 语义兼容
+
+iOS 先共用第 5 节的浏览器 CSS 烘焙，但不再复用 HarmonyOS 的 `translate(0 16)` 经验补偿；随后按照 CoreSVG 兼容样例及真机结果做四项定向处理：
+
+1. 只把 `.node > rect.label-container` 和 `.node > polygon.label-container` 的计算后 `fill`、`stroke`、`stroke-width` 写入元素 `style`，保留原始 `<style>` 和其他元素属性。
+2. 只匹配单个 `<tspan x="0" dy="1em">` 的单行节点标签。读取实际 `font-size`，把父标签组的 `translate(x, y)` 改为 `translate(x, y + fontSize)`，然后删除该 `tspan` 的 `x` 与 `dy`。默认 `16px` 字号下，`translate(0, -9.5)` 等价转换为 `translate(0, 6.5)`。
+3. 对单行 edge label，把外层定位和内层居中的两个 `translate` 合并到同一坐标系：背景矩形改写为绝对 `x/y`，文字使用 `labelX, labelY + fontSize` 的基线位置并移除 `tspan x/dy`。同时只把背景与文字实际需要的计算样式写入内联 `style`；文字属性还同步写成 SVG presentation attributes，绕过 CoreSVG 对 `<text>/<tspan>` 内联 CSS 的不稳定处理。矩形的元素 `opacity` 与 `fill-opacity` 相乘后只写入 `fill-opacity`，标签组和矩形本身固定为 `opacity:1`，防止 CoreSVG 把背景的半透明错误作用到文字。坐标、颜色和有效透明度均来自 SVG 在浏览器中的计算结果，不按“通过/拒绝”内容判断，也不使用固定偏移或固定颜色。
+4. 对 Mermaid 标准 `flowchart-pointEnd` marker，使用路径终点和末端切线生成实体 `<polygon>` 后移除 `marker-end`。近水平或垂直方向吸附到轴向，保持与官方兼容样例一致的箭头几何。
+
+多行、非 `1em`、空标签或 transform 无法解析的节点与边标签保持原样，避免把单一样例规则错误扩展到未知结构。iOS 缓存变体使用 `ios-coresvg-v5`，防止复用旧 SVG。
 
 ## 7. 实际迭代与验证结果
 
@@ -462,8 +474,8 @@ desiredDecodeSize == layoutLogicalSize * DPR
 
 1. `width/height * DPR` 是为了适配当前解码器行为，框架正确传递物理像素目标后应移除。
 2. `getComputedStyle()` 展开依赖浏览器 DOM，会增加一次 DOM 挂载、样式计算和序列化开销，应配合缓存使用。
-3. `translate(0 16)` 只适用于已验证的 Mermaid 输出，不适合任意 SVG、字体或字号。
-4. 计算样式内联和 Mermaid 节点文字补偿在 HarmonyOS 和 iOS 启用；解码缩放和文件来源分流仍仅通过 HarmonyOS 条件开关启用，Web 与 Android 保持原路径。
+3. `translate(0 16)` 只保留在已验证的 HarmonyOS Mermaid 输出，不适合任意 SVG、字体或字号。
+4. 完整样式展开用于 HarmonyOS 和 iOS Mermaid；iOS 结构兼容只处理已验证的单行节点、单行边标签和标准 pointEnd marker，未知结构保持原样。HarmonyOS 解码缩放和文件来源分流继续由独立条件开关控制，Web 与 Android 保持原路径。
 5. 框架升级后需要关闭应用层处理重新测试，防止框架修复与业务补偿叠加。
 6. API `< 26` 的文件缓存只适用于已经验证过系统文件 SVG 解码兼容性的内容；含 `<text>/<tspan>` 的 Mermaid 必须保留 data URL。
 
@@ -471,4 +483,4 @@ desiredDecodeSize == layoutLogicalSize * DPR
 
 本次问题由五个层面叠加造成：低版本 data URL 加载路径的内存压力、文件 SVG 解码遗漏 `<text>/<tspan>`、解码目标没有按 DPR 转为物理像素、SVG CSS 级联兼容不完整，以及文字基线语义与浏览器不一致。
 
-应用层通过“高分辨率解码、计算样式内联、节点文字结构平移”完成了规避，并已人工验证最终效果正常。框架层的最终目标应是让业务直接提交标准 SVG，即可在正确的目标像素尺寸下得到与浏览器一致的样式和文字布局，而不需要改写 SVG 内容。
+HarmonyOS 应用层通过“高分辨率解码、计算样式内联、节点文字结构平移”完成规避；iOS 则使用节点样式定向内联、单行标签语义等价改写和实体箭头规避 CoreSVG 差异。框架层的最终目标仍是让业务直接提交标准 SVG，即可在正确的目标像素尺寸下得到与浏览器一致的样式和文字布局，而不需要改写 SVG 内容。

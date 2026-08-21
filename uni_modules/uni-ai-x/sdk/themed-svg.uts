@@ -32,7 +32,15 @@ function shouldInlineMermaidComputedStyles(): boolean {
 
 function shouldOffsetMermaidNodeText(): boolean {
 	let enabled = false
-	// #ifdef APP-IOS || APP-HARMONY
+	// #ifdef APP-HARMONY
+	enabled = true
+	// #endif
+	return enabled
+}
+
+function shouldApplyIOSCoreSvgCompatibility(): boolean {
+	let enabled = false
+	// #ifdef APP-IOS
 	enabled = true
 	// #endif
 	return enabled
@@ -78,8 +86,10 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 	const workaround = getHarmonySvgWorkaroundConfig()
 	const inlineComputedStyles = shouldInlineMermaidComputedStyles()
 	const offsetMermaidNodeText = shouldOffsetMermaidNodeText()
+	const iosCoreSvgCompatibility = shouldApplyIOSCoreSvgCompatibility()
 	const renderVariant = workaround.cacheVariant + ':' + (inlineComputedStyles ? 'inline-styles' : 'external-styles')
 		+ ':' + (offsetMermaidNodeText ? 'offset-node-text' : 'native-node-text')
+		+ ':' + (iosCoreSvgCompatibility ? 'ios-coresvg-v5' : 'native-coresvg')
 	const key = cacheKey(renderTheme, mermaidText, renderVariant)
 	const cached = mermaidCache.get(key)
 	if (cached != null) {
@@ -93,6 +103,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		rasterScale: workaround.rasterScale,
 		inlineComputedStyles,
 		offsetMermaidNodeText,
+		iosCoreSvgCompatibility,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {
 		// File-backed SVG decoding drops Mermaid <text>/<tspan> on pre-26 HarmonyOS.
