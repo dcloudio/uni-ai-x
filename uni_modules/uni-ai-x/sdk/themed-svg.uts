@@ -30,7 +30,15 @@ function shouldInlineMermaidComputedStyles(): boolean {
 	return enabled
 }
 
-function shouldOffsetMermaidNodeText(): boolean {
+function shouldNormalizeMermaidNodeText(): boolean {
+	let enabled = false
+	// #ifdef APP-HARMONY
+	enabled = true
+	// #endif
+	return enabled
+}
+
+function shouldNormalizeMermaidEdgeLabels(): boolean {
 	let enabled = false
 	// #ifdef APP-HARMONY
 	enabled = true
@@ -85,10 +93,12 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 	const renderTheme = normalizedTheme(theme)
 	const workaround = getHarmonySvgWorkaroundConfig()
 	const inlineComputedStyles = shouldInlineMermaidComputedStyles()
-	const offsetMermaidNodeText = shouldOffsetMermaidNodeText()
+	const normalizeMermaidNodeText = shouldNormalizeMermaidNodeText()
+	const normalizeMermaidEdgeLabels = shouldNormalizeMermaidEdgeLabels()
 	const iosCoreSvgCompatibility = shouldApplyIOSCoreSvgCompatibility()
 	const renderVariant = workaround.cacheVariant + ':' + (inlineComputedStyles ? 'inline-styles' : 'external-styles')
-		+ ':' + (offsetMermaidNodeText ? 'offset-node-text' : 'native-node-text')
+		+ ':' + (normalizeMermaidNodeText ? 'semantic-node-text-v1' : 'native-node-text')
+		+ ':' + (normalizeMermaidEdgeLabels ? 'semantic-edge-label-v1' : 'native-edge-label')
 		+ ':' + (iosCoreSvgCompatibility ? 'ios-coresvg-v5' : 'native-coresvg')
 	const key = cacheKey(renderTheme, mermaidText, renderVariant)
 	const cached = mermaidCache.get(key)
@@ -102,7 +112,8 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		theme: renderTheme,
 		rasterScale: workaround.rasterScale,
 		inlineComputedStyles,
-		offsetMermaidNodeText,
+		normalizeMermaidNodeText,
+		normalizeMermaidEdgeLabels,
 		iosCoreSvgCompatibility,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {

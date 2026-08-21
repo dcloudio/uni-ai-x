@@ -1,6 +1,5 @@
 (function (global) {
   const MAX_RASTER_SCALE = 3;
-  const MERMAID_NODE_TEXT_OFFSET = 16;
   const IOS_POINT_ARROW_LENGTH = 7;
   const IOS_POINT_ARROW_AXIS_HALF_WIDTH = 4;
   const IOS_POINT_ARROW_DIAGONAL_HALF_WIDTH = 3.5;
@@ -66,21 +65,6 @@
     });
   }
 
-  function offsetMermaidNodeText(svgElement) {
-    svgElement.querySelectorAll('.node text').forEach(node => {
-      const parentNode = node.parentNode;
-      if (parentNode == null) return;
-      const wrapper = svgElement.ownerDocument.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'g'
-      );
-      wrapper.setAttribute('transform', 'translate(0 ' + MERMAID_NODE_TEXT_OFFSET.toString() + ')');
-      parentNode.insertBefore(wrapper, node);
-      wrapper.appendChild(node);
-    });
-    return svgElement;
-  }
-
   function directChildWithClass(element, className) {
     return Array.from(element.children).find(child => child.classList.contains(className)) || null;
   }
@@ -139,7 +123,7 @@
     });
   }
 
-  function normalizeIOSSingleLineNodeLabels(liveSvg) {
+  function normalizeSingleLineNodeLabels(liveSvg) {
     liveSvg.querySelectorAll('.node').forEach(node => {
       const label = directChildWithClass(node, 'label');
       if (label == null) return;
@@ -167,7 +151,13 @@
     });
   }
 
-  function normalizeIOSSingleLineEdgeLabels(liveSvg) {
+  function normalizeMermaidNodeText(svgElement) {
+    return withMountedSvgClone(svgElement, liveSvg => {
+      normalizeSingleLineNodeLabels(liveSvg);
+    });
+  }
+
+  function normalizeSingleLineEdgeLabels(liveSvg) {
     liveSvg.querySelectorAll('.edgeLabel').forEach(edgeLabel => {
       const edgeTranslate = parsedTranslate(edgeLabel.getAttribute('transform'));
       const label = directChildWithClass(edgeLabel, 'label');
@@ -239,6 +229,12 @@
     });
   }
 
+  function normalizeMermaidEdgeLabels(svgElement) {
+    return withMountedSvgClone(svgElement, liveSvg => {
+      normalizeSingleLineEdgeLabels(liveSvg);
+    });
+  }
+
   function pointEndMarkerId(markerEnd) {
     const match = (markerEnd || '').match(/^url\(["']?#([^"')]+)["']?\)$/);
     if (match == null || !match[1].endsWith('_flowchart-pointEnd')) return '';
@@ -299,8 +295,8 @@
   function applyIOSCoreSvgCompatibility(svgElement) {
     return withMountedSvgClone(svgElement, liveSvg => {
       inlineIOSNodeShapeStyles(liveSvg);
-      normalizeIOSSingleLineNodeLabels(liveSvg);
-      normalizeIOSSingleLineEdgeLabels(liveSvg);
+      normalizeSingleLineNodeLabels(liveSvg);
+      normalizeSingleLineEdgeLabels(liveSvg);
       replaceIOSPointEndMarkers(liveSvg);
     });
   }
@@ -310,8 +306,11 @@
     if (options.inlineComputedStyles === true || options.harmonyWorkaround === true) {
       preparedSvgElement = inlineComputedStyles(preparedSvgElement);
     }
-    if (options.offsetMermaidNodeText === true || options.harmonyWorkaround === true) {
-      preparedSvgElement = offsetMermaidNodeText(preparedSvgElement);
+    if (options.normalizeMermaidNodeText === true || options.harmonyWorkaround === true) {
+      preparedSvgElement = normalizeMermaidNodeText(preparedSvgElement);
+    }
+    if (options.normalizeMermaidEdgeLabels === true || options.harmonyWorkaround === true) {
+      preparedSvgElement = normalizeMermaidEdgeLabels(preparedSvgElement);
     }
     if (options.iosCoreSvgCompatibility === true) {
       preparedSvgElement = applyIOSCoreSvgCompatibility(preparedSvgElement);

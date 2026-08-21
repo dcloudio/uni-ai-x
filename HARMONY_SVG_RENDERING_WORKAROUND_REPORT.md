@@ -13,7 +13,7 @@
 应用层规避实现已抽离为两个独立模块：
 
 - `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；MathJax 可按版本使用文件缓存，Mermaid 保持 data URL；
-- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：HarmonyOS 解码缩放和文字补偿、HarmonyOS/iOS 共用的完整样式内联，以及独立的 iOS CoreSVG 结构兼容处理。
+- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：HarmonyOS 解码缩放和节点基线语义标准化、HarmonyOS/iOS 共用的完整样式内联，以及独立的 iOS CoreSVG 结构兼容处理。
 
 原有流程仅保留调用点：
 
@@ -152,7 +152,8 @@ proxyWeb.callMethod({
 	theme: renderTheme,
 	rasterScale: workaround.rasterScale,
 	inlineComputedStyles,
-	offsetMermaidNodeText,
+	normalizeMermaidNodeText,
+	normalizeMermaidEdgeLabels,
 	iosCoreSvgCompatibility,
 	harmonyWorkaround: workaround.enabled
 }, callback)
@@ -267,7 +268,7 @@ inlineComputedStyles(svgElement) {
 
 此处的完整样式展开在 HarmonyOS 和 iOS Mermaid 路径启用。iOS 先让浏览器完成 CSS 级联并删除原始 `<style>`，再执行第 6.3 节的定向 CoreSVG 结构兼容处理；MathJax、Web 和 Android 不做该 DOM 复制与样式展开。
 
-## 6. Mermaid 文字偏移修复
+## 6. Mermaid 文字基线语义兼容
 
 ### 6.1 失败过的尝试
 
@@ -279,60 +280,57 @@ text.setAttribute('dy', '0.35em');
 
 真机截图显示几乎没有变化。Mermaid 的实际文字位置还受子 `<tspan>` 的 `x/y/dx/dy` 和基线属性影响，父 `<text>` 上的 `dy` 可能被子节点坐标覆盖；HarmonyOS 对这些属性的组合处理也与浏览器不一致。
 
-### 6.2 HarmonyOS 最终有效方案
+### 6.2 HarmonyOS 语义等价方案
 
-最终使用 SVG 结构变换包裹节点文字。`transform` 作用于整棵文字子树，不会被 `<tspan>` 自身坐标覆盖：
+旧方案给 `.node text` 统一包裹 `translate(0 16)`，虽然在当前真机和默认 `16px` 字号下显示正常，但它依赖解码器忽略 `<tspan dy="1em">` 的非标准表现。一旦字号或 Mermaid 输出结构变化，就可能发生二次偏移。
+
+当前只匹配已经验证的单行节点结构：一个 `.node > .label`、一个 `<text>`、一个 `<tspan x="0" dy="1em">`。浏览器挂载 SVG 后读取 `<text>` 的实际 `font-size`，把相对基线位移合并到标签组的已有 `translate`，再删除 `tspan` 的 `x/dy`：
 
 ```js
-offsetMermaidNodeText(svgElement) {
-  svgElement.querySelectorAll('.node text').forEach(node => {
-    const parentNode = node.parentNode;
-    if (parentNode == null) return;
+normalizeSingleLineNodeLabels(svgElement) {
+  svgElement.querySelectorAll('.node').forEach(node => {
+    const label = directChildWithClass(node, 'label');
+    const text = directChildrenByTagName(label, 'text')[0];
+    const tspan = directChildrenByTagName(text, 'tspan')[0];
+    if (tspan.getAttribute('x') !== '0' || tspan.getAttribute('dy') !== '1em') return;
 
-    const wrapper = svgElement.ownerDocument.createElementNS(
-      'http://www.w3.org/2000/svg',
-      'g'
+    const translate = parsedTranslate(label.getAttribute('transform'));
+    const fontSize = Number.parseFloat(getComputedStyle(text).fontSize);
+    label.setAttribute(
+      'transform',
+      'translate(' + translate.x + ', ' + (translate.y + fontSize) + ')'
     );
-    wrapper.setAttribute('transform', 'translate(0 ' + offset.toString() + ')');
-
-    parentNode.insertBefore(wrapper, node);
-    wrapper.appendChild(node);
+    tspan.removeAttribute('x');
+    tspan.removeAttribute('dy');
   });
-  return svgElement;
 }
 ```
 
-HarmonyOS 当前使用的补偿值集中定义在独立模块中：
-
-```js
-const MERMAID_NODE_TEXT_OFFSET = 16;
-```
-
-只选择 `.node text` 非常重要。流程线上的“是/否”属于 edge label，原本位置正常，不应该一起平移。
-
-转换示意：
+以默认 `16px` 字号为例，标准 SVG 中 `translate(0, -9.5)` 与 `dy="1em"` 的最终基线是 `6.5`。转换后直接表达为同一个位置：
 
 ```xml
 <!-- 转换前 -->
-<g class="node">
-  <rect ... />
-  <text ...><tspan ...>条件判断</tspan></text>
+<g class="label" transform="translate(0, -9.5)">
+  <text><tspan x="0" dy="1em">条件判断</tspan></text>
 </g>
 
 <!-- 转换后 -->
-<g class="node">
-  <rect ... />
-  <g transform="translate(0 16)">
-    <text ...><tspan ...>条件判断</tspan></text>
-  </g>
+<g class="label" transform="translate(0, 6.5)">
+  <text><tspan>条件判断</tspan></text>
 </g>
 ```
 
-`16` 是当前 Mermaid 版本、字体和图形配置下的应用层经验值，不是通用 SVG 基线规则，框架层不应直接硬编码该数值。
+这不是视觉补偿：转换前后遵循标准 SVG 时位置完全相同。它只是把鸿蒙解码器不能稳定处理的相对 `em` 基线改成确定坐标。流程线上的 edge label 不进入该节点规则；多行、非 `1em` 或 transform 无法解析的节点保持原样。
 
-### 6.3 iOS CoreSVG 语义兼容
+### 6.3 单行边标签坐标兼容
 
-iOS 先共用第 5 节的浏览器 CSS 烘焙，但不再复用 HarmonyOS 的 `translate(0 16)` 经验补偿；随后按照 CoreSVG 兼容样例及真机结果做四项定向处理：
+HarmonyOS 对 Mermaid edge label 的外层定位、内层标签定位和背景 `<rect x/y>` 组合处理不一致，表现为“通过/拒绝”文字位置正确，但半透明背景矩形向右下偏移。当前复用 iOS 已验证的语义等价改写，只匹配一个 `rect`、一个 `text`、一个 `<tspan x="0" dy="1em">` 的单行边标签：把两层 `translate`、矩形坐标和文字基线合并为绝对坐标，并把元素 `opacity * fill-opacity` 合并到背景的 `fill-opacity`。
+
+该处理不使用固定像素补偿。未知结构、多行标签或无法解析的 transform 保持原样。
+
+### 6.4 iOS CoreSVG 语义兼容
+
+iOS 先共用第 5 节的浏览器 CSS 烘焙；随后按照 CoreSVG 兼容样例及真机结果做四项定向处理，其中第 2 项复用第 6.2 节的单行节点语义等价实现：
 
 1. 只把 `.node > rect.label-container` 和 `.node > polygon.label-container` 的计算后 `fill`、`stroke`、`stroke-width` 写入元素 `style`，保留原始 `<style>` 和其他元素属性。
 2. 只匹配单个 `<tspan x="0" dy="1em">` 的单行节点标签。读取实际 `font-size`，把父标签组的 `translate(x, y)` 改为 `translate(x, y + fontSize)`，然后删除该 `tspan` 的 `x` 与 `dy`。默认 `16px` 字号下，`translate(0, -9.5)` 等价转换为 `translate(0, 6.5)`。
@@ -349,7 +347,9 @@ iOS 先共用第 5 节的浏览器 CSS 烘焙，但不再复用 HarmonyOS 的 `t
 | 2 | 根 `width/height` 乘 DPR，布局仍用逻辑尺寸 | 数学公式清晰且正常；Mermaid 仍有样式缺失 |
 | 3 | Mermaid CSS 计算结果写入元素属性 | 方框、连线、箭头和颜色恢复；节点文字向上偏移 |
 | 4 | 在父 `<text>` 设置 `dy="0.35em"` | 真机几乎没有改善 |
-| 5 | 仅给 `.node text` 包裹 `translate(0 16)` | 人工验证最终显示正常 |
+| 5 | 仅给 `.node text` 包裹 `translate(0 16)` | 人工验证显示正常，但属于默认字号下的经验补偿 |
+| 6 | 按实际字号把 `tspan dy="1em"` 合并到父标签 `translate` | 标准 SVG 几何不变；nova 12 真机节点文字位置与 Web 一致 |
+| 7 | 把单行 edge label 的两层 `translate`、背景坐标和文字基线合并 | nova 12 真机“通过/拒绝”背景与文字对齐，不再出现右下阴影；其他流程图元素无回归 |
 
 验证过程中始终把数学公式、节点文字和边标签作为三个独立观察项，避免为修复流程图而破坏已经正常的公式或“是/否”标签。
 
@@ -474,8 +474,8 @@ desiredDecodeSize == layoutLogicalSize * DPR
 
 1. `width/height * DPR` 是为了适配当前解码器行为，框架正确传递物理像素目标后应移除。
 2. `getComputedStyle()` 展开依赖浏览器 DOM，会增加一次 DOM 挂载、样式计算和序列化开销，应配合缓存使用。
-3. `translate(0 16)` 只保留在已验证的 HarmonyOS Mermaid 输出，不适合任意 SVG、字体或字号。
-4. 完整样式展开用于 HarmonyOS 和 iOS Mermaid；iOS 结构兼容只处理已验证的单行节点、单行边标签和标准 pointEnd marker，未知结构保持原样。HarmonyOS 解码缩放和文件来源分流继续由独立条件开关控制，Web 与 Android 保持原路径。
+3. 节点文字语义改写只处理已验证的单行 `tspan x="0" dy="1em"` 结构；多行和未知结构保持原样。
+4. 完整样式展开用于 HarmonyOS 和 iOS Mermaid；两端共用已验证的单行节点与单行边标签语义改写，iOS 额外处理节点形状样式和标准 pointEnd marker，未知结构保持原样。HarmonyOS 解码缩放和文件来源分流继续由独立条件开关控制，Web 与 Android 保持原路径。
 5. 框架升级后需要关闭应用层处理重新测试，防止框架修复与业务补偿叠加。
 6. API `< 26` 的文件缓存只适用于已经验证过系统文件 SVG 解码兼容性的内容；含 `<text>/<tspan>` 的 Mermaid 必须保留 data URL。
 
@@ -483,4 +483,4 @@ desiredDecodeSize == layoutLogicalSize * DPR
 
 本次问题由五个层面叠加造成：低版本 data URL 加载路径的内存压力、文件 SVG 解码遗漏 `<text>/<tspan>`、解码目标没有按 DPR 转为物理像素、SVG CSS 级联兼容不完整，以及文字基线语义与浏览器不一致。
 
-HarmonyOS 应用层通过“高分辨率解码、计算样式内联、节点文字结构平移”完成规避；iOS 则使用节点样式定向内联、单行标签语义等价改写和实体箭头规避 CoreSVG 差异。框架层的最终目标仍是让业务直接提交标准 SVG，即可在正确的目标像素尺寸下得到与浏览器一致的样式和文字布局，而不需要改写 SVG 内容。
+HarmonyOS 应用层通过“高分辨率解码、计算样式内联、节点文字基线语义等价化、单行边标签坐标与透明度等价化”完成规避；iOS 在共用文字规则的基础上，额外使用节点样式定向内联和实体箭头规避 CoreSVG 差异。框架层的最终目标仍是让业务直接提交标准 SVG，即可在正确的目标像素尺寸下得到与浏览器一致的样式和文字布局，而不需要改写 SVG 内容。
