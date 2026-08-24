@@ -12,7 +12,7 @@
 
 应用层规避实现已抽离为两个独立模块：
 
-- `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；MathJax 可按版本使用文件缓存，Mermaid 保持 data URL；
+- `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；无 `<text>` 的 SVG 可按版本使用文件缓存，含 `<text>` 的 SVG 保持 data URL 交给框架预处理；
 - `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：HarmonyOS 解码缩放和节点基线语义标准化、HarmonyOS/iOS 共用的完整样式内联与箭头 marker 实体化，以及独立的 iOS CoreSVG 结构兼容处理。
 
 原有流程仅保留调用点：
@@ -59,7 +59,7 @@ Set Svg Desired Size: 500, 400
 1. SVG 内 `<style>` 的复杂选择器没有被 HarmonyOS 原生 SVG 解码器完整应用，最初出现黑块、线条或颜色丢失等问题。
 2. 样式修复后，`<text>` / `<tspan>` 的文字基线行为仍与浏览器不同，节点文字整体显示在方框上沿附近；连线标签“是/否”基本正常。
 
-此外，Harmony SDK API 26 以下版本无法把 SVG data URL 直接交给系统原生 Image 链路，大量 SVG 会进入自绘解码并带来明显内存峰值和页面卡顿。但 API 24 真机验证同时发现，系统 `Image` 加载文件形式的 Mermaid SVG 时不会显示 `<text>/<tspan>`。因此，文件路径只能用于已确认兼容的 SVG，不能按系统版本无条件套用到所有 SVG。
+此外，Harmony SDK API 26 以下版本无法把未改写的 SVG data URL 直接交给系统原生 Image 链路，大量 SVG 会进入自绘解码并带来明显内存峰值和页面卡顿。框架会扫描并改写含 `<text>` 的 SVG，随后把 data URL 替换为文件 URL 交给原生 Image；无 `<text>` 的 SVG 不触发该改写，仍可能回退到 custom node。API 24 真机还验证过，应用层若在框架扫描前无条件把 Mermaid SVG 写成文件，系统解码不会显示 `<text>/<tspan>`。因此当前按最终 SVG 内容分流：含 `<text>` 时保留 data URL 供框架处理，无 `<text>` 时才由应用层主动写入文件。
 
 | 问题 | 表现 | 应用层处理 |
 | --- | --- | --- |
@@ -67,8 +67,8 @@ Set Svg Desired Size: 500, 400
 | SVG CSS 规则未完整生效 | 黑块、颜色和线条异常 | 在浏览器中计算样式并转成 presentation attributes |
 | Mermaid 文本基线不一致 | 节点文字位于方框上方 | 只对 `.node text` 增加结构级 Y 轴平移 |
 | 原生解码器对 `marker-end` 支持不一致 | 连线末端箭头缺失或异常 | 按路径末端切线生成实体 `<polygon>` 并移除 `marker-end` |
-| 低版本 data URL 进入自绘解码 | 大量 SVG 时内存高、页面卡顿 | API < 26 的 MathJax 写入缓存文件，API >= 26 保持 data URL |
-| 低版本文件 SVG 丢失文字 | Mermaid 图形存在但节点和连线标签为空 | Mermaid 始终保持 data URL，不进入文件 SVG 解码链路 |
+| 低版本无 `<text>` data URL 进入自绘解码 | 大量 SVG 时内存高、页面卡顿 | API < 26 时由应用层写入缓存文件，API >= 26 保持 data URL |
+| 低版本文件 SVG 丢失文字 | Mermaid 图形存在但节点和连线标签为空 | 含 `<text>` 的 SVG 保持 data URL，让框架完成文字改写后再进入原生 Image |
 
 ## 3. 应用层处理流程
 
@@ -90,11 +90,11 @@ WebView 生成标准 SVG DOM
 序列化 SVG -> data:image/svg+xml;base64,...
         |
         v
-按 SVG 类型和 getSystemInfo().osHarmonySDKAPIVersion 分流
+按最终 SVG 内容和 getSystemInfo().osHarmonySDKAPIVersion 分流
         |
-        +-- Mermaid：保持 data URL，避免文件 SVG 丢失 text/tspan
-        +-- MathJax 且 API < 26：base64 写入 CACHE_PATH/ai-svg-cache/*.svg
-        +-- MathJax 且 API >= 26：保持 data URL
+        +-- 含 text：保持 data URL，交给框架扫描、改写并转原生 Image
+        +-- 无 text 且 API < 26：base64 写入 CACHE_PATH/ai-svg-cache/*.svg
+        +-- 无 text 且 API >= 26：保持 data URL
         |
         v
 原生 image 组件解码高分辨率 SVG
@@ -143,7 +143,7 @@ export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
 }
 ```
 
-该逻辑只在 HarmonyOS 生效，其他平台保持 `1`。上限暂定为 `3`，避免异常设备参数产生过大的 PixelMap。系统未返回 API 版本时按低版本处理，优先避免 MathJax 再次进入高内存的自绘路径。调用方可以按 SVG 内容停用文件来源；Mermaid 因包含 `<text>/<tspan>`，固定保留 data URL。
+该逻辑只在 HarmonyOS 生效，其他平台保持 `1`。上限暂定为 `3`，避免异常设备参数产生过大的 PixelMap。系统未返回 API 版本时按低版本处理。WebView 会随最终 SVG 返回 `hasTextElements`：含 `<text>` 时保留 data URL，让框架完成必要的文字预处理；无 `<text>` 时才允许低版本文件来源兜底，避免 MathJax 或少见的无文字 Mermaid 再次进入高内存的自绘路径。
 
 渲染请求会把该值发送给 WebView：
 
@@ -387,7 +387,7 @@ Issue 原复现记录中，18 张图一次加载会把 `VmHWM` 从约 `497740 kB
 
 在同一台 API 24 真机上对同一份 Mermaid 流程图做单变量 A/B：文件路径模式下，方框、菱形、连线和箭头均能显示，但所有节点 `<text>/<tspan>` 以及边标签“通过/拒绝”均为空；只把 Mermaid 图片来源切回 data URL 后，节点和边标签全部恢复，其他处理不变。
 
-这说明问题位于 `Image` 加载外部 SVG 文件的解码路径，不能由 ArkUI SVG 组件文档列出的标签能力推导出文件图片解码器也支持相同标签。当前应用层因此让 Mermaid 固定使用 data URL，仅让不依赖文字标签且已验证的 MathJax 使用 API `< 26` 文件兜底。
+这说明问题位于 `Image` 加载未经文字预处理的外部 SVG 文件的解码路径，不能由 ArkUI SVG 组件文档列出的标签能力推导出文件图片解码器也支持相同标签。当前应用层因此让含 `<text>` 的最终 SVG 保持 data URL，由框架扫描和改写；无 `<text>` 的 MathJax 或 Mermaid 才使用 API `< 26` 文件兜底。
 
 ## 8. 建议的框架层修复
 
@@ -488,7 +488,7 @@ desiredDecodeSize == layoutLogicalSize * DPR
 3. 节点文字语义改写只处理已验证的单行 `tspan x="0" dy="1em"` 结构；多行和未知结构保持原样。
 4. 完整样式展开用于 HarmonyOS 和 iOS Mermaid；两端共用已验证的单行节点与单行边标签语义改写，iOS 额外处理节点形状样式和标准 pointEnd marker，未知结构保持原样。HarmonyOS 解码缩放和文件来源分流继续由独立条件开关控制，Web 与 Android 保持原路径。
 5. 框架升级后需要关闭应用层处理重新测试，防止框架修复与业务补偿叠加。
-6. API `< 26` 的文件缓存只适用于已经验证过系统文件 SVG 解码兼容性的内容；含 `<text>/<tspan>` 的 Mermaid 必须保留 data URL。
+6. API `< 26` 的应用层文件缓存只用于最终内容不含 `<text>` 的 SVG；含 `<text>` 的 SVG 必须保留 data URL，让框架先完成文字预处理。
 
 ## 11. 结论
 

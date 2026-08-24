@@ -83,7 +83,9 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 		theme: renderTheme,
 		rasterScale: workaround.rasterScale
 	}, (param: UTSJSONObject) => {
-		prepareHarmonySvgImageSource(param['imageDataURL'] as string, workaround.useFileSource,
+		const hasTextElements = (param['hasTextElements'] as boolean | null) ?? false
+		prepareHarmonySvgImageSource(param['imageDataURL'] as string,
+			workaround.useFileSource && !hasTextElements,
 			(imageSource: string, cacheable: boolean) => {
 				const result: ThemedSvgResult = {
 					imageSource,
@@ -128,8 +130,9 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		iosCoreSvgCompatibility,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {
-		// File-backed SVG decoding drops Mermaid <text>/<tspan> on pre-26 HarmonyOS.
-		prepareHarmonySvgImageSource(param['imageDataURL'] as string, false,
+		const hasTextElements = (param['hasTextElements'] as boolean | null) ?? false
+		prepareHarmonySvgImageSource(param['imageDataURL'] as string,
+			workaround.useFileSource && !hasTextElements,
 			(imageSource: string, cacheable: boolean) => {
 				const result: ThemedSvgResult = {
 					imageSource,

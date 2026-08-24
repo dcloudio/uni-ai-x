@@ -217,6 +217,7 @@
             const serializedElement = window.harmonySvgWorkaround.prepareForDecode(svgElement, options);
             return {
               svgText: new XMLSerializer().serializeToString(serializedElement),
+              hasTextElements: serializedElement.querySelector('text') != null,
               width: size.width,
               height: size.height
             };
@@ -263,6 +264,7 @@
                 action: "renderMermaid_callback_" + requestId,
                 param: {
                   imageDataURL,
+                  hasTextElements: normalized.hasTextElements,
                   width: normalized.width,
                   height: normalized.height,
                   theme: renderTheme
@@ -431,6 +433,7 @@
             this.mathRenderQueue = renderTask.then(() => undefined, () => undefined);
             const param = {
               imageDataURL: '',
+              hasTextElements: false,
               width: null,
               height: null,
               theme: renderTheme,
@@ -439,6 +442,7 @@
             try {
               const normalized = await renderTask;
               param.imageDataURL = this.svgDataURL(normalized.svgText);
+              param.hasTextElements = normalized.hasTextElements;
               param.width = normalized.width;
               param.height = normalized.height;
             } catch (error) {
