@@ -13,7 +13,7 @@
 应用层规避实现已抽离为两个独立模块：
 
 - `uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts`：平台开关、DPR、系统 API 分流和文件缓存；MathJax 可按版本使用文件缓存，Mermaid 保持 data URL；
-- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：HarmonyOS 解码缩放和节点基线语义标准化、HarmonyOS/iOS 共用的完整样式内联，以及独立的 iOS CoreSVG 结构兼容处理。
+- `uni_modules/uni-ai-x/static/proxy-web/harmony-svg-workaround.js`：HarmonyOS 解码缩放和节点基线语义标准化、HarmonyOS/iOS 共用的完整样式内联与箭头 marker 实体化，以及独立的 iOS CoreSVG 结构兼容处理。
 
 原有流程仅保留调用点：
 
@@ -66,6 +66,7 @@ Set Svg Desired Size: 500, 400
 | SVG 解码尺寸使用逻辑像素 | 整体模糊 | 根 `width/height` 乘 DPR，布局尺寸保持不变 |
 | SVG CSS 规则未完整生效 | 黑块、颜色和线条异常 | 在浏览器中计算样式并转成 presentation attributes |
 | Mermaid 文本基线不一致 | 节点文字位于方框上方 | 只对 `.node text` 增加结构级 Y 轴平移 |
+| 原生解码器对 `marker-end` 支持不一致 | 连线末端箭头缺失或异常 | 按路径末端切线生成实体 `<polygon>` 并移除 `marker-end` |
 | 低版本 data URL 进入自绘解码 | 大量 SVG 时内存高、页面卡顿 | API < 26 的 MathJax 写入缓存文件，API >= 26 保持 data URL |
 | 低版本文件 SVG 丢失文字 | Mermaid 图形存在但节点和连线标签为空 | Mermaid 始终保持 data URL，不进入文件 SVG 解码链路 |
 
@@ -83,6 +84,7 @@ WebView 生成标准 SVG DOM
         +-- HarmonyOS 下将根 width/height 乘 DPR
         +-- Mermaid 下将计算后的 CSS 写入元素属性
         +-- Mermaid 节点文字增加临时基线补偿
+        +-- Mermaid pointEnd marker 转成实体 polygon
         |
         v
 序列化 SVG -> data:image/svg+xml;base64,...
@@ -154,6 +156,7 @@ proxyWeb.callMethod({
 	inlineComputedStyles,
 	normalizeMermaidNodeText,
 	normalizeMermaidEdgeLabels,
+	materializeMermaidPointEndMarkers,
 	iosCoreSvgCompatibility,
 	harmonyWorkaround: workaround.enabled
 }, callback)
@@ -328,15 +331,19 @@ HarmonyOS 对 Mermaid edge label 的外层定位、内层标签定位和背景 `
 
 该处理不使用固定像素补偿。未知结构、多行标签或无法解析的 transform 保持原样。
 
-### 6.4 iOS CoreSVG 语义兼容
+### 6.4 流程图箭头 marker 实体化
 
-iOS 先共用第 5 节的浏览器 CSS 烘焙；随后按照 CoreSVG 兼容样例及真机结果做四项定向处理，其中第 2 项复用第 6.2 节的单行节点语义等价实现：
+HarmonyOS 和 iOS 共用 Mermaid 标准 `flowchart-pointEnd` marker 的实体化处理。WebView 将 SVG 临时挂载后，通过路径终点和末端切线计算箭头方向，在路径末端生成实体 `<polygon>`，随后移除原路径的 `marker-end`。近水平或垂直方向会吸附到轴向，避免浮点误差造成箭头歪斜。
+
+该处理仅匹配引用 ID 以 `_flowchart-pointEnd` 结尾、且 marker 内存在 `path.arrowMarkerPath` 的标准 Mermaid 结构；无法读取路径几何时保持原样。鸿蒙和 iOS 缓存键都会加入 `materialized-point-end-v1`，避免复用仍依赖 marker 的旧 SVG。
+
+### 6.5 iOS CoreSVG 语义兼容
+
+iOS 先共用第 5 节的浏览器 CSS 烘焙和第 6.4 节的箭头实体化；随后按照 CoreSVG 兼容样例及真机结果做三项定向处理，其中第 2 项复用第 6.2 节的单行节点语义等价实现：
 
 1. 只把 `.node > rect.label-container` 和 `.node > polygon.label-container` 的计算后 `fill`、`stroke`、`stroke-width` 写入元素 `style`，保留原始 `<style>` 和其他元素属性。
 2. 只匹配单个 `<tspan x="0" dy="1em">` 的单行节点标签。读取实际 `font-size`，把父标签组的 `translate(x, y)` 改为 `translate(x, y + fontSize)`，然后删除该 `tspan` 的 `x` 与 `dy`。默认 `16px` 字号下，`translate(0, -9.5)` 等价转换为 `translate(0, 6.5)`。
 3. 对单行 edge label，把外层定位和内层居中的两个 `translate` 合并到同一坐标系：背景矩形改写为绝对 `x/y`，文字使用 `labelX, labelY + fontSize` 的基线位置并移除 `tspan x/dy`。同时只把背景与文字实际需要的计算样式写入内联 `style`；文字属性还同步写成 SVG presentation attributes，绕过 CoreSVG 对 `<text>/<tspan>` 内联 CSS 的不稳定处理。矩形的元素 `opacity` 与 `fill-opacity` 相乘后只写入 `fill-opacity`，标签组和矩形本身固定为 `opacity:1`，防止 CoreSVG 把背景的半透明错误作用到文字。坐标、颜色和有效透明度均来自 SVG 在浏览器中的计算结果，不按“通过/拒绝”内容判断，也不使用固定偏移或固定颜色。
-4. 对 Mermaid 标准 `flowchart-pointEnd` marker，使用路径终点和末端切线生成实体 `<polygon>` 后移除 `marker-end`。近水平或垂直方向吸附到轴向，保持与官方兼容样例一致的箭头几何。
-
 多行、非 `1em`、空标签或 transform 无法解析的节点与边标签保持原样，避免把单一样例规则错误扩展到未知结构。iOS 缓存变体使用 `ios-coresvg-v5`，防止复用旧 SVG。
 
 ## 7. 实际迭代与验证结果
@@ -350,6 +357,7 @@ iOS 先共用第 5 节的浏览器 CSS 烘焙；随后按照 CoreSVG 兼容样�
 | 5 | 仅给 `.node text` 包裹 `translate(0 16)` | 人工验证显示正常，但属于默认字号下的经验补偿 |
 | 6 | 按实际字号把 `tspan dy="1em"` 合并到父标签 `translate` | 标准 SVG 几何不变；nova 12 真机节点文字位置与 Web 一致 |
 | 7 | 把单行 edge label 的两层 `translate`、背景坐标和文字基线合并 | nova 12 真机“通过/拒绝”背景与文字对齐，不再出现右下阴影；其他流程图元素无回归 |
+| 8 | 将 iOS 已验证的 pointEnd marker 实体化同步到 HarmonyOS | 应用层不再依赖鸿蒙原生 SVG 解码器解析 Mermaid `marker-end` |
 
 验证过程中始终把数学公式、节点文字和边标签作为三个独立观察项，避免为修复流程图而破坏已经正常的公式或“是/否”标签。
 

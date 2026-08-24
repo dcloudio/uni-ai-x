@@ -46,6 +46,14 @@ function shouldNormalizeMermaidEdgeLabels(): boolean {
 	return enabled
 }
 
+function shouldMaterializeMermaidPointEndMarkers(): boolean {
+	let enabled = false
+	// #ifdef APP-IOS || APP-HARMONY
+	enabled = true
+	// #endif
+	return enabled
+}
+
 function shouldApplyIOSCoreSvgCompatibility(): boolean {
 	let enabled = false
 	// #ifdef APP-IOS
@@ -95,10 +103,12 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 	const inlineComputedStyles = shouldInlineMermaidComputedStyles()
 	const normalizeMermaidNodeText = shouldNormalizeMermaidNodeText()
 	const normalizeMermaidEdgeLabels = shouldNormalizeMermaidEdgeLabels()
+	const materializeMermaidPointEndMarkers = shouldMaterializeMermaidPointEndMarkers()
 	const iosCoreSvgCompatibility = shouldApplyIOSCoreSvgCompatibility()
 	const renderVariant = workaround.cacheVariant + ':' + (inlineComputedStyles ? 'inline-styles' : 'external-styles')
 		+ ':' + (normalizeMermaidNodeText ? 'semantic-node-text-v1' : 'native-node-text')
 		+ ':' + (normalizeMermaidEdgeLabels ? 'semantic-edge-label-v1' : 'native-edge-label')
+		+ ':' + (materializeMermaidPointEndMarkers ? 'materialized-point-end-v1' : 'native-point-end')
 		+ ':' + (iosCoreSvgCompatibility ? 'ios-coresvg-v5' : 'native-coresvg')
 	const key = cacheKey(renderTheme, mermaidText, renderVariant)
 	const cached = mermaidCache.get(key)
@@ -114,6 +124,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		inlineComputedStyles,
 		normalizeMermaidNodeText,
 		normalizeMermaidEdgeLabels,
+		materializeMermaidPointEndMarkers,
 		iosCoreSvgCompatibility,
 		harmonyWorkaround: workaround.enabled
 	}, (param: UTSJSONObject) => {

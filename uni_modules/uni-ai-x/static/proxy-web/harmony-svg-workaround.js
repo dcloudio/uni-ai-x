@@ -1,9 +1,9 @@
 (function (global) {
   const MAX_RASTER_SCALE = 3;
-  const IOS_POINT_ARROW_LENGTH = 7;
-  const IOS_POINT_ARROW_AXIS_HALF_WIDTH = 4;
-  const IOS_POINT_ARROW_DIAGONAL_HALF_WIDTH = 3.5;
-  const IOS_POINT_ARROW_AXIS_SNAP = 0.05;
+  const POINT_ARROW_LENGTH = 7;
+  const POINT_ARROW_AXIS_HALF_WIDTH = 4;
+  const POINT_ARROW_DIAGONAL_HALF_WIDTH = 3.5;
+  const POINT_ARROW_AXIS_SNAP = 0.05;
 
   function normalizedRasterScale(value) {
     const scale = Number(value || 1);
@@ -241,7 +241,7 @@
     return match[1];
   }
 
-  function replaceIOSPointEndMarkers(liveSvg) {
+  function materializePointEndMarkers(liveSvg) {
     liveSvg.querySelectorAll('.flowchart-link[marker-end]').forEach(path => {
       const markerId = pointEndMarkerId(path.getAttribute('marker-end'));
       const marker = markerId.length > 0
@@ -262,18 +262,18 @@
 
       let unitX = dx / tangentLength;
       let unitY = dy / tangentLength;
-      let halfWidth = IOS_POINT_ARROW_DIAGONAL_HALF_WIDTH;
-      if (Math.abs(unitX) < IOS_POINT_ARROW_AXIS_SNAP) {
+      let halfWidth = POINT_ARROW_DIAGONAL_HALF_WIDTH;
+      if (Math.abs(unitX) < POINT_ARROW_AXIS_SNAP) {
         unitX = 0;
         unitY = Math.sign(unitY);
-        halfWidth = IOS_POINT_ARROW_AXIS_HALF_WIDTH;
-      } else if (Math.abs(unitY) < IOS_POINT_ARROW_AXIS_SNAP) {
+        halfWidth = POINT_ARROW_AXIS_HALF_WIDTH;
+      } else if (Math.abs(unitY) < POINT_ARROW_AXIS_SNAP) {
         unitX = Math.sign(unitX);
         unitY = 0;
-        halfWidth = IOS_POINT_ARROW_AXIS_HALF_WIDTH;
+        halfWidth = POINT_ARROW_AXIS_HALF_WIDTH;
       }
-      const baseX = tip.x - unitX * IOS_POINT_ARROW_LENGTH;
-      const baseY = tip.y - unitY * IOS_POINT_ARROW_LENGTH;
+      const baseX = tip.x - unitX * POINT_ARROW_LENGTH;
+      const baseY = tip.y - unitY * POINT_ARROW_LENGTH;
       const perpendicularX = -unitY * halfWidth;
       const perpendicularY = unitX * halfWidth;
       const points = [
@@ -292,12 +292,17 @@
     });
   }
 
+  function materializeMermaidPointEndMarkers(svgElement) {
+    return withMountedSvgClone(svgElement, liveSvg => {
+      materializePointEndMarkers(liveSvg);
+    });
+  }
+
   function applyIOSCoreSvgCompatibility(svgElement) {
     return withMountedSvgClone(svgElement, liveSvg => {
       inlineIOSNodeShapeStyles(liveSvg);
       normalizeSingleLineNodeLabels(liveSvg);
       normalizeSingleLineEdgeLabels(liveSvg);
-      replaceIOSPointEndMarkers(liveSvg);
     });
   }
 
@@ -314,6 +319,9 @@
     }
     if (options.iosCoreSvgCompatibility === true) {
       preparedSvgElement = applyIOSCoreSvgCompatibility(preparedSvgElement);
+    }
+    if (options.materializeMermaidPointEndMarkers === true || options.harmonyWorkaround === true) {
+      preparedSvgElement = materializeMermaidPointEndMarkers(preparedSvgElement);
     }
     return preparedSvgElement;
   }
