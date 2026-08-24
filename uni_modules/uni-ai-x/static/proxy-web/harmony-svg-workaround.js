@@ -1,9 +1,5 @@
 (function (global) {
   const MAX_RASTER_SCALE = 3;
-  const POINT_ARROW_LENGTH = 7;
-  const POINT_ARROW_AXIS_HALF_WIDTH = 4;
-  const POINT_ARROW_DIAGONAL_HALF_WIDTH = 3.5;
-  const POINT_ARROW_AXIS_SNAP = 0.05;
 
   function normalizedRasterScale(value) {
     const scale = Number(value || 1);
@@ -241,6 +237,77 @@
     return match[1];
   }
 
+  function markerViewBox(marker) {
+    const values = (marker.getAttribute('viewBox') || '')
+      .trim()
+      .split(/[\s,]+/)
+      .map(value => Number(value));
+    if (values.length !== 4 || values.some(value => !Number.isFinite(value))) return null;
+    if (values[2] <= 0 || values[3] <= 0) return null;
+    return { width: values[2], height: values[3] };
+  }
+
+  function markerViewportScale(marker, markerPath, linkPath) {
+    const viewBox = markerViewBox(marker);
+    const markerWidth = parsedSvgNumberAttribute(marker, 'markerWidth', 3);
+    const markerHeight = parsedSvgNumberAttribute(marker, 'markerHeight', 3);
+    if (viewBox == null || markerWidth == null || markerHeight == null
+        || markerWidth <= 0 || markerHeight <= 0) return null;
+
+    let scaleX = markerWidth / viewBox.width;
+    let scaleY = markerHeight / viewBox.height;
+    const preserveAspectRatio = (marker.getAttribute('preserveAspectRatio') || 'xMidYMid meet').trim();
+    if (!preserveAspectRatio.split(/\s+/).includes('none')) {
+      const scale = preserveAspectRatio.split(/\s+/).includes('slice')
+        ? Math.max(scaleX, scaleY)
+        : Math.min(scaleX, scaleY);
+      scaleX = scale;
+      scaleY = scale;
+    }
+
+    const markerUnits = (marker.getAttribute('markerUnits') || 'strokeWidth').trim();
+    if (markerUnits === 'strokeWidth') {
+      const strokeWidth = Number.parseFloat(global.getComputedStyle(linkPath).strokeWidth);
+      if (!Number.isFinite(strokeWidth) || strokeWidth <= 0) return null;
+      scaleX *= strokeWidth;
+      scaleY *= strokeWidth;
+    } else if (markerUnits !== 'userSpaceOnUse') {
+      return null;
+    }
+
+    if (markerPath.hasAttribute('transform')) return null;
+    return { x: scaleX, y: scaleY };
+  }
+
+  function pointEndMarkerPoints(marker, markerPath, linkPath) {
+    const refX = parsedSvgNumberAttribute(marker, 'refX', 0);
+    const refY = parsedSvgNumberAttribute(marker, 'refY', 0);
+    const scale = markerViewportScale(marker, markerPath, linkPath);
+    if (refX == null || refY == null || scale == null
+        || typeof markerPath.getBBox !== 'function') return null;
+
+    let bounds;
+    try {
+      bounds = markerPath.getBBox();
+    } catch (_error) {
+      return null;
+    }
+    if (![bounds.x, bounds.y, bounds.width, bounds.height].every(value => Number.isFinite(value))
+        || bounds.width <= 0 || bounds.height <= 0) return null;
+
+    const baseX = bounds.x;
+    const tipX = bounds.x + bounds.width;
+    const centerY = bounds.y + bounds.height / 2;
+    return [
+      { forward: (tipX - refX) * scale.x, lateral: (centerY - refY) * scale.y },
+      { forward: (baseX - refX) * scale.x, lateral: (bounds.y - refY) * scale.y },
+      {
+        forward: (baseX - refX) * scale.x,
+        lateral: (bounds.y + bounds.height - refY) * scale.y
+      }
+    ];
+  }
+
   function materializePointEndMarkers(liveSvg) {
     liveSvg.querySelectorAll('.flowchart-link[marker-end]').forEach(path => {
       const markerId = pointEndMarkerId(path.getAttribute('marker-end'));
@@ -250,37 +317,25 @@
       const markerPath = marker == null ? null : marker.querySelector('path.arrowMarkerPath');
       if (markerPath == null || typeof path.getTotalLength !== 'function'
           || typeof path.getPointAtLength !== 'function') return;
+      const markerPoints = pointEndMarkerPoints(marker, markerPath, path);
+      if (markerPoints == null) return;
 
       const totalLength = path.getTotalLength();
       if (!Number.isFinite(totalLength) || totalLength <= 0) return;
-      const tip = path.getPointAtLength(totalLength);
+      const anchor = path.getPointAtLength(totalLength);
       const previous = path.getPointAtLength(Math.max(0, totalLength - Math.min(1, totalLength)));
-      const dx = tip.x - previous.x;
-      const dy = tip.y - previous.y;
+      const dx = anchor.x - previous.x;
+      const dy = anchor.y - previous.y;
       const tangentLength = Math.hypot(dx, dy);
       if (!Number.isFinite(tangentLength) || tangentLength <= 0) return;
 
-      let unitX = dx / tangentLength;
-      let unitY = dy / tangentLength;
-      let halfWidth = POINT_ARROW_DIAGONAL_HALF_WIDTH;
-      if (Math.abs(unitX) < POINT_ARROW_AXIS_SNAP) {
-        unitX = 0;
-        unitY = Math.sign(unitY);
-        halfWidth = POINT_ARROW_AXIS_HALF_WIDTH;
-      } else if (Math.abs(unitY) < POINT_ARROW_AXIS_SNAP) {
-        unitX = Math.sign(unitX);
-        unitY = 0;
-        halfWidth = POINT_ARROW_AXIS_HALF_WIDTH;
-      }
-      const baseX = tip.x - unitX * POINT_ARROW_LENGTH;
-      const baseY = tip.y - unitY * POINT_ARROW_LENGTH;
-      const perpendicularX = -unitY * halfWidth;
-      const perpendicularY = unitX * halfWidth;
-      const points = [
-        [tip.x, tip.y],
-        [baseX + perpendicularX, baseY + perpendicularY],
-        [baseX - perpendicularX, baseY - perpendicularY]
-      ].map(point => formattedSvgNumber(point[0]) + ',' + formattedSvgNumber(point[1])).join(' ');
+      const unitX = dx / tangentLength;
+      const unitY = dy / tangentLength;
+      const points = markerPoints.map(point => {
+        const x = anchor.x + unitX * point.forward - unitY * point.lateral;
+        const y = anchor.y + unitY * point.forward + unitX * point.lateral;
+        return formattedSvgNumber(x) + ',' + formattedSvgNumber(y);
+      }).join(' ');
 
       const polygon = liveSvg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'polygon');
       const stroke = global.getComputedStyle(path).stroke.trim();

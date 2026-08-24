@@ -333,9 +333,11 @@ HarmonyOS 对 Mermaid edge label 的外层定位、内层标签定位和背景 `
 
 ### 6.4 流程图箭头 marker 实体化
 
-HarmonyOS 和 iOS 共用 Mermaid 标准 `flowchart-pointEnd` marker 的实体化处理。WebView 将 SVG 临时挂载后，通过路径终点和末端切线计算箭头方向，在路径末端生成实体 `<polygon>`，随后移除原路径的 `marker-end`。近水平或垂直方向会吸附到轴向，避免浮点误差造成箭头歪斜。
+HarmonyOS 和 iOS 共用 Mermaid 标准 `flowchart-pointEnd` marker 的实体化处理。WebView 将 SVG 临时挂载后，读取 marker 的 `viewBox`、`refX/refY`、`markerWidth/markerHeight`、`markerUnits` 和图元包围盒，再按路径终点与末端切线把 marker 坐标转换为页面坐标，生成实体 `<polygon>` 并移除原路径的 `marker-end`。
 
-该处理仅匹配引用 ID 以 `_flowchart-pointEnd` 结尾、且 marker 内存在 `path.arrowMarkerPath` 的标准 Mermaid 结构；无法读取路径几何时保持原样。鸿蒙和 iOS 缓存键都会加入 `materialized-point-end-v1`，避免复用仍依赖 marker 的旧 SVG。
+Mermaid 当前 pointEnd marker 的 `viewBox` 为 `0 0 10 10`、`refX` 为 `6`、viewport 为 `12 x 12`，所以标准 Web 渲染中箭头尖端会越过路径终点 `(10 - 6) * 12 / 10 = 4.8` 个逻辑单位。旧实体化实现把路径终点直接当作箭头尖端，遗漏了这段前伸量，并使用了较窄的经验半宽，因而在节点前留下小空隙。当前实现按 marker 原始语义同时还原前伸量、后沿位置和宽度，不再使用固定箭头尺寸。
+
+该处理仅匹配引用 ID 以 `_flowchart-pointEnd` 结尾、且 marker 内存在无额外 transform 的 `path.arrowMarkerPath` 的标准 Mermaid 结构；无法读取 marker 或路径几何时保持原样。鸿蒙和 iOS 缓存键都会加入 `materialized-point-end-v2`，避免复用旧的短箭头 SVG。
 
 ### 6.5 iOS CoreSVG 语义兼容
 
@@ -358,6 +360,7 @@ iOS 先共用第 5 节的浏览器 CSS 烘焙和第 6.4 节的箭头实体化；
 | 6 | 按实际字号把 `tspan dy="1em"` 合并到父标签 `translate` | 标准 SVG 几何不变；nova 12 真机节点文字位置与 Web 一致 |
 | 7 | 把单行 edge label 的两层 `translate`、背景坐标和文字基线合并 | nova 12 真机“通过/拒绝”背景与文字对齐，不再出现右下阴影；其他流程图元素无回归 |
 | 8 | 将 iOS 已验证的 pointEnd marker 实体化同步到 HarmonyOS | 应用层不再依赖鸿蒙原生 SVG 解码器解析 Mermaid `marker-end` |
+| 9 | 按 marker viewport 和 refX/refY 还原实体箭头几何 | 鸿蒙与 iOS 的实体箭头恢复 Web 的前伸量、长度和宽度，不再在节点前留空隙 |
 
 验证过程中始终把数学公式、节点文字和边标签作为三个独立观察项，避免为修复流程图而破坏已经正常的公式或“是/否”标签。
 

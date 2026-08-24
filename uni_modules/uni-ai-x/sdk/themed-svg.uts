@@ -108,7 +108,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 	const renderVariant = workaround.cacheVariant + ':' + (inlineComputedStyles ? 'inline-styles' : 'external-styles')
 		+ ':' + (normalizeMermaidNodeText ? 'semantic-node-text-v1' : 'native-node-text')
 		+ ':' + (normalizeMermaidEdgeLabels ? 'semantic-edge-label-v1' : 'native-edge-label')
-		+ ':' + (materializeMermaidPointEndMarkers ? 'materialized-point-end-v1' : 'native-point-end')
+		+ ':' + (materializeMermaidPointEndMarkers ? 'materialized-point-end-v2' : 'native-point-end')
 		+ ':' + (iosCoreSvgCompatibility ? 'ios-coresvg-v5' : 'native-coresvg')
 	const key = cacheKey(renderTheme, mermaidText, renderVariant)
 	const cached = mermaidCache.get(key)
