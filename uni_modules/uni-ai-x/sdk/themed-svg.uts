@@ -112,6 +112,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		+ ':' + (normalizeMermaidEdgeLabels ? 'semantic-edge-label-v1' : 'native-edge-label')
 		+ ':' + (materializeMermaidPointEndMarkers ? 'materialized-point-end-v2' : 'native-point-end')
 		+ ':' + (iosCoreSvgCompatibility ? 'ios-coresvg-v5' : 'native-coresvg')
+		+ ':opaque-theme-background-v1'
 	const key = cacheKey(renderTheme, mermaidText, renderVariant)
 	const cached = mermaidCache.get(key)
 	if (cached != null) {

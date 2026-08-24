@@ -250,6 +250,7 @@
               const normalized = this.normalizeSvg(mermaidRenderResult.svg, {
                 frameAspectRatio: 5 / 4,
                 theme: renderTheme,
+                background: renderTheme === 'dark' ? '#25282c' : '#ffffff',
                 styleText: 'svg{background:transparent!important}',
                 rasterScale,
                 inlineComputedStyles,
