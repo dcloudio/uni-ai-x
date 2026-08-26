@@ -18,7 +18,9 @@
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
+	// #ifndef MP-WEIXIN
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+	// #endif
 	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 
 	const MENU_WIDTH = 260
@@ -138,6 +140,7 @@
 		setMenu(false)
 	}
 
+	// #ifndef MP-WEIXIN
 	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
 		proxyWeb.onWebMsg(e)
 	}
@@ -149,14 +152,10 @@
 		// #ifdef APP
 		const proxyWebContext = uni.getElementById('proxy-web') as UniWebViewElement
 		// #endif
-		// #ifdef MP-WEIXIN
-		const proxyWebContext = uni.createWebviewContext('proxy-web')
-		// #endif
-		// #ifndef MP-WEIXIN
 		proxyWeb.init(proxyWebContext!)
-		// #endif
 		proxyWeb.markReady()
 	}
+	// #endif
 
 	onMounted(() => {
 		// #ifdef WEB
@@ -168,9 +167,6 @@
 		// #endif
 		// #ifdef APP
 		const proxyWebContext = uni.getElementById('proxy-web')
-		// #endif
-		// #ifdef MP-WEIXIN
-		const proxyWebContext = uni.createWebviewContext('proxy-web')
 		// #endif
 		// #ifndef MP-WEIXIN
 		proxyWeb.init(proxyWebContext!)

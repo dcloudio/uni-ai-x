@@ -1,10 +1,12 @@
 <template>
 	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]">
 		<view class="uni-code-msg-code-header">
+			<!-- #ifndef MP-WEIXIN -->
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
 				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">流程图</text>
 				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(false)">代码</text>
 			</view>
+			<!-- #endif -->
 			<template v-if="language != 'mermaid'">
 				<text class="uni-code-msg-language" flatten>{{language}}</text>
 				<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
@@ -46,8 +48,12 @@ import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interfac
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+// #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
+// #endif
+// #ifdef APP || WEB
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+// #endif
 
 type UniAiMsgCodeProps = {
 	codeText?: string
@@ -374,9 +380,18 @@ function syncMermaidImageTheme() {
 		return
 	}
 	mermaidWasClosed = true
+	// #ifdef MP-WEIXIN
+	// 微信小程序不支持隐藏 WebView，流程图保留源码显示。
+	mermaidImageModeLatched.value = false
+	showMermaidImage.value = false
+	mermaidRenderRequestKey = ''
+	mermaidRenderPending.value = false
+	return
+	// #endif
+	// #ifndef MP-WEIXIN
 	mermaidImageModeLatched.value = true
 	if (!mermaidViewSelectedByUser.value && mermaidImageModeLatched.value && !mermaidImageLoadFailed.value) showMermaidImage.value = true
-	//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
+	//#ifdef uniVersion < 4.81 && APP-IOS
 	showMermaidImage.value = false
 	//#endif
 	const theme = uiTheme.value
@@ -404,6 +419,7 @@ function syncMermaidImageTheme() {
 		}
 		queueMermaidImage(result.imageSource)
 	})
+	// #endif
 }
 
 watch((): string => {

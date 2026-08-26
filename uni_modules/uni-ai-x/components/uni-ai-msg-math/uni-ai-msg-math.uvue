@@ -16,7 +16,9 @@
     import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
     import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
     import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+    // #ifndef MP-WEIXIN
     import { renderMathSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
+    // #endif
     const props = defineProps<{
         href?: string
         width?: number
@@ -236,6 +238,13 @@
 	            return
 	        }
 	        mathWasClosed = true
+	        // #ifdef MP-WEIXIN
+	        // 微信小程序不支持隐藏 WebView，公式保留源码显示。
+	        mathImageModeLatched.value = false
+	        mathRenderRequestKey = ''
+	        return
+	        // #endif
+	        // #ifndef MP-WEIXIN
 	        mathImageModeLatched.value = true
 	        const theme = uiTheme.value
 	        const sourceHref = props.href ?? ''
@@ -256,6 +265,7 @@
             }
             queueMathImage(result.imageSource, result.width, result.height)
         })
+	        // #endif
     }
 
 	    watch((): string => {
