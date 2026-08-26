@@ -11,8 +11,17 @@ import {
 	StartAiWorkerRequest
 } from './interface.uts'
 
+// #ifdef MP-WEIXIN
+import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk/mp-weixin/index.uts'
+import {
+	MarkdownPreprocessor,
+	prepareMarkdownHtml
+} from '../../uni-ai-worker/utssdk/index.uts'
+// #endif
+
 export * from './interface.uts'
 
+// #ifndef MP-WEIXIN
 const WORKER_RENDER_PROTOCOL_VERSION = 3
 let worker: Worker | null = null
 let workerReady = false
@@ -225,3 +234,220 @@ export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void 
 		}, 500)
 	}
 }
+// #endif
+
+// #ifdef MP-WEIXIN
+let mpRuntimeCreated = false
+let mpMarkdownReady = false
+let mpRuntimeGeneration = 0
+let mpCurrentRequestVersion = 0
+let mpSnapshotVersion = 0
+let mpRenderInterval = 300
+let mpRenderTimer = 0
+let mpStartedAt = 0
+let mpContent = ''
+let mpReasoningContent = ''
+let mpEventCount = 0
+let mpNetworkChunkCount = 0
+let mpReceivedBytes = 0
+let mpCompletionPending = false
+let mpActive = false
+let mpFinished = true
+let mpLatestSnapshotJson = ''
+let mpPreprocessor = new MarkdownPreprocessor()
+
+function mpClearRenderTimer(): void {
+	if (mpRenderTimer != 0) clearTimeout(mpRenderTimer)
+	mpRenderTimer = 0
+}
+
+function mpSetError(code: string, message: string): void {
+	mpClearRenderTimer()
+	mpFinished = true
+	mpActive = false
+	mpSnapshotVersion += 1
+	mpLatestSnapshotJson = JSON.stringify({
+		requestVersion: mpCurrentRequestVersion,
+		snapshotVersion: mpSnapshotVersion,
+		phase: 'error',
+		msgBody: mpContent,
+		thinkContent: mpReasoningContent.trim(),
+		renderMode: '',
+		html: '',
+		htmlLength: 0,
+		isDone: false,
+		eventCount: mpEventCount,
+		networkChunkCount: mpNetworkChunkCount,
+		receivedBytes: mpReceivedBytes,
+		terminalSource: 'external',
+		elapsed: Date.now() - mpStartedAt,
+		errCode: code,
+		errMsg: message
+	} as UTSJSONObject) ?? ''
+}
+
+function mpPublishSnapshot(isDone: boolean): void {
+	if (mpContent.length == 0 && !isDone) return
+	const processedMarkdownValue = mpPreprocessor.process(mpContent, isDone)
+	if (processedMarkdownValue == null) return
+	if (!isMd2htmlAvailable()) {
+		mpSetError('markdown_html_unavailable', 'cmark-gfm Markdown HTML 转换器不可用')
+		return
+	}
+	try {
+		const rawHtmlValue = md2html(processedMarkdownValue!) as string | null
+		const rawHtml = rawHtmlValue ?? ''
+		if (processedMarkdownValue!.length > 0 && rawHtml.length == 0) {
+			mpSetError('markdown_html_failed', 'cmark-gfm Markdown HTML 转换失败')
+			return
+		}
+		const preparedHtmlValue = prepareMarkdownHtml(rawHtml, isDone) as string | null
+		const html = preparedHtmlValue ?? ''
+		if (processedMarkdownValue!.length > 0 && html.length == 0) {
+			mpSetError('markdown_html_failed', 'Markdown HTML 后处理失败')
+			return
+		}
+		mpSnapshotVersion += 1
+		mpLatestSnapshotJson = JSON.stringify({
+			requestVersion: mpCurrentRequestVersion,
+			snapshotVersion: mpSnapshotVersion,
+			phase: isDone ? 'complete' : 'snapshot',
+			msgBody: mpContent,
+			thinkContent: mpReasoningContent.trim(),
+			renderMode: 'html',
+			html: html,
+			htmlLength: html.length,
+			isDone: isDone,
+			eventCount: mpEventCount,
+			networkChunkCount: mpNetworkChunkCount,
+			receivedBytes: mpReceivedBytes,
+			terminalSource: 'external',
+			elapsed: Date.now() - mpStartedAt,
+			errCode: '',
+			errMsg: ''
+		} as UTSJSONObject) ?? ''
+	} catch (error) {
+		mpSetError('markdown_html_failed', error.message as string)
+	}
+}
+
+function mpScheduleSnapshot(): void {
+	if (!mpActive || mpFinished || !mpMarkdownReady || mpRenderTimer != 0) return
+	mpRenderTimer = setTimeout(() => {
+		mpRenderTimer = 0
+		mpPublishSnapshot(false)
+	}, mpRenderInterval)
+}
+
+function mpCompleteNow(): void {
+	if (!mpActive || mpFinished) return
+	mpFinished = true
+	mpCompletionPending = false
+	mpClearRenderTimer()
+	if (!mpContent.endsWith('\n')) mpContent += '\n'
+	mpPublishSnapshot(true)
+}
+
+function mpInitializeMarkdown(generation: number): void {
+	initMd2html().then(() => {
+		if (generation != mpRuntimeGeneration || !mpRuntimeCreated) return
+		mpMarkdownReady = true
+		if (!mpActive) return
+		if (mpCompletionPending) {
+			mpCompleteNow()
+		} else if (mpContent.length > 0) {
+			mpScheduleSnapshot()
+		}
+	}).catch((error: any | null) => {
+		if (generation != mpRuntimeGeneration || !mpRuntimeCreated) return
+		mpSetError(
+			'markdown_html_unavailable',
+			error instanceof Error ? error.message : 'cmark-gfm WebAssembly 初始化失败'
+		)
+	})
+}
+
+export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
+	if (mpRuntimeCreated) return
+	mpRuntimeCreated = true
+	mpMarkdownReady = false
+	mpLatestSnapshotJson = ''
+	mpRuntimeGeneration += 1
+	mpInitializeMarkdown(mpRuntimeGeneration)
+}
+
+export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
+	createAiWorkerRuntime()
+	mpCurrentRequestVersion = options.requestVersion
+	mpSnapshotVersion = 0
+	mpStartedAt = Date.now()
+	mpLatestSnapshotJson = ''
+	mpSetError('worker_network_unsupported', '微信小程序仅在主线程处理网络请求')
+}
+
+export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
+	createAiWorkerRuntime()
+	mpClearRenderTimer()
+	mpCurrentRequestVersion = options.requestVersion
+	mpSnapshotVersion = 0
+	mpRenderInterval = options.renderInterval ?? 300
+	mpStartedAt = Date.now()
+	mpContent = ''
+	mpReasoningContent = ''
+	mpEventCount = 0
+	mpNetworkChunkCount = 0
+	mpReceivedBytes = 0
+	mpCompletionPending = false
+	mpActive = true
+	mpFinished = false
+	mpLatestSnapshotJson = ''
+	mpPreprocessor = new MarkdownPreprocessor()
+}
+
+export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
+	requestVersion: number,
+	content: string,
+	reasoningContent: string
+): void {
+	if (!mpActive || mpFinished || requestVersion != mpCurrentRequestVersion) return
+	if (content.length > 0) mpContent += content
+	if (reasoningContent.length > 0) mpReasoningContent += reasoningContent
+	mpEventCount += 1
+	mpNetworkChunkCount += 1
+	mpReceivedBytes += content.length + reasoningContent.length
+	if (content.length > 0) mpScheduleSnapshot()
+}
+
+export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
+	if (!mpActive || mpFinished || requestVersion != mpCurrentRequestVersion) return
+	if (!mpMarkdownReady) {
+		mpCompletionPending = true
+		return
+	}
+	mpCompleteNow()
+}
+
+export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
+	return mpLatestSnapshotJson
+}
+
+export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
+	if (requestVersion != mpCurrentRequestVersion) return
+	mpClearRenderTimer()
+	mpCompletionPending = false
+	mpActive = false
+	mpFinished = true
+}
+
+export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
+	mpClearRenderTimer()
+	mpRuntimeGeneration += 1
+	mpRuntimeCreated = false
+	mpMarkdownReady = false
+	mpCompletionPending = false
+	mpActive = false
+	mpFinished = true
+	mpLatestSnapshotJson = ''
+	mpCurrentRequestVersion = 0
+}
+// #endif

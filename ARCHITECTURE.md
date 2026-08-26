@@ -24,11 +24,14 @@ The application does not expose a Markdown-to-token API. It does not transport,
 store, or render Markdown AST/token JSON. `uni-cmark` exports only `md2html` and
 `isMd2htmlAvailable`.
 
-Web, WeChat Mini Program, and HarmonyOS keep network streaming on the main
-thread and send Markdown deltas through the same Worker snapshot protocol as
-Android. Web and WeChat run the same `md2html.c` as WebAssembly; HarmonyOS uses
-the same C entry point through a native N-API HAR. Every platform then uses the
-shared `MarkdownPreprocessor` and `prepareMarkdownHtml` stages.
+Web and HarmonyOS keep network streaming on the main thread and send Markdown
+deltas through the same Worker snapshot protocol as Android. WeChat Mini
+Program keeps both network streaming and Markdown snapshot generation on the
+main thread because its Worker package cannot load generated modules outside
+the configured Worker root. Web and WeChat run the same `md2html.c` as
+WebAssembly; HarmonyOS uses the same C entry point through a native N-API HAR.
+Every platform then uses the shared `MarkdownPreprocessor` and
+`prepareMarkdownHtml` stages.
 
 ## Main modules
 
@@ -41,7 +44,8 @@ shared `MarkdownPreprocessor` and `prepareMarkdownHtml` stages.
 
 ## Platform boundary
 
-Android, Web, WeChat Mini Program, and HarmonyOS use the production HTML Worker
-pipeline. Android can also own the network request in the Worker; the other
-supported platforms send main-thread network deltas to it. Unsupported
+Android, Web, and HarmonyOS use the production HTML Worker pipeline. Android can
+also own the network request in the Worker; the other supported Worker platforms
+send main-thread network deltas to it. WeChat Mini Program exposes the same
+snapshot runtime API but generates snapshots on the main thread. Unsupported
 platforms return an explicit error instead of falling back to a token renderer.
