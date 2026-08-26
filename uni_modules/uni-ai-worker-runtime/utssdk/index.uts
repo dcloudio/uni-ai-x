@@ -142,7 +142,7 @@ function createWorkerNow(generation: number): void {
 	})
 }
 
-export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
+const createWorkerRuntime: CreateAiWorkerRuntime = function (): void {
 	if (worker != null) return
 	runtimeGeneration += 1
 	const generation = runtimeGeneration
@@ -151,8 +151,8 @@ export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
 	createWorkerNow(generation)
 }
 
-export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
-	createAiWorkerRuntime()
+const startWorkerRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
+	createWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
 	pendingMarkdownStart = null
@@ -163,8 +163,8 @@ export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiW
 	postStart(options)
 }
 
-export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
-	createAiWorkerRuntime()
+const startWorkerMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
+	createWorkerRuntime()
 	currentRequestVersion = options.requestVersion
 	latestSnapshotJson = ''
 	pendingStart = null
@@ -178,7 +178,7 @@ export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: A
 	postMarkdownStart(options)
 }
 
-export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
+const appendWorkerMarkdown: AppendAiWorkerMarkdown = function (
 	requestVersion: number,
 	content: string,
 	reasoningContent: string
@@ -191,7 +191,7 @@ export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
 	postMarkdownChunk(requestVersion, content, reasoningContent)
 }
 
-export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
+const completeWorkerMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
 	if (!workerReady || pendingMarkdownStart != null) {
 		pendingMarkdownComplete = true
 		return
@@ -199,11 +199,11 @@ export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requ
 	postMarkdownComplete(requestVersion)
 }
 
-export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
+const readWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 	return latestSnapshotJson
 }
 
-export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
+const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
 	if (pendingStart?.requestVersion == requestVersion) pendingStart = null
 	if (pendingMarkdownStart?.requestVersion == requestVersion) pendingMarkdownStart = null
 	pendingMarkdownContent = ''
@@ -216,7 +216,7 @@ export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVer
 	} as UTSJSONObject, null)
 }
 
-export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
+const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	const previousWorker = worker
 	runtimeGeneration += 1
 	worker = null
@@ -367,7 +367,7 @@ function mpInitializeMarkdown(generation: number): void {
 	})
 }
 
-export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
+const createMpRuntime: CreateAiWorkerRuntime = function (): void {
 	if (mpRuntimeCreated) return
 	mpRuntimeCreated = true
 	mpMarkdownReady = false
@@ -376,8 +376,8 @@ export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
 	mpInitializeMarkdown(mpRuntimeGeneration)
 }
 
-export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
-	createAiWorkerRuntime()
+const startMpRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
+	createMpRuntime()
 	mpCurrentRequestVersion = options.requestVersion
 	mpSnapshotVersion = 0
 	mpStartedAt = Date.now()
@@ -385,8 +385,8 @@ export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiW
 	mpSetError('worker_network_unsupported', '微信小程序仅在主线程处理网络请求')
 }
 
-export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
-	createAiWorkerRuntime()
+const startMpMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
+	createMpRuntime()
 	mpClearRenderTimer()
 	mpCurrentRequestVersion = options.requestVersion
 	mpSnapshotVersion = 0
@@ -404,7 +404,7 @@ export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: A
 	mpPreprocessor = new MarkdownPreprocessor()
 }
 
-export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
+const appendMpMarkdown: AppendAiWorkerMarkdown = function (
 	requestVersion: number,
 	content: string,
 	reasoningContent: string
@@ -418,7 +418,7 @@ export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
 	if (content.length > 0) mpScheduleSnapshot()
 }
 
-export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
+const completeMpMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
 	if (!mpActive || mpFinished || requestVersion != mpCurrentRequestVersion) return
 	if (!mpMarkdownReady) {
 		mpCompletionPending = true
@@ -427,11 +427,11 @@ export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requ
 	mpCompleteNow()
 }
 
-export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
+const readMpSnapshot: ReadAiWorkerSnapshot = function (): string {
 	return mpLatestSnapshotJson
 }
 
-export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
+const cancelMpRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
 	if (requestVersion != mpCurrentRequestVersion) return
 	mpClearRenderTimer()
 	mpCompletionPending = false
@@ -439,7 +439,7 @@ export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVer
 	mpFinished = true
 }
 
-export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
+const destroyMpRuntime: DestroyAiWorkerRuntime = function (): void {
 	mpClearRenderTimer()
 	mpRuntimeGeneration += 1
 	mpRuntimeCreated = false
@@ -451,3 +451,79 @@ export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void 
 	mpCurrentRequestVersion = 0
 }
 // #endif
+
+export const createAiWorkerRuntime: CreateAiWorkerRuntime = function (): void {
+	// #ifdef MP-WEIXIN
+	createMpRuntime()
+	// #endif
+	// #ifndef MP-WEIXIN
+	createWorkerRuntime()
+	// #endif
+}
+
+export const startAiWorkerRequest: StartAiWorkerRequest = function (options: AiWorkerStartOptions): void {
+	// #ifdef MP-WEIXIN
+	startMpRequest(options)
+	// #endif
+	// #ifndef MP-WEIXIN
+	startWorkerRequest(options)
+	// #endif
+}
+
+export const startAiWorkerMarkdown: StartAiWorkerMarkdown = function (options: AiWorkerMarkdownStartOptions): void {
+	// #ifdef MP-WEIXIN
+	startMpMarkdown(options)
+	// #endif
+	// #ifndef MP-WEIXIN
+	startWorkerMarkdown(options)
+	// #endif
+}
+
+export const appendAiWorkerMarkdown: AppendAiWorkerMarkdown = function (
+	requestVersion: number,
+	content: string,
+	reasoningContent: string
+): void {
+	// #ifdef MP-WEIXIN
+	appendMpMarkdown(requestVersion, content, reasoningContent)
+	// #endif
+	// #ifndef MP-WEIXIN
+	appendWorkerMarkdown(requestVersion, content, reasoningContent)
+	// #endif
+}
+
+export const completeAiWorkerMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {
+	// #ifdef MP-WEIXIN
+	completeMpMarkdown(requestVersion)
+	// #endif
+	// #ifndef MP-WEIXIN
+	completeWorkerMarkdown(requestVersion)
+	// #endif
+}
+
+export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
+	// #ifdef MP-WEIXIN
+	return readMpSnapshot()
+	// #endif
+	// #ifndef MP-WEIXIN
+	return readWorkerSnapshot()
+	// #endif
+}
+
+export const cancelAiWorkerRequest: CancelAiWorkerRequest = function (requestVersion: number): void {
+	// #ifdef MP-WEIXIN
+	cancelMpRequest(requestVersion)
+	// #endif
+	// #ifndef MP-WEIXIN
+	cancelWorkerRequest(requestVersion)
+	// #endif
+}
+
+export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
+	// #ifdef MP-WEIXIN
+	destroyMpRuntime()
+	// #endif
+	// #ifndef MP-WEIXIN
+	destroyWorkerRuntime()
+	// #endif
+}
