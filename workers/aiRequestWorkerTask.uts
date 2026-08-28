@@ -259,7 +259,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				return
 			}
 		} catch (error) {
-			this.fail('markdown_html_failed', error.message as string)
+			this.fail('markdown_html_failed',
+				error instanceof Error ? error.message : 'Markdown HTML 转换失败')
 			return
 		}
 		this.snapshotVersion += 1
