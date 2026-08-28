@@ -115,7 +115,7 @@
     })
 
     const sourceRichTextStyle = computed<string>(() => {
-        return 'width:' + sourceContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
+        return 'width:' + sourceContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:var(--text-primary);'
     })
 
     const mathWidth = computed<string>(() => {
@@ -293,7 +293,7 @@
     }
 
     .math-el-source-pending {
-        background-color: #111827;
+        background-color: var(--bg-primary);
     }
 
     .math-el-image-ready {
