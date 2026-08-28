@@ -131,7 +131,17 @@ function setMermaidView(showImage: boolean) {
 	showMermaidImage.value = showImage && !mermaidImageLoadFailed.value
 }
 
+function isWebPc(): boolean {
+	let isPc = false
+	// #ifdef WEB
+	const userAgent = window.navigator.userAgent
+	isPc = userAgent.match(/Android|iPhone|iPad|iPod|Mobile/i) == null
+	// #endif
+	return isPc
+}
+
 const previewMermaidImage = () => {
+	if (isWebPc()) return
 	if (!showMermaidImage.value || !mermaidImageReady.value) return
 	uni.previewImage({ urls: [mermaidHref.value] as string[] })
 }
