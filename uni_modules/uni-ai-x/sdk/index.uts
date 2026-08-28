@@ -4,11 +4,12 @@ import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, 
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
-import { StorageManager, AiChat } from './storage-manager.uts'
+import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
+type StressCopyProgress = (completed: number) => void
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
@@ -72,6 +73,7 @@ class UniAi {
 		const createTime = Date.now()
 		for (let index = 0; index < sourceMessages.length; index++) {
 			const source = sourceMessages[index]
+			// 消息 ID 同时是 Storage key；副本可被重新回答/删除，不能与源会话共享。
 			const messageId = this.getStressDataId(prefix + '_msg')
 			idMap[source._id] = messageId
 			const cloned = { ...source } as MsgItem
@@ -128,25 +130,54 @@ class UniAi {
 		return ''
 	}
 
-	async createCurrentChatStressCopy(runId: string, copyIndex: number): Promise<string> {
+	async createCurrentChatStressCopies(runId: string, targetCount: number, onProgress?: StressCopyProgress): Promise<string> {
 		const sourceChat = this.currentChat
 		if (sourceChat == null) return '当前没有可复制的会话'
 		if (sourceChat.state == 'processing') return '请等待当前流式输出完成'
 		if (sourceChat.msgList.length == 0) return '当前会话没有消息'
+		if (targetCount <= 0) return '复制数量必须大于 0'
 
-		const chatId = this.getStressDataId('stress_' + runId + '_chat')
-		const copiedMessages = this.cloneMessagesForStress(sourceChat.msgList, chatId, 'stress_' + runId + '_' + copyIndex.toString())
-		if (!await this.storageManager.saveChatMessagesAsync(chatId, copiedMessages)) return '写入 Storage 失败'
-		const copiedChat: ChatItem = {
-			id: chatId,
-			title: '[压测 ' + (copyIndex + 1).toString() + '] ' + sourceChat.title,
-			state: 'none',
-			inputContent: '',
-			// 新副本已写入 Storage，保持空列表以避免在生成阶段挂载大量富文本视图。
-			msgList: reactive<MsgItem[]>([]),
-			update_time: Date.now() + copyIndex
+		const sourceMessages = sourceChat.msgList.slice(0)
+		const sourceTitle = sourceChat.title
+		const baseUpdateTime = Date.now()
+		// 以消息数限制批次规模；长会话不会一次排队过多 native Storage 请求。
+		const maxMessagesPerBatch = 100
+		const batchSize = Math.max(1, Math.min(25, Math.floor(maxMessagesPerBatch / sourceMessages.length)))
+		const allCopiedChats = [] as ChatItem[]
+		let completed = 0
+		while (completed < targetCount) {
+			const batchEnd = Math.min(completed + batchSize, targetCount)
+			const copiedChats = [] as ChatItem[]
+			const messageBatches = [] as ChatMessageBatch[]
+			for (let copyIndex = completed; copyIndex < batchEnd; copyIndex++) {
+				// 会话 ID 是消息索引和 activeId 的隔离边界，必须为每个副本重新生成。
+				const chatId = this.getStressDataId('stress_' + runId + '_chat')
+				const copiedMessages = this.cloneMessagesForStress(sourceMessages, chatId, 'stress_' + runId + '_' + copyIndex.toString())
+				copiedChats.push({
+					id: chatId,
+					title: '[压测 ' + (copyIndex + 1).toString() + '] ' + sourceTitle,
+					state: 'none',
+					inputContent: '',
+					// 副本已写入 Storage，保持空列表，选中时再按需加载消息。
+					msgList: reactive<MsgItem[]>([]),
+					update_time: baseUpdateTime + copyIndex
+				} as ChatItem)
+				messageBatches.push({ chatId: chatId, messages: copiedMessages })
+			}
+			if (!await this.storageManager.saveChatMessagesBatchAsync(messageBatches)) {
+				// 让已完成的批次仍然可见，避免 Storage 中出现无法访问的副本元数据。
+				allCopiedChats.reverse()
+				if (allCopiedChats.length > 0) this.chat.datas.unshift(...allCopiedChats)
+				return '写入 Storage 失败'
+			}
+			allCopiedChats.push(...copiedChats)
+			completed = batchEnd
+			if (onProgress != null) onProgress(completed)
 		}
-		this.chat.datas.unshift(copiedChat)
+
+		// 只触发一次响应式列表更新；逆序插入可保持压测副本的显示顺序。
+		allCopiedChats.reverse()
+		this.chat.datas.unshift(...allCopiedChats)
 		return ''
 	}
 	

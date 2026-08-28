@@ -68,9 +68,6 @@ const canParseImg = computed<boolean>(() => {
 
 const copyingChats = ref<boolean>(false)
 const copiedChats = ref<number>(0)
-let targetCopiedChats = 0
-let completedChatCount = 0
-let copyProgressTimer: number | null = null
 let stressCopyRunId = ''
 const canCopyMessages = computed<boolean>(() => {
     return !copyingChats.value && aiState.value != 'processing' && uniAi.lastAiMsg != null
@@ -87,45 +84,23 @@ function copyMessages() {
 function copyChats() {
     if (!canCopyChats.value) return
     copyingChats.value = true
-    copiedChats.value = 0
-    completedChatCount = 0
-    targetCopiedChats = 500
-    stressCopyRunId = Date.now().toString(36)
-    startCopyProgressSampling()
-    copyNextChat()
-}
-
-function startCopyProgressSampling() {
-    if (copyProgressTimer != null) clearInterval(copyProgressTimer)
-    copyProgressTimer = setInterval(() => {
-        copiedChats.value = completedChatCount
-    }, 250) as number
-}
-
-function stopCopyProgressSampling() {
-    if (copyProgressTimer != null) {
-        clearInterval(copyProgressTimer)
-        copyProgressTimer = null
-    }
-    copiedChats.value = completedChatCount
+	copiedChats.value = 0
+	stressCopyRunId = Date.now().toString(36)
+	copyNextChat()
 }
 
 const copyNextChat = async () => {
-    if (completedChatCount >= targetCopiedChats) {
-        uniAi.saveChatList2Storage()
-        stopCopyProgressSampling()
-        copyingChats.value = false
-        return
-    }
-    const error = await uniAi.createCurrentChatStressCopy(stressCopyRunId, completedChatCount)
-    if (error.length > 0) {
-        uniAi.saveChatList2Storage()
-        stopCopyProgressSampling()
-        copyingChats.value = false
-        return
-    }
-    completedChatCount += 1
-    setTimeout(() => copyNextChat(), 0)
+	const error = await uniAi.createCurrentChatStressCopies(stressCopyRunId, 500, (completed: number): void => {
+		copiedChats.value = completed
+	})
+	if (error.length > 0) {
+		uniAi.saveChatList2Storage()
+		copyingChats.value = false
+		return
+	}
+	uniAi.saveChatList2Storage()
+	copiedChats.value = 500
+	copyingChats.value = false
 }
 
 const currentLLMModel = computed<LLMModel>(() => {
@@ -236,9 +211,6 @@ onMounted(() => {
     // #endif
 });
 
-onBeforeUnmount(() => {
-    stopCopyProgressSampling()
-})
 </script>
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';

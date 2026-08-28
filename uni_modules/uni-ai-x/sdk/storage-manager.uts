@@ -31,6 +31,11 @@ export type AiChatMsgIds = {
 	msgIds: string[]
 }
 
+export type ChatMessageBatch = {
+	chatId: string
+	messages: MsgItem[]
+}
+
 // 存储管理类
 export class StorageManager {
 	
@@ -145,20 +150,35 @@ export class StorageManager {
 	}
 
 	async saveChatMessagesAsync(chatId: string, messages: MsgItem[]): Promise<boolean> {
+		return await this.saveChatMessagesBatchAsync([{ chatId: chatId, messages: messages }])
+	}
+
+	/**
+	 * Save several independent chat snapshots in one bounded storage batch.
+	 * The stress-copy caller limits each batch so a large run does not enqueue
+	 * hundreds of native storage requests at once.
+	 */
+	async saveChatMessagesBatchAsync(batches: ChatMessageBatch[]): Promise<boolean> {
 		const writes = [] as Promise<boolean>[]
-		const msgIds = [] as string[]
-		for (let index = 0; index < messages.length; index++) {
-			const message = messages[index]
-			msgIds.push(message._id)
+		for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+			const batch = batches[batchIndex]
+			const msgIds = [] as string[]
+			for (let messageIndex = 0; messageIndex < batch.messages.length; messageIndex++) {
+				const message = batch.messages[messageIndex]
+				msgIds.push(message._id)
+				const data = JSON.stringify(message)
+				writes.push(new Promise<boolean>((resolve) => {
+					uni.setStorage({ key: `${STORAGE_KEYS.MSG_CONTENT_PREFIX}${message._id}`, data: data, success: () => resolve(true), fail: () => resolve(false) })
+				}))
+			}
+			const idsData = JSON.stringify(msgIds)
 			writes.push(new Promise<boolean>((resolve) => {
-				uni.setStorage({ key: `${STORAGE_KEYS.MSG_CONTENT_PREFIX}${message._id}`, data: JSON.stringify(message), success: () => resolve(true), fail: () => resolve(false) })
+				uni.setStorage({ key: `${STORAGE_KEYS.CHAT_MSG_IDS_PREFIX}${batch.chatId}-msgIds`, data: idsData, success: () => resolve(true), fail: () => resolve(false) })
 			}))
 		}
 		const results = await Promise.all(writes)
 		for (let index = 0; index < results.length; index++) if (!results[index]) return false
-		return await new Promise<boolean>((resolve) => {
-			uni.setStorage({ key: `${STORAGE_KEYS.CHAT_MSG_IDS_PREFIX}${chatId}-msgIds`, data: JSON.stringify(msgIds), success: () => resolve(true), fail: () => resolve(false) })
-		})
+		return true
 	}
 
 	appendChatMessages(chatId: string, messages: MsgItem[]): boolean {
