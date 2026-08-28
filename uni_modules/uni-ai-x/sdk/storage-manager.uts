@@ -123,6 +123,60 @@ export class StorageManager {
 		this._addChatMsgIds(message.chat_id, message._id)
 		return this.saveMessage(message._id, message)
 	}
+
+	/**
+	 * 为压测数据准备完整会话快照，避免逐条更新消息 ID 列表。
+	 */
+	saveChatMessages(chatId: string, messages: MsgItem[]): boolean {
+		const msgIds = [] as string[]
+		for (let index = 0; index < messages.length; index++) {
+			const message = messages[index]
+			if (!this.saveMessage(message._id, message)) return false
+			msgIds.push(message._id)
+		}
+		try {
+			const key = `${STORAGE_KEYS.CHAT_MSG_IDS_PREFIX}${chatId}-msgIds`
+			uni.setStorageSync(key, JSON.stringify(msgIds))
+			return true
+		} catch (error) {
+			console.error(`保存会话 ${chatId} 消息ID列表失败:`, error)
+			return false
+		}
+	}
+
+	async saveChatMessagesAsync(chatId: string, messages: MsgItem[]): Promise<boolean> {
+		const writes = [] as Promise<boolean>[]
+		const msgIds = [] as string[]
+		for (let index = 0; index < messages.length; index++) {
+			const message = messages[index]
+			msgIds.push(message._id)
+			writes.push(new Promise<boolean>((resolve) => {
+				uni.setStorage({ key: `${STORAGE_KEYS.MSG_CONTENT_PREFIX}${message._id}`, data: JSON.stringify(message), success: () => resolve(true), fail: () => resolve(false) })
+			}))
+		}
+		const results = await Promise.all(writes)
+		for (let index = 0; index < results.length; index++) if (!results[index]) return false
+		return await new Promise<boolean>((resolve) => {
+			uni.setStorage({ key: `${STORAGE_KEYS.CHAT_MSG_IDS_PREFIX}${chatId}-msgIds`, data: JSON.stringify(msgIds), success: () => resolve(true), fail: () => resolve(false) })
+		})
+	}
+
+	appendChatMessages(chatId: string, messages: MsgItem[]): boolean {
+		const msgIds = this._getChatMsgIds(chatId)
+		for (let index = 0; index < messages.length; index++) {
+			const message = messages[index]
+			if (!this.saveMessage(message._id, message)) return false
+			msgIds.push(message._id)
+		}
+		try {
+			const key = `${STORAGE_KEYS.CHAT_MSG_IDS_PREFIX}${chatId}-msgIds`
+			uni.setStorageSync(key, JSON.stringify(msgIds))
+			return true
+		} catch (error) {
+			console.error(`追加会话 ${chatId} 消息ID列表失败:`, error)
+			return false
+		}
+	}
 	updateMessage(message: MsgItem): boolean {
 		return this.saveMessage(message._id, message)
 	}

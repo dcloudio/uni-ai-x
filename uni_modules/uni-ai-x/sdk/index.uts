@@ -12,6 +12,8 @@ type BeforeRequestAiFn = () => void
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
+	private stressDataSequence: number = 0
+	private loadedChatIds: string[] = [] as string[]
 	imgList: ImgItem[] = reactive<ImgItem[]>([]);
 	// 当前用户
 	currentUser: Userinfo = currentUser
@@ -58,6 +60,95 @@ class UniAi {
 		// 生成一个 local_ 开头的随机字符串
 		return (this.currentUser._id ?? 'tmp') + "_" + (Date.now()).toString(16) + "_" + Math.floor(Math.random() * 10000).toString(16)
 	}
+
+	private getStressDataId(prefix: string): string {
+		this.stressDataSequence += 1
+		return prefix + '_' + Date.now().toString(36) + '_' + this.stressDataSequence.toString(36)
+	}
+
+	private cloneMessagesForStress(sourceMessages: MsgItem[], chatId: string, prefix: string): MsgItem[] {
+		const idMap = {} as UTSJSONObject
+		const clonedMessages = [] as MsgItem[]
+		const createTime = Date.now()
+		for (let index = 0; index < sourceMessages.length; index++) {
+			const source = sourceMessages[index]
+			const messageId = this.getStressDataId(prefix + '_msg')
+			idMap[source._id] = messageId
+			const cloned = { ...source } as MsgItem
+			cloned._id = messageId
+			cloned.chat_id = chatId
+			cloned.create_time = createTime + index
+			cloned.rendered = true
+			clonedMessages.push(cloned)
+		}
+		for (let index = 0; index < clonedMessages.length; index++) {
+			const sourceAboutId = sourceMessages[index].about_msg_id ?? ''
+			if (sourceAboutId.length == 0) continue
+			const mappedAboutId = idMap[sourceAboutId] as string | null
+			if (mappedAboutId != null) clonedMessages[index].about_msg_id = mappedAboutId
+		}
+		return clonedMessages
+	}
+
+	expandCurrentChatForStress(targetRounds: number): string {
+		const chat = this.currentChat
+		if (chat == null) return '当前没有可复制的会话'
+		if (chat.state == 'processing') return '请等待当前流式输出完成'
+		if (chat.msgList.length != 2) return '当前会话必须只包含一轮消息'
+		if (targetRounds <= 1) return '目标轮数必须大于 1'
+
+		const sourceMessages = chat.msgList.slice(0)
+		const appendedMessages = [] as MsgItem[]
+		for (let round = 1; round < targetRounds; round++) {
+			const cloned = this.cloneMessagesForStress(sourceMessages, chat.id, 'stress_round_' + round.toString())
+			for (let index = 0; index < cloned.length; index++) appendedMessages.push(cloned[index])
+		}
+		if (!this.storageManager.appendChatMessages(chat.id, appendedMessages)) return '写入 Storage 失败'
+		chat.msgList.push(...appendedMessages)
+		chat.update_time = Date.now()
+		this.saveChatList2Storage()
+		return ''
+	}
+
+	copyLastMessageForStress(count: number): string {
+		const chat = this.currentChat
+		const message = this.lastAiMsg
+		if (chat == null || message == null) return '当前没有可复制的消息'
+		if (chat.state == 'processing') return '请等待当前流式输出完成'
+		if (count <= 0) return '复制数量必须大于 0'
+		const copiedMessages = [] as MsgItem[]
+		for (let index = 0; index < count; index++) {
+			const copied = this.cloneMessagesForStress([message] as MsgItem[], chat.id, 'stress_message_' + index.toString())
+			copiedMessages.push(copied[0])
+		}
+		if (!this.storageManager.appendChatMessages(chat.id, copiedMessages)) return '写入 Storage 失败'
+		chat.msgList.push(...copiedMessages)
+		chat.update_time = Date.now()
+		this.saveChatList2Storage()
+		return ''
+	}
+
+	async createCurrentChatStressCopy(runId: string, copyIndex: number): Promise<string> {
+		const sourceChat = this.currentChat
+		if (sourceChat == null) return '当前没有可复制的会话'
+		if (sourceChat.state == 'processing') return '请等待当前流式输出完成'
+		if (sourceChat.msgList.length == 0) return '当前会话没有消息'
+
+		const chatId = this.getStressDataId('stress_' + runId + '_chat')
+		const copiedMessages = this.cloneMessagesForStress(sourceChat.msgList, chatId, 'stress_' + runId + '_' + copyIndex.toString())
+		if (!await this.storageManager.saveChatMessagesAsync(chatId, copiedMessages)) return '写入 Storage 失败'
+		const copiedChat: ChatItem = {
+			id: chatId,
+			title: '[压测 ' + (copyIndex + 1).toString() + '] ' + sourceChat.title,
+			state: 'none',
+			inputContent: '',
+			// 新副本已写入 Storage，保持空列表以避免在生成阶段挂载大量富文本视图。
+			msgList: reactive<MsgItem[]>([]),
+			update_time: Date.now() + copyIndex
+		}
+		this.chat.datas.unshift(copiedChat)
+		return ''
+	}
 	
 	addChat(checkEmpty: boolean = true) {
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
@@ -73,6 +164,7 @@ class UniAi {
 				inputContent: ''
 			};
 			this.chat.datas.unshift(newChat);
+			this.loadedChatIds.push(newChat.id)
 			activeId = newChat.id
 			this.saveChatList2Storage()
 		}
@@ -92,11 +184,27 @@ class UniAi {
 			const otherChat = uniAi.chat.datas.find((item) => item.id != chatId)!
 			uniAi.chat.activeId = otherChat.id
 		}
-		nextTick(() => {
+			nextTick(() => {
 			const index = uniAi.chat.datas.findIndex((item) => item.id == chatId)
 			uniAi.chat.datas.splice(index, 1)
+			const loadedIndex = this.loadedChatIds.indexOf(chatId)
+			if (loadedIndex >= 0) this.loadedChatIds.splice(loadedIndex, 1)
 			this.storageManager.deleteChat(chatId)
 		})
+	}
+
+	selectChat(chatId: string) {
+		this.loadChatMessages(chatId)
+		this.chat.activeId = chatId
+	}
+
+	private loadChatMessages(chatId: string) {
+		if (this.loadedChatIds.indexOf(chatId) >= 0) return
+		const chat = this.chat.datas.find((item) => item.id == chatId)
+		if (chat == null) return
+		const messages = this.storageManager.getChatMessages(chatId)
+		chat.msgList.push(...messages)
+		this.loadedChatIds.push(chatId)
 	}
 		
 	get lastAiMsg(): MsgItem | null {
@@ -206,7 +314,7 @@ class UniAi {
 				return
 			}
 			
-			// 转换为ChatItem格式并加载消息
+			// 启动只加载会话元数据；消息在选中会话时再读取。
 			for (let i = 0; i < aiChats.length; i++) {
 				const aiChat = aiChats[i]
 				const chatItem: ChatItem = {
@@ -224,6 +332,7 @@ class UniAi {
 			// 默认选中第一个会话
 			if (this.chat.datas.length > 0) {
 				this.chat.activeId = this.chat.datas[0].id
+				this.loadChatMessages(this.chat.activeId)
 			}
 			
 		} catch (error) {
@@ -399,22 +508,3 @@ export const uiTheme = computed<string>(() => uniAi.setting.theme)
 // 方便在控制台观察
 window.uniAi = uniAi
 // #endif
-	private loadedChatIds: string[] = [] as string[]
-			this.loadedChatIds.push(newChat.id)
-			const loadedIndex = this.loadedChatIds.indexOf(chatId)
-			if (loadedIndex >= 0) this.loadedChatIds.splice(loadedIndex, 1)
-
-	selectChat(chatId: string) {
-		this.loadChatMessages(chatId)
-		this.chat.activeId = chatId
-	}
-
-	private loadChatMessages(chatId: string) {
-		if (this.loadedChatIds.indexOf(chatId) >= 0) return
-		const chat = this.chat.datas.find((item) => item.id == chatId)
-		if (chat == null) return
-		const messages = this.storageManager.getChatMessages(chatId)
-		chat.msgList.push(...messages)
-		this.loadedChatIds.push(chatId)
-	}
-				this.loadChatMessages(this.chat.activeId)

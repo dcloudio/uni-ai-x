@@ -14,6 +14,14 @@
 				<text class="chat-extension-input-clear-text">清空</text>
 			</view>
 		</view>
+		<view class="chat-extension-input-stress-actions">
+			<view class="chat-extension-input-stress-button" :class="!canCopyMessages ? 'chat-extension-input-action-disabled' : ''" @click.stop="copyMessages">
+				<text class="chat-extension-input-stress-button-text">复制100条消息</text>
+			</view>
+			<view class="chat-extension-input-stress-button" :class="!canCopyChats ? 'chat-extension-input-action-disabled' : ''" @click.stop="copyChats">
+				<text class="chat-extension-input-stress-button-text">复制500个会话</text>
+			</view>
+		</view>
 		<view class="chat-extension-input-status-row">
 			<text class="chat-extension-input-status-text">{{statusText}}</text>
 			<view class="chat-extension-input-stop-slot">
@@ -23,6 +31,9 @@
 			</view>
 		</view>
 		<view class="chat-extension-input-safe-area"></view>
+		<view v-if="copyingChats" class="chat-extension-input-copy-mask">
+			<text class="chat-extension-input-copy-mask-text">正在复制会话 {{copiedChats}} / 500</text>
+		</view>
 	</view>
 </template>
 
@@ -35,6 +46,18 @@
 	const aiState = computed<string>(() => uniAi.currentChat?.state ?? 'none')
 	const activeActionId = computed<string>(() => extension.activeActionId())
 	const statusText = computed<string>(() => extension.statusText())
+	const copyingChats = ref<boolean>(false)
+	const copiedChats = ref<number>(0)
+	let targetCopiedChats = 0
+	let completedChatCount = 0
+	let copyProgressTimer: number | null = null
+	let stressCopyRunId = ''
+	const canCopyMessages = computed<boolean>(() => {
+		return !copyingChats.value && aiState.value != 'processing' && uniAi.lastAiMsg != null
+	})
+	const canCopyChats = computed<boolean>(() => {
+		return !copyingChats.value && aiState.value != 'processing' && (uniAi.currentChat?.msgList.length ?? 0) > 0
+	})
 
 	function runAction(actionId: string) {
 		if (aiState.value == 'processing') return
@@ -50,11 +73,61 @@
 		extension.stop()
 	}
 
+	function copyMessages() {
+		if (!canCopyMessages.value) return
+		uniAi.copyLastMessageForStress(100)
+	}
+
+	function copyChats() {
+		if (!canCopyChats.value) return
+		copyingChats.value = true
+		copiedChats.value = 0
+		completedChatCount = 0
+		targetCopiedChats = 500
+		stressCopyRunId = Date.now().toString(36)
+		startCopyProgressSampling()
+		copyNextChat()
+	}
+
+	function startCopyProgressSampling() {
+		if (copyProgressTimer != null) clearInterval(copyProgressTimer)
+		copyProgressTimer = setInterval(() => {
+			copiedChats.value = completedChatCount
+		}, 250) as number
+	}
+
+	function stopCopyProgressSampling() {
+		if (copyProgressTimer != null) {
+			clearInterval(copyProgressTimer)
+			copyProgressTimer = null
+		}
+		copiedChats.value = completedChatCount
+	}
+
+	const copyNextChat = async () => {
+		if (completedChatCount >= targetCopiedChats) {
+			uniAi.saveChatList2Storage()
+			stopCopyProgressSampling()
+			copyingChats.value = false
+			return
+		}
+		const error = await uniAi.createCurrentChatStressCopy(stressCopyRunId, completedChatCount)
+		if (error.length > 0) {
+			uniAi.saveChatList2Storage()
+			stopCopyProgressSampling()
+			copyingChats.value = false
+			return
+		}
+		completedChatCount += 1
+		setTimeout(() => copyNextChat(), 0)
+	}
+
 	watch((): string => uniAi.chat.activeId, () => {
 		extension.onChatChanged()
 	})
 
 	onBeforeUnmount(() => {
+		stopCopyProgressSampling()
 		extension.dispose()
 	})
 </script>
@@ -124,6 +197,50 @@
 	height: 34px;
 	flex-direction: row;
 	align-items: center;
+}
+
+.chat-extension-input-stress-actions {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.chat-extension-input-stress-button {
+	height: 30px;
+	padding: 0 10px;
+	margin-right: 12px;
+	border: 1px solid var(--border-primary);
+	border-radius: 4px;
+	background-color: var(--bg-secondary);
+	justify-content: center;
+}
+
+.chat-extension-input-stress-button-text {
+	font-size: 12px;
+	color: var(--text-secondary);
+}
+
+.chat-extension-input-copy-mask {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 500;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.35);
+}
+
+.chat-extension-input-copy-mask-text {
+	padding: 12px 16px;
+	border-radius: 6px;
+	background-color: var(--bg-primary);
+	font-size: 14px;
+	color: var(--text-primary);
 }
 
 .chat-extension-input-status-text {
