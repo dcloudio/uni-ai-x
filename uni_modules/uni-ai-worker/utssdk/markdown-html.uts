@@ -310,6 +310,68 @@ function normalizeTaskMarkers(source: string): string {
 	return result
 }
 
+// Loose task lists wrap the label in <p>; remove only that top-level wrapper so
+// the marker and label stay on one line while nested lists keep their blocks.
+function normalizeTaskItemHtml(source: string): string {
+	let result = ''
+	let cursor = 0
+	let nestedListDepth = 0
+	while (cursor < source.length) {
+		const paragraphStart = findOpenTag(source, 'p', cursor)
+		const paragraphEnd = source.indexOf('</p>', cursor)
+		const unorderedListStart = findOpenTag(source, 'ul', cursor)
+		const orderedListStart = findOpenTag(source, 'ol', cursor)
+		const unorderedListEnd = source.indexOf('</ul>', cursor)
+		const orderedListEnd = source.indexOf('</ol>', cursor)
+		let tagStart = -1
+		let tagKind = ''
+		const starts = [paragraphStart, paragraphEnd, unorderedListStart, orderedListStart,
+			unorderedListEnd, orderedListEnd] as number[]
+		for (let index = 0; index < starts.length; index++) {
+			if (starts[index] < 0 || (tagStart >= 0 && starts[index] >= tagStart)) continue
+			tagStart = starts[index]
+		}
+		if (tagStart < 0) {
+			result += source.slice(cursor)
+			break
+		}
+		if (tagStart == paragraphStart) tagKind = 'p-open'
+		else if (tagStart == paragraphEnd) tagKind = 'p-close'
+		else if (tagStart == unorderedListStart) tagKind = 'ul-open'
+		else if (tagStart == orderedListStart) tagKind = 'ol-open'
+		else if (tagStart == unorderedListEnd) tagKind = 'ul-close'
+		else tagKind = 'ol-close'
+		result += source.slice(cursor, tagStart)
+		if (tagKind == 'p-open') {
+			const tagEnd = source.indexOf('>', tagStart)
+			if (tagEnd < 0) {
+				result += source.slice(tagStart)
+				break
+			}
+			if (nestedListDepth > 0) result += source.slice(tagStart, tagEnd + 1)
+			cursor = tagEnd + 1
+		} else if (tagKind == 'p-close') {
+			if (nestedListDepth > 0) result += '</p>'
+			cursor = paragraphEnd + '</p>'.length
+		} else if (tagKind == 'ul-open' || tagKind == 'ol-open') {
+			const tagEnd = source.indexOf('>', tagStart)
+			if (tagEnd < 0) {
+				result += source.slice(tagStart)
+				break
+			}
+			result += source.slice(tagStart, tagEnd + 1)
+			cursor = tagEnd + 1
+			nestedListDepth += 1
+		} else {
+			const closeLength = tagKind == 'ul-close' ? '</ul>'.length : '</ol>'.length
+			result += source.slice(tagStart, tagStart + closeLength)
+			cursor = tagStart + closeLength
+			nestedListDepth = Math.max(0, nestedListDepth - 1)
+		}
+	}
+	return result
+}
+
 function styleTaskListItems(source: string): string {
 	let result = ''
 	let cursor = 0
@@ -328,10 +390,12 @@ function styleTaskListItems(source: string): string {
 		result += source.slice(cursor, start)
 		const openTag = source.slice(start, openEnd + 1)
 		const itemHtml = source.slice(openEnd + 1, closeStart)
-		result += itemHtml.indexOf('data-uni-ai-task="1"') >= 0
+		const isTaskItem = itemHtml.indexOf('data-uni-ai-task="1"') >= 0
+		result += isTaskItem
 			? appendTagStyle(openTag, 'margin:2px 0;line-height:26px;list-style-type:none;')
 			: openTag
-		result += itemHtml + '</li>'
+		result += isTaskItem ? normalizeTaskItemHtml(itemHtml) : itemHtml
+		result += '</li>'
 		cursor = closeStart + '</li>'.length
 	}
 	return result
