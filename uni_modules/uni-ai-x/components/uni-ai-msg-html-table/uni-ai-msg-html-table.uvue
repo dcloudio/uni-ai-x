@@ -2,7 +2,7 @@
 	<view class="uni-ai-msg-html-table" :class="[`ui-theme-${uiTheme}`]">
 		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="false" :style="{height: tableViewportHeight}"
-			@touchstart.stop="stopDrawerGesture" @touchmove.stop="stopDrawerGesture">
+			>
 			<rich-text class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
 				:nodes="tableHtml" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
@@ -53,8 +53,6 @@
 		return 'width:' + tableContentWidth.value.toString() + 'px;height:' + tableContentHeight.value.toString() + 'px;font-size:14px;line-height:22px;color:'
 			+ color + ';background-color:' + backgroundColor + ';'
 	})
-
-	function stopDrawerGesture(_event: TouchEvent) {}
 
 	onMounted(() => {
 		nextTick(() => {

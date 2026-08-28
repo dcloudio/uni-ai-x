@@ -1,8 +1,7 @@
 <template>
 	<view class="uni-ai-page" ref="uni-ai-page"
-		:class="[showMenu && !isDragging ? 'uni-ai-page-showMenu' : '', isDragging ? 'uni-ai-page-dragging' : '', `ui-theme-${uiTheme}`]"
-		:style="{transform: `translateX(${translateX}px)`}"
-		@touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchCancel">
+		:class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]"
+		:style="{transform: `translateX(${translateX}px)`}">
 		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
 		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 		<fps v-if="showFps" />
@@ -24,27 +23,9 @@
 	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 
 	const MENU_WIDTH = 260
-	const EDGE_START_WIDTH = 32
-	const DIRECTION_LOCK_DISTANCE = 10
-	const SNAP_DISTANCE = 80
-	const SNAP_VELOCITY = 0.35
-	const GESTURE_PENDING = 0
-	const GESTURE_HORIZONTAL = 1
-	const GESTURE_VERTICAL = 2
 
-	const startX = ref<number>(0)
-	const startY = ref<number>(0)
 	const translateX = ref<number>(-MENU_WIDTH)
-	const isDragging = ref<boolean>(false)
-	const isMoveing = ref<boolean>(false)
 	const showMenu = ref<boolean>(false)
-	const gestureTracking = ref<boolean>(false)
-	const gestureDirection = ref<number>(GESTURE_PENDING)
-	const gestureStartedOpen = ref<boolean>(false)
-	const gestureStartTranslateX = ref<number>(-MENU_WIDTH)
-	let lastMoveX = 0
-	let lastMoveTime = 0
-	let swipeVelocityX = 0
 	const showFps: boolean = false
 
 	const setMenu = (show: boolean) => {
@@ -56,87 +37,7 @@
 		setMenu(!showMenu.value)
 	}
 
-	const touchStart = (event: TouchEvent) => {
-		if (event.touches.length == 0) return
-		const touch = event.touches[0]
-		gestureTracking.value = showMenu.value || touch.pageX <= EDGE_START_WIDTH
-		gestureDirection.value = GESTURE_PENDING
-		isDragging.value = false
-		isMoveing.value = false
-		if (!gestureTracking.value) return
-
-		startX.value = touch.pageX
-		startY.value = touch.pageY
-		gestureStartedOpen.value = showMenu.value
-		gestureStartTranslateX.value = showMenu.value ? 0 : -MENU_WIDTH
-		lastMoveX = touch.pageX
-		lastMoveTime = Date.now()
-		swipeVelocityX = 0
-	}
-
-	const touchMove = (event: TouchEvent) => {
-		if (!gestureTracking.value || event.touches.length == 0) return
-		const touch = event.touches[0]
-		const currentX = touch.pageX
-		const diffX = currentX - startX.value
-		const diffY = touch.pageY - startY.value
-		const absX = Math.abs(diffX)
-		const absY = Math.abs(diffY)
-
-		if (gestureDirection.value == GESTURE_PENDING) {
-			if (Math.max(absX, absY) < DIRECTION_LOCK_DISTANCE) return
-			if (absY >= absX || (!gestureStartedOpen.value && diffX <= 0) || (gestureStartedOpen.value && diffX >= 0)) {
-				gestureDirection.value = GESTURE_VERTICAL
-				gestureTracking.value = false
-				return
-			}
-			gestureDirection.value = GESTURE_HORIZONTAL
-			isDragging.value = true
-			isMoveing.value = true
-		}
-		if (gestureDirection.value != GESTURE_HORIZONTAL) return
-		if (event.cancelable) event.preventDefault()
-
-		const now = Date.now()
-		const elapsed = now - lastMoveTime
-		if (elapsed > 0) swipeVelocityX = (currentX - lastMoveX) / elapsed
-		lastMoveX = currentX
-		lastMoveTime = now
-
-		let newTranslateX = gestureStartTranslateX.value + diffX
-		if (newTranslateX > 0) newTranslateX = 0
-		if (newTranslateX < -MENU_WIDTH) newTranslateX = -MENU_WIDTH
-		translateX.value = newTranslateX
-	}
-
-	const touchEnd = () => {
-		const acceptedHorizontalGesture = gestureTracking.value && gestureDirection.value == GESTURE_HORIZONTAL
-		if (acceptedHorizontalGesture) {
-			const movedDistance = Math.abs(translateX.value - gestureStartTranslateX.value)
-			const fastEnough = gestureStartedOpen.value ? swipeVelocityX <= -SNAP_VELOCITY : swipeVelocityX >= SNAP_VELOCITY
-			const shouldToggle = movedDistance >= SNAP_DISTANCE || fastEnough
-			setMenu(shouldToggle ? !gestureStartedOpen.value : gestureStartedOpen.value)
-		}
-		gestureTracking.value = false
-		gestureDirection.value = GESTURE_PENDING
-		isDragging.value = false
-		nextTick(() => {
-			isMoveing.value = false
-		})
-	}
-
-	const touchCancel = () => {
-		if (gestureDirection.value == GESTURE_HORIZONTAL) setMenu(gestureStartedOpen.value)
-		gestureTracking.value = false
-		gestureDirection.value = GESTURE_PENDING
-		isDragging.value = false
-		nextTick(() => {
-			isMoveing.value = false
-		})
-	}
-
 	const closeMenu = () => {
-		if (isMoveing.value) return
 		setMenu(false)
 	}
 
@@ -200,10 +101,6 @@
 
 .uni-ai-page-showMenu {
 	transform: translateX(0) !important;
-}
-
-.uni-ai-page-dragging {
-	transition: none;
 }
 
 /* #ifdef H5 */
