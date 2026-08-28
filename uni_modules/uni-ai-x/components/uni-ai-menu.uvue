@@ -3,16 +3,16 @@
 		<text class="menu-box-title">UNI-AI 助手</text>
 		<addChatBtn @click="closeMenu()" />
 		<text class="menu-box-nav">历史对话</text>
-		<scroll-view direction="vertical" class="menu-box-chat-list">
-			<view v-for="chat in chatDatas" :key="chat.id" @click="setActiveChat(chat)" class="menu-box-chat-item" :class="chat.id == activeChatId ? 'menu-box-chat-item-active' : ''"
+		<list-view direction="vertical" class="menu-box-chat-list" :lower-threshold="120" @scrolltolower="loadMoreChats">
+			<list-item v-for="chat in visibleChatDatas" :key="chat.id" @click="setActiveChat(chat)" class="menu-box-chat-item" :class="chat.id == activeChatId ? 'menu-box-chat-item-active' : ''"
 				@longpress="longpress(chat)"
 			>
 				<text class="menu-box-chat-item-title" :class="chat.id == activeChatId ? 'menu-box-chat-item-title-active' : ''">{{chat.title}}</text>
 				<view class="menu-box-more-box" @click.stop="longpress(chat)">
 					<uni-icons type="more-filled" size="14" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
 				</view>
-			</view>
-		</scroll-view>
+			</list-item>
+		</list-view>
 		<view class="menu-box-bottom">
 			<view class="menu-box-user-info" @click="toUCenter">
 				<image class="menu-box-avatar" :src="currentUser.avatar_file?.url ?? '/uni_modules/uni-ai-x/static/default-avatar.png'"/>
@@ -47,10 +47,16 @@
 	const activeChatId = computed<string>(() => {
 		return uniAi.chat.activeId
 	})
+	const CHAT_PAGE_SIZE = 50
+	const visibleChatCount = ref<number>(CHAT_PAGE_SIZE)
 	
 	const chatDatas = computed<ChatItem[]>(() => {
 		// 按更新时间排序
-		return uniAi.chat.datas.sort((a, b) => b.update_time - a.update_time)
+		return uniAi.chat.datas.slice(0).sort((a, b) => b.update_time - a.update_time)
+	})
+
+	const visibleChatDatas = computed<ChatItem[]>(() => {
+		return chatDatas.value.slice(0, visibleChatCount.value)
 	})
 	
 	const toUCenter = () => {
@@ -72,8 +78,13 @@
 	}
 	
 	const setActiveChat = (chat: ChatItem) => {
-		uniAi.chat.activeId = chat.id
+		uniAi.selectChat(chat.id)
 		closeMenu()
+	}
+
+	function loadMoreChats() {
+		if (visibleChatCount.value >= chatDatas.value.length) return
+		visibleChatCount.value = Math.min(visibleChatCount.value + CHAT_PAGE_SIZE, chatDatas.value.length)
 	}
 	
 	const longpress = (chat: ChatItem) => {
