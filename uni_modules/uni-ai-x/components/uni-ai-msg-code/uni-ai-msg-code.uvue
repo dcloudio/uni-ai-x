@@ -231,6 +231,162 @@ function buildRenderedCodeText(codeTokens: IToken[][]): string {
 	}).join('\n')
 }
 
+type MiniProgramCodeLine = {
+	tokens: IToken[]
+	blockCommentEnd: string
+}
+
+function isMiniProgramWordStart(charCode: number): boolean {
+	return (charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122)
+		|| charCode == 36 || charCode == 95
+}
+
+function isMiniProgramWordPart(charCode: number): boolean {
+	return isMiniProgramWordStart(charCode) || (charCode >= 48 && charCode <= 57)
+}
+
+function miniProgramUsesHashComments(language: string): boolean {
+	return language == 'python' || language == 'py' || language == 'shell' || language == 'bash'
+		|| language == 'sh' || language == 'yaml' || language == 'yml' || language == 'ruby'
+}
+
+function miniProgramKeywordClass(word: string): string {
+	const normalizedWord = word.toLowerCase()
+	const keywords = '|as|async|await|break|case|catch|class|const|continue|def|default|delete|do|else|elif|end|ensure|except|export|extends|finally|for|from|function|fun|if|implements|import|in|interface|lambda|let|module|namespace|new|of|package|pass|private|protected|public|return|static|switch|then|throw|throws|try|typeof|var|when|while|with|yield|'
+	const constants = '|false|inf|infinity|nan|nil|none|null|true|undefined|'
+	const supports = '|any|array|boolean|byte|char|date|double|float|int|integer|list|long|map|number|object|promise|set|string|void|'
+	if (keywords.indexOf('|' + normalizedWord + '|') >= 0) return 'keyword'
+	if (constants.indexOf('|' + normalizedWord + '|') >= 0) return 'constant'
+	if (supports.indexOf('|' + normalizedWord + '|') >= 0) return 'support'
+	return ''
+}
+
+function miniProgramCodeLineTokens(line: string, language: string, blockCommentEnd: string): MiniProgramCodeLine {
+	const tokens = [] as IToken[]
+	let index = 0
+	let plainText = ''
+	const normalizedLanguage = language.toLowerCase()
+	const hashComments = miniProgramUsesHashComments(normalizedLanguage)
+	const htmlLike = normalizedLanguage == 'html' || normalizedLanguage == 'xml' || normalizedLanguage == 'vue'
+	const pushToken = (text: string, className: string = '') => {
+		if (text.length == 0) return
+		const token: IToken = { text }
+		if (className.length > 0) token.className = className
+		tokens.push(token)
+	}
+	const flushPlainText = () => {
+		pushToken(plainText)
+		plainText = ''
+	}
+	while (index < line.length) {
+		if (blockCommentEnd.length > 0) {
+			const closeIndex = line.indexOf(blockCommentEnd, index)
+			if (closeIndex < 0) {
+				pushToken(line.slice(index), 'comment')
+				return { tokens, blockCommentEnd }
+			}
+			pushToken(line.slice(index, closeIndex + blockCommentEnd.length), 'comment')
+			index = closeIndex + blockCommentEnd.length
+			blockCommentEnd = ''
+			continue
+		}
+
+		const current = line.charAt(index)
+		const next = line.charAt(index + 1)
+		if (htmlLike && line.slice(index, index + 4) == '<!--') {
+			flushPlainText()
+			const closeIndex = line.indexOf('-->', index + 4)
+			if (closeIndex < 0) {
+				pushToken(line.slice(index), 'comment')
+				return { tokens, blockCommentEnd: '-->' }
+			}
+			pushToken(line.slice(index, closeIndex + 3), 'comment')
+			index = closeIndex + 3
+			continue
+		}
+		if (current == '/' && next == '*') {
+			flushPlainText()
+			const closeIndex = line.indexOf('*/', index + 2)
+			if (closeIndex < 0) {
+				pushToken(line.slice(index), 'comment')
+				return { tokens, blockCommentEnd: '*/' }
+			}
+			pushToken(line.slice(index, closeIndex + 2), 'comment')
+			index = closeIndex + 2
+			continue
+		}
+		if ((current == '/' && next == '/') || (normalizedLanguage == 'sql' && current == '-' && next == '-')
+			|| (hashComments && current == '#')) {
+			flushPlainText()
+			pushToken(line.slice(index), 'comment')
+			break
+		}
+		if (current == '"' || current == "'" || current == '`') {
+			flushPlainText()
+			const quote = current
+			let end = index + 1
+			while (end < line.length) {
+				if (line.charAt(end) == '\\') {
+					end += 2
+					continue
+				}
+				if (line.charAt(end) == quote) {
+					end += 1
+					break
+				}
+				end += 1
+			}
+			pushToken(line.slice(index, end), 'string')
+			index = end
+			continue
+		}
+		if (htmlLike && current == '<') {
+			const closeIndex = line.indexOf('>', index + 1)
+			if (closeIndex >= 0) {
+				flushPlainText()
+				pushToken(line.slice(index, closeIndex + 1), 'entity')
+				index = closeIndex + 1
+				continue
+			}
+		}
+		const charCode = line.charCodeAt(index)
+		if (isMiniProgramWordStart(charCode)) {
+			flushPlainText()
+			let end = index + 1
+			while (end < line.length && isMiniProgramWordPart(line.charCodeAt(end))) end += 1
+			const word = line.slice(index, end)
+			let className = miniProgramKeywordClass(word)
+			let nextIndex = end
+			while (nextIndex < line.length && (line.charAt(nextIndex) == ' ' || line.charAt(nextIndex) == '\t')) nextIndex += 1
+			if (className.length == 0 && line.charAt(nextIndex) == '(') className = 'function'
+			pushToken(word, className)
+			index = end
+			continue
+		}
+		if (charCode >= 48 && charCode <= 57) {
+			flushPlainText()
+			let end = index + 1
+			while (end < line.length) {
+				const numberChar = line.charAt(end)
+				const numberCharCode = line.charCodeAt(end)
+				if ((numberCharCode >= 48 && numberCharCode <= 57) || (numberCharCode >= 65 && numberCharCode <= 70)
+					|| (numberCharCode >= 97 && numberCharCode <= 102) || numberChar == '.' || numberChar == 'x' || numberChar == 'X') {
+					end += 1
+					continue
+				}
+				break
+			}
+			pushToken(line.slice(index, end), 'constant')
+			index = end
+			continue
+		}
+		plainText += current
+		index += 1
+	}
+	flushPlainText()
+	return { tokens, blockCommentEnd }
+}
+
 const safeCodeTokens = computed<IToken[][]>(() => {
 	const propTokens = normalizeCodeTokens(props.codeTokens)
 	return propTokens.length > 0 ? propTokens : highlightedCodeTokens.value
@@ -283,6 +439,19 @@ function highlightCode() {
 		})
 	}
 	if (completed == lines.length && requestVersion == codeHighlightRequestVersion) {
+		highlightedCodeLanguage = props.language
+		highlightedCodeLines = lines
+		highlightedCodeTokens.value = nextTokens
+	}
+	// #endif
+	// #ifdef MP-WEIXIN
+	let blockCommentEnd = ''
+	for (let index = 0; index < lines.length; index++) {
+		const result = miniProgramCodeLineTokens(lines[index], props.language, blockCommentEnd)
+		nextTokens[index] = result.tokens
+		blockCommentEnd = result.blockCommentEnd
+	}
+	if (requestVersion == codeHighlightRequestVersion) {
 		highlightedCodeLanguage = props.language
 		highlightedCodeLines = lines
 		highlightedCodeTokens.value = nextTokens
