@@ -1,15 +1,18 @@
 <template>
-	<view class="uni-ai-page" ref="uni-ai-page"
-		:class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]"
-		:style="{transform: `translateX(${translateX}px)`}">
-		<uni-ai-menu @close-menu="closeMenu"></uni-ai-menu>
-		<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
-		<fps v-if="showFps" />
-		<!-- #ifndef MP-WEIXIN -->
-		<web-view class="uni-ai-proxy-web" id="proxy-web"
-			src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html"
-			@load="proxyWebLoad" @message="proxyWebMsg"></web-view>
-		<!-- #endif -->
+	<view class="uni-ai-page-root">
+		<view class="uni-ai-page" ref="uni-ai-page"
+			:class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]"
+			:style="{transform: `translateX(${translateX}px)`}">
+			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
+			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+			<fps v-if="showFps" />
+			<!-- #ifndef MP-WEIXIN -->
+			<web-view class="uni-ai-proxy-web" id="proxy-web"
+				src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html"
+				@load="proxyWebLoad" @message="proxyWebMsg"></web-view>
+			<!-- #endif -->
+		</view>
+		<uni-ai-x-setting ref="uniAiXSettingRef"></uni-ai-x-setting>
 	</view>
 </template>
 
@@ -27,6 +30,7 @@
 	const translateX = ref<number>(-MENU_WIDTH)
 	const showMenu = ref<boolean>(false)
 	const showFps: boolean = false
+	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null)
 
 	const setMenu = (show: boolean) => {
 		showMenu.value = show
@@ -39,6 +43,10 @@
 
 	const closeMenu = () => {
 		setMenu(false)
+	}
+
+	const openSetting = () => {
+		uniAiXSettingRef.value?.$callMethod('open')
 	}
 
 	// #ifndef MP-WEIXIN
@@ -77,6 +85,15 @@
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+.uni-ai-page-root {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	overflow: hidden;
+}
 
 .uni-ai-proxy-web {
 	position: fixed;

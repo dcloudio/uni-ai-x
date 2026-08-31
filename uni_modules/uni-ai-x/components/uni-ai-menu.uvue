@@ -23,7 +23,6 @@
 				<uni-icons class="menu-box-setting-icon" type="gear-filled" size="20" :color="uiTheme == 'light' ? '#666' : '#FFF'"></uni-icons>
 			</view>
 		</view>
-		<uni-ai-x-setting class="menu-box-setting-container" ref="uniAiXSettingRef"></uni-ai-x-setting>
 	</view>
 </template>
 
@@ -34,6 +33,7 @@
 	
 	const emit = defineEmits<{
 		'close-menu': []
+		'open-setting': []
 	}>()
 	
 	const uiTheme = computed<string>(() => {
@@ -99,9 +99,8 @@
 		})
 	}
 	
-	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null);
 	const toSetting = () => {
-		uniAiXSettingRef.value?.$callMethod('open')
+		emit('open-setting')
 	}
 </script>
 
@@ -211,9 +210,6 @@
 .menu-box-to-login {
 	font-size: 14px;
 	color: var(--accent-primary);
-}
-
-.menu-box-setting-container {
 }
 
 .menu-box-setting-icon {
