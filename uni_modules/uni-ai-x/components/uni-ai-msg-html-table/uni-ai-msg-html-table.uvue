@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-msg-html-table" :class="[`ui-theme-${uiTheme}`]">
+	<view class="uni-ai-msg-html-table uni-theme-root">
 		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="false" :style="{height: tableViewportHeight}"
 			>

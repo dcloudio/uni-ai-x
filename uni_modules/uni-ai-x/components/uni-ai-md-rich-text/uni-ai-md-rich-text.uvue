@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-md-rich-text" :class="[`ui-theme-${uiTheme}`]">
+	<view class="uni-ai-md-rich-text uni-theme-root">
 		<template v-for="block in renderBlocks" :key="block.key">
 			<uni-ai-msg-html-table v-if="block.kind == 'table'"
 				:html="block.html" :column-widths="block.columnWidths" :row-text-widths="block.rowTextWidths" />

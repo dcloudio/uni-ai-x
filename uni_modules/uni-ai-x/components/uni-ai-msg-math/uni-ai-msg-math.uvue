@@ -1,5 +1,5 @@
 <template>
-    <scroll-view class="math-el" :class="[`ui-theme-${uiTheme}`, showMathSource ? 'math-el-source-pending' : 'math-el-image-ready math-el-scroll-image-ready']"
+    <scroll-view class="math-el uni-theme-root" :class="showMathSource ? 'math-el-source-pending' : 'math-el-image-ready math-el-scroll-image-ready'"
         direction="horizontal" :show-scrollbar="false">
         <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
             <image v-if="buffer0Href.length > 0" :src="buffer0Href" class="math-el-image" mode="scaleToFill"

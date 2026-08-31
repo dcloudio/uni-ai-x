@@ -1,5 +1,5 @@
 <template>
-	<view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
+	<view class="input-tool-bar uni-theme-root">
 		<view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
             <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666')"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考 (R1)</text>
@@ -23,7 +23,7 @@
     </view>
 </template>
 <script lang="uts" setup>
-import uniAi, { uiTheme, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
+import uniAi, { isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, defaultLLM, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts';
@@ -168,14 +168,6 @@ onMounted(() => {
 </script>
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-.ui-theme-light {
-    --input-btn-active-bg: #dbeafe;
-    --input-btn-bg: #f3f4f6;
-}
-.ui-theme-dark {
-    --input-btn-active-bg: #3d434b;
-    --input-btn-bg: #3d434b;
-}
 
 .input-tool-bar {
     flex-direction: row;

@@ -1,12 +1,23 @@
 <template>
-	<view class="uni-im-setting" :class="[`ui-theme-${uiTheme}`]">
+	<view class="uni-im-setting uni-theme-root">
 		<uni-popup ref="popupRef">
 			<view class="uni-im-setting-popup-content">
 				<text class="uni-im-setting-title">系统设置</text>
+				<!-- #ifdef APP -->
 				<view class="uni-im-setting-item">
 					<text class="uni-im-setting-label">暗黑模式</text>
 					<switch class="uni-im-setting-switch" color="#111" :checked="isDarkMode" @change="onThemeChange" />
 				</view>
+				<!-- #endif -->
+				<!-- #ifdef WEB || MP -->
+				<view class="uni-im-setting-item uni-im-setting-host-theme" @click="onHostThemeClick">
+					<text class="uni-im-setting-label">暗黑模式</text>
+					<view class="uni-im-setting-host-theme-value">
+						<text class="uni-im-setting-value">跟随系统主题</text>
+						<uni-icons type="info" size="16" color="#999"></uni-icons>
+					</view>
+				</view>
+				<!-- #endif -->
 				<view class="uni-im-setting-item">
 					<text class="uni-im-setting-label">大语言模型</text>
 					<view class="uni-im-setting-value-box" @click="changeModel">
@@ -45,7 +56,7 @@
 
 <script lang="uts" setup>
 	import {uniAi, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
-	import {Theme, Provider} from '@/uni_modules/uni-ai-x/types.uts';
+	import {Provider} from '@/uni_modules/uni-ai-x/types.uts';
 	
 	import {llmModelMap, providerNameList} from '@/uni_modules/uni-ai-x/config';
 	
@@ -87,6 +98,13 @@
 	// 主题切换事件处理
 	const onThemeChange = (event: UniSwitchChangeEvent) => {
 		uniAi.setting.theme = event.detail.value ? 'dark' : 'light'
+	}
+
+	const onHostThemeClick = () => {
+		uni.showToast({
+			title: '当前平台只能跟随系统主题',
+			icon: 'none'
+		})
 	}
 	
 	const changeModel = () => {
@@ -133,6 +151,15 @@
 
 .uni-im-setting-switch {
 	transform: scale(0.8);
+}
+
+.uni-im-setting-host-theme-value {
+	flex-direction: row;
+	align-items: center;
+}
+
+.uni-im-setting-host-theme-value .uni-im-setting-value {
+	margin-right: 4px;
 }
 
 .uni-im-setting-label {

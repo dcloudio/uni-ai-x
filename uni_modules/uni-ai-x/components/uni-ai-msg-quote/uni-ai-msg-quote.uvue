@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-msg-quote" :class="[`ui-theme-${uiTheme}`]" flatten>
+	<view class="uni-ai-msg-quote uni-theme-root" flatten>
 		<view class="uni-ai-msg-quote-line"></view>
 		<view class="uni-ai-msg-quote-body">
 			<rich-text class="uni-ai-msg-quote-content" :style="richTextStyle"

@@ -1,5 +1,5 @@
 <template>
-	<view class="msg-root" :class="[`ui-theme-${uiTheme}`]" flatten>
+	<view class="msg-root uni-theme-root" flatten>
 		<image class="msg-root-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 		<text v-if="msg.error_msg != null" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
 		<template v-else>
@@ -25,7 +25,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	import uniAiMdRichText from '@/uni_modules/uni-ai-x/components/uni-ai-md-rich-text/uni-ai-md-rich-text.uvue'
 

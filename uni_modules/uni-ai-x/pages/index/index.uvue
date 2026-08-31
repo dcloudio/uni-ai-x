@@ -1,7 +1,7 @@
 <template>
 	<view class="uni-ai-page-root">
-		<view class="uni-ai-page" ref="uni-ai-page"
-			:class="[showMenu ? 'uni-ai-page-showMenu' : '', `ui-theme-${uiTheme}`]"
+		<view class="uni-ai-page uni-theme-root" ref="uni-ai-page"
+			:class="showMenu ? 'uni-ai-page-showMenu' : ''"
 			:style="{transform: `translateX(${translateX}px)`}">
 			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
 			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
@@ -23,8 +23,6 @@
 	// #ifndef MP-WEIXIN
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	// #endif
-	import {uiTheme} from '@/uni_modules/uni-ai-x/sdk'
-
 	const MENU_WIDTH = 260
 
 	const translateX = ref<number>(-MENU_WIDTH)

@@ -1,5 +1,5 @@
 <template>
-	<view class="user-msg" :class="[`ui-theme-${uiTheme}`]">
+	<view class="user-msg uni-theme-root">
 		<text class="user-msg-text">{{msg.body}}</text>
 		<view class="user-msg-img-group" v-if="msg.img_url_list != null">
 			<image class="user-msg-img" v-for="(img, index) in msg.img_url_list" @click="previewImage(index)" :key="index" :src="img" mode="aspectFill"></image>
@@ -8,7 +8,7 @@
 </template>
 
 <script lang="uts" setup>
-	import { MsgItem, uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import { MsgItem } from '@/uni_modules/uni-ai-x/sdk'
 
 	type UniAiUserMsgProps = {
 		msg: MsgItem
@@ -25,14 +25,6 @@
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-
-.ui-theme-light {
-	--user-msg-bg: #f9fbff;
-}
-
-.ui-theme-dark {
-	--user-msg-bg: #414158;
-}
 
 .user-msg {
 	align-items: flex-end;

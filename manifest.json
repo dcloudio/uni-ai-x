@@ -13,6 +13,7 @@
 	"quickapp": {},
 	/* 小程序特有相关 */
 	"mp-weixin": {
+		"darkmode": true,
 		"appid": "",
 		"setting": {
 			"urlCheck": false
@@ -34,6 +35,7 @@
 	"vueVersion": "3",
 	"workers": "workers",
 	"app": {
+		"defaultAppTheme": "auto",
 		"distribute": {
 			"icons": {
 				"android": {
@@ -71,6 +73,7 @@
 		}
 	},
 	"web": {
+		"darkmode": true,
 		"router": {
 			"mode": "",
 			"base": "./"

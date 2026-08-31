@@ -1,6 +1,5 @@
 <template>
-	<scroll-view direction="vertical" class="select-text-scroll-view"
-		:class="uiTheme == 'dark' ? 'select-text-scroll-view-dark' : 'select-text-scroll-view-light'">
+	<scroll-view direction="vertical" class="select-text-scroll-view uni-theme-root">
 		<rich-text id="richtext" class="select-text-richtext"
 			:style="richTextStyle" :selectable="true" :nodes="text"
 			mode="native"
@@ -53,17 +52,12 @@
 </script>
 
 <style lang="scss">
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
 	.select-text-scroll-view {
 		height: 100%;
 		width: 100%;
 		padding: 10px;
-	}
-
-	.select-text-scroll-view-light {
-		background-color: #ffffff;
-	}
-
-	.select-text-scroll-view-dark {
-		background-color: #25282c;
+		background-color: var(--bg-primary);
 	}
 </style>

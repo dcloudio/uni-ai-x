@@ -1,6 +1,6 @@
-import { reactive, watch, nextTick } from 'vue';
+import { reactive, watch, nextTick, ref } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem } from '@/uni_modules/uni-ai-x/types.uts';
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
@@ -10,6 +10,61 @@ export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate }
 let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
 type StressCopyProgress = (completed: number) => void
+
+export const uiTheme = ref<string>('light')
+let themeInitialized = false
+
+function updateUiTheme(theme: string) {
+	uiTheme.value = theme == 'dark' ? 'dark' : 'light'
+}
+
+function refreshUiTheme() {
+	uni.getSystemInfo({
+		success: (res: GetSystemInfoResult) => {
+			// #ifdef APP
+			updateUiTheme(res.appTheme == 'auto' ? res.osTheme! : res.appTheme!)
+			// #endif
+			// #ifdef WEB || MP
+			updateUiTheme(res.hostTheme!)
+			// #endif
+		}
+	})
+}
+
+function initUiTheme() {
+	if (themeInitialized) return
+	themeInitialized = true
+	refreshUiTheme()
+	// #ifdef APP
+	uni.onAppThemeChange((res: AppThemeChangeResult) => {
+		updateUiTheme(res.appTheme)
+	})
+	// #endif
+	// #ifdef WEB || MP
+	uni.onHostThemeChange((res: OnHostThemeChangeCallbackResult) => {
+		updateUiTheme(res.hostTheme)
+	})
+	// #endif
+}
+
+function applyAppTheme(theme: Theme) {
+	// #ifdef APP
+	uni.setAppTheme({
+		theme,
+		success: () => {
+			if (theme == 'auto') {
+				refreshUiTheme()
+			} else {
+				updateUiTheme(theme)
+			}
+		},
+		fail: (err: IAppThemeFail) => {
+			console.error('设置应用主题失败', err.errMsg)
+		}
+	})
+	// #endif
+}
+
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
@@ -20,7 +75,7 @@ class UniAi {
 	currentUser: Userinfo = currentUser
 	setting: Setting = reactive<Setting>({
 		// UI 主题
-		theme: 'light',
+		theme: 'auto',
 		// 语言
 		language: 'zh-CN',
 		// 大模型
@@ -249,6 +304,7 @@ class UniAi {
 	}
 	
 	constructor() {
+		initUiTheme()
 		this.loadDataFromNewStorage()
 		this.loadSetting()
 		this.watchSetting()
@@ -270,6 +326,9 @@ class UniAi {
 		})
 	}
 	private watchSetting() {
+		watch((): Theme => this.setting.theme, (theme: Theme) => {
+			applyAppTheme(theme)
+		}, { immediate: true })
 		watch((): Setting => this.setting, () => {
 			this.saveSetting()
 		}, { deep: true, immediate: true })
@@ -531,9 +590,6 @@ class UniAi {
 const uniAi = new UniAi()
 export { uniAi }
 export default uniAi
-
-// 抛出主题
-export const uiTheme = computed<string>(() => uniAi.setting.theme)
 
 // #ifdef WEB
 // 方便在控制台观察

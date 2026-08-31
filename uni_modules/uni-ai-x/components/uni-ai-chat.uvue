@@ -1,5 +1,5 @@
 <template>
-	<view class="chat-box" :class="[`ui-theme-${uiTheme}`]">
+	<view class="chat-box uni-theme-root">
 		<uni-ai-chat-nav @change-menu="changeMenu" />
 		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
 			<view class="chat-box-scroll-view-box">
@@ -37,7 +37,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
+	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -311,12 +311,6 @@
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-.ui-theme-light {
-	--mask-overlay: rgba(0, 0, 0, 0.05);
-}
-.ui-theme-dark {
-	--mask-overlay: rgba(0, 0, 0, 0.2);
-}
 
 .chat-box {
 	width: 750rpx;

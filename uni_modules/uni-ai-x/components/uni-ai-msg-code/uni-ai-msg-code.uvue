@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-code-msg-root" :class="[`ui-theme-${uiTheme}`]">
+	<view class="uni-code-msg-root uni-theme-root">
 		<view class="uni-code-msg-code-header">
 			<!-- #ifndef MP-WEIXIN -->
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">

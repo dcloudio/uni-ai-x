@@ -1,5 +1,5 @@
 <template>
-	<view class="menu-box" :class="[`ui-theme-${uiTheme}`]">
+	<view class="menu-box uni-theme-root">
 		<text class="menu-box-title">UNI-AI 助手</text>
 		<addChatBtn @click="closeMenu()" />
 		<text class="menu-box-nav">历史对话</text>
@@ -27,7 +27,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, ChatItem, Userinfo} from '@/uni_modules/uni-ai-x/sdk/'
+	import {uniAi, ChatItem, Userinfo, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import {userCenterPage} from '@/uni_modules/uni-ai-x/config.uts'
 	
@@ -35,10 +35,6 @@
 		'close-menu': []
 		'open-setting': []
 	}>()
-	
-	const uiTheme = computed<string>(() => {
-		return uniAi.setting.theme
-	})
 	
 	const currentUser = computed<Userinfo>(() => {
 		return uniAi.currentUser
@@ -106,17 +102,6 @@
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-.ui-theme-light {
-	--menu-bg: #f9fbff;
-	--menu-active-bg: #eef3ff;
-	--menu-border: #e6ecf5;
-}
-.ui-theme-dark {
-	--menu-bg: #2b2d31;
-	--menu-active-bg: #3a3d45;
-	--menu-border: #404040;
-}
-
 
 .menu-box {
 	width: 260px;
