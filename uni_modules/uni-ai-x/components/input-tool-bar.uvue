@@ -1,6 +1,5 @@
 <template>
 	<view class="input-tool-bar" :class="[`ui-theme-${uiTheme}`]">
-		<view class="input-tool-bar-main">
 		<view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
             <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666')"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考 (R1)</text>
@@ -21,14 +20,6 @@
 				>
             <uni-ai-icon code="e627" color="#FFF" size="20"></uni-ai-icon>
         </view>
-		</view>
-		<view class="input-tool-bar-stress">
-			<button class="input-tool-bar-stress-button" :class="!canCopyMessages ? 'input-tool-bar-stress-button-disabled' : ''" :disabled="!canCopyMessages" @click="copyMessages">复制100条消息</button>
-			<button class="input-tool-bar-stress-button" :class="!canCopyChats ? 'input-tool-bar-stress-button-disabled' : ''" :disabled="!canCopyChats" @click="copyChats">复制500个会话</button>
-		</view>
-		<view v-if="copyingChats" class="input-tool-bar-copy-mask">
-			<text class="input-tool-bar-copy-mask-text">正在复制会话 {{copiedChats}} / 500</text>
-		</view>
     </view>
 </template>
 <script lang="uts" setup>
@@ -65,43 +56,6 @@ const inputContent = computed<string>({
 const canParseImg = computed<boolean>(() => {
     return true
 });
-
-const copyingChats = ref<boolean>(false)
-const copiedChats = ref<number>(0)
-let stressCopyRunId = ''
-const canCopyMessages = computed<boolean>(() => {
-    return !copyingChats.value && aiState.value != 'processing' && uniAi.lastAiMsg != null
-})
-const canCopyChats = computed<boolean>(() => {
-    return !copyingChats.value && aiState.value != 'processing' && (uniAi.currentChat?.msgList.length ?? 0) > 0
-})
-
-function copyMessages() {
-    if (!canCopyMessages.value) return
-    uniAi.copyLastMessageForStress(100)
-}
-
-function copyChats() {
-    if (!canCopyChats.value) return
-    copyingChats.value = true
-	copiedChats.value = 0
-	stressCopyRunId = Date.now().toString(36)
-	copyNextChat()
-}
-
-const copyNextChat = async () => {
-	const error = await uniAi.createCurrentChatStressCopies(stressCopyRunId, 500, (completed: number): void => {
-		copiedChats.value = completed
-	})
-	if (error.length > 0) {
-		uniAi.saveChatList2Storage()
-		copyingChats.value = false
-		return
-	}
-	uniAi.saveChatList2Storage()
-	copiedChats.value = 500
-	copyingChats.value = false
-}
 
 const currentLLMModel = computed<LLMModel>(() => {
     const provider = uniAi.llm.provider
@@ -224,15 +178,9 @@ onMounted(() => {
 }
 
 .input-tool-bar {
-    display: flex;
-    flex-direction: column;
-    padding: 5px 0;
-}
-
-.input-tool-bar-main {
-    display: flex;
     flex-direction: row;
     align-items: center;
+    padding: 5px 0;
 }
 
 .input-tool-bar-btn {
@@ -285,48 +233,4 @@ onMounted(() => {
     margin-right: 15px;
 }
 
-.input-tool-bar-stress {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-top: 6px;
-}
-
-.input-tool-bar-stress-button {
-    height: 28px;
-    margin-left: 4px;
-    padding: 0 5px;
-    border: 1px solid var(--border-primary);
-    border-radius: 4px;
-    background-color: var(--input-btn-bg);
-    font-size: 11px;
-    line-height: 26px;
-    color: var(--text-secondary);
-}
-
-.input-tool-bar-stress-button-disabled {
-    opacity: 0.45;
-}
-
-.input-tool-bar-copy-mask {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 500;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.35);
-}
-
-.input-tool-bar-copy-mask-text {
-    padding: 12px 16px;
-    border-radius: 6px;
-    background-color: var(--bg-primary);
-    font-size: 14px;
-    color: var(--text-primary);
-}
 </style>
