@@ -8,7 +8,7 @@
 					<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
 					<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
 				</view>
-				<list-view v-show="msgList.length > 0" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="item in msgList" :key="item._id" :id="'msg-item-' + item._id" @longpress="onlongTapMsg(item)" :type="item.from_uid == 'uni-ai' ? 0 : 1">
@@ -163,9 +163,14 @@
 	}
 	
 	watch(chatActiveId, () => {
-		scrollToLastMsg(false)
+		autoToLastMsg = false
+		scrollWithAnimation.value = false
+		scrollTop.value = 0
+		scrollInBottom.value = true
+		showScrollToBottom.value = false
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
+			if (msgList.value.length > 0) updateScrollInBottom()
 		})
 	}, { deep: true, immediate: true })
 	
