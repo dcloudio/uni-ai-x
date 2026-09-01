@@ -531,31 +531,51 @@ function findClosedBlock(source: string, tag: string, kind: string, fromIndex: n
 	const openEnd = source.indexOf('>', start)
 	if (openEnd < 0) return null
 	const closeTag = '</' + tag + '>'
-	let closeStart = source.indexOf(closeTag, openEnd + 1)
+	const closeStart = source.indexOf(closeTag, openEnd + 1)
 	if (closeStart < 0) return null
-	if (tag == 'blockquote') {
-		let depth = 1
-		let cursor = openEnd + 1
-		while (depth > 0) {
-			const nextOpen = findOpenTag(source, tag, cursor)
-			const nextClose = source.indexOf(closeTag, cursor)
-			if (nextClose < 0) return null
-			if (nextOpen >= 0 && nextOpen < nextClose) {
-				depth += 1
-				cursor = source.indexOf('>', nextOpen) + 1
-			} else {
-				depth -= 1
-				closeStart = nextClose
-				cursor = nextClose + closeTag.length
-			}
-		}
-	}
 	return {
 		kind: kind,
 		start: start,
 		openEnd: openEnd,
 		closeStart: closeStart,
 		end: closeStart + closeTag.length
+	} as HtmlSpecialBlock
+}
+
+function findBlockquoteBlock(source: string, fromIndex: number): HtmlSpecialBlock | null {
+	const start = findOpenTag(source, 'blockquote', fromIndex)
+	if (start < 0) return null
+	const openEnd = source.indexOf('>', start)
+	if (openEnd < 0) return null
+
+	// Keep an open quote as one block while the stream is still growing. This
+	// prevents the parent from replacing a rich-text node when the closing tag arrives.
+	const closeTag = '</blockquote>'
+	let depth = 1
+	let cursor = openEnd + 1
+	let closeStart: number = source.length
+	while (cursor < source.length && depth > 0) {
+		const nextOpen = findOpenTag(source, 'blockquote', cursor)
+		const nextClose = source.indexOf(closeTag, cursor)
+		if (nextClose < 0) break
+		if (nextOpen >= 0 && nextOpen < nextClose) {
+			const nextOpenEnd = source.indexOf('>', nextOpen)
+			if (nextOpenEnd < 0) break
+			depth += 1
+			cursor = nextOpenEnd + 1
+		} else {
+			depth -= 1
+			closeStart = nextClose
+			cursor = nextClose + closeTag.length
+		}
+	}
+	const isComplete = depth == 0
+	return {
+		kind: 'quote',
+		start: start,
+		openEnd: openEnd,
+		closeStart: isComplete ? closeStart : source.length,
+		end: isComplete ? closeStart + closeTag.length : source.length
 	} as HtmlSpecialBlock
 }
 
@@ -568,7 +588,7 @@ function earlierBlock(current: HtmlSpecialBlock | null, candidate: HtmlSpecialBl
 function findNextSpecialBlock(source: string, fromIndex: number): HtmlSpecialBlock | null {
 	let block = null as HtmlSpecialBlock | null
 	block = earlierBlock(block, findClosedBlock(source, 'table', 'table', fromIndex))
-	block = earlierBlock(block, findClosedBlock(source, 'blockquote', 'quote', fromIndex))
+	block = earlierBlock(block, findBlockquoteBlock(source, fromIndex))
 	block = earlierBlock(block, findClosedBlock(source, 'pre', 'code', fromIndex))
 	return block
 }
