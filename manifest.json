@@ -2,7 +2,7 @@
 	"name": "uni-ai-x",
 	"appid": "__UNI__8A096E7",
 	"description": "",
-	"versionName": "2.1.5",
+	"versionName": "2.1.6",
 	"versionCode": "26081302",
 	"uni-app-x": {
 		"vapor": true,
