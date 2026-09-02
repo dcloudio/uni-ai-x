@@ -11,9 +11,10 @@
 				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
-					<list-item v-for="item in msgList" :key="item._id" :id="'msg-item-' + item._id" @longpress="onlongTapMsg(item)" :type="item.from_uid == 'uni-ai' ? 0 : 1">
-						<uni-ai-x-msg v-if="item.from_uid == 'uni-ai'" :msg="item" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
-						<uni-ai-user-msg v-else :msg="item" />
+					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
+						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
+							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
+						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
 					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
@@ -38,6 +39,7 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
+	import { buildMarkdownHtmlBlocks, MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -67,6 +69,7 @@
 	const scrollWithAnimation = ref<boolean>(false)
 	const scrollTouch = ref<boolean>(false)
 	const scrolling = ref<boolean>(false)
+	const markdownBlockCache = new Map<string, MarkdownBlockCache>()
 	let autoToLastMsg = false
 	let scrollingT = 0
 	let scrollBottomCheckTimer = 0
@@ -82,6 +85,154 @@
 	
 	const msgList = computed<MsgItem[]>(() => {
 		return uniAi.currentChat?.msgList ?? []
+	})
+
+	type MarkdownBlockCache = {
+		html: string
+		complete: boolean
+		blocks: MarkdownHtmlBlock[]
+	}
+
+	type ChatRenderItem = {
+		key: string
+		id: string
+		itemType: number
+		msg: MsgItem
+		parts: AiMsgRenderPart[]
+		isAi: boolean
+		isFirst: boolean
+	}
+
+	type AiMsgRenderPart = {
+		key: string
+		kind: string
+		block?: MarkdownHtmlBlock
+	}
+
+	const RENDER_ITEM_TYPE_USER = 1
+	const RENDER_ITEM_TYPE_AI_TABLE = 11
+	const RENDER_ITEM_TYPE_AI_CODE = 13
+	const RENDER_ITEM_TYPE_AI_MERMAID = 20
+	const RENDER_ITEM_TYPE_AI_NORMAL = 21
+
+	function getMarkdownBlocks(msg: MsgItem): MarkdownHtmlBlock[] {
+		const html = msg.markdownHtml ?? ''
+		const complete = msg.rendered
+		const cached = markdownBlockCache.get(msg._id)
+		if (cached != null && cached.html == html && cached.complete == complete) {
+			return cached.blocks
+		}
+		const blocks = buildMarkdownHtmlBlocks(html, complete)
+		markdownBlockCache.set(msg._id, {
+			html: html,
+			complete: complete,
+			blocks: blocks
+		} as MarkdownBlockCache)
+		return blocks
+	}
+
+	function markdownBlockItemType(block: MarkdownHtmlBlock): number {
+		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
+		if (block.kind == 'mermaid') return RENDER_ITEM_TYPE_AI_MERMAID
+		return RENDER_ITEM_TYPE_AI_CODE
+	}
+
+	function appendAiRenderItem(items: ChatRenderItem[], msg: MsgItem, itemType: number,
+		isFirst: boolean, suffix: string, parts: AiMsgRenderPart[]) {
+		items.push({
+			key: msg._id + '-' + suffix,
+			id: 'msg-item-' + msg._id + '-' + suffix,
+			itemType: itemType,
+			msg: msg,
+			parts: parts,
+			isAi: true,
+			isFirst: isFirst
+		} as ChatRenderItem)
+	}
+
+	function aiRenderPart(kind: string, key: string, block?: MarkdownHtmlBlock): AiMsgRenderPart {
+		return {
+			key: key,
+			kind: kind,
+			block: block
+		} as AiMsgRenderPart
+	}
+
+	function isStandaloneListBlock(block: MarkdownHtmlBlock): boolean {
+		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid'
+	}
+
+	const renderItemList = computed<ChatRenderItem[]>(() => {
+		const items = [] as ChatRenderItem[]
+		for (let messageIndex = 0; messageIndex < msgList.value.length; messageIndex++) {
+			const msg = msgList.value[messageIndex]
+			if (msg.from_uid != 'uni-ai') {
+				items.push({
+					key: msg._id,
+					id: 'msg-item-' + msg._id,
+					itemType: RENDER_ITEM_TYPE_USER,
+					msg: msg,
+					parts: [] as AiMsgRenderPart[],
+					isAi: false,
+					isFirst: true
+				} as ChatRenderItem)
+				continue
+			}
+
+			let hasAiSegment = false
+			let lastAiSegment = null as ChatRenderItem | null
+			let normalSegmentIndex = 0
+			const normalParts = [] as AiMsgRenderPart[]
+			const appendNormalPart = (part: AiMsgRenderPart) => {
+				normalParts.push(part)
+			}
+			const flushNormalParts = () => {
+				if (normalParts.length == 0) return
+				const suffix = 'normal-' + normalSegmentIndex.toString()
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_NORMAL, !hasAiSegment, suffix, normalParts.slice())
+				lastAiSegment = items[items.length - 1]
+				normalParts.length = 0
+				normalSegmentIndex += 1
+				hasAiSegment = true
+			}
+			const appendStandaloneBlock = (block: MarkdownHtmlBlock) => {
+				flushNormalParts()
+				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, block.key,
+					[aiRenderPart(block.kind, block.key, block)] as AiMsgRenderPart[])
+				lastAiSegment = items[items.length - 1]
+				hasAiSegment = true
+			}
+			if (msg.error_msg != null) {
+				appendNormalPart(aiRenderPart('error', 'error'))
+			} else {
+				if (msg.thinkContent != null && msg.thinkContent!.length > 0) {
+					appendNormalPart(aiRenderPart('think', 'think'))
+				}
+				const markdownHtml = msg.markdownHtml ?? ''
+				if (markdownHtml.length > 0) {
+					const blocks = getMarkdownBlocks(msg)
+					for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+						const block = blocks[blockIndex]
+						if (isStandaloneListBlock(block)) {
+							appendStandaloneBlock(block)
+						} else {
+							appendNormalPart(aiRenderPart(block.kind, block.key, block))
+						}
+					}
+				} else if (msg.body.length > 0) {
+					appendNormalPart(aiRenderPart('plain', 'plain'))
+				} else {
+					appendNormalPart(aiRenderPart('empty', 'empty'))
+				}
+			}
+			if (normalParts.length > 0) {
+				appendNormalPart(aiRenderPart('toolbar', 'toolbar'))
+				flushNormalParts()
+			} else if (lastAiSegment != null) {
+				lastAiSegment.parts.push(aiRenderPart('toolbar', 'toolbar'))
+			}
+		}
+		return items
 	})
 	
 	const lastMsg = computed<MsgItem | null>(() => {
@@ -163,6 +314,7 @@
 	}
 	
 	watch(chatActiveId, () => {
+		markdownBlockCache.clear()
 		autoToLastMsg = false
 		scrollWithAnimation.value = false
 		scrollTop.value = 0
@@ -176,7 +328,11 @@
 	
 	const lockAutoToLastMsg = () => {
 		if (!needSetLockAutoToLastMsg) return
-		const lastMsgEl: UniElement | null = uni.getElementById('msg-item-' + lastMsg.value?._id)
+		const lastMsgFirstItem = renderItemList.value.find((item: ChatRenderItem): boolean => {
+			return item.isAi && item.isFirst && item.msg._id == lastMsg.value?._id
+		})
+		if (lastMsgFirstItem == null) return
+		const lastMsgEl: UniElement | null = uni.getElementById(lastMsgFirstItem.id)
 		const scrollList: UniElement | null = uni.getElementById('msg-list')
 		if (lastMsgEl == null || scrollList == null) return 
 		if (msgList.value.length < 3 || scrollList.offsetHeight < lastMsgEl.offsetHeight) {
