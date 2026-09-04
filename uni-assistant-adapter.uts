@@ -1,0 +1,233 @@
+import { registerCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
+import {
+	Chunk,
+	CustomProviderAdapter,
+	CustomProviderCallbacks,
+	MultiModalContent,
+	RequestAiCoMessage
+} from '@/uni_modules/uni-ai-x/types.uts'
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+
+const PROVIDER_NAME = 'Uni小助手'
+const CHAT_URL = llmModelMap.get(PROVIDER_NAME)?.baseURL ?? ''
+const CLASSIFICATION = 'uni-app x'
+const CONVERSATION_KEY_PREFIX = 'uni-assistant-conversation:'
+
+type SseDataHandler = (data: string) => void
+
+/** 只处理该接口的 SSE 分帧，输出交给 uni-ai-x 的 Markdown 链路。 */
+class SseDecoder {
+	private textDecoder: TextDecoder = new TextDecoder()
+	private pendingBytes: Uint8Array = new Uint8Array(0)
+	private textBuffer: string = ''
+	private dataLines: string[] = [] as string[]
+	private closed: boolean = false
+	private onData: SseDataHandler
+	private onDone: () => void
+
+	constructor(onData: SseDataHandler, onDone: () => void) {
+		this.onData = onData
+		this.onDone = onDone
+	}
+
+	push(data: ArrayBuffer): void {
+		if (this.closed) return
+		const incoming = new Uint8Array(data)
+		const bytes = new Uint8Array(this.pendingBytes.length + incoming.length)
+		bytes.set(this.pendingBytes)
+		bytes.set(incoming, this.pendingBytes.length)
+		const completeLength = this.completeUtf8Length(bytes)
+		if (completeLength > 0) this.textBuffer += this.textDecoder.decode(bytes.slice(0, completeLength))
+		this.pendingBytes = bytes.slice(completeLength)
+		this.drainLines(false)
+	}
+
+	finish(): void {
+		if (this.closed) return
+		if (this.pendingBytes.length > 0) {
+			this.textBuffer += this.textDecoder.decode(this.pendingBytes)
+			this.pendingBytes = new Uint8Array(0)
+		}
+		this.drainLines(true)
+		if (this.textBuffer.length > 0) {
+			this.processLine(this.textBuffer)
+			this.textBuffer = ''
+		}
+		this.dispatchEvent()
+		this.closed = true
+	}
+
+	private completeUtf8Length(bytes: Uint8Array): number {
+		if (bytes.length == 0) return 0
+		let leadIndex = bytes.length - 1
+		while (leadIndex >= 0 && bytes[leadIndex] >= 0x80 && bytes[leadIndex] <= 0xbf) leadIndex -= 1
+		if (leadIndex < 0) return bytes.length
+		const lead = bytes[leadIndex]
+		let expected = 1
+		if (lead >= 0xc2 && lead <= 0xdf) expected = 2
+		else if (lead >= 0xe0 && lead <= 0xef) expected = 3
+		else if (lead >= 0xf0 && lead <= 0xf4) expected = 4
+		return expected > bytes.length - leadIndex ? leadIndex : bytes.length
+	}
+
+	private drainLines(flushTrailingCarriageReturn: boolean): void {
+		while (!this.closed) {
+			const lfIndex = this.textBuffer.indexOf('\n')
+			const crIndex = this.textBuffer.indexOf('\r')
+			if (lfIndex < 0 && crIndex < 0) return
+			let separatorIndex = lfIndex
+			if (separatorIndex < 0 || (crIndex >= 0 && crIndex < separatorIndex)) separatorIndex = crIndex
+			const separator = this.textBuffer.charAt(separatorIndex)
+			if (separator == '\r' && separatorIndex == this.textBuffer.length - 1 && !flushTrailingCarriageReturn) return
+			let separatorLength = 1
+			if (separator == '\r' && this.textBuffer.charAt(separatorIndex + 1) == '\n') separatorLength = 2
+			this.processLine(this.textBuffer.substring(0, separatorIndex))
+			this.textBuffer = this.textBuffer.slice(separatorIndex + separatorLength)
+		}
+	}
+
+	private processLine(line: string): void {
+		if (line.length == 0) {
+			this.dispatchEvent()
+			return
+		}
+		if (line.startsWith(':')) return
+		const colonIndex = line.indexOf(':')
+		const field = colonIndex < 0 ? line : line.substring(0, colonIndex)
+		let value = colonIndex < 0 ? '' : line.substring(colonIndex + 1)
+		if (value.startsWith(' ')) value = value.substring(1)
+		if (field == 'data') this.dataLines.push(value)
+	}
+
+	private dispatchEvent(): void {
+		if (this.dataLines.length == 0 || this.closed) return
+		const data = this.dataLines.join('\n')
+		this.dataLines = [] as string[]
+		if (data == '[DONE]') {
+			this.closed = true
+			this.onDone()
+			return
+		}
+		this.onData(data)
+	}
+}
+
+function messageText(content: string | MultiModalContent): string {
+	if (typeof content == 'string') return content
+	let text = ''
+	content.forEach((part) => {
+		if (part.type == 'text') text += part.text
+	})
+	return text
+}
+
+function errorInfo(message: string, code: number = -201): UTSJSONObject {
+	return {
+		errCode: code,
+		errMsg: message.length > 0 ? message : 'Uni小助手请求失败'
+	} as UTSJSONObject
+}
+
+class UniAssistantAdapter extends CustomProviderAdapter {
+	override async request(messages: RequestAiCoMessage[], _model: string, chatId: string,
+		callbacks: CustomProviderCallbacks): Promise<boolean> {
+		let question = ''
+		for (let index = messages.length - 1; index >= 0; index--) {
+			if (messages[index].role == 'user') {
+				question = messageText(messages[index].content)
+				break
+			}
+		}
+		question = question.trim()
+		if (question.length == 0) {
+			callbacks.onError?.(errorInfo('问题不能为空'))
+			return false
+		}
+
+		const storageKey = CONVERSATION_KEY_PREFIX + chatId
+		const savedConversationId = (uni.getStorageSync(storageKey) as string | null) ?? ''
+		if (savedConversationId.length == 0 && (question.length <= 5 || !/[\u4e00-\u9fff]/.test(question))) {
+			callbacks.onError?.(errorInfo('首次提问需超过 5 个字符，并至少包含一个中文字符'))
+			return false
+		}
+
+		let requestTask: RequestTask | null = null
+		let settled = false
+		let decoder: SseDecoder | null = null
+		const settleError = (message: string, code: number = -201): void => {
+			if (settled) return
+			settled = true
+			requestTask?.abort()
+			callbacks.onError?.(errorInfo(message, code))
+		}
+		const settleDone = (): void => {
+			if (settled) return
+			settled = true
+			callbacks.onDone?.({} as UTSJSONObject)
+		}
+		decoder = new SseDecoder((data: string) => {
+			if (settled) return
+			let payload: UTSJSONObject
+			try {
+				payload = JSON.parse<UTSJSONObject>(data) as UTSJSONObject
+			} catch (_error) {
+				settleError('Uni小助手返回了无法解析的数据', -202)
+				return
+			}
+			const errorCode = payload.getNumber('errorCode', 0)
+			if (errorCode != 0) {
+				settleError(payload.getString('errorMsg', 'Uni小助手请求失败'), errorCode)
+				return
+			}
+			const conversationId = payload.getString('conversation_id', '')
+			if (conversationId.length > 0) uni.setStorageSync(storageKey, conversationId)
+			if (payload.getString('role', '') != 'assistant' || payload.getString('type', '') != 'answer') return
+			const content = payload.getString('content', '')
+			if (content.length == 0) return
+			const chunk: Chunk = {
+				choices: [{ delta: { content: content } }]
+			}
+			callbacks.onChunk?.(chunk)
+		}, settleDone)
+
+		requestTask = uni.request({
+			url: CHAT_URL,
+			method: 'POST',
+			dataType: 'text',
+			data: {
+				question: question,
+				classification: CLASSIFICATION,
+				conversation_id: savedConversationId
+			},
+			// @ts-ignore enableChunked is available on Web and App request tasks.
+			enableChunked: true,
+			timeout: 90000,
+			header: {
+				'Content-Type': 'application/json',
+				'Accept': 'text/event-stream'
+			},
+			success: (response: RequestSuccess<any>) => {
+				if (settled) return
+				if (response.statusCode >= 400) {
+					settleError('Uni小助手请求失败（HTTP ' + response.statusCode.toString() + '）', response.statusCode)
+					return
+				}
+				decoder?.finish()
+				if (!settled) settleDone()
+			},
+			fail: (error: RequestFail) => {
+				settleError(error.errMsg)
+			}
+		})
+		requestTask.onChunkReceived((chunk: RequestTaskOnChunkReceivedListenerResult) => {
+			decoder?.push(chunk.data)
+		})
+		return true
+	}
+
+	override supportsTitleUpdate: boolean = false
+}
+
+export function installUniAssistant(): void {
+	registerCustomProvider(PROVIDER_NAME, new UniAssistantAdapter())
+}

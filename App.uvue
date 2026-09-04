@@ -4,7 +4,7 @@
 	export default {
 		onLaunch: function () {
 			console.log('App Launch')
-			installOpenClaw()
+			// installOpenClaw()
 		},
 		onShow: function () {
 			console.log('App Show')

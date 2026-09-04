@@ -33,6 +33,16 @@ export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userin
 const bailianTokenInfo: LLmTokenInfo = {token: '', expireTime: 0}
 const qiniuTokenInfo: LLmTokenInfo = {token: '', expireTime: 0}
 const llmModelMap = new Map<string, Provider>([
+	// Uni 小助手（自定义 SSE，适配器在项目根目录注册）
+	[
+		'Uni小助手', {
+			models: [
+				{ name: 'doc-search' }
+			],
+			description: 'uni-app x 文档搜索问答',
+			baseURL: 'https://ai-assist-api-p.dcloud.net.cn/http/tbox/chatForDocSearchStreamResponse'
+		}
+	],
 	// 七牛
 	[
 		'qiniu', {

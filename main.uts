@@ -1,5 +1,10 @@
 import App from './App.uvue'
-import '@/demo/markdown/install.uts' // 取消注释以启用 Markdown 演示模式
+// import '@/demo/markdown/install.uts' // 取消注释以启用 Markdown 演示模式
+import { installUniAssistant } from './uni-assistant-adapter.uts'
+
+// 在应用入口注册，确保 APP 端首个请求前已进入 uni-ai-x Provider 注册表。
+installUniAssistant()
+
 
 import { createSSRApp } from 'vue'
 export function createApp() {
