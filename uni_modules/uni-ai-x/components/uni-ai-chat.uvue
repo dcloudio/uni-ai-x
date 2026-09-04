@@ -185,7 +185,6 @@
 			}
 
 			let hasAiSegment = false
-			let lastAiSegment = null as ChatRenderItem | null
 			let normalSegmentIndex = 0
 			const normalParts = [] as AiMsgRenderPart[]
 			const appendNormalPart = (part: AiMsgRenderPart) => {
@@ -195,7 +194,6 @@
 				if (normalParts.length == 0) return
 				const suffix = 'normal-' + normalSegmentIndex.toString()
 				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_NORMAL, !hasAiSegment, suffix, normalParts.slice())
-				lastAiSegment = items[items.length - 1]
 				normalParts.length = 0
 				normalSegmentIndex += 1
 				hasAiSegment = true
@@ -204,7 +202,6 @@
 				flushNormalParts()
 				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, block.key,
 					[aiRenderPart(block.kind, block.key, block)] as AiMsgRenderPart[])
-				lastAiSegment = items[items.length - 1]
 				hasAiSegment = true
 			}
 			if (msg.error_msg != null) {
@@ -230,11 +227,11 @@
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
 			}
-			if (normalParts.length > 0) {
-				appendNormalPart(aiRenderPart('toolbar', 'toolbar'))
-				flushNormalParts()
-			} else if (lastAiSegment != null) {
-				lastAiSegment.parts.push(aiRenderPart('toolbar', 'toolbar'))
+			if (normalParts.length > 0) flushNormalParts()
+			if (hasAiSegment) {
+				// 工具栏独立成消息后的列表项，避免被富文本块的原生布局挤到顶部。
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_NORMAL, false, 'toolbar',
+					[aiRenderPart('toolbar', 'toolbar')])
 			}
 		}
 		return items
