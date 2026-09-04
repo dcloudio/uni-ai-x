@@ -134,7 +134,8 @@
 	function markdownBlockItemType(block: MarkdownHtmlBlock): number {
 		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
 		if (block.kind == 'mermaid') return RENDER_ITEM_TYPE_AI_MERMAID
-		return RENDER_ITEM_TYPE_AI_CODE
+		if (block.kind == 'code') return RENDER_ITEM_TYPE_AI_CODE
+		return RENDER_ITEM_TYPE_AI_NORMAL
 	}
 
 	function appendAiRenderItem(items: ChatRenderItem[], msg: MsgItem, itemType: number,
@@ -158,8 +159,12 @@
 		} as AiMsgRenderPart
 	}
 
-	function isStandaloneListBlock(block: MarkdownHtmlBlock): boolean {
-		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid'
+	function isRichTextListBlock(block: MarkdownHtmlBlock): boolean {
+		// Each of these block components owns at most one native rich-text node.
+		// Keep them in separate list items so a list item never contains multiple
+		// native rich-text renderers, including quote/table/code/math subcomponents.
+		return block.kind == 'rich' || block.kind == 'table' || block.kind == 'quote'
+			|| block.kind == 'code' || block.kind == 'mermaid' || block.kind == 'math'
 	}
 
 	const renderItemList = computed<ChatRenderItem[]>(() => {
@@ -195,7 +200,7 @@
 				normalSegmentIndex += 1
 				hasAiSegment = true
 			}
-			const appendStandaloneBlock = (block: MarkdownHtmlBlock) => {
+			const appendRichTextBlock = (block: MarkdownHtmlBlock) => {
 				flushNormalParts()
 				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, block.key,
 					[aiRenderPart(block.kind, block.key, block)] as AiMsgRenderPart[])
@@ -213,8 +218,8 @@
 					const blocks = getMarkdownBlocks(msg)
 					for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
 						const block = blocks[blockIndex]
-						if (isStandaloneListBlock(block)) {
-							appendStandaloneBlock(block)
+						if (isRichTextListBlock(block)) {
+							appendRichTextBlock(block)
 						} else {
 							appendNormalPart(aiRenderPart(block.kind, block.key, block))
 						}
