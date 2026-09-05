@@ -1,6 +1,6 @@
 <template>
 	<scroll-view direction="vertical" class="select-text-scroll-view uni-theme-root">
-		<rich-text id="richtext" class="select-text-richtext"
+		<rich-text :disable-split-screen-render="true" id="richtext" class="select-text-richtext"
 			:style="richTextStyle" :selectable="true" :nodes="text"
 			mode="native"
 		></rich-text>

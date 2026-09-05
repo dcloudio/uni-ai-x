@@ -3,7 +3,7 @@
 		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="false" :style="{height: tableViewportHeight}"
 			>
-			<rich-text class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
+			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
 				:nodes="tableHtml" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
 		<view class="uni-ai-msg-html-table-border uni-ai-msg-html-table-border-left"></view>

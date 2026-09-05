@@ -21,7 +21,7 @@
 			:code-text="part.block.text" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" />
-		<rich-text v-else-if="part.block != null && part.block.kind == 'rich'" class="msg-segment-rich-text" :style="richTextStyle"
+		<rich-text :disable-split-screen-render="true" v-else-if="part.block != null && part.block.kind == 'rich'" class="msg-segment-rich-text" :style="richTextStyle"
 			:nodes="part.block.html" mode="native" @itemclick="onItemClick"></rich-text>
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 		<template v-else-if="part.kind == 'empty'">

@@ -33,12 +33,12 @@
 				<scroll-view v-if="!showMermaidImage" class="uni-code-msg-code-scroll-view uni-code-msg-mermaid-code-scroll" direction="horizontal"
 					:show-scrollbar="false" :style="{height: scrollViewHeight}"
 					>
-					<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
+					<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
 			</scroll-view>
 		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="{height: scrollViewHeight}"
 			>
-			<rich-text class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
+			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
 		</scroll-view>
 	</view>
 </template>

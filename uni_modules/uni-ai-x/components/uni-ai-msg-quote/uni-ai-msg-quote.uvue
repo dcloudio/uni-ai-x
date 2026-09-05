@@ -2,7 +2,7 @@
 	<view class="uni-ai-msg-quote uni-theme-root" flatten>
 		<view class="uni-ai-msg-quote-line"></view>
 		<view class="uni-ai-msg-quote-body">
-			<rich-text class="uni-ai-msg-quote-content" :style="richTextStyle"
+			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-quote-content" :style="richTextStyle"
 				:nodes="html" mode="native" @itemclick="onItemClick"></rich-text>
 		</view>
 	</view>

@@ -6,7 +6,7 @@
                 :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
             <image v-if="buffer1Href.length > 0" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer1ImageStyle" @load="onMathBuffer1Load" @error="onMathBuffer1Error" />
-            <rich-text v-if="showMathSource" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
+            <rich-text :disable-split-screen-render="true" v-if="showMathSource" class="math-el-source" :style="sourceRichTextStyle" :nodes="sourceRichNodes" mode="native"></rich-text>
         </view>
     </scroll-view>
 </template>

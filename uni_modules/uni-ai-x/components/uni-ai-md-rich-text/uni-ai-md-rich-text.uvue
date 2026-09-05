@@ -8,7 +8,7 @@
 				:code-text="block.text" :language="block.language" :is-close="block.isComplete ? 1 : 0" />
 			<uni-ai-msg-math v-else-if="block.kind == 'math'"
 				:text="block.text" :is-close="block.isComplete ? 1 : 0" />
-			<rich-text v-else class="uni-ai-md-rich-text-content" :style="richTextStyle"
+			<rich-text :disable-split-screen-render="true" v-else class="uni-ai-md-rich-text-content" :style="richTextStyle"
 				:nodes="block.html" mode="native" @itemclick="onItemClick"></rich-text>
 		</template>
 	</view>
