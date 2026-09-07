@@ -9,9 +9,9 @@
 					:class="activeActionId == action.id ? 'chat-extension-input-action-text-active' : ''">{{action.label}}</text>
 			</view>
 			<view class="chat-extension-input-action"
-				:class="!canCopyMessages ? 'chat-extension-input-action-disabled' : ''"
+				:class="[!canCopyMessages ? 'chat-extension-input-action-disabled' : '', 'chat-extension-input-action-generate']"
 				@click.stop="copyMessages">
-				<text class="chat-extension-input-action-text">复制100条消息</text>
+				<text class="chat-extension-input-action-text chat-extension-input-generate-text" :style="{color: '#ffffff'}">生成100条不同消息</text>
 			</view>
 			<view class="chat-extension-input-action"
 				:class="!canCopyChats ? 'chat-extension-input-action-disabled' : ''"
@@ -52,7 +52,7 @@
 	const copiedChats = ref<number>(0)
 	let stressCopyRunId = ''
 	const canCopyMessages = computed<boolean>(() => {
-		return !copyingChats.value && aiState.value != 'processing' && uniAi.lastAiMsg != null
+		return !copyingChats.value && aiState.value != 'processing' && uniAi.currentChat != null
 	})
 	const canCopyChats = computed<boolean>(() => {
 		return !copyingChats.value && aiState.value != 'processing' && (uniAi.currentChat?.msgList.length ?? 0) > 0
@@ -144,6 +144,15 @@
 .chat-extension-input-action-active {
 	border-color: var(--accent-primary);
 	background-color: var(--bg-tertiary);
+}
+
+.chat-extension-input-action-generate {
+	border-color: #2979ff;
+	background-color: #2979ff;
+}
+
+.chat-extension-input-generate-text {
+	color: #ffffff;
 }
 
 .chat-extension-input-action-disabled {

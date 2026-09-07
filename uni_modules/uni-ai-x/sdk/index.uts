@@ -69,6 +69,7 @@ class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
 	private stressDataSequence: number = 0
+	private stressMessageRunSequence: number = 0
 	private loadedChatIds: string[] = [] as string[]
 	imgList: ImgItem[] = reactive<ImgItem[]>([]);
 	// 当前用户
@@ -122,6 +123,79 @@ class UniAi {
 		return prefix + '_' + Date.now().toString(36) + '_' + this.stressDataSequence.toString(36)
 	}
 
+	// Deterministic varied HTML keeps stress runs reproducible while exercising rich-text blocks.
+	private buildStressHtml(index: number, run: number): string {
+		const entropy = run * 100 + index
+		const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+		const letter = letters[entropy % letters.length]
+		const next = letters[(entropy + 2) % letters.length]
+		const paragraphLines = 1 + (entropy % 4)
+		const quoteLines = 1 + (entropy % 4)
+		const tableRows = 3 + (entropy % 4)
+		const tableColumns = 2 + (entropy % 3)
+		const listCount = 2 + (entropy % 5)
+		const codeLines = 4 + (entropy % 5) * 4
+		const blocks = [] as string[]
+		let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + (180 + entropy % 5 * 30).toString() + '" height="' + (60 + entropy % 4 * 20).toString() + '" viewBox="0 0 300 120">'
+		svg += '<rect width="300" height="120" fill="hsl(' + (entropy * 37 % 360).toString() + ',70%,88%)"/>'
+		for (let shape = 0; shape < 2 + (entropy % 4); shape++) {
+			svg += '<circle cx="' + (35 + shape * 48).toString() + '" cy="' + (35 + entropy % 35).toString() + '" r="' + (10 + shape * 2).toString() + '" fill="hsl(' + ((entropy * 53 + shape * 47) % 360).toString() + ',65%,48%)"/>'
+		}
+		svg += '<text x="150" y="100" text-anchor="middle" font-size="18" fill="#222">' + letter + entropy.toString() + '-SVG</text></svg>'
+		const svgBlock = '<p><img src="data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '" /></p>'
+		const heading = (index % 4) + 1
+		blocks.push('<h' + heading.toString() + '>' + letter + entropy.toString() + '-title-' + next + '</h' + heading.toString() + '>')
+		{
+			let paragraph = '<p>'
+			for (let line = 0; line < paragraphLines; line++) {
+				if (line > 0) paragraph += '<br>'
+				paragraph += letter + entropy.toString() + '-paragraph-' + line.toString() + ' ' + next + '-text-' + (line + 1).toString() + ' XYZ'
+			}
+			paragraph += '</p>'
+			blocks.push(paragraph)
+		}
+		{
+			let quote = '<blockquote>'
+			for (let line = 0; line < quoteLines; line++) {
+				if (line > 0) quote += '<br>'
+				quote += next + entropy.toString() + '-quote-' + line.toString() + ' ' + letter + '@@@'
+			}
+			quote += '</blockquote>'
+			blocks.push(quote)
+		}
+		{
+			let list = '<ul>'
+			for (let item = 0; item < listCount; item++) list += '<li>' + letter + entropy.toString() + '-item-' + item.toString() + '</li>'
+			list += '</ul>'
+			blocks.push(list)
+		}
+		{
+			let table = '<table><thead><tr>'
+			for (let column = 0; column < tableColumns; column++) table += '<th>' + letter + entropy.toString() + '-h' + column.toString() + '</th>'
+			table += '</tr></thead><tbody>'
+			for (let row = 0; row < tableRows; row++) {
+				table += '<tr>'
+				for (let column = 0; column < tableColumns; column++) table += '<td>' + next + entropy.toString() + '-r' + row.toString() + '-c' + column.toString() + '</td>'
+				table += '</tr>'
+			}
+			table += '</tbody></table>'
+			blocks.push(table)
+		}
+		{
+			let code = '<pre><code>'
+			for (let line = 0; line < codeLines; line++) code += 'const ' + letter.toLowerCase() + line.toString() + ' = &quot;' + next + entropy.toString() + '-' + line.toString() + '&quot;;<br>'
+			code += '</code></pre>'
+			blocks.push(code)
+		}
+		blocks.push(svgBlock)
+		blocks.push('<p><a href="https://example.com/' + next.toLowerCase() + entropy.toString() + '">' + letter + entropy.toString() + '-link</a></p><hr>')
+		// Rotate the block order with a fixed stride instead of using nondeterministic randomness.
+		const rotated = [] as string[]
+		const stride = (index % 3) + 1
+		for (let offset = 0; offset < blocks.length; offset++) rotated.push(blocks[(offset * stride) % blocks.length])
+		return rotated.join('')
+	}
+
 	private cloneMessagesForStress(sourceMessages: MsgItem[], chatId: string, prefix: string): MsgItem[] {
 		const idMap = {} as UTSJSONObject
 		const clonedMessages = [] as MsgItem[]
@@ -169,13 +243,21 @@ class UniAi {
 
 	copyLastMessageForStress(count: number): string {
 		const chat = this.currentChat
-		const message = this.lastAiMsg
-		if (chat == null || message == null) return '当前没有可复制的消息'
+		const message = this.lastAiMsg ?? {
+			_id: 'stress-template', body: '', from_uid: 'uni-ai', state: 0,
+			create_time: Date.now(), chat_id: chat?.id ?? '', rendered: true
+		} as MsgItem
+		if (chat == null) return '当前没有可生成消息的会话'
 		if (chat.state == 'processing') return '请等待当前流式输出完成'
 		if (count <= 0) return '复制数量必须大于 0'
 		const copiedMessages = [] as MsgItem[]
+		this.stressMessageRunSequence += 1
+		const run = this.stressMessageRunSequence
 		for (let index = 0; index < count; index++) {
 			const copied = this.cloneMessagesForStress([message] as MsgItem[], chat.id, 'stress_message_' + index.toString())
+			copied[0].body = 'Stress message ' + (index + 1).toString()
+			copied[0].markdownHtml = this.buildStressHtml(index + 1, run)
+			copied[0].rendered = true
 			copiedMessages.push(copied[0])
 		}
 		if (!this.storageManager.appendChatMessages(chat.id, copiedMessages)) return '写入 Storage 失败'
