@@ -54,4 +54,8 @@
 	.uni-column {
 		flex-direction: column;
 	}
+
+	/* :global(rich-text) {
+		border: 1px solid blue;
+	} */
 </style>

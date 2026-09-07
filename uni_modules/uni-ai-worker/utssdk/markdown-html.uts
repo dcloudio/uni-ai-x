@@ -581,6 +581,17 @@ function richBlock(key: string, html: string): MarkdownHtmlBlock {
 	} as MarkdownHtmlBlock
 }
 
+function textBlock(key: string, text: string): MarkdownHtmlBlock {
+	const block = emptyHtmlBlock('text', key)
+	block.text = text
+	return block
+}
+
+function contentBlock(index: number, html: string): MarkdownHtmlBlock {
+	if (html.trim().length == 0) return textBlock('text-' + index.toString(), html)
+	return richBlock('rich-' + index.toString(), html)
+}
+
 type HtmlSpecialBlock = {
 	kind: string
 	start: number
@@ -730,11 +741,11 @@ export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean =
 		const range = findNextSpecialBlock(html, cursor)
 		if (range == null) {
 			const trailingHtml = html.slice(cursor)
-			if (trailingHtml.length > 0) blocks.push(richBlock('rich-' + richIndex.toString(), trailingHtml))
+			if (trailingHtml.length > 0) blocks.push(contentBlock(richIndex, trailingHtml))
 			break
 		}
 		if (range.start > cursor) {
-			blocks.push(richBlock('rich-' + richIndex.toString(), html.slice(cursor, range.start)))
+			blocks.push(contentBlock(richIndex, html.slice(cursor, range.start)))
 			richIndex += 1
 		}
 		if (range.kind == 'table') {
@@ -751,7 +762,7 @@ export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean =
 		}
 		cursor = range.end
 	}
-	if (blocks.length == 0 && html.length > 0) blocks.push(richBlock('rich-0', html))
+	if (blocks.length == 0 && html.length > 0) blocks.push(contentBlock(0, html))
 	return blocks
 }
 
