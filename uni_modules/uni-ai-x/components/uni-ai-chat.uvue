@@ -8,7 +8,7 @@
 					<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
 					<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
 				</view>
-				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="true" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
