@@ -12,6 +12,7 @@ type BeforeRequestAiFn = () => void
 type StressCopyProgress = (completed: number) => void
 
 export const uiTheme = ref<string>('light')
+export const messageToolBarVisible = ref<boolean>(true)
 let themeInitialized = false
 
 function updateUiTheme(theme: string) {
@@ -124,7 +125,24 @@ class UniAi {
 	}
 
 	// Deterministic varied HTML keeps stress runs reproducible while exercising rich-text blocks.
-	private buildStressHtml(index: number, run: number): string {
+	private buildStressSvg(index: number, run: number): string {
+		const entropy = run * 100 + index
+		const colors = ['#2979FF', '#34A853', '#EA4335', '#F9AB00', '#7B61FF', '#00ACC1']
+		let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="120" viewBox="0 0 300 120">'
+		svg += '<rect x="0" y="0" width="300" height="120" fill="#EAF2FF"/>'
+		for (let shape = 0; shape < 2 + entropy % 4; shape++) {
+			svg += '<circle cx="' + (35 + shape * 48).toString() + '" cy="' + (35 + entropy % 35).toString()
+				+ '" r="' + (10 + shape * 2).toString() + '" fill="' + colors[(entropy + shape) % colors.length] + '"/>'
+		}
+		svg += '<rect x="' + (30 + entropy % 80).toString() + '" y="78" width="' + (70 + entropy % 90).toString()
+			+ '" height="18" fill="' + colors[(entropy + 3) % colors.length] + '"/></svg>'
+		const bytes = new Uint8Array(svg.length)
+		for (let offset = 0; offset < svg.length; offset++) bytes[offset] = svg.charCodeAt(offset)
+		return 'data:image/svg+xml;base64,' + uni.arrayBufferToBase64(bytes.buffer)
+	}
+
+	private buildStressHtml(index: number, run: number, selectedTypes: string[]): string {
+		const has = (type: string): boolean => selectedTypes.indexOf(type) >= 0
 		const entropy = run * 100 + index
 		const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 		const letter = letters[entropy % letters.length]
@@ -136,15 +154,8 @@ class UniAi {
 		const listCount = 2 + (entropy % 5)
 		const codeLines = 4 + (entropy % 5) * 4
 		const blocks = [] as string[]
-		let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + (180 + entropy % 5 * 30).toString() + '" height="' + (60 + entropy % 4 * 20).toString() + '" viewBox="0 0 300 120">'
-		svg += '<rect width="300" height="120" fill="hsl(' + (entropy * 37 % 360).toString() + ',70%,88%)"/>'
-		for (let shape = 0; shape < 2 + (entropy % 4); shape++) {
-			svg += '<circle cx="' + (35 + shape * 48).toString() + '" cy="' + (35 + entropy % 35).toString() + '" r="' + (10 + shape * 2).toString() + '" fill="hsl(' + ((entropy * 53 + shape * 47) % 360).toString() + ',65%,48%)"/>'
-		}
-		svg += '<text x="150" y="100" text-anchor="middle" font-size="18" fill="#222">' + letter + entropy.toString() + '-SVG</text></svg>'
-		const svgBlock = '<p><img src="data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '" /></p>'
 		const heading = (index % 4) + 1
-		blocks.push('<h' + heading.toString() + '>' + letter + entropy.toString() + '-title-' + next + '</h' + heading.toString() + '>')
+		if (has('标题')) blocks.push('<h' + heading.toString() + '>' + letter + entropy.toString() + '-title-' + next + '</h' + heading.toString() + '>')
 		{
 			let paragraph = '<p>'
 			for (let line = 0; line < paragraphLines; line++) {
@@ -152,7 +163,7 @@ class UniAi {
 				paragraph += letter + entropy.toString() + '-paragraph-' + line.toString() + ' ' + next + '-text-' + (line + 1).toString() + ' XYZ'
 			}
 			paragraph += '</p>'
-			blocks.push(paragraph)
+			if (has('长文')) blocks.push(paragraph)
 		}
 		{
 			let quote = '<blockquote>'
@@ -161,13 +172,13 @@ class UniAi {
 				quote += next + entropy.toString() + '-quote-' + line.toString() + ' ' + letter + '@@@'
 			}
 			quote += '</blockquote>'
-			blocks.push(quote)
+			if (has('引用')) blocks.push(quote)
 		}
 		{
 			let list = '<ul>'
 			for (let item = 0; item < listCount; item++) list += '<li>' + letter + entropy.toString() + '-item-' + item.toString() + '</li>'
 			list += '</ul>'
-			blocks.push(list)
+			if (has('列表')) blocks.push(list)
 		}
 		{
 			let table = '<table><thead><tr>'
@@ -179,20 +190,19 @@ class UniAi {
 				table += '</tr>'
 			}
 			table += '</tbody></table>'
-			blocks.push(table)
+			if (has('表格')) blocks.push(table)
 		}
 		{
 			let code = '<pre><code>'
 			for (let line = 0; line < codeLines; line++) code += 'const ' + letter.toLowerCase() + line.toString() + ' = &quot;' + next + entropy.toString() + '-' + line.toString() + '&quot;;<br>'
 			code += '</code></pre>'
-			blocks.push(code)
+			if (has('代码')) blocks.push(code)
 		}
-		blocks.push(svgBlock)
-		blocks.push('<p><a href="https://example.com/' + next.toLowerCase() + entropy.toString() + '">' + letter + entropy.toString() + '-link</a></p><hr>')
-		// Rotate the block order with a fixed stride instead of using nondeterministic randomness.
+		if (has('链接')) blocks.push('<p><a href="https://example.com/' + next.toLowerCase() + entropy.toString() + '">' + letter + entropy.toString() + '-link</a></p><hr>')
+		// Rotate from a deterministic start; every selected block appears exactly once.
 		const rotated = [] as string[]
-		const stride = (index % 3) + 1
-		for (let offset = 0; offset < blocks.length; offset++) rotated.push(blocks[(offset * stride) % blocks.length])
+		const start = blocks.length > 0 ? entropy % blocks.length : 0
+		for (let offset = 0; offset < blocks.length; offset++) rotated.push(blocks[(start + offset) % blocks.length])
 		return rotated.join('')
 	}
 
@@ -241,7 +251,7 @@ class UniAi {
 		return ''
 	}
 
-	copyLastMessageForStress(count: number): string {
+	copyLastMessageForStress(count: number, selectedTypes: string[] = ['标题', '长文', '引用', '列表', '表格', '代码', 'SVG']): string {
 		const chat = this.currentChat
 		const message = this.lastAiMsg ?? {
 			_id: 'stress-template', body: '', from_uid: 'uni-ai', state: 0,
@@ -255,8 +265,18 @@ class UniAi {
 		const run = this.stressMessageRunSequence
 		for (let index = 0; index < count; index++) {
 			const copied = this.cloneMessagesForStress([message] as MsgItem[], chat.id, 'stress_message_' + index.toString())
-			copied[0].body = 'Stress message ' + (index + 1).toString()
-			copied[0].markdownHtml = this.buildStressHtml(index + 1, run)
+			copied[0].body = selectedTypes.length == 1 && selectedTypes[0] == 'SVG'
+				? '' : 'Stress message ' + (index + 1).toString()
+			copied[0].markdownHtml = this.buildStressHtml(index + 1, run, selectedTypes)
+			if (selectedTypes.indexOf('SVG') >= 0) {
+				copied[0].stressSvgSource = this.buildStressSvg(index + 1, run)
+				copied[0].stressSvgWidth = 300
+				copied[0].stressSvgHeight = 120
+			} else {
+				copied[0].stressSvgSource = ''
+				copied[0].stressSvgWidth = 0
+				copied[0].stressSvgHeight = 0
+			}
 			copied[0].rendered = true
 			copiedMessages.push(copied[0])
 		}
@@ -359,6 +379,15 @@ class UniAi {
 			if (loadedIndex >= 0) this.loadedChatIds.splice(loadedIndex, 1)
 			this.storageManager.deleteChat(chatId)
 		})
+	}
+
+	deleteAllChats(): void {
+		const chatIds = this.chat.datas.map((item: ChatItem): string => item.id)
+		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChat(chatIds[index])
+		this.chat.datas.splice(0, this.chat.datas.length)
+		this.loadedChatIds.splice(0, this.loadedChatIds.length)
+		this.chat.activeId = ''
+		this.addChat(false)
 	}
 
 	selectChat(chatId: string) {

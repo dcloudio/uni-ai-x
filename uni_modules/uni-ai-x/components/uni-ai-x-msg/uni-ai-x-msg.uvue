@@ -2,7 +2,8 @@
 	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''">
 		<image v-if="isFirst" class="msg-segment-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 		<template v-for="part in parts" :key="part.key">
-		<template v-if="part.kind == 'think'">
+		<image v-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" />
+		<template v-else-if="part.kind == 'think'">
 			<view class="msg-segment-think-content" flatten>
 				<view class="msg-root-think-content-header" @click.stop="changeThinkContent">
 					<text class="msg-root-think-content-title" flatten>深度思考 &nbsp;</text>
@@ -36,7 +37,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import {uniAi, MsgItem, uiTheme, messageToolBarVisible} from '@/uni_modules/uni-ai-x/sdk'
 	import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
@@ -76,7 +77,7 @@
 	})
 
 	const shouldShowToolBar = computed<boolean>(() => {
-		return !isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered)
+		return messageToolBarVisible.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
 	})
 
 	const richTextStyle = computed<string>(() => {
@@ -128,6 +129,12 @@
 	padding: 3px;
 	border-radius: 50px;
 	border: 1px solid var(--border-secondary);
+}
+
+.msg-stress-svg {
+	width: 300px;
+	height: 120px;
+	margin-bottom: 8px;
 }
 
 .msg-segment-think-content {

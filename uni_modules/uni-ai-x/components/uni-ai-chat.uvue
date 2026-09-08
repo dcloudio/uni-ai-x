@@ -114,6 +114,7 @@
 	const RENDER_ITEM_TYPE_AI_CODE = 13
 	const RENDER_ITEM_TYPE_AI_MERMAID = 20
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
+	const RENDER_ITEM_TYPE_AI_SVG = 22
 
 	function getMarkdownBlocks(msg: MsgItem): MarkdownHtmlBlock[] {
 		const html = msg.markdownHtml ?? ''
@@ -204,6 +205,12 @@
 					[aiRenderPart(block.kind, block.key, block)] as AiMsgRenderPart[])
 				hasAiSegment = true
 			}
+			const stressSvgSource = msg.stressSvgSource ?? ''
+			if (stressSvgSource.length > 0) {
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SVG, !hasAiSegment, 'stress-svg',
+					[aiRenderPart('stress-svg', 'stress-svg')] as AiMsgRenderPart[])
+				hasAiSegment = true
+			}
 			if (msg.error_msg != null) {
 				appendNormalPart(aiRenderPart('error', 'error'))
 			} else {
@@ -223,7 +230,7 @@
 					}
 				} else if (msg.body.length > 0) {
 					appendNormalPart(aiRenderPart('plain', 'plain'))
-				} else {
+				} else if (!hasAiSegment) {
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
 			}

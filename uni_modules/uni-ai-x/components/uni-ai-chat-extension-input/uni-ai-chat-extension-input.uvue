@@ -9,22 +9,35 @@
 					:class="activeActionId == action.id ? 'chat-extension-input-action-text-active' : ''">{{action.label}}</text>
 			</view>
 			<view class="chat-extension-input-action"
-				:class="[!canCopyMessages ? 'chat-extension-input-action-disabled' : '', 'chat-extension-input-action-generate']"
-				@click.stop="copyMessages">
-				<text class="chat-extension-input-action-text chat-extension-input-generate-text" :style="{color: '#ffffff'}">生成100条不同消息</text>
-			</view>
-			<view class="chat-extension-input-action"
 				:class="!canCopyChats ? 'chat-extension-input-action-disabled' : ''"
 				@click.stop="copyChats">
 				<text class="chat-extension-input-action-text">复制500个会话</text>
 			</view>
-			<view class="chat-extension-input-action chat-extension-input-clear"
+			<view class="chat-extension-input-action"
 				:class="aiState == 'processing' ? 'chat-extension-input-action-disabled' : ''"
-				@click.stop="clear">
-				<text class="chat-extension-input-clear-text">清空</text>
+				@click.stop="createChat">
+				<text class="chat-extension-input-action-text">新建会话</text>
+			</view>
+			<view class="chat-extension-input-action chat-extension-input-delete"
+				:class="aiState == 'processing' || uniAi.currentChat == null ? 'chat-extension-input-action-disabled' : ''"
+				@click.stop="deleteCurrentChat">
+				<text class="chat-extension-input-delete-text">删除当前会话</text>
+			</view>
+			<view class="chat-extension-input-action chat-extension-input-delete"
+				:class="aiState == 'processing' || uniAi.chat.datas.length == 0 ? 'chat-extension-input-action-disabled' : ''"
+				@click.stop="deleteAllChats">
+				<text class="chat-extension-input-delete-text">删除所有会话</text>
+			</view>
+			<view class="chat-extension-input-action" @click.stop="toggleMessageToolBar">
+				<text class="chat-extension-input-action-text">{{messageToolBarVisible ? '隐藏消息工具栏' : '显示消息工具栏'}}</text>
+			</view>
+			<view class="stress-generator">
+				<view class="stress-generator-title"><text>随机生成</text><input class="stress-count" v-model="stressCount" type="number" /><text>条</text><text class="stress-select-all" @click.stop="toggleAll">{{allSelected ? '取消全选' : '全选'}}</text></view>
+				<checkbox-group class="stress-types" @change="onStressTypesChange"><label v-for="type in stressTypes" :key="type" class="stress-type"><checkbox :value="type" :checked="selectedTypes.indexOf(type) >= 0" /><text class="stress-type-text">{{type}}</text></label></checkbox-group>
+				<view class="stress-generate-btn" :class="!canCopyMessages || selectedTypes.length == 0 ? 'chat-extension-input-action-disabled' : ''" @click.stop="copyMessages"><text class="stress-generate-text">确认生成</text></view>
 			</view>
 		</view>
-		<view class="chat-extension-input-status-row">
+		<view v-if="aiState == 'processing'" class="chat-extension-input-status-row">
 			<text class="chat-extension-input-status-text">{{statusText}}</text>
 			<view class="chat-extension-input-stop-slot">
 				<view class="chat-extension-input-stop" :style="{visibility: aiState == 'processing' ? 'visible' : 'hidden'}" @click.stop="stop">
@@ -40,7 +53,7 @@
 </template>
 
 <script lang="uts" setup>
-	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+	import uniAi, { messageToolBarVisible } from '@/uni_modules/uni-ai-x/sdk'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 
 	const extension = getChatInputExtension()!
@@ -50,6 +63,10 @@
 	const statusText = computed<string>(() => extension.statusText())
 	const copyingChats = ref<boolean>(false)
 	const copiedChats = ref<number>(0)
+	const stressCount = ref<string>('100')
+	const stressTypes = ['标题', '长文', '引用', '列表', '表格', '代码', 'SVG', '链接']
+	const selectedTypes = ref<string[]>(['长文'])
+	const allSelected = computed<boolean>(() => selectedTypes.value.length == stressTypes.length)
 	let stressCopyRunId = ''
 	const canCopyMessages = computed<boolean>(() => {
 		return !copyingChats.value && aiState.value != 'processing' && uniAi.currentChat != null
@@ -63,9 +80,37 @@
 		extension.runAction(actionId)
 	}
 
-	function clear() {
+	function createChat() {
 		if (aiState.value == 'processing') return
 		extension.clear()
+	}
+
+	function deleteCurrentChat() {
+		if (aiState.value == 'processing') return
+		const chatId = uniAi.currentChat?.id ?? ''
+		if (chatId.length == 0) return
+		uni.showModal({
+			title: '删除当前会话',
+			content: '确定删除当前会话及其全部消息吗？',
+			success: (result) => {
+				if (result.confirm) uniAi.deleteChat(chatId)
+			}
+		})
+	}
+
+	function deleteAllChats() {
+		if (aiState.value == 'processing' || uniAi.chat.datas.length == 0) return
+		uni.showModal({
+			title: '删除所有会话',
+			content: '确定删除所有会话及其全部消息吗？此操作无法撤销。',
+			success: (result) => {
+				if (result.confirm) uniAi.deleteAllChats()
+			}
+		})
+	}
+
+	function toggleMessageToolBar() {
+		messageToolBarVisible.value = !messageToolBarVisible.value
 	}
 
 	function stop() {
@@ -74,8 +119,11 @@
 
 	function copyMessages() {
 		if (!canCopyMessages.value) return
-		uniAi.copyLastMessageForStress(100)
+		const count = Math.max(1, Math.min(500, parseInt(stressCount.value) || 100))
+		uniAi.copyLastMessageForStress(count, selectedTypes.value.slice())
 	}
+	function onStressTypesChange(event: UniCheckboxGroupChangeEvent) { selectedTypes.value = event.detail.value.slice() }
+	function toggleAll() { selectedTypes.value = allSelected.value ? [] : stressTypes.slice() }
 
 	function copyChats() {
 		if (!canCopyChats.value) return
@@ -127,6 +175,16 @@
 	align-items: center;
 }
 
+.stress-generator { width: 100%; margin-top: 4px; padding: 12px 0 4px 0; border-top: 1px solid var(--border-secondary); }
+.stress-generator-title { flex-direction: row; align-items: center; }
+.stress-count { width: 58px; height: 28px; margin: 0 5px; padding: 0 6px; border: 1px solid var(--border-primary); border-radius: 4px; text-align: center; }
+.stress-select-all { margin-left: auto; color: #2979ff; font-size: 13px; }
+.stress-types { flex-direction: row; flex-wrap: wrap; margin-top: 6px; }
+.stress-type { flex-direction: row; align-items: center; margin-right: 12px; margin-bottom: 6px; }
+.stress-type-text { font-size: 13px; color: var(--text-secondary); }
+.stress-generate-btn { align-self: flex-end; padding: 7px 16px; border-radius: 5px; background-color: #2979ff; }
+.stress-generate-text { color: #ffffff; font-size: 13px; }
+
 .chat-extension-input-action {
 	height: 32px;
 	flex-direction: row;
@@ -168,11 +226,11 @@
 	color: var(--accent-primary);
 }
 
-.chat-extension-input-clear {
+.chat-extension-input-delete {
 	border-color: var(--error);
 }
 
-.chat-extension-input-clear-text {
+.chat-extension-input-delete-text {
 	font-size: 13px;
 	color: var(--error);
 }
