@@ -35,7 +35,8 @@
 	}
 
 	const props = defineProps<UniAiXMsgProps>()
-	const msg = ref<MsgItem>(props.msg as MsgItem)
+	// 待 WEB/MP 平台支持 defineProps 响应式解构后，可改为 const { msg } = defineProps<UniAiXMsgProps>()。
+	// 当前先直接使用 props.msg，避免复制一份不会随 prop 替换而同步的引用。
 	const emit = defineEmits<{
 		'changeThinkContent': [hideThinkContent: boolean]
 	}>()
@@ -46,11 +47,11 @@
 	})
 
 	const isLastAiMsg = computed<boolean>(() => {
-		return uniAi.lastAiMsg?._id == msg.value._id
+		return uniAi.lastAiMsg?._id == props.msg._id
 	})
 
 	const showPlainText = computed<boolean>(() => {
-		return msg.value.body.length > 0 && msg.value.markdownElList.length == 0
+		return props.msg.body.length > 0 && props.msg.markdownElList.length == 0
 	})
 
 	const changeThinkContent = () => {
