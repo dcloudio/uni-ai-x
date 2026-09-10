@@ -1,0 +1,238 @@
+import {
+	MarkdownHtmlBlock,
+	prepareMarkdownTable,
+	PreparedMarkdownTable
+} from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+
+export type MarkdownAstNode = {
+	type: string
+	literal?: string
+	level?: number
+	listType?: string
+	start?: number
+	delim?: string
+	tight?: boolean
+	url?: string
+	title?: string
+	info?: string
+	tasklist?: boolean
+	checked?: boolean
+	columns?: number
+	alignments?: string[]
+	header?: boolean
+	children?: MarkdownAstNode[]
+}
+
+export type MarkdownRenderBlock = {
+	kind: string
+	key: string
+	html: string
+	text: string
+	language: string
+	isComplete: boolean
+	columnWidths: number[]
+	rowTextWidths: number[][]
+	nodes: MarkdownAstNode[]
+}
+
+function emptyNodes(): MarkdownAstNode[] {
+	return [] as MarkdownAstNode[]
+}
+
+function nodeChildren(node: MarkdownAstNode | null): MarkdownAstNode[] {
+	if (node == null || node.children == null) return emptyNodes()
+	return node.children!
+}
+
+function escapeHtmlText(text: string): string {
+	let result = text.replace(/&/g, '&amp;')
+	result = result.replace(/</g, '&lt;')
+	result = result.replace(/>/g, '&gt;')
+	result = result.replace(/"/g, '&quot;')
+	return result
+}
+
+function inlineNodeText(node: MarkdownAstNode | null): string {
+	if (node == null) return ''
+	if (node.literal != null) return node.literal!
+	let text = ''
+	const children = nodeChildren(node)
+	for (let index = 0; index < children.length; index++) text += inlineNodeText(children[index])
+	return text
+}
+
+function inlineNodeHtml(node: MarkdownAstNode | null): string {
+	if (node == null) return ''
+	const type = node.type
+	if (type == 'text') return escapeHtmlText(node.literal ?? '')
+	if (type == 'softbreak' || type == 'linebreak') return '<br>'
+	if (type == 'code') return '<code>' + escapeHtmlText(node.literal ?? '') + '</code>'
+	if (type == 'emph') return '<em>' + inlineChildrenHtml(node) + '</em>'
+	if (type == 'strong') return '<strong>' + inlineChildrenHtml(node) + '</strong>'
+	if (type == 'strikethrough') return '<del>' + inlineChildrenHtml(node) + '</del>'
+	if (type == 'link') {
+		return '<a href="' + escapeHtmlText(node.url ?? '') + '">' + inlineChildrenHtml(node) + '</a>'
+	}
+	if (type == 'image') {
+		return '<img src="' + escapeHtmlText(node.url ?? '') + '" alt="' + escapeHtmlText(inlineNodeText(node)) + '" />'
+	}
+	if (type == 'html_inline' || type == 'html_block') return escapeHtmlText(node.literal ?? '')
+	return inlineChildrenHtml(node)
+}
+
+function inlineChildrenHtml(node: MarkdownAstNode): string {
+	let result = ''
+	const children = nodeChildren(node)
+	for (let index = 0; index < children.length; index++) result += inlineNodeHtml(children[index])
+	return result
+}
+
+function tableRawHtml(node: MarkdownAstNode): string {
+	const alignments = node.alignments ?? ([] as string[])
+	const rows = nodeChildren(node)
+	let headerHtml = ''
+	let bodyHtml = ''
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex]
+		const isHeader = row.header == true
+		const cells = nodeChildren(row)
+		let rowHtml = '<tr>'
+		for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+			const align = cellIndex < alignments.length ? alignments[cellIndex] : 'left'
+			const tag = isHeader ? 'th' : 'td'
+			rowHtml += '<' + tag + ' style="text-align:' + (align.length > 0 ? align : 'left') + '">' +
+				inlineChildrenHtml(cells[cellIndex]) + '</' + tag + '>'
+		}
+		rowHtml += '</tr>'
+		if (isHeader) {
+			headerHtml += rowHtml
+		} else {
+			bodyHtml += rowHtml
+		}
+	}
+	let html = '<table>'
+	if (headerHtml.length > 0) html += '<thead>' + headerHtml + '</thead>'
+	if (bodyHtml.length > 0) html += '<tbody>' + bodyHtml + '</tbody>'
+	html += '</table>'
+	return html
+}
+
+function richBlock(key: string, nodes: MarkdownAstNode[]): MarkdownRenderBlock {
+	return {
+		kind: 'rich',
+		key: key,
+		html: '',
+		text: '',
+		language: '',
+		isComplete: true,
+		columnWidths: [] as number[],
+		rowTextWidths: [] as number[][],
+		nodes: nodes
+	}
+}
+
+function specialBlock(kind: string, key: string): MarkdownRenderBlock {
+	return {
+		kind: kind,
+		key: key,
+		html: '',
+		text: '',
+		language: '',
+		isComplete: true,
+		columnWidths: [] as number[],
+		rowTextWidths: [] as number[][],
+		nodes: [] as MarkdownAstNode[]
+	}
+}
+
+export function buildMarkdownAstBlocks(astJson: string, isDone: boolean = false): MarkdownRenderBlock[] {
+	const blocks = [] as MarkdownRenderBlock[]
+	if (astJson.length == 0) return blocks
+	let document: MarkdownAstNode | null = null
+	try {
+		document = JSON.parse<MarkdownAstNode>(astJson) as MarkdownAstNode
+	} catch (_error) {
+		return blocks
+	}
+	if (document == null) return blocks
+
+	const children = nodeChildren(document)
+	const pending = [] as MarkdownAstNode[]
+	let blockIndex = 0
+
+	const flushRich = () => {
+		if (pending.length == 0) return
+		blocks.push(richBlock('rich-' + blocks.length.toString(), pending.slice(0)))
+		pending.length = 0
+	}
+
+	for (let index = 0; index < children.length; index++) {
+		const node = children[index]
+		const type = node.type
+		if (type == 'table') {
+			flushRich()
+			const prepared = prepareMarkdownTable(tableRawHtml(node), blockIndex)
+			const block = specialBlock('table', 'table-' + blockIndex.toString())
+			block.html = prepared.html
+			block.columnWidths = prepared.columnWidths
+			block.rowTextWidths = prepared.rowTextWidths
+			blocks.push(block)
+			blockIndex += 1
+			continue
+		}
+		if (type == 'code_block') {
+			flushRich()
+			const info = (node.info ?? '').split(' ')[0]
+			let kind = 'code'
+			let language = info.length > 0 ? info : 'text'
+			let isComplete = isDone
+			if (info == 'math-pending') {
+				kind = 'math'
+				language = 'math'
+				isComplete = false
+			} else if (info == 'math') {
+				kind = 'math'
+				language = 'math'
+				isComplete = true
+			} else if (info == 'mermaid-pending') {
+				kind = 'mermaid'
+				language = 'mermaid'
+				isComplete = false
+			} else if (info == 'mermaid') {
+				kind = 'mermaid'
+				language = 'mermaid'
+				isComplete = true
+			}
+			const block = specialBlock(kind, 'code-' + blockIndex.toString())
+			block.text = (node.literal ?? '').replace(/\n$/, '')
+			block.language = language
+			block.isComplete = isComplete
+			blocks.push(block)
+			blockIndex += 1
+			continue
+		}
+		pending.push(node)
+	}
+	flushRich()
+	return blocks
+}
+
+// Adapts legacy HTML-split blocks so stored messages without an AST still render.
+export function htmlBlocksToRenderBlocks(blocks: MarkdownHtmlBlock[]): MarkdownRenderBlock[] {
+	const result = [] as MarkdownRenderBlock[]
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		result.push({
+			kind: block.kind,
+			key: block.key,
+			html: block.html,
+			text: block.text,
+			language: block.language,
+			isComplete: block.isComplete,
+			columnWidths: block.columnWidths,
+			rowTextWidths: block.rowTextWidths,
+			nodes: [] as MarkdownAstNode[]
+		})
+	}
+	return result
+}

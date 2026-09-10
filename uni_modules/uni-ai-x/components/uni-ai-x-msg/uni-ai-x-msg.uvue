@@ -22,7 +22,10 @@
 			:code-text="part.block.text" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" />
-		<rich-text :disable-split-screen-render="true" v-else-if="part.block != null && part.block.kind == 'rich'" class="msg-segment-rich-text" :style="richTextStyle"
+		<view v-else-if="part.block != null && part.block.nodes.length > 0" class="msg-segment-md">
+			<uni-ai-md-node v-for="(node, nodeIndex) in part.block.nodes" :key="part.key + '-n' + nodeIndex" :node="node" />
+		</view>
+		<rich-text :disable-split-screen-render="true" v-else-if="part.block != null && part.block.kind == 'rich' && part.block.html.length > 0" class="msg-segment-rich-text" :style="richTextStyle"
 			:nodes="part.block.html" mode="native" @itemclick="onItemClick"></rich-text>
 		<text v-else-if="part.block != null && part.block.kind == 'text'" class="msg-segment-blank-text">{{part.block.text}}</text>
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
@@ -38,12 +41,13 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme, messageToolBarVisible} from '@/uni_modules/uni-ai-x/sdk'
-	import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { MarkdownRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
 	import uniAiMsgQuote from '@/uni_modules/uni-ai-x/components/uni-ai-msg-quote/uni-ai-msg-quote.uvue'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
+	import uniAiMdNode from '@/uni_modules/uni-ai-x/components/uni-ai-md-node/uni-ai-md-node.uvue'
 
 	type UniAiXMsgProps = {
 		msg: MsgItem
@@ -54,7 +58,7 @@
 	type AiMsgRenderPart = {
 		key: string
 		kind: string
-		block?: MarkdownHtmlBlock
+		block?: MarkdownRenderBlock
 	}
 
 	const props = withDefaults(defineProps<UniAiXMsgProps>(), {
@@ -178,6 +182,11 @@
 
 .msg-segment-rich-text {
 	width: 100%;
+}
+
+.msg-segment-md {
+	width: 100%;
+	flex-direction: column;
 }
 
 .msg-segment-blank-text {

@@ -9,6 +9,9 @@
 			<uni-ai-msg-math v-else-if="block.kind == 'math'"
 				:text="block.text" :is-close="block.isComplete ? 1 : 0" />
 			<text v-else-if="block.kind == 'text'" class="uni-ai-md-blank-text">{{block.text}}</text>
+			<view v-else-if="block.nodes.length > 0" class="uni-ai-md-rich-text-nodes">
+				<uni-ai-md-node v-for="(node, nodeIndex) in block.nodes" :key="block.key + '-n' + nodeIndex" :node="node" />
+			</view>
 			<rich-text :disable-split-screen-render="true" v-else class="uni-ai-md-rich-text-content" :style="richTextStyle"
 				:nodes="block.html" mode="native" @itemclick="onItemClick"></rich-text>
 		</template>
@@ -17,22 +20,27 @@
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
-	import { buildMarkdownHtmlBlocks, MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { buildMarkdownAstBlocks, htmlBlocksToRenderBlocks, MarkdownRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
 	import uniAiMsgQuote from '@/uni_modules/uni-ai-x/components/uni-ai-msg-quote/uni-ai-msg-quote.uvue'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
+	import uniAiMdNode from '@/uni_modules/uni-ai-x/components/uni-ai-md-node/uni-ai-md-node.uvue'
 
 	type UniAiMdRichTextProps = {
 		html: string
+		ast?: string
 		complete?: boolean
 	}
 
 	const props = defineProps<UniAiMdRichTextProps>()
 	const html = computed<string>(() => props.html)
+	const ast = computed<string>(() => props.ast ?? '')
 
-	const renderBlocks = computed<MarkdownHtmlBlock[]>(() => {
-		return buildMarkdownHtmlBlocks(html.value, props.complete ?? false)
+	const renderBlocks = computed<MarkdownRenderBlock[]>(() => {
+		if (ast.value.length > 0) return buildMarkdownAstBlocks(ast.value, props.complete ?? false)
+		return htmlBlocksToRenderBlocks(buildMarkdownHtmlBlocks(html.value, props.complete ?? false))
 	})
 
 	const richTextStyle = computed<string>(() => {
@@ -61,6 +69,11 @@
 	.uni-ai-md-rich-text,
 	.uni-ai-md-rich-text-content {
 		width: 100%;
+	}
+
+	.uni-ai-md-rich-text-nodes {
+		width: 100%;
+		flex-direction: column;
 	}
 
 	.uni-ai-md-blank-text {

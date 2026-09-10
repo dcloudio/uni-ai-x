@@ -39,7 +39,8 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
-	import { buildMarkdownHtmlBlocks, MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { buildMarkdownAstBlocks, htmlBlocksToRenderBlocks, MarkdownRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -88,9 +89,10 @@
 	})
 
 	type MarkdownBlockCache = {
+		ast: string
 		html: string
 		complete: boolean
-		blocks: MarkdownHtmlBlock[]
+		blocks: MarkdownRenderBlock[]
 	}
 
 	type ChatRenderItem = {
@@ -106,7 +108,7 @@
 	type AiMsgRenderPart = {
 		key: string
 		kind: string
-		block?: MarkdownHtmlBlock
+		block?: MarkdownRenderBlock
 	}
 
 	const RENDER_ITEM_TYPE_USER = 1
@@ -116,15 +118,25 @@
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
 	const RENDER_ITEM_TYPE_AI_SVG = 22
 
-	function getMarkdownBlocks(msg: MsgItem): MarkdownHtmlBlock[] {
+	function getMarkdownBlocks(msg: MsgItem): MarkdownRenderBlock[] {
+		const ast = msg.markdownAst ?? ''
 		const html = msg.markdownHtml ?? ''
 		const complete = msg.rendered
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.html == html && cached.complete == complete) {
+		if (cached != null && cached.ast == ast && cached.html == html && cached.complete == complete) {
 			return cached.blocks
 		}
-		const blocks = buildMarkdownHtmlBlocks(html, complete)
+		let blocks = [] as MarkdownRenderBlock[]
+		if (ast.length > 0) {
+			blocks = buildMarkdownAstBlocks(ast, complete)
+		}
+		if (blocks.length == 0 && html.length > 0) {
+			blocks = htmlBlocksToRenderBlocks(buildMarkdownHtmlBlocks(html, complete))
+		}
+		// 调试日志：排查 markdown 块来源（ast/html）时启用
+		// console.log('[uni-ai-x][chat] ast=' + ast.length.toString() + ' html=' + html.length.toString() + ' blocks=' + blocks.length.toString())
 		markdownBlockCache.set(msg._id, {
+			ast: ast,
 			html: html,
 			complete: complete,
 			blocks: blocks
@@ -132,7 +144,7 @@
 		return blocks
 	}
 
-	function markdownBlockItemType(block: MarkdownHtmlBlock): number {
+	function markdownBlockItemType(block: MarkdownRenderBlock): number {
 		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
 		if (block.kind == 'mermaid') return RENDER_ITEM_TYPE_AI_MERMAID
 		if (block.kind == 'code') return RENDER_ITEM_TYPE_AI_CODE
@@ -152,7 +164,7 @@
 		} as ChatRenderItem)
 	}
 
-	function aiRenderPart(kind: string, key: string, block?: MarkdownHtmlBlock): AiMsgRenderPart {
+	function aiRenderPart(kind: string, key: string, block?: MarkdownRenderBlock): AiMsgRenderPart {
 		return {
 			key: key,
 			kind: kind,
@@ -160,12 +172,11 @@
 		} as AiMsgRenderPart
 	}
 
-	function isRichTextListBlock(block: MarkdownHtmlBlock): boolean {
+	function isRichTextListBlock(block: MarkdownRenderBlock): boolean {
 		// Each of these block components owns at most one native rich-text node.
 		// Keep them in separate list items so a list item never contains multiple
-		// native rich-text renderers, including quote/table/code/math subcomponents.
-		return block.kind == 'rich' || block.kind == 'table' || block.kind == 'quote'
-			|| block.kind == 'code' || block.kind == 'mermaid' || block.kind == 'math'
+		// native rich-text renderers. Plain content now renders with <text>.
+		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid' || block.kind == 'math'
 	}
 
 	const renderItemList = computed<ChatRenderItem[]>(() => {
@@ -199,7 +210,7 @@
 				normalSegmentIndex += 1
 				hasAiSegment = true
 			}
-			const appendRichTextBlock = (block: MarkdownHtmlBlock) => {
+			const appendRichTextBlock = (block: MarkdownRenderBlock) => {
 				flushNormalParts()
 				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, block.key,
 					[aiRenderPart(block.kind, block.key, block)] as AiMsgRenderPart[])
@@ -218,7 +229,8 @@
 					appendNormalPart(aiRenderPart('think', 'think'))
 				}
 				const markdownHtml = msg.markdownHtml ?? ''
-				if (markdownHtml.length > 0) {
+				const markdownAst = msg.markdownAst ?? ''
+				if (markdownAst.length > 0 || markdownHtml.length > 0) {
 					const blocks = getMarkdownBlocks(msg)
 					for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
 						const block = blocks[blockIndex]
