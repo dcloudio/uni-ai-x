@@ -136,9 +136,10 @@ class UniAi {
 		}
 		svg += '<rect x="' + (30 + entropy % 80).toString() + '" y="78" width="' + (70 + entropy % 90).toString()
 			+ '" height="18" fill="' + colors[(entropy + 3) % colors.length] + '"/></svg>'
-		const bytes = new Uint8Array(svg.length)
+		const buffer = new ArrayBuffer(svg.length)
+		const bytes = new Uint8Array(buffer)
 		for (let offset = 0; offset < svg.length; offset++) bytes[offset] = svg.charCodeAt(offset)
-		return 'data:image/svg+xml;base64,' + uni.arrayBufferToBase64(bytes.buffer)
+		return 'data:image/svg+xml;base64,' + uni.arrayBufferToBase64(buffer)
 	}
 
 	private buildStressHtml(index: number, run: number, selectedTypes: string[]): string {
