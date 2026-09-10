@@ -21,3 +21,8 @@ export function md2html(markdown: string): string {
 	if (!initialized) throw new Error('cmark-gfm WebAssembly module is not initialized')
 	return cmarkGfm.md2html(markdown) as string
 }
+
+export function md2json(markdown: string): string {
+	if (!initialized) throw new Error('cmark-gfm WebAssembly module is not initialized')
+	return cmarkGfm.md2json(markdown) as string
+}

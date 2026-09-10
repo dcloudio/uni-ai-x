@@ -1,24 +1,44 @@
 # uni-cmark
 
-`uni-cmark` 使用固定版本的 cmark-gfm 内核将 Markdown 直接转换为 HTML，支持
-uni-app x 的 Android、iOS、Web、微信小程序和鸿蒙平台。
+`uni-cmark` 使用固定版本的 cmark-gfm 内核将 Markdown 直接转换为 HTML 或结构化
+JSON AST，支持 uni-app x 的 Android、iOS、Web、微信小程序和鸿蒙平台。
 
 ```uts
 import {
   initMd2html,
   isMd2htmlAvailable,
-  md2html
+  md2html,
+  md2json
 } from '@/uni_modules/uni-cmark'
 
 await initMd2html()
 if (isMd2htmlAvailable()) {
   const html = md2html('# Hello')
+  const json = md2json('# Hello')
 }
 ```
 
-插件不对外提供 Markdown AST、节点、Token 或 JSON 转换接口。所有支持的平台统一
-使用 cmark-gfm `0.29.0.gfm.13`、相同的 `md2html.c`、扩展、安全 HTML 选项和
-HTML 后处理逻辑。
+`md2json` 返回 cmark-gfm 文档树的 JSON 序列化结果，节点结构如下：
+
+```json
+{
+  "type": "document",
+  "children": [
+    { "type": "heading", "level": 1, "children": [{ "type": "text", "literal": "Hello" }] }
+  ]
+}
+```
+
+- 容器节点使用 `children`；文本、代码、HTML 等叶子节点使用 `literal`。
+- `list` 附带 `listType`（`bullet`/`ordered`）、`start`、`delim`、`tight`。
+- `tasklist` 附带 `tasklist: true` 与 `checked`。
+- `table` 附带 `columns` 与 `alignments`（`left`/`center`/`right`/`none`）；表头行统一为
+  `type: "table_row"` 且 `header: true`。
+- `link`/`image` 附带 `url`、可选 `title`；`code_block` 附带可选 `info`。
+- 未开启 `CMARK_OPT_UNSAFE` 时，原始 HTML 节点输出 `<!-- raw HTML omitted -->`。
+
+所有支持的平台统一使用 cmark-gfm `0.29.0.gfm.13`、相同的 `md2html.c`、扩展和安全
+选项，`md2html` 与 `md2json` 复用同一次解析管线。
 
 - Android 加载 `libcmarkhtml.so`。
 - iOS 通过原生 UTS 桥接加载 `scopeparser4ios.xcframework`。

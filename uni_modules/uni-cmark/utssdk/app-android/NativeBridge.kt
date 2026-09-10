@@ -19,6 +19,7 @@ class MainActivity {
         }
     }
 		private external fun md2htmlUtf8(markdownUtf8: ByteArray): ByteArray
+		private external fun md2jsonUtf8(markdownUtf8: ByteArray): ByteArray
 
 		fun isMd2htmlAvailable(): Boolean {
 			return loadCmarkHtml()
@@ -29,5 +30,12 @@ class MainActivity {
 				throw IllegalStateException("libcmarkhtml.so is not installed in the current custom base")
 			}
 			return md2htmlUtf8(text.toByteArray(Charsets.UTF_8)).toString(Charsets.UTF_8)
+		}
+
+		fun md2json(text: String): String {
+			if (!loadCmarkHtml()) {
+				throw IllegalStateException("libcmarkhtml.so is not installed in the current custom base")
+			}
+			return md2jsonUtf8(text.toByteArray(Charsets.UTF_8)).toString(Charsets.UTF_8)
 		}
 }

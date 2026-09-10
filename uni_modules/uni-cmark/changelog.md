@@ -1,3 +1,9 @@
+# 1.3.0（2026-09-10）
+
+- 新增 `md2json`，直接输出 cmark-gfm 文档树的 JSON AST，与 `md2html` 复用同一解析管线。
+- 统一各端 `md2json` 接口：Android JNI、iOS Framework、鸿蒙 N-API、Web/微信小程序 WASM。
+- 表格表头行在 JSON 中统一为 `table_row` + `header: true`。
+
 # 1.2.0（2026-08-07）
 
 - Web、微信小程序新增 Worker 内 `md2html`，使用与 Android 相同的 cmark-gfm C 核心生成 HTML。

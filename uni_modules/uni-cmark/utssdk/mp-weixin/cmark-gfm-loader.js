@@ -126,4 +126,27 @@ function md2html(markdown) {
   }
 }
 
-export default { init, md2html }
+function md2json(markdown) {
+  if (moduleInstance == null) throw new Error('cmark-gfm WebAssembly module is not initialized')
+  const input = stringToUtf8Bytes(markdown)
+  const inputPointer = moduleInstance.malloc(input.length + 1)
+  let heap = new Uint8Array(moduleInstance.memory.buffer)
+  heap.set(input, inputPointer)
+  heap[inputPointer + input.length] = 0
+  try {
+    const jsonPointer = moduleInstance.uni_cmark_markdown_to_json(inputPointer, input.length, 0)
+    if (jsonPointer === 0) throw new Error('cmark-gfm failed to convert Markdown to JSON')
+    try {
+      heap = new Uint8Array(moduleInstance.memory.buffer)
+      const output = []
+      for (let pointer = jsonPointer; heap[pointer] !== 0; pointer++) output.push(heap[pointer])
+      return utf8BytesToString(output)
+    } finally {
+      moduleInstance.uni_cmark_free_json(jsonPointer)
+    }
+  } finally {
+    moduleInstance.free(inputPointer)
+  }
+}
+
+export default { init, md2html, md2json }

@@ -31,6 +31,59 @@ static char *render(const char *markdown) {
   return html;
 }
 
+static char *render_json(const char *markdown) {
+  size_t json_length = 0;
+  char *json = uni_cmark_markdown_to_json(
+      (const uint8_t *)markdown, strlen(markdown), &json_length);
+  if (json == NULL || json_length != strlen(json)) {
+    fprintf(stderr, "Markdown JSON conversion failed\n");
+    exit(1);
+  }
+  return json;
+}
+
+static void test_json(void) {
+  char *json = render_json(
+      "# Title\n\nText with **bold**, *em* and [link](https://example.com).\n");
+  require_contains(json, "\"type\":\"document\"");
+  require_contains(json, "\"type\":\"heading\",\"level\":1");
+  require_contains(json, "\"type\":\"strong\"");
+  require_contains(json, "\"type\":\"emph\"");
+  require_contains(json, "\"type\":\"link\",\"url\":\"https://example.com\"");
+  uni_cmark_free_json(json);
+
+  json = render_json("| Left | Right |\n| :--- | ---: |\n| a | b |\n");
+  require_contains(json, "\"type\":\"table\"");
+  require_contains(json, "\"alignments\":[\"left\",\"right\"]");
+  require_contains(json, "\"type\":\"table_row\",\"header\":true");
+  require_contains(json, "\"type\":\"table_cell\"");
+  uni_cmark_free_json(json);
+
+  json = render_json("~~gone~~\n\n- [x] done\n- [ ] todo\n\n3. third\n4. fourth\n");
+  require_contains(json, "\"type\":\"strikethrough\"");
+  require_contains(json, "\"type\":\"tasklist\",\"tasklist\":true,\"checked\":true");
+  require_contains(json, "\"type\":\"tasklist\",\"tasklist\":true,\"checked\":false");
+  require_contains(json, "\"listType\":\"ordered\",\"start\":3");
+  uni_cmark_free_json(json);
+
+  json = render_json("```js\nconst a = 1;\n```\n");
+  require_contains(json, "\"type\":\"code_block\",\"info\":\"js\"");
+  require_contains(json, "\"literal\":\"const a = 1;\\n\"");
+  uni_cmark_free_json(json);
+
+  json = render_json("a \"quote\" and \\ backslash\n");
+  require_contains(json, "\\\"quote\\\"");
+  require_contains(json, "\\\\ backslash");
+  uni_cmark_free_json(json);
+
+  json = render_json("<script>alert(1)</script>\n");
+  require_contains(json, "<!-- raw HTML omitted -->");
+  require_not_contains(json, "<script>");
+  uni_cmark_free_json(json);
+
+  puts("md2json native tests passed");
+}
+
 int main(void) {
   char *html = render("# Title\n\nText with **bold** and [link](https://example.com).\n");
   require_contains(html, "<h1>Title</h1>");
@@ -67,6 +120,8 @@ int main(void) {
     return 1;
   }
   uni_cmark_free_html(html);
+
+  test_json();
 
   puts("md2html native tests passed");
   return 0;

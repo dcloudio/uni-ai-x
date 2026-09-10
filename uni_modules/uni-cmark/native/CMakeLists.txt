@@ -53,7 +53,7 @@ if(EMSCRIPTEN)
     "-sSTACK_SIZE=2097152"
     "-sFILESYSTEM=0"
     "-sINVOKE_RUN=0"
-    "-sEXPORTED_FUNCTIONS=['_uni_cmark_markdown_to_html','_uni_cmark_free_html']"
+    "-sEXPORTED_FUNCTIONS=['_uni_cmark_markdown_to_html','_uni_cmark_free_html','_uni_cmark_markdown_to_json','_uni_cmark_free_json']"
     "-sEXPORTED_RUNTIME_METHODS=['cwrap','UTF8ToString']"
   )
 
@@ -80,7 +80,7 @@ if(EMSCRIPTEN)
     "-sALLOW_MEMORY_GROWTH=1"
     "-sSTACK_SIZE=2097152"
     "-sFILESYSTEM=0"
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_uni_cmark_markdown_to_html','_uni_cmark_free_html']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_uni_cmark_markdown_to_html','_uni_cmark_free_html','_uni_cmark_markdown_to_json','_uni_cmark_free_json']"
   )
   return()
 endif()

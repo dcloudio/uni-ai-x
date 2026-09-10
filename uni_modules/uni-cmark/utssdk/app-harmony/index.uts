@@ -8,6 +8,10 @@ export function md2html(markdown: string): string {
 	return cmark.md2html(markdown)
 }
 
+export function md2json(markdown: string): string {
+	return cmark.md2json(markdown)
+}
+
 export function isMd2htmlAvailable(): boolean {
 	return true
 }

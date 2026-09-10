@@ -38,3 +38,9 @@ export function md2html(markdown: string): string {
 	const html = getScopeparserBridge().md2html(markdown) as string | null
 	return html == null ? '' : html as string
 }
+
+export function md2json(markdown: string): string {
+	if (!ensureCmarkInitialized()) return ''
+	const json = getScopeparserBridge().md2json(markdown) as string | null
+	return json == null ? '' : json as string
+}

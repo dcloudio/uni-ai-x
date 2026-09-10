@@ -6,11 +6,13 @@ type Md2htmlFunction = (markdown: string, markdownLength: number, htmlLengthPoin
 type CmarkGfmModule = {
 	cwrap: (name: string, returnType: string, argumentTypes: string[]) => Md2htmlFunction,
 	UTF8ToString: (pointer: number) => string,
-	_uni_cmark_free_html: (pointer: number) => void
+	_uni_cmark_free_html: (pointer: number) => void,
+	_uni_cmark_free_json: (pointer: number) => void
 }
 
 let cmarkModule: CmarkGfmModule | null = null
 let convertMarkdown: Md2htmlFunction | null = null
+let convertMarkdownToJson: Md2htmlFunction | null = null
 let initialization: Promise<void> | null = null
 
 function utf8ByteLength(text: string): number {
@@ -37,7 +39,7 @@ function utf8ByteLength(text: string): number {
 }
 
 export function initMd2html(): Promise<void> {
-	if (cmarkModule != null && convertMarkdown != null) return Promise.resolve()
+	if (cmarkModule != null && convertMarkdown != null && convertMarkdownToJson != null) return Promise.resolve()
 	if (initialization != null) return initialization!
 	// @ts-ignore
 	initialization = createCmarkGfmModule().then((module: CmarkGfmModule) => {
@@ -47,12 +49,17 @@ export function initMd2html(): Promise<void> {
 			'number',
 			['string', 'number', 'number']
 		)
+		convertMarkdownToJson = module.cwrap(
+			'uni_cmark_markdown_to_json',
+			'number',
+			['string', 'number', 'number']
+		)
 	})
 	return initialization!
 }
 
 export function isMd2htmlAvailable(): boolean {
-	return cmarkModule != null && convertMarkdown != null
+	return cmarkModule != null && convertMarkdown != null && convertMarkdownToJson != null
 }
 
 export function md2html(markdown: string): string {
@@ -65,5 +72,18 @@ export function md2html(markdown: string): string {
 		return cmarkModule!.UTF8ToString(htmlPointer)
 	} finally {
 		cmarkModule!._uni_cmark_free_html(htmlPointer)
+	}
+}
+
+export function md2json(markdown: string): string {
+	if (cmarkModule == null || convertMarkdownToJson == null) {
+		throw new Error('cmark-gfm WebAssembly module is not initialized')
+	}
+	const jsonPointer = convertMarkdownToJson!(markdown, utf8ByteLength(markdown), 0)
+	if (jsonPointer == 0) throw new Error('cmark-gfm failed to convert Markdown to JSON')
+	try {
+		return cmarkModule!.UTF8ToString(jsonPointer)
+	} finally {
+		cmarkModule!._uni_cmark_free_json(jsonPointer)
 	}
 }
