@@ -1,0 +1,179 @@
+<template>
+	<view v-if="block.kind == 'hr'" class="uni-ai-md-text-hr"></view>
+	<view v-else class="uni-ai-md-text-block" :class="blockClass" :style="blockStyle">
+		<text v-if="block.marker.length > 0" class="uni-ai-md-text-marker">{{block.marker}}</text>
+		<view class="uni-ai-md-text-content">
+			<template v-for="(span, index) in block.spans" :key="block.key + '-span-' + index.toString()">
+				<image v-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
+					mode="widthFix" @click="previewImage(span.imageSrc)" />
+				<text v-else :class="spanClass(span)" @click="openLink(span)">{{span.text}}</text>
+			</template>
+		</view>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { MarkdownTextRenderBlock, MarkdownTextSpan } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+
+	const props = defineProps<{
+		block: MarkdownTextRenderBlock
+	}>()
+
+	const block = computed<MarkdownTextRenderBlock>(() => props.block)
+
+	const blockClass = computed<string>(() => {
+		let className = 'uni-ai-md-text-' + block.value.kind
+		if (block.value.kind == 'heading') {
+			className += ' uni-ai-md-text-heading-' + block.value.level.toString()
+		}
+		if (block.value.quoteDepth > 0) className += ' uni-ai-md-text-quote'
+		if (block.value.indent > 0) className += ' uni-ai-md-text-indented'
+		return className
+	})
+
+	const blockStyle = computed<string>(() => {
+		if (block.value.indent <= 0) return ''
+		return 'margin-left:' + (block.value.indent * 18).toString() + 'px;'
+	})
+
+	function spanClass(span: MarkdownTextSpan): string {
+		if (block.value.kind != 'heading') return span.className
+		return span.className + ' uni-ai-md-text-span-heading-' + block.value.level.toString()
+	}
+
+	function openLink(span: MarkdownTextSpan) {
+		if (span.href.length == 0) return
+		uni.navigateTo({
+			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + span.href,
+			fail: (error) => {
+				console.error(error)
+			}
+		})
+	}
+
+	function previewImage(src: string) {
+		if (src.length == 0) return
+		uni.previewImage({ urls: [src] as string[] })
+	}
+</script>
+
+<style lang="scss">
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+
+	.uni-ai-md-text-block {
+		width: 100%;
+		flex-direction: row;
+		align-items: flex-start;
+		margin: 4px 0;
+	}
+
+	.uni-ai-md-text-content {
+		min-width: 0;
+		flex: 1;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: flex-start;
+	}
+
+	.uni-ai-md-text-marker {
+		width: 25px;
+		flex-shrink: 0;
+		font-size: 18px;
+		line-height: 28px;
+		color: var(--text-secondary);
+	}
+
+	.uni-ai-md-text-span {
+		font-size: 18px;
+		line-height: 28px;
+		color: var(--text-primary);
+		white-space: pre-wrap;
+	}
+
+	.uni-ai-md-text-span-strong {
+		font-weight: 700;
+	}
+
+	.uni-ai-md-text-span-em {
+		font-style: italic;
+	}
+
+	.uni-ai-md-text-span-del {
+		text-decoration-line: line-through;
+	}
+
+	.uni-ai-md-text-span-code {
+		font-size: 16px;
+		padding: 1px 4px;
+		border-radius: 4px;
+		background-color: var(--bg-tertiary);
+	}
+
+	.uni-ai-md-text-span-link {
+		color: #2979ff;
+		text-decoration-line: underline;
+	}
+
+	.uni-ai-md-text-image {
+		width: 240px;
+		max-width: 100%;
+		border-radius: 6px;
+	}
+
+	.uni-ai-md-text-heading {
+		font-weight: 700;
+		margin-top: 8px;
+		margin-bottom: 6px;
+	}
+
+	.uni-ai-md-text-span-heading-1 {
+		font-size: 30px;
+		line-height: 36px;
+	}
+
+	.uni-ai-md-text-span-heading-2 {
+		font-size: 26px;
+		line-height: 34px;
+	}
+
+	.uni-ai-md-text-span-heading-3 {
+		font-size: 22px;
+		line-height: 32px;
+	}
+
+	.uni-ai-md-text-span-heading-4 {
+		font-size: 20px;
+		line-height: 30px;
+	}
+
+	.uni-ai-md-text-span-heading-5 {
+		font-size: 18px;
+		line-height: 28px;
+	}
+
+	.uni-ai-md-text-span-heading-6 {
+		font-size: 16px;
+		line-height: 24px;
+		color: var(--text-tertiary);
+	}
+
+	.uni-ai-md-text-quote {
+		border-left: 4px solid var(--border-primary);
+		padding-left: 10px;
+		background-color: var(--bg-secondary);
+		margin-top: 6px;
+		margin-bottom: 6px;
+	}
+
+	.uni-ai-md-text-math {
+		background-color: var(--bg-secondary);
+		padding: 4px 8px;
+	}
+
+	.uni-ai-md-text-hr {
+		width: 100%;
+		height: 1px;
+		background-color: var(--border-primary);
+		margin: 10px 0;
+	}
+</style>

@@ -1,6 +1,6 @@
 # Architecture
 
-## Markdown HTML pipelines
+## Markdown rendering pipeline
 
 Android keeps network streaming and Markdown conversion in its Worker:
 
@@ -8,21 +8,26 @@ Android keeps network streaming and Markdown conversion in its Worker:
 AI/demo Markdown stream
   -> workers/aiRequestWorkerTask.uts
   -> MarkdownPreprocessor
-  -> uni-cmark md2html
-  -> immutable HTML snapshot
+  -> uni-cmark md2html + md2json
+  -> immutable HTML/AST snapshots
   -> RequestAiRunner.onMarkdownHtml
+  -> RequestAiRunner.onMarkdownAst
   -> MsgItem.markdownHtml
-  -> uni-ai-md-rich-text
-  -> native rich-text
+  -> MsgItem.markdownAst
+  -> markdown-ast.uts
+  -> markdown-text.uts
+  -> native Text blocks/spans
 ```
 
 Network streaming, SSE decoding, Markdown accumulation, preprocessing, and
-Markdown-to-HTML conversion run in the AI Worker. The main thread receives the
-latest message body and HTML snapshot through `uni-ai-worker-runtime`.
+Markdown conversion run in the AI Worker. The main thread receives the latest
+message body, HTML snapshot, and AST snapshot through `uni-ai-worker-runtime`.
 
-The application does not expose a Markdown-to-token API. It does not transport,
-store, or render Markdown AST/token JSON. `uni-cmark` exports only `md2html` and
-`isMd2htmlAvailable`.
+The chat renderer converts ordinary headings, paragraphs, inline styles, links,
+quotes, lists, and thematic breaks to flat native `Text` blocks. Tables and
+code blocks remain separate list items and are the only Markdown content that
+uses native `RichText` through their dedicated components. Math source fallback
+is native `Text`; rendered math and Mermaid diagrams use images.
 
 Web and HarmonyOS keep network streaming on the main thread and send Markdown
 deltas through the same Worker snapshot protocol as Android. WeChat Mini
@@ -39,8 +44,11 @@ Every platform then uses the shared `MarkdownPreprocessor` and
 - `uni_modules/uni-ai-worker`: SSE, stream request, Markdown preprocessing, and demo fixtures.
 - `uni_modules/uni-ai-worker-runtime`: Worker lifecycle and snapshot bridge.
 - `uni_modules/uni-cmark`: one cmark-gfm Markdown-to-HTML core compiled as Android `.so`, HarmonyOS HAR, and Web/WeChat WebAssembly.
-- `uni_modules/uni-ai-x/sdk/requestAiRunner.uts`: starts the shared Markdown Worker protocol and accepts HTML snapshots.
-- `uni_modules/uni-ai-x/components/uni-ai-md-rich-text`: passes HTML to native RichText.
+- `uni_modules/uni-ai-x/sdk/requestAiRunner.uts`: starts the shared Markdown Worker protocol and accepts HTML/AST snapshots.
+- `uni_modules/uni-ai-x/sdk/markdown-text.uts`: flattens AST/legacy HTML blocks into Text spans while preserving table/code blocks.
+- `uni_modules/uni-ai-x/components/uni-ai-md-text.uvue`: renders native Text/Image spans without recursive Markdown components.
+- `uni_modules/uni-ai-x/components/uni-ai-msg-html-table`: renders tables with native RichText.
+- `uni_modules/uni-ai-x/components/uni-ai-msg-code`: renders code blocks with native RichText.
 
 ## Platform boundary
 
