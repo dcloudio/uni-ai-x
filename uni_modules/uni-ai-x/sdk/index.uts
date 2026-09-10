@@ -553,6 +553,7 @@ class UniAi {
 			create_time: Date.now(),
 			state: 0,
 				markdownHtml: '',
+				markdownAst: '',
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)
@@ -621,6 +622,7 @@ class UniAi {
 		msg.error_msg = null
 		msg.thinkContent = null
 		msg.markdownHtml = ''
+		msg.markdownAst = ''
 		this.updateMsg2Storage(msg)
 	}
 	
@@ -634,6 +636,13 @@ class UniAi {
 			onMarkdownHtml: (html: string) => {
 				if (this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownHtml = html
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onMarkdownAst: (ast: string) => {
+				// 调试日志：排查 ast 是否透传到消息时启用
+				// console.log('[uni-ai-x][runner] ast=' + ast.length.toString())
+				if (this.currentChat!.state == 'stop') return
+				aiMsgItem.markdownAst = ast
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {

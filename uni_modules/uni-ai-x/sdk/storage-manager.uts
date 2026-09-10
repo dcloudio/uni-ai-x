@@ -15,6 +15,7 @@ const STORAGE_KEYS: T_STORAGE_KEYS = {
 
 function migrateLegacyMessage(message: MsgItem): MsgItem {
 	if (message.markdownHtml == null) message.markdownHtml = ''
+	if (message.markdownAst == null) message.markdownAst = ''
 	return message
 }
 

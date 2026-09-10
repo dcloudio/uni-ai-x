@@ -177,6 +177,7 @@ export default class MarkdownDemoRunner {
 		}
 		const isDone = phase == 'complete' || readSnapshotBoolean(snapshot, 'isDone')
 		this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
+		this.callbacks?.onMarkdownAst?.(readSnapshotString(snapshot, 'ast'))
 		if (!isDone) return
 
 		this.stopWorkerRuntime(false)
