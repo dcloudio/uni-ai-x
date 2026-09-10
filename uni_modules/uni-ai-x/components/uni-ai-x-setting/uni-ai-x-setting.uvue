@@ -13,7 +13,7 @@
 				<view class="uni-im-setting-item uni-im-setting-host-theme" @click="onHostThemeClick">
 					<text class="uni-im-setting-label">暗黑模式</text>
 					<view class="uni-im-setting-host-theme-value">
-						<text class="uni-im-setting-value">跟随系统主题</text>
+						<text class="uni-im-setting-host-theme-value-text">跟随系统主题</text>
 						<uni-icons type="info" size="16" color="#999"></uni-icons>
 					</view>
 				</view>
@@ -158,7 +158,9 @@
 	align-items: center;
 }
 
-.uni-im-setting-host-theme-value .uni-im-setting-value {
+.uni-im-setting-host-theme-value-text {
+	font-size: 14px;
+	color: var(--text-secondary);
 	margin-right: 4px;
 }
 
