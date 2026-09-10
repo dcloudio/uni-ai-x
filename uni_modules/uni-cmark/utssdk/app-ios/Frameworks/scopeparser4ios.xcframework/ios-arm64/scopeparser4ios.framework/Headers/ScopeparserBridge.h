@@ -6,6 +6,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)initializeCmarkGfm;
 - (nullable NSString *)md2html:(NSString *)markdownText;
+- (nullable NSString *)md2json:(NSString *)markdownText;
 
 @end
 
