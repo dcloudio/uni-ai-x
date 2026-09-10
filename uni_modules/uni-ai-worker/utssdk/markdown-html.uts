@@ -811,3 +811,27 @@ export function applyMarkdownTableColumnWidths(html: string, columnWidths: numbe
 	}
 	return result
 }
+
+export type PreparedMarkdownTable = {
+	html: string
+	columnWidths: number[]
+	rowTextWidths: number[][]
+}
+
+// Styles a raw (cmark-like) table HTML fragment and returns the prepared HTML
+// together with the natural column widths and per-cell text widths.
+export function prepareMarkdownTable(tableHtml: string, tableIndex: number = 0): PreparedMarkdownTable {
+	const styled = prepareTableHtml(tableHtml, tableIndex)
+	const openEnd = styled.indexOf('>')
+	const openTag = openEnd >= 0 ? styled.slice(0, openEnd + 1) : ''
+	let columnWidths = parseNumberList(tagAttribute(openTag, 'data-uni-ai-column-widths'))
+	let rowTextWidths = parseRowWidths(tagAttribute(openTag, 'data-uni-ai-row-widths'))
+	if (columnWidths.length == 0 || rowTextWidths.length == 0) {
+		const rows = collectRows(tableHtml)
+		columnWidths = naturalColumnWidths(rows)
+		const widths = [] as number[][]
+		for (let index = 0; index < rows.length; index++) widths.push(rows[index].cellTextWidths)
+		rowTextWidths = widths
+	}
+	return { html: styled, columnWidths: columnWidths, rowTextWidths: rowTextWidths }
+}
