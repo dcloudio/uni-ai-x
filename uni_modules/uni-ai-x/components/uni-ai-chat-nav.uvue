@@ -1,12 +1,12 @@
 <template>
-	<view class="chat-nav" flatten>
+	<view class="chat-nav">
 		<uni-ai-icon @click="changeMenu" code="e622" color="var(--text-primary)" size="20"></uni-ai-icon>
 		<text class="chat-nav-title" flatten>{{title}}</text>
 		<!-- #ifndef MP-WEIXIN -->
 		<add-chat></add-chat>
 		<!-- #endif -->
 		<!-- #ifdef MP-WEIXIN -->
-		<view flatten></view>
+		<view></view>
 		<!-- #endif -->
 	</view>
 </template>

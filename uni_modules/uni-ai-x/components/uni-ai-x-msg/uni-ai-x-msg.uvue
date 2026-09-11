@@ -1,34 +1,34 @@
 <template>
-	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''" flatten>
+	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''">
 		<image v-if="isFirst" class="msg-segment-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 		<template v-for="part in parts" :key="part.key">
 		<image v-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" flatten />
 		<template v-else-if="part.kind == 'think'">
-			<view class="msg-segment-think-content" flatten>
+			<view class="msg-segment-think-content">
 				<view class="msg-root-think-content-header" @click.stop="changeThinkContent">
 					<text class="msg-root-think-content-title" flatten>深度思考 &nbsp;</text>
 					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
 				</view>
-				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''" flatten>
+				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
 					<text class="msg-root-think-content-text" flatten>{{msg.thinkContent}}</text>
 				</view>
 			</view>
 		</template>
 		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
-			flatten :html="part.block.html" :column-widths="part.block.columnWidths" :row-text-widths="part.block.rowTextWidths" />
+			:html="part.block.html" :column-widths="part.block.columnWidths" :row-text-widths="part.block.rowTextWidths" />
 		<uni-ai-msg-code v-else-if="part.block != null && (part.block.kind == 'code' || part.block.kind == 'mermaid')"
 			:code-text="part.block.text" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" />
-		<uni-ai-md-text v-else-if="part.block != null" flatten :block="part.block" />
+		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 		<template v-else-if="part.kind == 'empty'">
 			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
 			<text v-else-if="state == 'none'" class="msg-root-need-try" flatten>错误：未回复</text>
 			<uni-rotate-icon v-else-if="state == 'processing'" class="msg-root-loging-icon" />
 		</template>
-		<msg-tool-bar v-else-if="part.kind == 'toolbar' && shouldShowToolBar" flatten :msg="msg" />
+		<msg-tool-bar v-else-if="part.kind == 'toolbar' && shouldShowToolBar" :msg="msg" />
 		</template>
 	</view>
 </template>

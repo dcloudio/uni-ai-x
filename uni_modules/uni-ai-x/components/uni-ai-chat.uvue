@@ -1,8 +1,8 @@
 <template>
-	<view class="chat-box uni-theme-root" flatten>
-		<uni-ai-chat-nav flatten @change-menu="changeMenu" />
-		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat" flatten>
-			<view class="chat-box-scroll-view-box" flatten>
+	<view class="chat-box uni-theme-root">
+		<uni-ai-chat-nav @change-menu="changeMenu" />
+		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
+			<view class="chat-box-scroll-view-box">
 				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0" flatten>
 					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 					<text class="chat-box-welcome-title" flatten>嗨！我是 UNI-AI</text>
@@ -12,9 +12,9 @@
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
-						<uni-ai-x-msg v-if="renderItem.isAi" flatten :msg="renderItem.msg" :parts="renderItem.parts"
+						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
 							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
-						<uni-ai-user-msg v-else flatten :msg="renderItem.msg" />
+						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
 					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>

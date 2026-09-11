@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-tool-bar" flatten>
+	<view class="uni-ai-tool-bar">
 		<!-- 复制按钮、重新回答按钮 -->
 		<view class="uni-ai-tool-bar-btn" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
 			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-loop" flatten>{{loopIcon}}</text>
