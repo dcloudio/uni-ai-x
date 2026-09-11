@@ -10,6 +10,12 @@
 			}
 		},
 		{
+			"path" : "pages/index/rich-text-writer",
+			"style" : {
+				"navigationBarTitleText" : "RichText 流式性能"
+			}
+		},
+		{
 			"path" : "uni_modules/uni-ai-x/pages/common/webview/webview",
 			"style" : 
 			{

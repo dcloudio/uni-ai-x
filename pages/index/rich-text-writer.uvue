@@ -1,0 +1,518 @@
+<template>
+	<view class="page-container">
+		<!-- #ifndef MP -->
+		<fps v-if="showFPS"></fps>
+		<!-- #endif -->
+		<view class="typewriter-container">
+			<view class="typewriter-title">
+				<text class="title-text">rich-text-writer 打字机效果演示</text>
+			</view>
+			<view class="typewriter-box" :style="'height: ' + containerHeight + 'px;'">
+				<view class="container-header">
+					<view class="container-tag">
+						<text class="container-tag-text">{{ containerTag }}</text>
+					</view>
+				</view>
+			<view v-if="containerType == 'rich-text'" class="plain-rich-text-container">
+				<view class="scroll-content" :style="followContentStyle">
+					<rich-text v-for="(paragraphHtml, paragraphIndex) in paragraphHtmls" :key="paragraphIndex"
+						:id="'rich-text-writer-plain-' + paragraphIndex" class="typewriter-content"
+						:nodes="paragraphHtml" mode="native"></rich-text>
+				</view>
+			</view>
+			<scroll-view v-else-if="containerType == 'scroll-view'" id="rich-text-writer-scroll-view" class="typing-scroll-container" direction="vertical"
+				:show-scrollbar="true">
+				<view class="scroll-content" :style="followContentStyle">
+					<rich-text id="rich-text-writer-scroll" class="typewriter-content" :nodes="activeHtml" mode="native"></rich-text>
+				</view>
+			</scroll-view>
+			<list-view v-else id="rich-text-writer-list-view" class="typing-scroll-container" direction="vertical"
+				:show-scrollbar="true">
+				<list-item class="rich-text-list-item">
+					<view class="scroll-content" :style="followContentStyle">
+						<rich-text id="rich-text-writer-list" class="typewriter-content" :nodes="activeHtml" mode="native"></rich-text>
+					</view>
+				</list-item>
+			</list-view>
+			</view>
+			<view class="test-controls">
+				<view class="control-row">
+					<text class="control-label">容器</text>
+					<view class="segmented-control">
+						<button size="mini" :class="containerType == 'rich-text' ? 'segment-button segment-button-active' : 'segment-button'"
+							@click="setContainerType('rich-text')">RichText</button>
+						<button size="mini" :class="containerType == 'scroll-view' ? 'segment-button segment-button-active' : 'segment-button'"
+							@click="setContainerType('scroll-view')">ScrollView</button>
+						<button size="mini" :class="containerType == 'list-view' ? 'segment-button segment-button-active' : 'segment-button'"
+							@click="setContainerType('list-view')">ListView</button>
+					</view>
+				</view>
+				<view class="control-row">
+					<text class="control-label">滚动</text>
+					<view class="segmented-control">
+						<button size="mini" :class="!followScroll ? 'segment-button segment-button-active' : 'segment-button'"
+							@click="setFollowScroll(false)">不跟随</button>
+						<button size="mini" :class="followScroll ? 'segment-button segment-button-active' : 'segment-button'"
+							@click="setFollowScroll(true)">跟随滚动</button>
+					</view>
+				</view>
+			</view>
+			<view class="speed-control">
+				<button class="speed-button" size="mini" :disabled="typingSpeed <= minTypingSpeed" @click="changeTypingSpeed(-speedStep)">-</button>
+				<view class="speed-value">
+					<text class="speed-label">当前速度</text>
+					<text class="speed-number">{{ typingSpeed }} 字/秒</text>
+				</view>
+				<button class="speed-button" size="mini" :disabled="typingSpeed >= maxTypingSpeed" @click="changeTypingSpeed(speedStep)">+</button>
+			</view>
+			<view class="command-row">
+				<button class="command-button" size="mini" @click="restartTyping">重新开始</button>
+				<button class="command-button command-button-primary" size="mini" @click="togglePause">{{ isPaused ? '继续' : '暂停' }}</button>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const baseText = `这是一个用于测试 rich-text 长文本更新性能的纯文本示例。内容不包含颜色、粗体、下划线或不同字号，只保留普通文字。
+打字机会持续追加字符，并在每次更新时重新传入当前完整的 HTML 字符串。
+
+这是第二个段落，用来观察文本变长以后每次整体替换的开销。段落内容保持简单，便于排除复杂样式和大量富文本节点带来的影响。
+
+这是第三个段落。
+这一行通过 br 标签换行，用来观察段内换行时的布局表现。
+换行之后继续追加普通文字，让内容高度持续增加。
+
+最后一个段落继续补充测试文本。相同内容会重复多次，以便在较快插入速度下更容易观察长内容更新时的帧率变化。`
+	const contentRepeatCount = 30
+	let fullText = ''
+	for (let repeatIndex = 0; repeatIndex < contentRepeatCount; repeatIndex++) {
+		if (repeatIndex > 0) {
+			fullText += '\n\n'
+		}
+		fullText += baseText
+	}
+
+	const showFPS = ref(true)
+	// #ifdef WEB
+	showFPS.value = window.self == window.top
+	// #endif
+	const windowInfo = uni.getWindowInfo()
+	const availableWindowWidth = windowInfo.windowWidth > 0 ? windowInfo.windowWidth : windowInfo.screenWidth
+	const containerHeight = Math.floor(availableWindowWidth * 0.4)
+	const initialContainerType = 'rich-text'
+	const initialFollowScroll = false
+	const initialTypingSpeed = 100
+	const showCursor = ref(true)
+	const frozenHtmls = ref<string[]>([])
+	const activeHtml = ref('')
+	// Keep the active paragraph's native node when it becomes a frozen paragraph.
+	const paragraphHtmls = computed(() : string[] => {
+		const htmls = frozenHtmls.value.slice()
+		htmls.push(activeHtml.value)
+		return htmls
+	})
+	const followOffset = ref(0)
+	const followContentStyle = computed(() : string => {
+		if (!followScroll.value || followOffset.value <= 0) {
+			return ''
+		}
+		return 'transform: translateY(-' + followOffset.value + 'px);'
+	})
+	const containerType = ref(initialContainerType)
+	const followScroll = ref(initialFollowScroll)
+	const containerTag = computed(() : string => {
+		if (containerType.value == 'scroll-view') {
+			return followScroll.value ? 'ScrollView · 跟随' : 'ScrollView · 不跟随'
+		}
+		if (containerType.value == 'list-view') {
+			return followScroll.value ? 'ListView · 跟随' : 'ListView · 不跟随'
+		}
+		return '单独 RichText'
+	})
+	const isPaused = ref(false)
+	const typingSpeed = ref(initialTypingSpeed)
+	const minTypingSpeed = 5
+	const maxTypingSpeed = 100
+	const speedStep = 5
+	let typingTimer : number | null = null
+	let cursorTimer : number | null = null
+	let restartTimer : number | null = null
+	let followScrollTimer : number | null = null
+	let lastFollowScrollTop = 0
+	let currentCharIndex = 0
+	let frozenTextLength = 0
+
+	function updateDisplayedHtml() {
+		const displayedText = fullText.substring(0, currentCharIndex)
+		let activeText = displayedText
+		if (containerType.value == 'rich-text') {
+			const lastParagraphBreak = displayedText.lastIndexOf('\n\n')
+			if (lastParagraphBreak >= frozenTextLength) {
+				const frozenText = displayedText.substring(frozenTextLength, lastParagraphBreak)
+				if (frozenText.length > 0) {
+					const frozenHtml = frozenText.replace(/\n/g, '<br>')
+					frozenHtmls.value.push('<p>' + frozenHtml + '</p>')
+				}
+				frozenTextLength = lastParagraphBreak + 2
+			}
+			activeText = displayedText.substring(frozenTextLength)
+		} else {
+			// Scroll containers must keep one native RichText child while its height changes.
+			if (frozenHtmls.value.length > 0) {
+				frozenHtmls.value = []
+			}
+			frozenTextLength = 0
+		}
+		const htmlText = activeText.replace(/\n/g, '<br>')
+		const cursorHtml = showCursor.value ? '|' : '<span style="color: transparent;">|</span>'
+		activeHtml.value = '<p>' + htmlText + cursorHtml + '</p>'
+		if (followScroll.value && containerType.value != 'rich-text') {
+			scheduleFollowScroll()
+		}
+	}
+
+	function scheduleFollowScroll() {
+		if (!followScroll.value || containerType.value == 'rich-text' || followScrollTimer != null) {
+			return
+		}
+		followScrollTimer = setTimeout(() => {
+			followScrollTimer = null
+			nextTick(() => {
+				// Do not touch scrollTop until the content is likely taller than the viewport.
+				// Early programmatic scrolls are clamped against stale native measurements.
+				if (currentCharIndex < 220) {
+					return
+				}
+				const target = Math.max(0, Math.floor((currentCharIndex - 200) * 1.5))
+				if (Math.abs(target - lastFollowScrollTop) < 16) {
+					return
+				}
+				lastFollowScrollTop = target
+				followOffset.value = target
+			})
+		}, 32)
+	}
+
+	function resetFollowScroll() {
+		if (followScrollTimer != null) {
+			clearTimeout(followScrollTimer!)
+			followScrollTimer = null
+		}
+		lastFollowScrollTop = 0
+		followOffset.value = 0
+	}
+
+	function startCursorBlink() {
+		if (cursorTimer != null) {
+			clearInterval(cursorTimer!)
+		}
+		cursorTimer = setInterval(() => {
+			showCursor.value = !showCursor.value
+			updateDisplayedHtml()
+		}, 500)
+	}
+
+	function startTypingTimer() {
+		if (typingTimer != null) {
+			clearInterval(typingTimer!)
+		}
+
+		const typingInterval = Math.floor(1000 / typingSpeed.value)
+		typingTimer = setInterval(() => {
+			if (currentCharIndex < fullText.length) {
+				currentCharIndex++
+				updateDisplayedHtml()
+			} else {
+				if (typingTimer != null) {
+					clearInterval(typingTimer!)
+					typingTimer = null
+				}
+				restartTimer = setTimeout(() => {
+					restartTimer = null
+					startTyping()
+				}, 1500)
+			}
+		}, typingInterval)
+	}
+
+	function changeTypingSpeed(delta : number) {
+		const nextSpeed = Math.min(maxTypingSpeed, Math.max(minTypingSpeed, typingSpeed.value + delta))
+		if (nextSpeed == typingSpeed.value) {
+			return
+		}
+
+		typingSpeed.value = nextSpeed
+		if (typingTimer != null) {
+			startTypingTimer()
+		}
+	}
+
+	function setContainerType(type : string) {
+		if (containerType.value == type) {
+			return
+		}
+
+		containerType.value = type
+		restartTyping()
+	}
+
+	function setFollowScroll(follow : boolean) {
+		if (followScroll.value == follow) {
+			return
+		}
+
+		followScroll.value = follow
+		restartTyping()
+	}
+
+	function togglePause() {
+		isPaused.value = !isPaused.value
+		if (isPaused.value) {
+			if (typingTimer != null) {
+				clearInterval(typingTimer!)
+				typingTimer = null
+			}
+			if (cursorTimer != null) {
+				clearInterval(cursorTimer!)
+				cursorTimer = null
+			}
+			if (restartTimer != null) {
+				clearTimeout(restartTimer!)
+				restartTimer = null
+			}
+			return
+		}
+
+		startTypingTimer()
+		startCursorBlink()
+	}
+
+	function restartTyping() {
+		isPaused.value = false
+		resetFollowScroll()
+		startTyping()
+		startCursorBlink()
+	}
+
+	function startTyping() {
+		if (typingTimer != null) {
+			clearInterval(typingTimer!)
+			typingTimer = null
+		}
+		if (restartTimer != null) {
+			clearTimeout(restartTimer!)
+			restartTimer = null
+		}
+
+		currentCharIndex = 0
+		frozenTextLength = 0
+		frozenHtmls.value = []
+		updateDisplayedHtml()
+		startTypingTimer()
+	}
+
+	onMounted(() => {
+		console.log('rich-text perf scenario: ' + initialContainerType + ', follow=' + initialFollowScroll + ', speed=' + initialTypingSpeed)
+		startTyping()
+		startCursorBlink()
+	})
+
+	onUnmounted(() => {
+		if (typingTimer != null) {
+			clearInterval(typingTimer!)
+		}
+		if (cursorTimer != null) {
+			clearInterval(cursorTimer!)
+		}
+		if (restartTimer != null) {
+			clearTimeout(restartTimer!)
+		}
+	})
+</script>
+
+<style>
+	.page-container {
+		background-color: #f8f8f8;
+		flex: 1;
+		position: relative;
+	}
+
+	.typewriter-container {
+		margin: 20px;
+		padding: 24px 16px;
+		background-color: #ffffff;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	}
+
+	.typewriter-title {
+		margin-bottom: 20px;
+		padding-bottom: 15px;
+		border-bottom: 2px solid #f0f0f0;
+	}
+
+	.title-text {
+		font-size: 20px;
+		font-weight: bold;
+		color: #333333;
+	}
+
+	.typewriter-box {
+		margin-left: 4px;
+		margin-right: 4px;
+		border: 2px solid #007aff;
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.container-header {
+		height: 34px;
+		padding-left: 10px;
+		flex-direction: row;
+		align-items: center;
+		background-color: #f2f7ff;
+		border-bottom: 1px solid #b8d6ff;
+	}
+
+	.container-tag {
+		height: 24px;
+		padding-left: 8px;
+		padding-right: 8px;
+		border-radius: 4px;
+		justify-content: center;
+		background-color: #007aff;
+	}
+
+	.container-tag-text {
+		font-size: 12px;
+		font-weight: bold;
+		color: #ffffff;
+	}
+
+	.typing-scroll-container {
+		flex: 1;
+		width: 100%;
+	}
+
+	.plain-rich-text-container {
+		flex: 1;
+		width: 100%;
+		overflow: hidden;
+	}
+
+	.rich-text-list-item {
+		width: 100%;
+	}
+
+	.scroll-content {
+		padding: 14px;
+	}
+
+	.typewriter-content {
+		width: 100%;
+		min-height: 24px;
+	}
+
+	.test-controls {
+		margin-top: 16px;
+	}
+
+	.control-row {
+		height: 48px;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.control-label {
+		width: 52px;
+		font-size: 14px;
+		color: #555555;
+	}
+
+	.segmented-control {
+		flex: 1;
+		height: 38px;
+		flex-direction: row;
+		border: 1px solid #b8c0cc;
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.segment-button {
+		flex: 1;
+		height: 36px;
+		line-height: 36px;
+		margin: 0;
+		padding: 0;
+		border-radius: 0;
+		font-size: 14px;
+		color: #444444;
+		background-color: #ffffff;
+	}
+
+	.segment-button-active {
+		font-weight: bold;
+		color: #ffffff;
+		background-color: #007aff;
+	}
+
+	.speed-control {
+		margin-top: 12px;
+		padding-top: 16px;
+		border-top: 1px solid #eeeeee;
+		height: 61px;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.speed-button {
+		width: 52px;
+		height: 44px;
+		line-height: 42px;
+		margin: 0;
+		padding: 0;
+		font-size: 24px;
+		color: #007aff;
+	}
+
+	.speed-value {
+		flex: 1;
+		height: 44px;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.speed-label {
+		font-size: 12px;
+		color: #888888;
+	}
+
+	.speed-number {
+		margin-top: 3px;
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+
+	.command-row {
+		margin-top: 16px;
+		height: 44px;
+		flex-direction: row;
+	}
+
+	.command-button {
+		flex: 1;
+		height: 44px;
+		line-height: 42px;
+		margin: 0 6px;
+		font-size: 15px;
+		color: #333333;
+		background-color: #f2f3f5;
+	}
+
+	.command-button-primary {
+		color: #ffffff;
+		background-color: #007aff;
+	}
+</style>
