@@ -1,6 +1,6 @@
 <template>
-	<view class="chat-extension-input">
-		<view class="chat-extension-input-actions">
+	<view class="chat-extension-input" :class="panelVisible ? '' : 'chat-extension-input-collapsed-root'">
+		<view v-if="panelVisible" class="chat-extension-input-actions">
 			<view v-for="action in actions" :key="action.id"
 				class="chat-extension-input-action"
 				:class="[activeActionId == action.id ? 'chat-extension-input-action-active' : '', aiState == 'processing' ? 'chat-extension-input-action-disabled' : '']"
@@ -31,11 +31,18 @@
 			<view class="chat-extension-input-action" @click.stop="toggleMessageToolBar">
 				<text class="chat-extension-input-action-text">{{messageToolBarVisible ? '隐藏消息工具栏' : '显示消息工具栏'}}</text>
 			</view>
+			<view class="chat-extension-input-action" @click.stop="togglePanel">
+				<text class="chat-extension-input-action-text">隐藏此面板</text>
+			</view>
 			<view class="stress-generator">
 				<view class="stress-generator-title"><text>随机生成</text><input class="stress-count" v-model="stressCount" type="number" /><text>条</text><text class="stress-select-all" @click.stop="toggleAll">{{allSelected ? '取消全选' : '全选'}}</text></view>
 				<checkbox-group class="stress-types" @change="onStressTypesChange"><label v-for="type in stressTypes" :key="type" class="stress-type"><checkbox :value="type" :checked="selectedTypes.indexOf(type) >= 0" /><text class="stress-type-text">{{type}}</text></label></checkbox-group>
 				<view class="stress-generate-btn" :class="!canCopyMessages || selectedTypes.length == 0 ? 'chat-extension-input-action-disabled' : ''" @click.stop="copyMessages"><text class="stress-generate-text">确认生成</text></view>
 			</view>
+		</view>
+		<view v-else class="chat-extension-input-collapsed" @click.stop="togglePanel">
+			<uni-icons type="up" size="14" color="var(--text-secondary)"></uni-icons>
+			<text class="chat-extension-input-collapsed-text">显示工具栏</text>
 		</view>
 		<view v-if="aiState == 'processing'" class="chat-extension-input-status-row">
 			<text class="chat-extension-input-status-text">{{statusText}}</text>
@@ -67,6 +74,7 @@
 	const stressTypes = ['标题', '长文', '引用', '列表', '表格', '代码', 'SVG', '链接']
 	const selectedTypes = ref<string[]>(['长文'])
 	const allSelected = computed<boolean>(() => selectedTypes.value.length == stressTypes.length)
+	const panelVisible = ref<boolean>(true)
 	let stressCopyRunId = ''
 	const canCopyMessages = computed<boolean>(() => {
 		return !copyingChats.value && aiState.value != 'processing' && uniAi.currentChat != null
@@ -111,6 +119,10 @@
 
 	function toggleMessageToolBar() {
 		messageToolBarVisible.value = !messageToolBarVisible.value
+	}
+
+	function togglePanel() {
+		panelVisible.value = !panelVisible.value
 	}
 
 	function stop() {
@@ -168,11 +180,29 @@
 	border: 1px solid var(--border-secondary);
 }
 
+.chat-extension-input-collapsed-root {
+	padding-top: 4px;
+}
+
 .chat-extension-input-actions {
 	width: 100%;
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: center;
+}
+
+.chat-extension-input-collapsed {
+	width: 100%;
+	height: 24px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+.chat-extension-input-collapsed-text {
+	margin-left: 4px;
+	font-size: 12px;
+	color: var(--text-secondary);
 }
 
 .stress-generator { width: 100%; margin-top: 2px; padding: 8px 0 2px 0; border-top: 1px solid var(--border-secondary); }
