@@ -1,7 +1,8 @@
 <template>
     <scroll-view class="math-el uni-theme-root" :class="showMathSource ? 'math-el-source-pending' : 'math-el-image-ready math-el-scroll-image-ready'"
+        :style="mathRootStyle"
         direction="horizontal" :show-scrollbar="false">
-        <view class="math-el-content" :style="{'width': mathContentWidth, 'height': mathContentHeight}" flatten>
+        <view class="math-el-content" :style="mathContentStyle" flatten>
             <image v-if="buffer0Href.length > 0" :src="buffer0Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
             <image v-if="buffer1Href.length > 0" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
@@ -67,16 +68,34 @@
         return !mathImageModeLatched.value || mathImageLoadFailed.value
     })
 
+    const mathBackgroundColor = computed<string>(() => {
+        return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+    })
+
+    const mathTextColor = computed<string>(() => {
+        return uiTheme.value == 'dark' ? '#ffffff' : '#333333'
+    })
+
+    const mathRootStyle = computed<string>(() => {
+        const imagePadding = showMathSource.value ? '' : 'padding-top:10px;padding-bottom:10px;padding-left:12px;padding-right:12px;'
+        return 'width:100%;min-height:44px;margin-top:6px;margin-bottom:6px;border-radius:6px;overflow:hidden;background-color:'
+            + mathBackgroundColor.value + ';' + imagePadding
+    })
+
     const buffer0ImageStyle = computed<string>(() => {
         const opacity = activeBuffer.value == 0 && buffer0Loaded.value ? 1 : 0
-        return 'width:' + Math.max(1, Math.ceil(buffer0Width.value)).toString() + 'px;height:'
-            + Math.max(1, Math.ceil(buffer0Height.value)).toString() + 'px;opacity:' + opacity.toString() + ';'
+        return 'position:absolute;left:0;top:0;align-self:flex-start;flex-shrink:0;width:'
+            + Math.max(1, Math.ceil(buffer0Width.value)).toString() + 'px;height:'
+            + Math.max(1, Math.ceil(buffer0Height.value)).toString() + 'px;background-color:'
+            + mathBackgroundColor.value + ';opacity:' + opacity.toString() + ';'
     })
 
     const buffer1ImageStyle = computed<string>(() => {
         const opacity = activeBuffer.value == 1 && buffer1Loaded.value ? 1 : 0
-        return 'width:' + Math.max(1, Math.ceil(buffer1Width.value)).toString() + 'px;height:'
-            + Math.max(1, Math.ceil(buffer1Height.value)).toString() + 'px;opacity:' + opacity.toString() + ';'
+        return 'position:absolute;left:0;top:0;align-self:flex-start;flex-shrink:0;width:'
+            + Math.max(1, Math.ceil(buffer1Width.value)).toString() + 'px;height:'
+            + Math.max(1, Math.ceil(buffer1Height.value)).toString() + 'px;background-color:'
+            + mathBackgroundColor.value + ';opacity:' + opacity.toString() + ';'
     })
 
     function visibleMathWidth(): number {
@@ -104,7 +123,10 @@
     })
 
     const sourceTextStyle = computed<string>(() => {
-        return 'width:' + sourceContentWidth.value + ';font-size:14px;line-height:22px;font-family:monospace;color:var(--text-primary);'
+        return 'position:absolute;left:0;top:0;align-self:flex-start;white-space:pre-wrap;width:'
+            + sourceContentWidth.value + ';height:' + sourceContentHeight.value
+            + ';font-size:14px;line-height:22px;font-family:monospace;color:'
+            + mathTextColor.value + ';background-color:' + mathBackgroundColor.value + ';'
     })
 
     const mathWidth = computed<string>(() => {
@@ -129,6 +151,11 @@
 
     const mathContentHeight = computed<string>(() => {
         return showMathSource.value ? sourceContentHeight.value : mathHeight.value
+    })
+
+    const mathContentStyle = computed<string>(() => {
+        return 'position:relative;align-self:flex-start;flex-shrink:0;width:' + mathContentWidth.value
+            + ';height:' + mathContentHeight.value + ';background-color:' + mathBackgroundColor.value + ';'
     })
 
     function resetMathImages() {

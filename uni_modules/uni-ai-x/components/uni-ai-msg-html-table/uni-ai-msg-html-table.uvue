@@ -1,7 +1,7 @@
 <template>
-	<view class="uni-ai-msg-html-table uni-theme-root">
+	<view class="uni-ai-msg-html-table uni-theme-root" :style="tableContainerStyle">
 		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
-			direction="horizontal" :show-scrollbar="false" :style="{height: tableViewportHeight}"
+			direction="horizontal" :show-scrollbar="false" :style="tableScrollStyle"
 			>
 			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
 				:nodes="tableHtml" mode="native" @itemclick="onItemClick"></rich-text>
@@ -12,9 +12,12 @@
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 	import {
+		applyMarkdownTableTheme,
 		applyMarkdownTableColumnWidths,
 		markdownTableContentHeight,
 		markdownTableContentWidth,
+		markdownTableThemeColors,
+		MarkdownTableColors,
 		resolveMarkdownTableColumnWidths
 	} from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
@@ -42,14 +45,30 @@
 	const tableViewportHeight = computed<string>(() => {
 		return tableContentHeight.value.toString() + 'px'
 	})
+	const tablePalette = computed<MarkdownTableColors>(() => {
+		return markdownTableThemeColors(uiTheme.value)
+	})
 	const tableHtml = computed<string>(() => {
-		return applyMarkdownTableColumnWidths(props.html, renderColumnWidths.value)
+		const sizedHtml = applyMarkdownTableColumnWidths(props.html, renderColumnWidths.value)
+		return applyMarkdownTableTheme(sizedHtml, uiTheme.value)
+	})
+	const tableRenderWidth = computed<number>(() => {
+		return Math.max(tableContentWidth.value, tableViewportContentWidth.value)
+	})
+	const tableContainerStyle = computed<string>(() => {
+		const colors = tablePalette.value
+		return 'width:100%;margin-top:6px;margin-bottom:6px;box-sizing:border-box;border-top-width:1px;border-right-width:1px;border-bottom-width:0;border-left-width:1px;border-style:solid;border-color:'
+			+ colors.border + ';background-color:' + colors.background + ';'
+	})
+	const tableScrollStyle = computed<string>(() => {
+		const colors = tablePalette.value
+		return 'width:100%;height:' + tableViewportHeight.value
+			+ ';box-sizing:border-box;flex-direction:row;background-color:' + colors.background + ';'
 	})
 	const tableRichTextStyle = computed<string>(() => {
-		const color = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
-		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-		return 'width:' + tableContentWidth.value.toString() + 'px;height:' + tableContentHeight.value.toString() + 'px;font-size:14px;line-height:22px;color:'
-			+ color + ';background-color:' + backgroundColor + ';'
+		const colors = tablePalette.value
+		return 'width:' + tableRenderWidth.value.toString() + 'px;height:' + tableContentHeight.value.toString() + 'px;font-size:14px;line-height:22px;color:'
+			+ colors.text + ';background-color:' + colors.background + ';'
 	})
 
 	function refreshTableViewportWidth() {
@@ -92,14 +111,11 @@
 		width: 100%;
 		margin: 6px 0;
 		box-sizing: border-box;
-		border: 1px solid var(--border-primary);
-		background-color: var(--bg-primary);
 	}
 
 	.uni-ai-msg-html-table-scroll {
 		width: 100%;
 		box-sizing: border-box;
-		background-color: var(--bg-primary);
 		flex-direction: row;
 	}
 

@@ -1,5 +1,5 @@
 <template>
-	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''">
+	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''" :style="msgSegmentStyle">
 		<image v-if="isFirst" class="msg-segment-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 		<template v-for="part in parts" :key="part.key">
 		<image v-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" flatten />
@@ -34,7 +34,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, messageToolBarVisible} from '@/uni_modules/uni-ai-x/sdk'
+	import {uniAi, MsgItem, messageToolBarVisible, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
@@ -75,6 +75,11 @@
 
 	const shouldShowToolBar = computed<boolean>(() => {
 		return messageToolBarVisible.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
+	})
+
+	const msgSegmentStyle = computed<string>(() => {
+		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+		return 'width:100%;min-height:0;padding-left:45px;padding-right:45px;background-color:' + backgroundColor + ';'
 	})
 
 	const changeThinkContent = () => {

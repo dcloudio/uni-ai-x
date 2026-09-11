@@ -1,6 +1,6 @@
 <template>
-	<view class="uni-code-msg-root uni-theme-root">
-		<view class="uni-code-msg-code-header">
+	<view class="uni-code-msg-root uni-theme-root" :style="codeRootStyle">
+		<view class="uni-code-msg-code-header" :style="codeHeaderStyle">
 			<!-- #ifndef MP-WEIXIN -->
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'" flatten>
 				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">流程图</text>
@@ -19,24 +19,24 @@
 				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
-		<view v-if="language == 'mermaid'" class="uni-code-msg-mermaid-stage" :style="{height: mermaidContentHeight}">
+		<view v-if="language == 'mermaid'" class="uni-code-msg-mermaid-stage" :style="mermaidStageStyle">
 			<image v-if="buffer0MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer0MermaidHref"
 				:style="buffer0MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer0Load"
 				@error="onMermaidBuffer0Error" @click.stop="previewMermaidImage" />
 			<image v-if="buffer1MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer1MermaidHref"
 				:style="buffer1MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer1Load"
 				@error="onMermaidBuffer1Error" @click.stop="previewMermaidImage" />
-			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
+			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="mermaidImageBoxStyle">
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
 				<text class="uni-code-msg-mermaid-status-text" flatten>{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
 			</view>
 				<scroll-view v-if="!showMermaidImage" class="uni-code-msg-code-scroll-view uni-code-msg-mermaid-code-scroll" direction="horizontal"
-					:show-scrollbar="false" :style="{height: scrollViewHeight}"
+					:show-scrollbar="false" :style="mermaidCodeScrollStyle"
 					>
 					<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
 			</scroll-view>
 		</view>
-		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="{height: scrollViewHeight}"
+		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
 			>
 			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichNodes" mode="native"></rich-text>
 		</scroll-view>
@@ -105,6 +105,10 @@ const codeHorizontalPadding = 14
 const estimatedCardHorizontalInset = 48
 const windowWidth = ref<number>(0)
 
+const themePageBackgroundColor = computed<string>(() => {
+	return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+})
+
 const mermaidHref = computed<string>(() => {
 	return activeMermaidBuffer.value == 0 ? buffer0MermaidHref.value : buffer1MermaidHref.value
 })
@@ -116,13 +120,15 @@ const mermaidImageReady = computed<boolean>(() => {
 
 const buffer0MermaidImageStyle = computed<string>(() => {
 	const visible = showMermaidImage.value && activeMermaidBuffer.value == 0 && buffer0MermaidLoaded.value
-	return 'height:' + mermaidContentHeight.value + ';opacity:' + (visible ? '1' : '0')
+	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
+		+ ';background-color:' + themePageBackgroundColor.value + ';opacity:' + (visible ? '1' : '0')
 		+ ';pointer-events:' + (visible ? 'auto' : 'none') + ';'
 })
 
 const buffer1MermaidImageStyle = computed<string>(() => {
 	const visible = showMermaidImage.value && activeMermaidBuffer.value == 1 && buffer1MermaidLoaded.value
-	return 'height:' + mermaidContentHeight.value + ';opacity:' + (visible ? '1' : '0')
+	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
+		+ ';background-color:' + themePageBackgroundColor.value + ';opacity:' + (visible ? '1' : '0')
 		+ ';pointer-events:' + (visible ? 'auto' : 'none') + ';'
 })
 
@@ -525,7 +531,7 @@ function pendingCodeVisualLineCount(): number {
 
 const codeRichTextStyle = computed<string>(() => {
 	return 'width:' + codeContentWidth.value + ';height:' + scrollViewHeight.value
-		+ ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;'
+		+ ';font-size:14px;line-height:22px;font-family:monospace;color:#d1fae5;background-color:#111827;'
 })
 
 const mermaidGenerationFailed = computed<boolean>(() => {
@@ -626,6 +632,33 @@ const scrollViewHeight = computed<string>(() => {
 
 const mermaidContentHeight = computed<string>(() => {
 	return Math.round(visibleCodeWidth() * 4 / 5).toString() + 'px'
+})
+
+const codeRootStyle = computed<string>(() => {
+	return 'width:100%;margin-top:6px;margin-bottom:6px;background-color:#111827;border-width:1px;border-style:solid;border-color:#374151;overflow:hidden;'
+})
+
+const codeHeaderStyle = computed<string>(() => {
+	return 'position:relative;z-index:2;width:100%;height:38px;flex-direction:row;justify-content:space-between;align-items:center;padding-top:4px;padding-bottom:4px;padding-left:10px;padding-right:10px;background-color:#0d0d0d;'
+})
+
+const codeScrollViewStyle = computed<string>(() => {
+	return 'width:100%;height:' + scrollViewHeight.value
+		+ ';flex-direction:row;align-items:flex-start;padding-left:14px;padding-right:14px;box-sizing:border-box;background-color:#111827;'
+})
+
+const mermaidCodeScrollStyle = computed<string>(() => {
+	return codeScrollViewStyle.value + 'position:absolute;left:0;top:0;'
+})
+
+const mermaidStageStyle = computed<string>(() => {
+	return 'position:relative;width:100%;height:' + mermaidContentHeight.value
+		+ ';overflow:hidden;background-color:' + themePageBackgroundColor.value + ';'
+})
+
+const mermaidImageBoxStyle = computed<string>(() => {
+	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
+		+ ';overflow:hidden;background-color:' + themePageBackgroundColor.value + ';justify-content:center;align-items:center;'
 })
 
 const copyCode = () => {

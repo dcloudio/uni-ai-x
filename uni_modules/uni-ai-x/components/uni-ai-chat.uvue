@@ -8,16 +8,16 @@
 					<text class="chat-box-welcome-title" flatten>嗨！我是 UNI-AI</text>
 					<text class="chat-box-welcome-text" flatten>我可以帮你回答问题、写代码、翻译、写诗等。</text>
 				</view>
-				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
-					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
+					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
 						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
 							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
-					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
-					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
+					<list-item :style="bottomAnchorStyle" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
+					<list-item :style="bottomAnchorStyle" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
 				</list-view>
 				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
 					<add-chat-btn />
@@ -38,7 +38,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
+	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 	import { buildMarkdownAstBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
 	import {
@@ -87,6 +87,22 @@
 	
 	const state = computed<string>(() => {
 		return uniAi.currentChat?.state ?? 'none'
+	})
+
+	const chatThemeBackground = computed<string>(() => {
+		return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+	})
+
+	const chatListStyle = computed<string>(() => {
+		return 'background-color:' + chatThemeBackground.value + ';'
+	})
+
+	const chatListItemStyle = computed<string>(() => {
+		return 'background-color:' + chatThemeBackground.value + ';'
+	})
+
+	const bottomAnchorStyle = computed<string>(() => {
+		return 'height:35px;background-color:' + chatThemeBackground.value + ';'
 	})
 	
 	const msgList = computed<MsgItem[]>(() => {

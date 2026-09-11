@@ -404,8 +404,10 @@
             if (svgElement == null) throw new Error('MathJax 未生成 SVG');
             const isDark = theme === 'dark';
             const foreground = isDark ? '#ffffff' : '#25282c';
+            const background = isDark ? '#25282c' : '#ffffff';
             return this.normalizeSvg(svgElement.outerHTML, {
               foreground,
+              background,
               theme,
               naturalSize: true,
               preserveAspectRatio: 'xMinYMid meet',

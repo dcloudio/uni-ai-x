@@ -71,7 +71,8 @@ function deliverResult(callback: ThemedSvgCallback, result: ThemedSvgResult) {
 export function renderMathSvgForTheme(mathText: string, theme: string, callback: ThemedSvgCallback) {
 	const renderTheme = normalizedTheme(theme)
 	const workaround = getHarmonySvgWorkaroundConfig()
-	const key = cacheKey(renderTheme, mathText, workaround.cacheVariant)
+	const renderVariant = workaround.cacheVariant + ':opaque-theme-background-v1'
+	const key = cacheKey(renderTheme, mathText, renderVariant)
 	const cached = mathCache.get(key)
 	if (cached != null) {
 		deliverResult(callback, cached)

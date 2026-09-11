@@ -19,6 +19,14 @@ function updateUiTheme(theme: string) {
 	uiTheme.value = theme == 'dark' ? 'dark' : 'light'
 }
 
+function updateUiThemeFromAppTheme(appTheme: string) {
+	if (appTheme == 'auto') {
+		refreshUiTheme()
+		return
+	}
+	updateUiTheme(appTheme)
+}
+
 function refreshUiTheme() {
 	uni.getSystemInfo({
 		success: (res: GetSystemInfoResult) => {
@@ -38,7 +46,7 @@ function initUiTheme() {
 	refreshUiTheme()
 	// #ifdef APP
 	uni.onAppThemeChange((res: AppThemeChangeResult) => {
-		updateUiTheme(res.appTheme)
+		updateUiThemeFromAppTheme(res.appTheme)
 	})
 	// #endif
 	// #ifdef WEB || MP

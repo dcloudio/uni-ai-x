@@ -1,11 +1,11 @@
 <template>
-	<view class="uni-ai-tool-bar">
+	<view class="uni-ai-tool-bar uni-theme-root" :style="toolBarStyle">
 		<!-- 复制按钮、重新回答按钮 -->
-		<view class="uni-ai-tool-bar-btn" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
-			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-loop" flatten>{{loopIcon}}</text>
+		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
+			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-loop" :style="loopIconStyle" flatten>{{loopIcon}}</text>
 		</view>
-		<view class="uni-ai-tool-bar-btn" @click="copy">
-			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-copy" flatten>{{copyIcon}}</text>
+		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="copy">
+			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-copy" :style="copyIconStyle" flatten>{{copyIcon}}</text>
 		</view>
 		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>
@@ -14,7 +14,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
+	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 	
 	const props = defineProps<{
 		msg: MsgItem
@@ -50,6 +50,30 @@
 	
 	const loopIcon = computed<string>(() => {
 		return uicon('e633')
+	})
+
+	const toolBarBackgroundColor = computed<string>(() => {
+		return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+	})
+
+	const toolBarIconColor = computed<string>(() => {
+		return uiTheme.value == 'dark' ? '#b0b0b0' : '#999999'
+	})
+
+	const toolBarStyle = computed<string>(() => {
+		return 'width:100%;flex-direction:row;background-color:' + toolBarBackgroundColor.value + ';'
+	})
+
+	const toolBarButtonStyle = computed<string>(() => {
+		return 'width:30px;height:30px;align-items:center;justify-content:center;flex-shrink:0;margin-top:5px;margin-right:15px;'
+	})
+
+	const copyIconStyle = computed<string>(() => {
+		return 'font-size:20px;color:' + toolBarIconColor.value + ';font-family:uniAiIconFontFamily;'
+	})
+
+	const loopIconStyle = computed<string>(() => {
+		return 'font-size:20px;color:' + toolBarIconColor.value + ';font-family:UniIconsFontFamily;'
 	})
 	
 	const copy = () => {

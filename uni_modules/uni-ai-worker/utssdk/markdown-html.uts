@@ -5,8 +5,10 @@ const TABLE_BODY_MEASURE_FONT_SIZE = 13
 const TABLE_CELL_HORIZONTAL_PADDING = 16
 const TABLE_CELL_VERTICAL_PADDING = 12
 const TABLE_LINE_HEIGHT = 22
-const TABLE_BORDER_COLOR = 'rgba(127,127,127,0.38)'
-const TABLE_HEADER_BACKGROUND = 'rgba(127,127,127,0.14)'
+const TABLE_BORDER_COLOR = '__UNI_AI_TABLE_BORDER_COLOR__'
+const TABLE_HEADER_BACKGROUND = '__UNI_AI_TABLE_HEADER_BACKGROUND__'
+const LEGACY_TABLE_BORDER_COLOR = 'rgba(127,127,127,0.38)'
+const LEGACY_TABLE_HEADER_BACKGROUND = 'rgba(127,127,127,0.14)'
 const TABLE_WIDTH_PLACEHOLDER = '__UNI_AI_TABLE_WIDTH__'
 const TABLE_COLUMN_PLACEHOLDER_PREFIX = '__UNI_AI_TABLE_COLUMN_'
 const TABLE_COLUMN_PLACEHOLDER_SUFFIX = '__'
@@ -64,6 +66,30 @@ export type MarkdownHtmlBlock = {
 	isComplete: boolean
 	columnWidths: number[]
 	rowTextWidths: number[][]
+}
+
+export type MarkdownTableColors = {
+	text: string
+	background: string
+	border: string
+	headerBackground: string
+}
+
+export function markdownTableThemeColors(theme: string): MarkdownTableColors {
+	if (theme == 'dark') {
+		return {
+			text: '#ffffff',
+			background: '#25282c',
+			border: '#4a4a4a',
+			headerBackground: '#29292d'
+		} as MarkdownTableColors
+	}
+	return {
+		text: '#333333',
+		background: '#ffffff',
+		border: '#dddddd',
+		headerBackground: '#f5f5f5'
+	} as MarkdownTableColors
 }
 
 function replaceAllText(source: string, needle: string, replacement: string): string {
@@ -817,6 +843,16 @@ export function applyMarkdownTableColumnWidths(html: string, columnWidths: numbe
 			TABLE_COLUMN_PLACEHOLDER_PREFIX + columnIndex.toString() + TABLE_COLUMN_PLACEHOLDER_SUFFIX,
 			columnWidths[columnIndex].toString())
 	}
+	return result
+}
+
+export function applyMarkdownTableTheme(html: string, theme: string): string {
+	const colors = markdownTableThemeColors(theme)
+	let result = replaceAllText(html, TABLE_BORDER_COLOR, colors.border)
+	result = replaceAllText(result, TABLE_HEADER_BACKGROUND, colors.headerBackground)
+	// Stored messages may contain tables prepared before theme placeholders existed.
+	result = replaceAllText(result, LEGACY_TABLE_BORDER_COLOR, colors.border)
+	result = replaceAllText(result, LEGACY_TABLE_HEADER_BACKGROUND, colors.headerBackground)
 	return result
 }
 
