@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-ai-msg-html-table uni-theme-root">
+	<view class="uni-ai-msg-html-table uni-theme-root" flatten>
 		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="false" :style="{height: tableViewportHeight}"
 			>

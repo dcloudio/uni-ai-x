@@ -1,20 +1,20 @@
 <template>
-	<view class="chat-box uni-theme-root">
-		<uni-ai-chat-nav @change-menu="changeMenu" />
-		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
-			<view class="chat-box-scroll-view-box">
-				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0">
-					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png"/>
-					<text class="chat-box-welcome-title">嗨！我是 UNI-AI</text>
-					<text class="chat-box-welcome-text">我可以帮你回答问题、写代码、翻译、写诗等。</text>
+	<view class="chat-box uni-theme-root" flatten>
+		<uni-ai-chat-nav flatten @change-menu="changeMenu" />
+		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat" flatten>
+			<view class="chat-box-scroll-view-box" flatten>
+				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0" flatten>
+					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
+					<text class="chat-box-welcome-title" flatten>嗨！我是 UNI-AI</text>
+					<text class="chat-box-welcome-text" flatten>我可以帮你回答问题、写代码、翻译、写诗等。</text>
 				</view>
 				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
-						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
+						<uni-ai-x-msg v-if="renderItem.isAi" flatten :msg="renderItem.msg" :parts="renderItem.parts"
 							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
-						<uni-ai-user-msg v-else :msg="renderItem.msg" />
+						<uni-ai-user-msg v-else flatten :msg="renderItem.msg" />
 					</list-item>
 					<list-item style="height: 35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item style="height: 35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
@@ -28,7 +28,7 @@
 			</view>
 			<uni-ai-chat-extension-input v-if="hasInputExtension" />
 			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
-			<text class="chat-box-tip">内容由ai生成，仅供参考</text>
+			<text class="chat-box-tip" flatten>内容由ai生成，仅供参考</text>
 		</view>
 		<view class="chat-box-mask" v-if="translateX != -260" @click="closeMenu" :style="{
 			opacity: (translateX + 260) / 260,

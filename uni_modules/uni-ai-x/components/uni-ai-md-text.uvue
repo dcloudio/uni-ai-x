@@ -1,8 +1,8 @@
 <template>
-	<view v-if="block.kind == 'hr'" class="uni-ai-md-text-hr"></view>
-	<view v-else class="uni-ai-md-text-block" :class="blockClass" :style="blockStyle">
-		<text v-if="block.marker.length > 0" class="uni-ai-md-text-marker">{{block.marker}}</text>
-		<view class="uni-ai-md-text-content">
+	<view v-if="block.kind == 'hr'" class="uni-ai-md-text-hr" flatten></view>
+	<view v-else class="uni-ai-md-text-block" :class="blockClass" :style="blockStyle" flatten>
+		<text v-if="block.marker.length > 0" class="uni-ai-md-text-marker" flatten>{{block.marker}}</text>
+		<view class="uni-ai-md-text-content" flatten>
 			<template v-for="(span, index) in block.spans" :key="block.key + '-span-' + index.toString()">
 				<image v-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
 					mode="widthFix" @click="previewImage(span.imageSrc)" />

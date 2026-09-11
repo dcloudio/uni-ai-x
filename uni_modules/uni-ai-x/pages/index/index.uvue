@@ -3,8 +3,8 @@
 		<view class="uni-ai-page uni-theme-root" ref="uni-ai-page"
 			:class="showMenu ? 'uni-ai-page-showMenu' : ''"
 			:style="{transform: `translateX(${translateX}px)`}">
-			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
-			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+			<uni-ai-menu flatten @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
+			<uni-ai-chat flatten :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 			<fps v-if="showFps" />
 			<!-- #ifndef MP-WEIXIN -->
 			<web-view class="uni-ai-proxy-web" id="proxy-web"

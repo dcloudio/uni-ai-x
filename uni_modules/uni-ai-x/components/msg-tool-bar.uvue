@@ -1,11 +1,11 @@
 <template>
-	<view class="uni-ai-tool-bar">
+	<view class="uni-ai-tool-bar" flatten>
 		<!-- 复制按钮、重新回答按钮 -->
 		<view class="uni-ai-tool-bar-btn" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
-			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-loop">{{loopIcon}}</text>
+			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-loop" flatten>{{loopIcon}}</text>
 		</view>
 		<view class="uni-ai-tool-bar-btn" @click="copy">
-			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-copy">{{copyIcon}}</text>
+			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-copy" flatten>{{copyIcon}}</text>
 		</view>
 		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-icons class="delete" type="trash" size="22" color="#999"></uni-icons>

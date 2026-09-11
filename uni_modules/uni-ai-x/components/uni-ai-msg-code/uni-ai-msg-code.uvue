@@ -2,7 +2,7 @@
 	<view class="uni-code-msg-root uni-theme-root">
 		<view class="uni-code-msg-code-header">
 			<!-- #ifndef MP-WEIXIN -->
-			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
+			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'" flatten>
 				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">流程图</text>
 				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(false)">代码</text>
 			</view>
@@ -10,12 +10,12 @@
 			<template v-if="language != 'mermaid'">
 				<text class="uni-code-msg-language" flatten>{{language}}</text>
 				<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
-					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4" flatten/>
+					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
 					<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 				</view>
 			</template>
 			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode">
-				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4" flatten/>
+				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
 				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
@@ -26,7 +26,7 @@
 			<image v-if="buffer1MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer1MermaidHref"
 				:style="buffer1MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer1Load"
 				@error="onMermaidBuffer1Error" @click.stop="previewMermaidImage" />
-			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}" flatten>
+			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="{height: mermaidContentHeight}">
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
 				<text class="uni-code-msg-mermaid-status-text" flatten>{{mermaidGenerationFailed ? '流程图生成失败' : '图片正在生成中'}}</text>
 			</view>
