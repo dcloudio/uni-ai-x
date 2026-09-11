@@ -6,7 +6,7 @@
 			<template v-for="(span, index) in block.spans" :key="block.key + '-span-' + index.toString()">
 				<image v-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
 					mode="widthFix" @click="previewImage(span.imageSrc)" />
-				<text v-else :class="spanClass(span)" @click="openLink(span)">{{span.text}}</text>
+				<text v-else :class="spanClass(span)" :style="spanStyle(span)" @click="openLink(span)">{{span.text}}</text>
 			</template>
 		</view>
 	</view>
@@ -39,6 +39,17 @@
 	function spanClass(span: MarkdownTextSpan): string {
 		if (block.value.kind != 'heading') return span.className
 		return span.className + ' uni-ai-md-text-span-heading-' + block.value.level.toString()
+	}
+
+	function spanStyle(span: MarkdownTextSpan): string {
+		if (block.value.kind != 'heading') return ''
+		const level = Math.max(1, Math.min(block.value.level, 6))
+		if (level == 1) return 'font-size:30px;line-height:36px;font-weight:700;'
+		if (level == 2) return 'font-size:26px;line-height:34px;font-weight:700;'
+		if (level == 3) return 'font-size:22px;line-height:32px;font-weight:700;'
+		if (level == 4) return 'font-size:20px;line-height:30px;font-weight:700;'
+		if (level == 5) return 'font-size:18px;line-height:28px;font-weight:700;'
+		return 'font-size:16px;line-height:24px;font-weight:700;color:var(--text-tertiary);'
 	}
 
 	function openLink(span: MarkdownTextSpan) {
