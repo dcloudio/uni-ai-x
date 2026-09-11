@@ -1,5 +1,5 @@
 <template>
-	<view class="uni-code-msg-root uni-theme-root">
+	<view ref="codeRoot" class="uni-code-msg-root uni-theme-root">
 		<view class="uni-code-msg-code-header">
 			<!-- #ifndef MP-WEIXIN -->
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'">
@@ -47,6 +47,7 @@
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+import { streamingCodeTokens } from '@/uni_modules/uni-ai-x/sdk/streaming-code-tokens.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 // #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
@@ -104,6 +105,8 @@ const codeFontSize = 14
 const codeHorizontalPadding = 14
 const estimatedCardHorizontalInset = 48
 const windowWidth = ref<number>(0)
+const codeRoot = ref<UniViewElement | null>(null)
+const measuredCodeWidth = ref<number>(0)
 
 const mermaidHref = computed<string>(() => {
 	return activeMermaidBuffer.value == 0 ? buffer0MermaidHref.value : buffer1MermaidHref.value
@@ -223,12 +226,6 @@ function normalizeCodeText(text: string): string {
 
 function normalizeCodeTokens(codeTokens: IToken[][]): IToken[][] {
 	return (codeTokens ?? [] as IToken[][]).map((lineTokens: IToken[] | null): IToken[] => lineTokens ?? [] as IToken[])
-}
-
-function buildRenderedCodeText(codeTokens: IToken[][]): string {
-	return codeTokens.map((lineTokens: IToken[]) => {
-		return lineTokens.map((token: IToken) => token.text ?? '').join('')
-	}).join('\n')
 }
 
 type MiniProgramCodeLine = {
@@ -389,7 +386,9 @@ function miniProgramCodeLineTokens(line: string, language: string, blockCommentE
 
 const safeCodeTokens = computed<IToken[][]>(() => {
 	const propTokens = normalizeCodeTokens(props.codeTokens)
-	return propTokens.length > 0 ? propTokens : highlightedCodeTokens.value
+	const cachedTokens = highlightedCodeTokens.value
+	if (propTokens.length > 0) return propTokens
+	return highlightedCodeLanguage == props.language ? cachedTokens : [] as IToken[][]
 })
 
 function highlightCode() {
@@ -459,15 +458,12 @@ function highlightCode() {
 	// #endif
 }
 
-const showOriginCode = computed<boolean>(() => {
-	if (safeCodeTokens.value.length == 0) return true
-	const rawCode = normalizeCodeText(props.codeText)
-	const renderedCode = normalizeCodeText(buildRenderedCodeText(safeCodeTokens.value))
-	return rawCode != renderedCode
+const renderedCodeTokens = computed<IToken[][]>(() => {
+	return streamingCodeTokens(props.codeText, safeCodeTokens.value)
 })
 
 const shouldUseOriginCode = computed<boolean>(() => {
-	return showOriginCode.value
+	return renderedCodeTokens.value.length == 0
 })
 
 const codeRichNodes = computed<UTSJSONObject[]>(() => {
@@ -475,7 +471,7 @@ const codeRichNodes = computed<UTSJSONObject[]>(() => {
 		type: 'code_block',
 		lang: props.language,
 		text: props.codeText,
-		codeTokens: shouldUseOriginCode.value ? [] as IToken[][] : safeCodeTokens.value
+		codeTokens: renderedCodeTokens.value
 	}
 	return markdownCodeTokenToRichTextNodes(token)
 })
@@ -488,6 +484,11 @@ function normalizeRawCodeLines(text: string): string[] {
 
 function updateWindowWidth() {
 	windowWidth.value = uni.getWindowInfo().windowWidth
+	nextTick(() => {
+		codeRoot.value?.getBoundingClientRectAsync()?.then((rect: DOMRect) => {
+			if (rect.width > 2) measuredCodeWidth.value = rect.width - 2
+		})
+	})
 }
 
 const rawCodeLines = computed<string[]>(() => {
@@ -500,6 +501,7 @@ function getCodeTextWidth(text: string): number {
 }
 
 function visibleCodeWidth(): number {
+	if (measuredCodeWidth.value > 0) return measuredCodeWidth.value
 	const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
 	return Math.max(160, Math.min(currentWindowWidth, 800) - estimatedCardHorizontalInset)
 }
@@ -619,7 +621,7 @@ const scrollViewHeight = computed<string>(() => {
 	if (props.language == 'mermaid') return mermaidContentHeight.value
 	if (props.isClose != 1) return `${pendingCodeVisualLineCount() * codeLineHeight + codeVerticalPadding}px`
 	const rawLineCount = rawCodeLines.value.length
-	const renderedLineCount = safeCodeTokens.value.length
+	const renderedLineCount = renderedCodeTokens.value.length
 	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
 	return `${lineCount * codeLineHeight + codeVerticalPadding}px`
 })
