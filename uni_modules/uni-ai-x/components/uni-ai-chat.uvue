@@ -496,7 +496,9 @@
 
 .chat-box {
 	width: 750rpx;
+	/* #ifndef MP-WEIXIN */
 	padding-top: env(safe-area-inset-top);
+	/* #endif */
 }
 
 .chat-box-mask {
