@@ -53,7 +53,7 @@
 
 /* #ifdef MP-WEIXIN */
 .chat-nav {
-	padding-top: calc(var(--status-bar-height) + 35px);
+	padding-top: var(--status-bar-height);
 }
 /* #endif */
 </style>
