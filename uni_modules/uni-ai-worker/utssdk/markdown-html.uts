@@ -441,7 +441,7 @@ function prepareRichMarkdownHtml(html: string, isDone: boolean): string {
 	return markCodeBlocks(result, isDone)
 }
 
-function styleTableRow(row: HtmlTableRow, rowIndex: number, rowCount: number): string {
+function styleTableRow(row: HtmlTableRow, rowIndex: number): string {
 	let result = ''
 	let cursor = 0
 	let cellIndex = 0
@@ -463,7 +463,6 @@ function styleTableRow(row: HtmlTableRow, rowIndex: number, rowCount: number): s
 		const align = tagAttribute(sourceOpenTag, 'align')
 		if (align.length > 0) cellStyle += 'text-align:' + align + ';'
 		if (rowIndex == 0) cellStyle += 'border-top-width:0;'
-		if (rowIndex == rowCount - 1) cellStyle += 'border-bottom-width:0;'
 		if (cellIndex == 0) cellStyle += 'border-left-width:0;'
 		if (cellIndex == cellCount - 1) cellStyle += 'border-right-width:0;'
 		if (cellPosition.tag == 'th') cellStyle += 'font-weight:700;background-color:' + TABLE_HEADER_BACKGROUND + ';'
@@ -498,7 +497,7 @@ function prepareTableHtml(tableHtml: string, tableIndex: number): string {
 	let cursor = 0
 	for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
 		styledRows += tableHtml.slice(cursor, rows[rowIndex].start)
-		styledRows += styleTableRow(rows[rowIndex], rowIndex, rowCount)
+		styledRows += styleTableRow(rows[rowIndex], rowIndex)
 		cursor = rows[rowIndex].end
 	}
 	styledRows += tableHtml.slice(cursor)
@@ -772,15 +771,23 @@ export function resolveMarkdownTableColumnWidths(naturalWidths: number[], minimu
 	let naturalWidth = 0
 	for (let index = 0; index < widths.length; index++) naturalWidth += widths[index]
 	if (naturalWidth >= minimumTableWidth) return widths
-	const equalWidth = minimumTableWidth / widths.length
-	for (let index = 0; index < widths.length; index++) widths[index] = equalWidth
+	const targetWidth = Math.ceil(minimumTableWidth)
+	const baseWidth = Math.floor(targetWidth / widths.length)
+	let remainder = targetWidth - baseWidth * widths.length
+	for (let index = 0; index < widths.length; index++) {
+		widths[index] = baseWidth
+		if (remainder > 0) {
+			widths[index] += 1
+			remainder -= 1
+		}
+	}
 	return widths
 }
 
 export function markdownTableContentWidth(columnWidths: number[]): number {
 	let width = 0
 	for (let index = 0; index < columnWidths.length; index++) width += columnWidths[index]
-	return Math.max(1, width)
+	return Math.max(1, Math.ceil(width))
 }
 
 export function markdownTableContentHeight(rowTextWidths: number[][], columnWidths: number[]): number {
@@ -797,9 +804,10 @@ export function markdownTableContentHeight(rowTextWidths: number[][], columnWidt
 			maxLineCount = Math.max(maxLineCount, lineCount)
 		}
 		height += maxLineCount * TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING
-		if (rowIndex < rowTextWidths.length - 1) height += 1
+		// Keep one collapsed horizontal border for every row, including the final bottom edge.
+		height += 1
 	}
-	return Math.max(1, height)
+	return Math.max(1, Math.ceil(height))
 }
 
 export function applyMarkdownTableColumnWidths(html: string, columnWidths: number[]): string {

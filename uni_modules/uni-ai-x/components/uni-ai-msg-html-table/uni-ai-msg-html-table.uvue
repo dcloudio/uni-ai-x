@@ -6,8 +6,6 @@
 			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
 				:nodes="tableHtml" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
-		<view class="uni-ai-msg-html-table-border uni-ai-msg-html-table-border-left"></view>
-		<view class="uni-ai-msg-html-table-border uni-ai-msg-html-table-border-right"></view>
 	</view>
 </template>
 
@@ -30,7 +28,7 @@
 	const tableScroll = ref<UniScrollViewElement | null>(null)
 	const windowInfo = uni.getWindowInfo()
 	const initialWindowWidth = windowInfo.windowWidth > 0 ? windowInfo.windowWidth : windowInfo.screenWidth
-	const tableViewportContentWidth = ref(Math.max(1, initialWindowWidth - 92))
+	const tableViewportContentWidth = ref(Math.max(1, Math.floor(initialWindowWidth - 92)))
 
 	const renderColumnWidths = computed<number[]>(() => {
 		return resolveMarkdownTableColumnWidths(props.columnWidths, tableViewportContentWidth.value)
@@ -42,7 +40,7 @@
 		return markdownTableContentHeight(props.rowTextWidths, renderColumnWidths.value)
 	})
 	const tableViewportHeight = computed<string>(() => {
-		return (tableContentHeight.value + 3).toString() + 'px'
+		return tableContentHeight.value.toString() + 'px'
 	})
 	const tableHtml = computed<string>(() => {
 		return applyMarkdownTableColumnWidths(props.html, renderColumnWidths.value)
@@ -54,12 +52,20 @@
 			+ color + ';background-color:' + backgroundColor + ';'
 	})
 
-	onMounted(() => {
+	function refreshTableViewportWidth() {
 		nextTick(() => {
 			tableScroll.value?.getBoundingClientRectAsync()?.then((rect: DOMRect) => {
-				tableViewportContentWidth.value = Math.max(1, rect.width - 2)
+				tableViewportContentWidth.value = Math.max(1, Math.floor(rect.width))
 			})
 		})
+	}
+
+	onMounted(() => {
+		refreshTableViewportWidth()
+	})
+
+	onResize(() => {
+		refreshTableViewportWidth()
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
@@ -85,12 +91,14 @@
 		position: relative;
 		width: 100%;
 		margin: 6px 0;
+		box-sizing: border-box;
+		border: 1px solid var(--border-primary);
+		background-color: var(--bg-primary);
 	}
 
 	.uni-ai-msg-html-table-scroll {
 		width: 100%;
 		box-sizing: border-box;
-		border: 1px solid var(--border-primary);
 		background-color: var(--bg-primary);
 		flex-direction: row;
 	}
@@ -98,22 +106,5 @@
 	.uni-ai-msg-html-table-content {
 		align-self: flex-start;
 		flex-shrink: 0;
-	}
-
-	.uni-ai-msg-html-table-border {
-		position: absolute;
-		top: 0;
-		width: 1px;
-		height: 100%;
-		z-index: 1;
-		background-color: var(--border-primary);
-	}
-
-	.uni-ai-msg-html-table-border-left {
-		left: 0;
-	}
-
-	.uni-ai-msg-html-table-border-right {
-		right: 0;
 	}
 </style>
