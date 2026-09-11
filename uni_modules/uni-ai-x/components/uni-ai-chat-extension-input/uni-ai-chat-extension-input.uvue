@@ -163,7 +163,7 @@
 	width: 100%;
 	flex-direction: column;
 	background-color: var(--bg-primary);
-	padding: 15px 15px 5px 15px;
+	padding: 10px 10px 4px 10px;
 	border-radius: 15px 15px 0 0;
 	border: 1px solid var(--border-secondary);
 }
@@ -175,25 +175,25 @@
 	align-items: center;
 }
 
-.stress-generator { width: 100%; margin-top: 4px; padding: 12px 0 4px 0; border-top: 1px solid var(--border-secondary); }
+.stress-generator { width: 100%; margin-top: 2px; padding: 8px 0 2px 0; border-top: 1px solid var(--border-secondary); }
 .stress-generator-title { flex-direction: row; align-items: center; }
-.stress-count { width: 58px; height: 28px; margin: 0 5px; padding: 0 6px; border: 1px solid var(--border-primary); border-radius: 4px; text-align: center; }
-.stress-select-all { margin-left: auto; color: #2979ff; font-size: 13px; }
-.stress-types { flex-direction: row; flex-wrap: wrap; margin-top: 6px; }
-.stress-type { flex-direction: row; align-items: center; margin-right: 12px; margin-bottom: 6px; }
-.stress-type-text { font-size: 13px; color: var(--text-secondary); }
-.stress-generate-btn { align-self: flex-end; padding: 7px 16px; border-radius: 5px; background-color: #2979ff; }
-.stress-generate-text { color: #ffffff; font-size: 13px; }
+.stress-count { width: 52px; height: 24px; margin: 0 4px; padding: 0 5px; border: 1px solid var(--border-primary); border-radius: 4px; text-align: center; }
+.stress-select-all { margin-left: auto; color: #2979ff; font-size: 12px; }
+.stress-types { flex-direction: row; flex-wrap: wrap; margin-top: 4px; }
+.stress-type { flex-direction: row; align-items: center; margin-right: 8px; margin-bottom: 3px; }
+.stress-type-text { font-size: 12px; color: var(--text-secondary); }
+.stress-generate-btn { align-self: flex-end; padding: 5px 12px; border-radius: 5px; background-color: #2979ff; }
+.stress-generate-text { color: #ffffff; font-size: 12px; }
 
 .chat-extension-input-action {
-	height: 32px;
+	height: 28px;
 	flex-direction: row;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-	padding: 0 12px;
-	margin-right: 8px;
-	margin-bottom: 8px;
+	padding: 0 9px;
+	margin-right: 5px;
+	margin-bottom: 5px;
 	border-radius: 6px;
 	border: 1px solid var(--border-primary);
 	background-color: var(--bg-secondary);
@@ -218,7 +218,7 @@
 }
 
 .chat-extension-input-action-text {
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--text-secondary);
 }
 
@@ -231,7 +231,7 @@
 }
 
 .chat-extension-input-delete-text {
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--error);
 }
 
