@@ -1,7 +1,7 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
-import { parseChunkData } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
+import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 // #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
@@ -78,6 +78,8 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
+	private finishRequested: boolean = false
+	private streamParser: SseStreamParser | null = null
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 	}
@@ -145,6 +147,8 @@ class RequestAiRunner {
 		this.currentChatState = ''
 		this.userAbort = false
 		this.hasThinkContent = false
+		this.finishRequested = false
+		this.streamParser = null
 	}
 	handleRequestError(errRes: UTSJSONObject) {
 		if (this.workerActive) this.stopWorkerRuntime(true)
@@ -163,9 +167,9 @@ class RequestAiRunner {
 		this.callbacks?.onState('stop')
 	}
 	finishRequest() {
-		if (this.currentChatState == 'stop') {
-			return
-		}
+		if (this.finishRequested) return
+		if (this.currentChatState == 'stop') return
+		this.finishRequested = true
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
 			completeAiWorkerMarkdown(this.workerRequestVersion)
@@ -512,24 +516,44 @@ class RequestAiRunner {
 				return
 			}
 		}
+		// 流式响应已传输完成：兜底触发一次结束，避免结尾的 [DONE] 因分包丢失导致状态卡死。
+		const parser = this.streamParser
+		if (parser != null) {
+			// 平台未触发分片回调（例如服务端流式被网关缓冲）时，用结束时的完整响应体兜底解析。
+			const rawData = res.data
+			const textBody = typeof rawData == 'string' ? rawData as string : ''
+			if (parser.receivedBytes() == 0 && textBody.length > 0) {
+				parser.pushText(textBody)
+			}
+		}
+		this.finishStreamRequest(options)
 		resolveFn({} as UTSJSONObject)
 	}
+	finishStreamRequest(options: RequestAiServerOptions) {
+		const parser = this.streamParser
+		this.streamParser = null
+		if (parser != null) parser.finish()
+		options.onDone?.({} as UTSJSONObject)
+	}
 	bindStreamChunks(requestTask: RequestTask, options: RequestAiServerOptions, rejectFn: RequestPromiseFn) {
-		const textDecoder = new TextDecoder()
-		// @ts-ignore
-		requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
-			parseChunkData(chunk.data as ArrayBuffer, textDecoder, (chunkObj : Chunk) => {
+		const parser = new SseStreamParser(
+			(chunkObj : Chunk) => {
 				options.onChunk?.(chunkObj)
 			},
-				(err : UTSJSONObject) => {
-					err.errCode = err.code ?? ''
-					err.errMsg = err.message ?? '未知错误'
-					options.onError?.(err)
-					rejectFn(err)
-				},
-				() => {
-					options.onDone?.({} as UTSJSONObject)
-				})
+			(err : UTSJSONObject) => {
+				err.errCode = err.code ?? ''
+				err.errMsg = err.message ?? '未知错误'
+				options.onError?.(err)
+				rejectFn(err)
+			},
+			() => {
+				options.onDone?.({} as UTSJSONObject)
+			}
+		)
+		this.streamParser = parser
+		// @ts-ignore
+		requestTask.onChunkReceived((chunk : RequestTaskOnChunkReceivedListenerResult) => {
+			parser.push(chunk.data as ArrayBuffer)
 		})
 	}
 	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm) {
@@ -557,6 +581,7 @@ class RequestAiRunner {
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
 		this.userAbort = true
+		this.streamParser = null
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
 		this.requestTask?.abort()
