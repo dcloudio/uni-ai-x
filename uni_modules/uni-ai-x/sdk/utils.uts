@@ -1,6 +1,6 @@
 const COPY_TOAST_DURATION = 1500
 
-class Utils {
+export class Utils {
 	showCopySuccessToast() : void {
 		uni.showToast({
 			title: '复制成功',
