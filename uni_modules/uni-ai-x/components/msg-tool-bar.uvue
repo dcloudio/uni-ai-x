@@ -15,6 +15,7 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
+	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts';
 	
 	const props = defineProps<{
 		msg: MsgItem
@@ -78,22 +79,19 @@
 	
 	const copy = () => {
 		if (typeof msg.body != 'string') {
-			uni.showToast({
-				title: '消息内容不是字符串',
-				icon: 'none',
-			})
+			utils.showCopyFailureToast()
 			return
 		}
 		uni.setClipboardData({
 			data: msg.body as string,
+			showToast: false,
 			success: () => {
-				uni.showToast({
-					title: '复制成功',
-					icon: 'success',
-				})
+				utils.showCopySuccessToast()
+			},
+			fail: () => {
+				utils.showCopyFailureToast()
 			}
 		})
-		console.error('复制成功',msg.body)
 	}
 	
 	const loop = async () => {

@@ -52,6 +52,7 @@
 	import uniAiChatExtensionInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-extension-input/uni-ai-chat-extension-input.uvue'
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
+	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -409,12 +410,15 @@
 				if (res.tapIndex == 0) {
 					uni.setClipboardData({
 						data: item.body,
+						showToast: false,
 						success: () => {
 							nextTick(()=>{
-								uni.showToast({
-									title: '复制成功',
-									icon: 'success'
-								})
+								utils.showCopySuccessToast()
+							})
+						},
+						fail: () => {
+							nextTick(()=>{
+								utils.showCopyFailureToast()
 							})
 						}
 					})
