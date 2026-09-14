@@ -638,6 +638,7 @@ class UniAi {
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
 		requestAiRunner?.abortRequest()
+		this.emitBeforeRequestAi()
 		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
