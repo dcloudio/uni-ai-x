@@ -7,6 +7,9 @@
 					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 					<text class="chat-box-welcome-title" flatten>嗨！我是 UNI-AI</text>
 					<text class="chat-box-welcome-text" flatten>我可以帮你回答问题、写代码、翻译、写诗等。</text>
+					<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo">
+						<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
+					</view>
 				</view>
 				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
@@ -53,6 +56,7 @@
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -472,6 +476,15 @@
 		}
 	}
 
+	const runMarkdownDemo = async () => {
+		if (state.value == 'processing') return
+		try {
+			await runFullMarkdownDemo()
+		} catch (error) {
+			console.error('[uni-ai-x][Markdown示例] 运行失败', error)
+		}
+	}
+	
 	const beforeRequestAi = () => {
 		autoToLastMsg = true
 		needSetLockAutoToLastMsg = true
@@ -583,6 +596,19 @@
 	text-align: center;
 	line-height: 24px;
 	margin: 0 30px;
+}
+
+.chat-box-welcome-demo-btn {
+	margin-top: 24px;
+	padding: 8px 20px;
+	border-radius: 20px;
+	border: 1px solid var(--border-color);
+	background-color: var(--bg-secondary);
+}
+
+.chat-box-welcome-demo-btn-text {
+	font-size: 14px;
+	color: var(--accent-primary);
 }
 
 .chat-box-scroll-to-bottom {

@@ -29,6 +29,10 @@ export function registerAiRequestRunnerFactory(factory: AiRequestRunnerFactory) 
 	requestAiRunnerFactory = factory
 }
 
+export function unregisterAiRequestRunnerFactory() {
+	requestAiRunnerFactory = null
+}
+
 export function getAiRequestRunnerFactory(): AiRequestRunnerFactory | null {
 	return requestAiRunnerFactory
 }

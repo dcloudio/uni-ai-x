@@ -1,0 +1,25 @@
+import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import {
+	AiRequestRunnerHandle,
+	registerAiRequestRunnerFactory,
+	unregisterAiRequestRunnerFactory
+} from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
+import MarkdownDemoRunner from '@/demo/markdown/markdown-demo-runner.uts'
+import { FULL_MARKDOWN_SCENARIO_ID, selectDemoMarkdownScenario } from '@/demo/markdown/demo-chat.uts'
+
+// 一次性运行“完整的 Markdown 测试示例”，运行结束后恢复正常的 AI 请求。
+export async function runFullMarkdownDemo(): Promise<void> {
+	if (uniAi.currentChat?.state == 'processing') return
+	const scenario = selectDemoMarkdownScenario(FULL_MARKDOWN_SCENARIO_ID)
+	if (scenario == null) return
+	registerAiRequestRunnerFactory((callbacks) => {
+		const runner = new MarkdownDemoRunner(callbacks)
+		runner.start()
+		return runner as AiRequestRunnerHandle
+	})
+	try {
+		await uniAi.sendMsg(scenario.prompt)
+	} finally {
+		unregisterAiRequestRunnerFactory()
+	}
+}
