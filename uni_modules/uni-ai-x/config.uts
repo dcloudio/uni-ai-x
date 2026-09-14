@@ -37,10 +37,9 @@ const llmModelMap = new Map<string, Provider>([
 	[
 		'qiniu', {
 			models: [
-				{ name: 'deepseek-v3'},
-				{ name: 'deepseek-r1', thinking: true},
-				{ name: 'doubao-seed-1.6', image: true},
-				{ name: 'gpt-oss-120b'}
+				{ name: 'deepseek-v3', thinking: true},
+				{ name: 'deepseek-v4-flash', thinking: true},
+				{ name: 'deepseek-v4-pro', thinking: true},
 			],
 			description: '七牛云-专注云计算和大数据',
 			baseURL: "https://openai.qiniu.com/v1/chat/completions",
