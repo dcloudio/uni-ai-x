@@ -7,7 +7,7 @@
 			<list-item v-for="chat in visibleChatDatas" :key="chat.id" @click="setActiveChat(chat)" class="menu-box-chat-item" :class="chat.id == activeChatId ? 'menu-box-chat-item-active' : ''"
 				@longpress="longpress(chat)"
 			>
-				<text class="menu-box-chat-item-title" :class="chat.id == activeChatId ? 'menu-box-chat-item-title-active' : ''">{{chat.title}}</text>
+				<text class="menu-box-chat-item-title" :max-lines="1" :class="chat.id == activeChatId ? 'menu-box-chat-item-title-active' : ''">{{chat.title}}</text>
 				<view class="menu-box-more-box" @click.stop="longpress(chat)">
 					<uni-icons type="more-filled" size="14" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
 				</view>

@@ -1,7 +1,7 @@
 <template>
 	<view class="chat-nav">
 		<uni-ai-icon @click="changeMenu" code="e622" color="var(--text-primary)" size="20"></uni-ai-icon>
-		<text class="chat-nav-title" flatten>{{title}}</text>
+		<text class="chat-nav-title" :max-lines="1" flatten>{{title}}</text>
 		<!-- #ifndef MP-WEIXIN -->
 		<add-chat></add-chat>
 		<!-- #endif -->
@@ -23,7 +23,7 @@
 		if (isCustomProvider(uniAi.llm.provider)) {
 			return '与 ' + uniAi.llm.provider + ' 对话'
 		}
-		const chatTitle = uniAi.currentChat?.title ?? ''
+		const chatTitle = (uniAi.currentChat?.title ?? '').replace(/\r\n|\n|\r/g, ' ').trim()
 		if (chatTitle.length > 0) {
 			return chatTitle.length > 10 ? chatTitle.slice(0, 10) + '...' : chatTitle
 		}
@@ -47,8 +47,13 @@
 }
 
 .chat-nav-title {
+	flex: 1;
+	margin: 0 10px;
 	font-size: 16px;
 	color: var(--text-primary);
+	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* #ifdef MP-WEIXIN */

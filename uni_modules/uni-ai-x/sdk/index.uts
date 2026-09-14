@@ -502,7 +502,8 @@ class UniAi {
 	updateChatTitle(chatId: string, title: string) {
 		const chat = this.chat.datas.find(chat => chat.id == chatId)
 		if (chat != null) {
-			chat.title = title
+			// 标题只允许单行显示：去掉换行符并 trim
+			chat.title = title.replace(/\r\n|\n|\r/g, ' ').trim()
 		} else {
 			console.error('updateChatTitle 对话不存在', chatId)
 			throw new Error('updateChatTitle 对话不存在')
