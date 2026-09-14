@@ -1,6 +1,6 @@
 <template>
 	<scroll-view direction="vertical" class="select-text-scroll-view uni-theme-root">
-		<text id="select-text" class="select-text-content" :selectable="true">{{text}}</text>
+		<rich-text class="select-text-content" :selectable="true" :nodes="nodes"></rich-text>
 	</scroll-view>
 </template>
 
@@ -17,7 +17,22 @@
 	})
 	
 	const text = ref<string>("加载中...")
-	
+
+	const nodes = computed<UTSJSONObject[]>(() => {
+		const result = [] as UTSJSONObject[]
+		const lines = text.value.split('\n')
+		for (let index = 0; index < lines.length; index++) {
+			if (index > 0) {
+				result.push({ name: 'br' } as UTSJSONObject)
+			}
+			const line = lines[index]
+			if (line.length > 0) {
+				result.push({ type: 'text', text: line } as UTSJSONObject)
+			}
+		}
+		return result
+	})
+
 	onMounted(() => {
 		const msg = uniAi.currentChat?.msgList.find((item: MsgItem) => item._id == props.msgId)
 		text.value = msg?.body ?? '没有数据'
@@ -36,8 +51,8 @@
 
 	.select-text-content {
 		width: 100%;
-		white-space: pre-wrap;
 		line-height: 24px;
+		font-size: 15px;
 		color: var(--text-primary);
 	}
 </style>
