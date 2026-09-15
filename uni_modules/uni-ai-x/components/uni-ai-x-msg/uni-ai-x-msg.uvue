@@ -95,6 +95,9 @@
 		min-height: 0;
 		background-color: var(--bg-primary);
 		padding: 0 45px;
+		/* #ifdef WEB */
+		user-select: text;
+		/* #endif */
 	}
 
 .msg-segment-first {
