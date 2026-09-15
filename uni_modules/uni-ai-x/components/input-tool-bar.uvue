@@ -1,7 +1,7 @@
 <template>
 	<view class="input-tool-bar uni-theme-root">
 		<view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
-            <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (currentLLMModel.thinking != null ? '#3c76e4': !hasDeepseekR1Model ? '#aaa' : '#666')"></uni-ai-icon>
+            <uni-ai-icon code="e639" :color="(isOpenClaw || !hasDeepseekR1Model) ? '#aaa' : ((currentLLMModel.thinking ?? false) ? '#3c76e4' : '#666')"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考</text>
 			</view>
 			<view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
