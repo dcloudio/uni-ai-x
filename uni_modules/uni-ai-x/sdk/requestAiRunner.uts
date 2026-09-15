@@ -49,6 +49,28 @@ type RequestAiServerOptions = {
 
 const MARKDOWN_RENDER_INTERVAL = 300
 
+const THINK_OPEN_TAG = '<think>'
+const THINK_CLOSE_TAG = '</think>'
+
+// 过滤深度思考内容（<think>...</think>），只保留正式答案。
+// 兼容多段思考块；响应被截断导致 <think> 未闭合时，丢弃其后的所有内容。
+function extractAnswerContent(rawContent: string): string {
+	let answer = ''
+	let rest = rawContent
+	while (rest.length > 0) {
+		const openIndex = rest.indexOf(THINK_OPEN_TAG)
+		if (openIndex == -1) {
+			answer += rest
+			break
+		}
+		answer += rest.substring(0, openIndex)
+		const closeIndex = rest.indexOf(THINK_CLOSE_TAG, openIndex + THINK_OPEN_TAG.length)
+		if (closeIndex == -1) break
+		rest = rest.substring(closeIndex + THINK_CLOSE_TAG.length)
+	}
+	return answer.trim()
+}
+
 function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
 	const value = snapshot[key] as string | null
 	return value == null ? defaultValue : value as string
@@ -572,8 +594,16 @@ class RequestAiRunner {
 				console.error('updateChatTitle error', err)
 			},
 			onSuccess: (chunkObj: Chunk) => {
-				const newTitle = chunkObj.choices?.[0]?.message?.content
-				this.callbacks?.onChatTitle(newTitle ?? '更新失败')
+				const message = chunkObj.choices?.[0]?.message
+				const rawContent = message?.content ?? ''
+				// 深度思考模型可能把 <think> 思考过程混在 content 里，需过滤后再作为标题
+				const newTitle = extractAnswerContent(rawContent)
+				if (newTitle.length == 0) {
+					// 内容只有思考（或响应被截断）时保留原临时标题，避免标题被清空
+					console.log('updateChatTitle 未提取到答案，保留原标题')
+					return
+				}
+				this.callbacks?.onChatTitle(newTitle)
 			}
 		})
 	}
