@@ -60,12 +60,29 @@
 
 	function openLink(span: MarkdownTextSpan) {
 		if (span.href.length == 0) return
+		// #ifdef WEB
+		window.open(span.href, '_blank')
+		// #endif
+		// #ifdef APP
 		uni.navigateTo({
-			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + span.href,
+			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + encodeURIComponent(span.href),
 			fail: (error) => {
 				console.error(error)
 			}
 		})
+		// #endif
+		// #ifdef MP
+		uni.setClipboardData({
+			data: span.href,
+			showToast: false,
+			success: () => {
+				utils.showCopySuccessToast()
+			},
+			fail: () => {
+				utils.showCopyFailureToast()
+			}
+		})
+		// #endif
 	}
 
 	function previewImage(src: string) {
@@ -154,6 +171,9 @@
 	.uni-ai-md-text-span-link {
 		color: #2979ff;
 		text-decoration-line: underline;
+		/* #ifdef WEB */
+		cursor: pointer;
+		/* #endif */
 	}
 
 	.uni-ai-md-text-image {

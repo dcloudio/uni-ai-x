@@ -19,7 +19,8 @@
 	const title = ref<string>("")
 	
 	onLoad((param) => {
-		const urlParam = param["url"] as string;
+		const rawUrlParam = param["url"] as string;
+		const urlParam = decodeURIComponent(rawUrlParam) ?? rawUrlParam;
 		title.value = (param["title"] ?? urlParam) as string;
 		if (urlParam.substring(0, 4) != 'http') {
 			uni.showModal({

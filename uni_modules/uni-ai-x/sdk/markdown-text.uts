@@ -220,6 +220,7 @@ function appendInlineNode(node: MarkdownAstNode, spans: MarkdownTextSpan[],
 	if (type == 'link' || type == 'autolink') {
 		const nextStyles = styles.concat(['link'])
 		const href = node.url ?? ''
+		const spanStart = spans.length
 		const children = nodeChildren(node)
 		if (children.length == 0) {
 			const text = node.literal ?? href
@@ -227,6 +228,9 @@ function appendInlineNode(node: MarkdownAstNode, spans: MarkdownTextSpan[],
 		} else {
 			for (let index = 0; index < children.length; index++) {
 				appendInlineNode(children[index], spans, nextStyles, depth + 1)
+			}
+			for (let index = spanStart; index < spans.length; index++) {
+				if (spans[index].href.length == 0) spans[index].href = href
 			}
 		}
 		return
