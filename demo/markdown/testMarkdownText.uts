@@ -88,7 +88,7 @@ function fibonacci(n) {
 }
 
 const result = fibonacci(10);
-console.log(result);
+alert(result);
 
 // 超长单行代码测试
 // 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
