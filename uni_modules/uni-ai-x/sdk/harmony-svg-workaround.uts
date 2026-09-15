@@ -46,7 +46,7 @@ function ensureSvgCacheDirectory(callback: (ready: boolean) => void) {
 	if (svgCacheDirectoryCreating) return
 	svgCacheDirectoryCreating = true
 
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	uni.getFileSystemManager().mkdir({
 		dirPath: uni.env.CACHE_PATH + '/ai-svg-cache',
 		recursive: true,
@@ -58,13 +58,15 @@ function ensureSvgCacheDirectory(callback: (ready: boolean) => void) {
 				finishSvgCacheDirectoryCreation(true)
 				return
 			}
-			console.error('[HarmonySvg] create cache directory failed: ' + error.errMsg)
+			console.error('[SvgCache] create cache directory failed: ' + error.errMsg)
 			finishSvgCacheDirectoryCreation(false)
 		}
-	} as MkDirOptions)
+	})
 	// #endif
 	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
 	finishSvgCacheDirectoryCreation(false)
+	// #endif
 	// #endif
 }
 
@@ -79,15 +81,17 @@ export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
 	sdkApiVersion = getHarmonySdkApiVersion()
 	useFileSource = sdkApiVersion < HARMONY_NATIVE_DATA_URL_MIN_API
 	// #endif
+	// #ifdef APP-ANDROID
+	useFileSource = true
+	// #endif
 	return {
 		rasterScale,
 		enabled,
 		useFileSource,
 		sdkApiVersion,
-		cacheVariant: enabled
+		cacheVariant: (enabled
 			? 'harmony-v' + HARMONY_SVG_WORKAROUND_VERSION + ':' + rasterScale.toString()
-				+ ':' + (useFileSource ? 'file' : 'data')
-			: 'default'
+			: 'default') + ':' + (useFileSource ? 'file' : 'data')
 	}
 }
 
@@ -105,7 +109,7 @@ export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boo
 		svgCacheFileSequence += 1
 		const filePath = uni.env.CACHE_PATH + '/ai-svg-cache/' + Date.now().toString()
 			+ '-' + svgCacheFileSequence.toString() + '.svg'
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		uni.getFileSystemManager().writeFile({
 			filePath,
 			data: dataURL.substring(SVG_DATA_URL_PREFIX.length),
@@ -114,13 +118,15 @@ export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boo
 				callback(filePath, true)
 			},
 			fail: (error) => {
-				console.error('[HarmonySvg] write cache file failed: ' + error.errMsg)
+				console.error('[SvgCache] write cache file failed: ' + error.errMsg)
 				callback(dataURL, false)
 			}
-		} as WriteFileOptions)
+		})
 		// #endif
 		// #ifndef APP-HARMONY
+		// #ifndef APP-ANDROID
 		callback(dataURL, false)
+		// #endif
 		// #endif
 	})
 }

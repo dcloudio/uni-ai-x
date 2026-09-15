@@ -50,7 +50,13 @@
             return {
               startOnLoad: false,
               securityLevel: 'strict',
+              fontFamily: 'sans-serif',
               theme: isDark ? 'dark' : 'default',
+              sequence: {
+                actorFontFamily: 'sans-serif',
+                noteFontFamily: 'sans-serif',
+                messageFontFamily: 'sans-serif'
+              },
               themeVariables: isDark ? {
                 background: 'transparent',
                 primaryColor: '#1f2937',
@@ -190,6 +196,17 @@
               defs.appendChild(style);
             }
 
+            if (options.actorTextColor) {
+              const actorColor = options.actorTextColor;
+              const actorSpans = svgElement.querySelectorAll('text.actor tspan');
+              const actorTexts = svgElement.querySelectorAll('text.actor');
+              actorSpans.forEach(node => node.setAttribute('fill', actorColor));
+              actorTexts.forEach(node => {
+                node.setAttribute('fill', actorColor);
+                node.removeAttribute('class');
+              });
+            }
+
             if (options.background) {
               const background = documentNode.createElementNS('http://www.w3.org/2000/svg', 'rect');
               if (viewBox != null) {
@@ -205,13 +222,7 @@
               }
               background.setAttribute('fill', options.background);
               background.setAttribute('data-uni-ai-background', 'true');
-              const defs = svgElement.querySelector('defs');
-              if (defs != null && defs.nextSibling != null) {
-                svgElement.insertBefore(background, defs.nextSibling);
-              } else {
-                svgElement.appendChild(background);
-                svgElement.insertBefore(background, svgElement.firstChild);
-              }
+              svgElement.insertBefore(background, svgElement.firstChild);
             }
 
             const serializedElement = window.harmonySvgWorkaround.prepareForDecode(svgElement, options);
@@ -237,6 +248,9 @@
           }) {
             const renderTheme = this.resolveTheme(theme);
             const mermaidId = 'mermaid-' + requestId.replace(/[^a-zA-Z0-9_-]/g, '');
+            if (document.fonts != null && document.fonts.ready != null) {
+              try { await document.fonts.ready; } catch (fontError) {}
+            }
             const renderTask = this.mermaidRenderQueue.then(async () => {
               mermaid.initialize(this.mermaidConfig(renderTheme));
               return await mermaid.render(mermaidId, mermaidText);
@@ -252,6 +266,7 @@
                 theme: renderTheme,
                 background: renderTheme === 'dark' ? '#25282c' : '#ffffff',
                 styleText: 'svg{background:transparent!important}',
+                actorTextColor: renderTheme === 'dark' ? '#f9fafb' : '#333333',
                 rasterScale,
                 inlineComputedStyles,
                 normalizeMermaidNodeText,
@@ -260,7 +275,7 @@
                 iosCoreSvgCompatibility,
                 harmonyWorkaround
               });
-              const imageDataURL = this.svgDataURL(normalized.svgText);
+              let imageDataURL = this.svgDataURL(normalized.svgText);
               this.postMessage({
                 action: "renderMermaid_callback_" + requestId,
                 param: {
