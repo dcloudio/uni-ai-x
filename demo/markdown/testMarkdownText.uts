@@ -1,5 +1,10 @@
-let testMarkdownText = `# Markdown 示例文档
+let testMarkdownText = `# 完整 Markdown 功能演示
 
+---
+
+## 标题（1~6级）
+
+# 一级标题
 ## 二级标题
 ### 三级标题
 #### 四级标题
@@ -8,148 +13,243 @@ let testMarkdownText = `# Markdown 示例文档
 
 ---
 
-## 列表示例
+## 列表
 
 ### 无序列表
-- 项目一
-- 项目二
-  - 子项目A
-  - 子项目B
-- 项目三
+- 第一项
+- 第二项
+  - 嵌套项 1
+  - 嵌套项 2
+    - 第三层嵌套
+- 第三项
 
 ### 有序列表
 1. 第一步
 2. 第二步
-   1. 子步骤
-   2. 子步骤
+   1. 子步骤 A
+   2. 子步骤 B
 3. 第三步
 
-### 任务列表
-- [x] 完成设计
-- [ ] 编写代码
-- [ ] 测试功能
+### 任务复选框列表
+- [x] 已完成任务
+- [ ] 未完成任务
+- [ ] 另一个待办项
+  - [x] 子任务已完成
 
 ---
 
-## 表格示例
+## 表格
 
-| 姓名 | 年龄 | 职业 |
+### 普通表格
+
+| 姓名 | 年龄 | 城市 |
 |------|------|------|
-| 张三 | 28   | 工程师工程师工程师工程师工程师 |
-| 李四李四李四李四 | 32   | 设计师 |
-| 王五 | 25   | 学生 |
+| 张三 | 25   | 北京 |
+| 李四 | 30   | 上海 |
+| 王五 | 28   | 深圳 |
 
+### 短表格
 
+| 项目 | 值 |
+|------|----|
+| 状态 | 正常 |
+| 版本 | 1.0.0 |
 
-| 商品 | 数量 | 状态 |
-|------|------|------|
-| 测试商品一 | 1 | 正常 |
-| 测试商品二 | 2 | 正常 |
+### 超宽长表格（用于横向滚动测试）
 
-## 短表格
-
-| 姓名 | 年龄 |
-|------|------|
-| 张三 | 28   |
-| 李四 | 32   |
-| 王五 | 25   |
-
-### 宽表格横向滚动
-
-| 模型 | 提供商 | 上下文窗口 | 输入价格 | 输出价格 | 多模态 | 工具调用 | 备注 |
-|:--- |:--- |:--- |:--- |:--- |:--- |:--- |:--- |
-| 示例模型 Alpha | 示例云服务 | 128K tokens | 0.50 元/百万tokens | 1.50 元/百万tokens | 图片、文本 | 支持 | 这一列用于验证窄屏下不会压缩到无法阅读，由原生 ScrollView 横向滚动 |
-| 示例模型 Beta | 示例云服务 | 32K tokens | 0.25 元/百万tokens | 0.75 元/百万tokens | 仅文本 | 不支持 | 轻量版本，适合简单文本问答场景 |
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
+| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |
+| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |
 
 ---
 
-## 引用示例
+## 块引用
 
-> 这是引用的内容。\u0020\u0020
-> 引用可以跨越多行。
+> 这是一段普通的引用文本。
+> 
+> - 引用中的列表项
+> - 另一个列表项
+>
+> 引用文本的换行继续。
+> > 嵌套引用内容
 
 ---
 
-## JavaScript 代码示例
+## 代码块
+
+### JS 代码示例
 
 \`\`\`javascript
-function greet(name) {
-  return \`Hello, \${name}!\`;
+// 一个 JavaScript 示例
+function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-alert(greet('World'));
+const result = fibonacci(10);
+console.log(result);
 
-const veryLongLine = "这是一条专门用于验证代码块横向滚动的超长单行内容：abcdefghijklmnopqrstuvwxyz-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
 \`\`\`
 
 ---
 
-## 链接示例
+## 超链接
 
-[访问Google](https://www.google.com)\u0020\u0020
-[相对链接](./example.md)
+### 外部链接
+[访问百度](https://www.baidu.com)
 
----
+[打开 GitHub](https://github.com)
 
-## 图片示例
+### 相对路径链接
+[查看文档](./docs/readme.md)
 
-下面这张图片的地址无法访问，用于验证加载失败提示框：
-
-![加载失败的示例图片](https://via.placeholder.com/150)
-
----
-
-## 数学公式示例
-
-行内公式：$E=mc^2$
-
-块级公式：
-$$
-\\sum_{i=1}^n i = \\frac{n(n+1)}{2}
-$$
-
-常见公式：
-- 二次方程求根公式：$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$
-- 欧拉公式：$e^{i\\pi} + 1 = 0$
-
-矩阵公式：
-$$
-\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}
-\\begin{bmatrix} x \\\\ y \\end{bmatrix}
-=
-\\begin{bmatrix} ax + by \\\\ cx + dy \\end{bmatrix}
-$$
-
-化学公式：
-$$
-\\ce{2H2 + O2 -> 2H2O}
-$$
-
-超宽公式：
-$$
-\\prod_{k=1}^{n} \\left(1 + \\frac{x}{k}\\right)
-= 1 + \\sum_{r=1}^{n} \\left(\\sum_{1 \\le i_1 < \\cdots < i_r \\le n} \\frac{x^r}{i_1 \\cdots i_r}\\right)
-$$
+[项目主页](../index.html)
 
 ---
 
-## 流程图示例
+## 数学公式
+
+### 行内公式
+
+爱因斯坦的质能方程：$E = mc^2$
+
+勾股定理：$a^2 + b^2 = c^2$
+
+### 多行块公式
+
+#### 代数公式
+
+$$
+\\begin{aligned}
+(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\\\
+\\sum_{i=1}^{n} i &= \\frac{n(n+1)}{2}
+\\end{aligned}
+$$
+
+#### 矩阵公式
+
+$$
+\\mathbf{A} = \\begin{pmatrix}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{pmatrix}
+$$
+
+#### 化学公式
+
+$$\\text{2H}_2 + \\text{O}_2 \\xrightarrow{\\text{点燃}} 2\\text{H}_2\\text{O}$$
+
+$$\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\rightarrow 6\\text{CO}_2 + 6\\text{H}_2\\text{O}$$
+
+#### 超长公式
+
+$$
+\\lim_{x \\to \\infty} \\frac{\\sum_{k=1}^{n} \\left( \\frac{1}{k^2} \\right) \\cdot \\sqrt{2\\pi} \\cdot e^{-\\frac{x^2}{2}}}{\\sqrt{\\int_{-\\infty}^{\\infty} e^{-x^2} dx}} = \\frac{\\Gamma(\\frac{1}{2})}{2} \\cdot \\frac{\\pi}{\\sqrt{2}} \\cdot \\left( \\frac{\\partial}{\\partial x} \\ln(x^2 + y^2) \\right)^n \\quad \\text{其中} \\quad n \\to \\infty
+$$
+
+---
+
+## Mermaid 流程图
+
+### 第一种：流程图（flowchart）
 
 \`\`\`mermaid
 graph TD
-  A[开始] --> B{条件判断}
-  B -->|是| C[执行操作1]
-  B -->|否| D[执行操作2]
-  C --> E[结束]
-  D --> E
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作1]
+    B -->|否| D[执行操作2]
+    C --> E[结束]
+    D --> E
+\`\`\`
+
+### 第二种：时序图（sequence）
+
+\`\`\`mermaid
+sequenceDiagram
+    participant A as 客户端
+    participant B as 服务器
+    A->>B: 发送请求
+    B-->>A: 返回响应
+    A->>A: 处理数据
+\`\`\`
+
+### 第三种：甘特图（gantt）
+
+\`\`\`mermaid
+gantt
+    title 项目计划
+    dateFormat  YYYY-MM-DD
+    section 开发
+    需求分析    :a1, 2024-01-01, 5d
+    代码开发    :a2, after a1, 10d
+    测试        :a3, after a2, 5d
+\`\`\`
+
+### 第四种：状态图（state）
+
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> 待处理
+    待处理 --> 处理中: 开始
+    处理中 --> 已完成: 完成
+    处理中 --> 失败: 出错
+    失败 --> 待处理: 重试
+    已完成 --> [*]
 \`\`\`
 
 ---
 
-## 分割线示例
+## 分割线
 
-上面是分割线
+### 写法一：三个短横线
+
+---
+
+### 写法二：三个星号
+
 ***
-下面也是分割线`
+
+### 写法三：三个下划线
+
+___
+
+---
+
+## 其他特殊语法
+
+### 任务列表（完整示例）
+
+- [x] 支持 Markdown 语法
+- [x] 支持数学公式
+- [x] 支持 Mermaid 插件
+- [x] 支持代码高亮
+- [ ] 待实现功能
+- [ ] 更多功能
+
+### 脚注语法
+
+这里是一个带脚注的文本[^1]，这里还有一个[^2]。
+
+[^1]: 这是第一个脚注的详细说明。
+[^2]: 这是第二个脚注的内容。
+
+### 自动邮箱链接
+
+联系邮箱：<example@email.com>
+
+### 自动链接
+
+直接访问 https://www.example.com 可以看到效果。
+
+---
+
+以上就是所有 Markdown 语法的完整演示。✅
+`
 
 export default testMarkdownText
