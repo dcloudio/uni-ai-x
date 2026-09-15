@@ -1,6 +1,12 @@
 <template>
 	<view class="chat-input">
 		<uni-ai-draft-images />
+		<view v-if="isEditingMsg" class="chat-input-edit-tip">
+			<text class="chat-input-edit-tip-text" flatten>正在编辑消息，发送后将替换该消息及之后的对话</text>
+			<view class="chat-input-edit-tip-cancel" @click="cancelEdit">
+				<text class="chat-input-edit-tip-cancel-text">取消</text>
+			</view>
+		</view>
 		<textarea class="chat-input-textarea" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
 			:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 			@focus="scrollToLastMsg" :auto-height="true"
@@ -31,6 +37,17 @@
 		}
 	})
 
+	const isEditingMsg = computed<boolean>(() => {
+		return uniAi.editingMsgId != ''
+	})
+
+	const cancelEdit = () => {
+		uniAi.cancelEditMsg()
+		if (uniAi.currentChat != null) {
+			uniAi.currentChat!.inputContent = ''
+		}
+	}
+
 	function scrollToLastMsg() {
 		emit('scroll-to-last-msg')
 	}
@@ -55,6 +72,34 @@
 	min-height: 50px;
 	max-height: 200px;
 	width: 100%;
+}
+
+.chat-input-edit-tip {
+	flex-direction: row;
+	align-items: center;
+	padding: 6px 10px;
+	margin-bottom: 8px;
+	background-color: var(--bg-secondary);
+	border-radius: 8px;
+}
+
+.chat-input-edit-tip-text {
+	flex: 1;
+	font-size: 12px;
+	color: var(--text-secondary);
+}
+
+.chat-input-edit-tip-cancel {
+	flex-direction: row;
+	align-items: center;
+	margin-left: 8px;
+	margin-right: -8px;
+	padding: 4px 8px;
+}
+
+.chat-input-edit-tip-cancel-text {
+	font-size: 12px;
+	color: var(--accent-primary);
 }
 
 .chat-input-placeholder {

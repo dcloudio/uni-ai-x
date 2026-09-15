@@ -49,6 +49,14 @@ export type ChatItem = {
 	update_time: number
 }
 
+// 消息编辑态
+export type EditState = {
+	// 正在编辑的消息 id，为空表示未处于编辑态
+	msgId: string,
+	// 被编辑消息的图片列表（发送时未重新选图则沿用）
+	imgList: string[]
+}
+
 // 流式响应分块
 export type ChunkChoiceDelta = {
 	content: string,

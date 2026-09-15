@@ -1,6 +1,6 @@
 import { reactive, watch, nextTick, ref } from 'vue';
 import { defaultLLM, currentUser } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme } from '@/uni_modules/uni-ai-x/types.uts';
+import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
@@ -81,6 +81,14 @@ class UniAi {
 	private stressMessageRunSequence: number = 0
 	private loadedChatIds: string[] = [] as string[]
 	imgList: ImgItem[] = reactive<ImgItem[]>([]);
+	// 正在编辑的用户消息：发送时将替换该消息及其之后的全部消息
+	editingState: EditState = reactive<EditState>({
+		msgId: '',
+		imgList: [] as string[]
+	})
+	get editingMsgId(): string {
+		return this.editingState.msgId
+	}
 	// 当前用户
 	currentUser: Userinfo = currentUser
 	setting: Setting = reactive<Setting>({
@@ -348,6 +356,7 @@ class UniAi {
 	}
 	
 	addChat(checkEmpty: boolean = true) {
+		this.cancelEditMsg()
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
 		const lastItem = this.chat.datas.length == 0 ? null : this.chat.datas[0] as ChatItem | null;
 		let activeId = lastItem?.id ?? ''
@@ -372,6 +381,7 @@ class UniAi {
 	}
 	
 	deleteChat(chatId: string): void {
+		this.cancelEditMsg()
 		// 如果只有一个，删之前需要先创建一个并设置为选中，否则会照成无选中会话导致崩溃
 		if (uniAi.chat.datas.length == 1) {
 			uniAi.addChat(false)
@@ -400,6 +410,7 @@ class UniAi {
 	}
 
 	selectChat(chatId: string) {
+		this.cancelEditMsg()
 		this.loadChatMessages(chatId)
 		this.chat.activeId = chatId
 	}
@@ -466,12 +477,16 @@ class UniAi {
 	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
 	 */
 	sM2STimer: number = 0
-	updateMsg2Storage(msg: MsgItem) {
+	private clearPendingMsgSave() {
 		if (this.sM2STimer != 0) {
 			clearTimeout(this.sM2STimer)
 			this.sM2STimer = 0
 		}
+	}
+	updateMsg2Storage(msg: MsgItem) {
+		this.clearPendingMsgSave()
 		this.sM2STimer = setTimeout(() => {
+			this.sM2STimer = 0
 			this.storageManager.updateMessage(msg)
 		}, 1000)
 	}
@@ -585,10 +600,49 @@ class UniAi {
 		const index = msgList.findIndex((item) => item._id == msgId)
 		if (index != -1) {
 			msgList.splice(index, 1)
+			this.storageManager.removeMessages(this.currentChat!.id, [msgId] as string[])
 		} else {
 			console.error('需要删除的消息未找到', msgId, this.currentChat!.msgList)
 			throw new Error('需要删除的消息未找到')
 		}
+	}
+
+	/**
+	 * 进入消息编辑态：把原消息内容回填输入框，发送时将替换该消息及其之后的全部消息
+	 */
+	startEditMsg(msg: MsgItem): void {
+		if (this.currentChat == null) return
+		this.editingState.msgId = msg._id
+		this.editingState.imgList = (msg.img_url_list ?? [] as string[]).slice(0)
+		this.currentChat!.inputContent = msg.body
+	}
+
+	/**
+	 * 取消编辑态，原消息保持不变
+	 */
+	cancelEditMsg(): void {
+		this.editingState.msgId = ''
+		this.editingState.imgList = [] as string[]
+	}
+
+	/**
+	 * 删除指定消息及其之后的所有消息（内存与 Storage 同步）
+	 */
+	deleteMsgFrom(msgId: string): void {
+		const chat = this.currentChat
+		if (chat == null) return
+		const msgList = chat.msgList
+		const index = msgList.findIndex((item) => item._id == msgId)
+		if (index == -1) return
+		const removedIds = [] as string[]
+		for (let i = index; i < msgList.length; i++) {
+			removedIds.push(msgList[i]._id)
+		}
+		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
+		this.clearPendingMsgSave()
+		msgList.splice(index, msgList.length - index)
+		this.storageManager.removeMessages(chat.id, removedIds)
+		this.updateChatUpdateTime(chat.id)
 	}
 	
 	abortRequest() {
@@ -605,6 +659,17 @@ class UniAi {
 		if (inputContent.length == 0) {
 			throw new Error('发给 AI 的消息不能为空');
 		}
+		// 编辑重发：先删除被编辑消息及其之后的所有消息，再发送新消息
+		const editingMsgId = this.editingMsgId
+		const editingImgList = this.editingState.imgList.slice(0)
+		if (editingMsgId != '') {
+			this.cancelEditMsg()
+			if (this.currentChat!.state == 'processing') {
+				this.currentChat!.state = 'stop'
+			}
+			this.abortRequest()
+			this.deleteMsgFrom(editingMsgId)
+		}
 		// 生成用户提问的消息
 		let baseUserMsg: BaseMsgItem = {
 			body: inputContent,
@@ -614,6 +679,9 @@ class UniAi {
 		if (this.imgList.length > 0) {
 			baseUserMsg.img_url_list = this.imgList.map((item:ImgItem):string => item.path)
 			this.imgList.length = 0
+		} else if (editingImgList.length > 0) {
+			// 编辑带图消息且未重新选图时，沿用原图
+			baseUserMsg.img_url_list = editingImgList
 		}
 		const userMsg: MsgItem = this.addMsg(baseUserMsg)
 

@@ -372,6 +372,17 @@
 			if (msgList.value.length > 0) updateScrollInBottom()
 		})
 	}, { deep: true, immediate: true })
+
+	// 消息被删除（如编辑重发）后，清理对应消息的 Markdown 缓存
+	watch((): number => msgList.value.length, () => {
+		const activeMsgIds = [] as string[]
+		for (let i = 0; i < msgList.value.length; i++) {
+			activeMsgIds.push(msgList.value[i]._id)
+		}
+		markdownBlockCache.forEach((_cache: MarkdownBlockCache, msgId: string) => {
+			if (activeMsgIds.indexOf(msgId) == -1) markdownBlockCache.delete(msgId)
+		})
+	})
 	
 	const lockAutoToLastMsg = () => {
 		if (!needSetLockAutoToLastMsg) return
@@ -435,9 +446,7 @@
 							}
 						})
 					} else {
-						if (uniAi.currentChat != null) {
-							uniAi.currentChat!.inputContent = item.body
-						}
+						uniAi.startEditMsg(item)
 					}
 				}
 			},
