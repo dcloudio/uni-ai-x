@@ -1,0 +1,129 @@
+// 联网搜索：调用服务商的全网搜索 API，把结果作为上下文注入对话请求。
+// 目前对接七牛云“全网搜索 API”（POST /search/web），不同 provider 通过 webSearchURL 配置各自接口。
+import { RequestAiCoMessage, MultiModalContent, TextParse } from '@/uni_modules/uni-ai-x/types.uts'
+
+const WEB_SEARCH_MAX_RESULTS = 8
+
+type WebSearchResult = {
+	title?: string,
+	url?: string,
+	content?: string,
+	date?: string,
+	source?: string
+}
+
+type WebSearchData = {
+	query?: string,
+	results?: WebSearchResult[]
+}
+
+type WebSearchResponse = {
+	success?: boolean,
+	message?: string,
+	data?: WebSearchData
+}
+
+function messageContentText(content: string | MultiModalContent): string {
+	if (typeof content == 'string') return content as string
+	let text = ''
+	const parts = content as MultiModalContent
+	for (let index = 0; index < parts.length; index++) {
+		const part = parts[index]
+		if (part.type == 'text') text += part.text
+	}
+	return text
+}
+
+// 取最后一条用户提问的文本，作为搜索关键词
+export function lastUserQuestionText(messages: RequestAiCoMessage[]): string {
+	for (let index = messages.length - 1; index >= 0; index--) {
+		const message = messages[index]
+		if (message.role != 'user') continue
+		return messageContentText(message.content).trim()
+	}
+	return ''
+}
+
+// 请求全网搜索接口，失败时 reject（由调用方决定是否降级）
+export function webSearch(query: string, token: string, searchURL: string,
+	maxResults: number = WEB_SEARCH_MAX_RESULTS): Promise<WebSearchResult[]> {
+	return new Promise<WebSearchResult[]>((resolve, reject) => {
+		uni.request({
+			url: searchURL,
+			method: 'POST',
+			dataType: 'json',
+			data: {
+				query: query,
+				max_results: maxResults,
+				search_type: 'web'
+			},
+			header: {
+				'Authorization': 'Bearer ' + token,
+				'Content-Type': 'application/json'
+			},
+			success: (res: RequestSuccess<any>) => {
+				const rawData = res.data
+				const textBody = typeof rawData == 'string' ? rawData as string : JSON.stringify(rawData)
+				let parsed: WebSearchResponse
+				try {
+					parsed = JSON.parse<WebSearchResponse>(textBody) as WebSearchResponse
+				} catch (_error) {
+					reject(new Error('搜索响应解析失败（HTTP ' + res.statusCode.toString() + '）'))
+					return
+				}
+				if (parsed.success != true) {
+					reject(new Error(parsed.message ?? ('搜索失败（HTTP ' + res.statusCode.toString() + '）')))
+					return
+				}
+				resolve(parsed.data?.results ?? ([] as WebSearchResult[]))
+			},
+			fail: (err: RequestFail) => {
+				reject(new Error(err.errMsg))
+			}
+		})
+	})
+}
+
+// 把搜索结果格式化为注入用户消息的上下文文本
+export function buildWebSearchContext(results: WebSearchResult[]): string {
+	if (results.length == 0) return ''
+	const lines = [] as string[]
+	lines.push('以下是与问题相关的联网搜索结果（请优先依据这些资料回答，并在引用时给出来源链接；若资料不相关可忽略）：')
+	for (let index = 0; index < results.length; index++) {
+		const item = results[index]
+		const title = item.title ?? ''
+		const url = item.url ?? ''
+		const source = item.source ?? ''
+		const date = item.date ?? ''
+		const content = item.content ?? ''
+		lines.push('')
+		lines.push('[' + (index + 1).toString() + '] ' + title)
+		if (source.length > 0 || date.length > 0) lines.push('来源：' + source + ' ' + date)
+		if (content.length > 0) lines.push(content)
+		if (url.length > 0) lines.push('链接：' + url)
+	}
+	return lines.join('\n')
+}
+
+// 把搜索上下文追加到最后一条用户消息，返回新数组（不修改原消息数组）
+export function injectWebSearchContext(messages: RequestAiCoMessage[], context: string): RequestAiCoMessage[] {
+	if (context.length == 0) return messages
+	const enriched = messages.slice(0)
+	for (let index = enriched.length - 1; index >= 0; index--) {
+		const message = enriched[index]
+		if (message.role != 'user') continue
+		const content = message.content
+		if (typeof content == 'string') {
+			enriched[index] = {
+				role: 'user',
+				content: (content as string) + '\n\n' + context
+			} as RequestAiCoMessage
+		} else {
+			const parts = (content as MultiModalContent).slice(0)
+			parts.push({ type: 'text', text: context } as TextParse)
+			enriched[index] = { role: 'user', content: parts } as RequestAiCoMessage
+		}
+		break
+	}
+	return enriched
+}

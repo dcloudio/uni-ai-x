@@ -2,6 +2,12 @@ import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
+import {
+	lastUserQuestionText,
+	webSearch,
+	buildWebSearchContext,
+	injectWebSearchContext
+} from '@/uni_modules/uni-ai-x/sdk/web-search.uts'
 // #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
@@ -229,8 +235,37 @@ class RequestAiRunner {
 		// #endif
 		// #endif
 
+		if (llm.webSearch == true) {
+			this.searchThenRequestAi(messages, llm, chat_id)
+			return
+		}
 		this.updateChatTitle(messages, llm)
 		this.requestRemoteAi(messages, llm, chat_id)
+	}
+
+	// 开启联网搜索时：先请求全网搜索，把结果注入到最后一条用户消息，再发起 AI 请求；
+	// 搜索失败时降级为直接请求，不阻塞正常对话。
+	private async searchThenRequestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		const providerConfig = llmModelMap.get(llm.provider)
+		const searchURL = providerConfig?.webSearchURL ?? ''
+		const query = lastUserQuestionText(messages)
+		let requestMessages = messages
+		if (searchURL.length > 0 && query.length > 0) {
+			try {
+				const token = await providerConfig!.getToken?.()!
+				const results = await webSearch(query, token, searchURL)
+				requestMessages = injectWebSearchContext(messages, buildWebSearchContext(results))
+			} catch (error) {
+				console.error('[uni-ai-x][web-search] 联网搜索失败，将直接回答', error)
+				uni.showToast({
+					title: '联网搜索失败，将直接回答',
+					icon: 'none'
+				})
+			}
+		}
+		if (this.userAbort) return
+		this.updateChatTitle(messages, llm)
+		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
 		// #ifdef APP-ANDROID

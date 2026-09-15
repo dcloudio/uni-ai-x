@@ -11,6 +11,8 @@ export type Provider = {
 	models: LLMModel[],
 	description?: string,
 	baseURL?: string,
+	// 联网搜索接口地址（POST {query, max_results, search_type}），配置后该 provider 的模型可开启“联网搜索”
+	webSearchURL?: string,
 	getToken?: () => Promise<string>,
 }
 
