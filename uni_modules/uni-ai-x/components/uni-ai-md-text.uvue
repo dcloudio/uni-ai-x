@@ -4,8 +4,13 @@
 		<text v-if="block.marker.length > 0" class="uni-ai-md-text-marker">{{block.marker}}</text>
 		<view class="uni-ai-md-text-content">
 			<template v-for="(span, index) in block.spans" :key="block.key + '-span-' + index.toString()">
-				<image v-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
-					mode="widthFix" @click="previewImage(span.imageSrc)" />
+				<view v-if="span.isImage && isImageFailed(span.imageSrc)" class="uni-ai-md-text-image-error"
+					@click="copyFailedImageLink(span.imageSrc)">
+					<text class="uni-ai-md-text-image-error-title">图片资源加载失败</text>
+					<text class="uni-ai-md-text-image-error-url">无法访问以下链接，点击复制：{{span.imageSrc}}</text>
+				</view>
+				<image v-else-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
+					mode="widthFix" @error="onImageError(span.imageSrc)" @click="previewImage(span.imageSrc)" />
 				<text v-else :class="spanClass(span)" :style="spanStyle(span)" @click="openLink(span)">{{span.text}}</text>
 			</template>
 		</view>
@@ -14,6 +19,7 @@
 
 <script lang="uts" setup>
 	import { MarkdownTextRenderBlock, MarkdownTextSpan } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
 	const props = defineProps<{
 		block: MarkdownTextRenderBlock
@@ -65,6 +71,31 @@
 	function previewImage(src: string) {
 		if (src.length == 0) return
 		uni.previewImage({ urls: [src] as string[] })
+	}
+
+	const failedImageSrcs = ref([] as string[])
+
+	function isImageFailed(src: string): boolean {
+		return src.length > 0 && failedImageSrcs.value.indexOf(src) >= 0
+	}
+
+	function onImageError(src: string) {
+		if (src.length == 0 || isImageFailed(src)) return
+		failedImageSrcs.value.push(src)
+	}
+
+	function copyFailedImageLink(src: string) {
+		if (src.length == 0) return
+		uni.setClipboardData({
+			data: src,
+			showToast: false,
+			success: () => {
+				utils.showCopySuccessToast()
+			},
+			fail: () => {
+				utils.showCopyFailureToast()
+			}
+		})
 	}
 </script>
 
@@ -129,6 +160,32 @@
 		width: 240px;
 		max-width: 540rpx;
 		border-radius: 6px;
+	}
+
+	.uni-ai-md-text-image-error {
+		width: 240px;
+		max-width: 540rpx;
+		padding: 8px 10px;
+		border-width: 1px;
+		border-style: dashed;
+		border-color: var(--border-primary, #dddddd);
+		border-radius: 6px;
+		background-color: var(--bg-secondary, #f5f5f5);
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.uni-ai-md-text-image-error-title {
+		font-size: 13px;
+		line-height: 18px;
+		color: var(--text-secondary);
+	}
+
+	.uni-ai-md-text-image-error-url {
+		margin-top: 4px;
+		font-size: 12px;
+		line-height: 16px;
+		color: var(--text-tertiary);
 	}
 
 	.uni-ai-md-text-heading {
