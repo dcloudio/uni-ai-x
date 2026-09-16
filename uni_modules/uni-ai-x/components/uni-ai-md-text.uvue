@@ -147,6 +147,11 @@
 		line-height: 20px;
 		color: var(--text-primary);
 		white-space: pre-wrap;
+		/* #ifdef WEB */
+		min-width: 0;
+		max-width: 100%;
+		word-break: break-word;
+		/* #endif */
 	}
 
 	.uni-ai-md-text-span-strong {
