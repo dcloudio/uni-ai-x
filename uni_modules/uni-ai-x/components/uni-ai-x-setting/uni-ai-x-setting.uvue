@@ -21,7 +21,6 @@
 				<view class="uni-im-setting-item">
 					<text class="uni-im-setting-label">大语言模型</text>
 					<view class="uni-im-setting-value-box" @click="changeModel">
-						<image class="uni-im-setting-logo" :src="'/uni_modules/uni-ai-x/static/ai-provider/'+uniAi.llm.provider+'.png'" mode="aspectFill"></image>
 						<text class="uni-im-setting-value">{{currentModel}}</text>
 						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
 					</view>
@@ -32,17 +31,10 @@
 			<view class="uni-im-setting-choose-llm-model">
 				<text class="uni-im-setting-choose-title">选择AI模型</text>
 				<scroll-view direction="horizontal" class="uni-im-setting-scroll-view">
-					<view v-for="provider in providerNameList" :key="provider" class="uni-im-setting-provider-item">
-						<view class="uni-im-setting-info">
-							<image class="uni-im-setting-info-logo" :src="'/uni_modules/uni-ai-x/static/ai-provider/'+provider+'.png'" mode="aspectFill"></image>
-							<view class="uni-im-setting-content">
-								<text class="uni-im-setting-name">{{provider}}</text>
-								<text class="uni-im-setting-description">{{llmModelMap.get(provider)!.description}}</text>
-							</view>
-						</view>
-						<view v-for="(llmMode, i) in llmModelMap.get(provider)!.models" :key="i" @click="radioChange(provider, llmMode.name)" class="uni-im-setting-model-item">
-							<uni-icons class="uni-im-setting-radio" type="checkbox-filled" size="18" :color="currentModel == llmMode.name && provider == uniAi.llm.provider ? '#007AFF' : '#DDD'"></uni-icons>
-							<text class="uni-im-setting-model-text">{{llmMode.name}}</text>
+					<view v-for="provider in providerNameList" :key="provider">
+						<view v-for="(llmMode, i) in llmModelMap.get(provider)!.models" :key="i" @click="radioChange(provider, llmMode.modelId)" class="uni-im-setting-model-item">
+							<uni-icons class="uni-im-setting-radio" type="checkbox-filled" size="18" :color="uniAi.llm.model == llmMode.modelId && provider == uniAi.llm.provider ? '#007AFF' : '#DDD'"></uni-icons>
+							<text class="uni-im-setting-model-text">{{llmMode.name ?? llmMode.modelId}}</text>
 							<text class="uni-im-setting-tag" v-if="llmMode.thinking">思考</text>
 							<text class="uni-im-setting-tag" v-if="llmMode.webSearch">搜索</text>
 							<text class="uni-im-setting-tag" v-if="llmMode.image">图片理解</text>
@@ -72,7 +64,13 @@
 	})
 	
 	const currentModel = computed<string>(() => {
-		return uniAi.llm.model
+		const modelId = uniAi.llm.model
+		const providerInfo = llmModelMap.get(uniAi.llm.provider)
+		if (providerInfo == null) {
+			return modelId
+		}
+		const matched = providerInfo.models.find(m => m.modelId == modelId)
+		return matched?.name ?? modelId
 	})
 
 	const openModelPopup = () => {
@@ -111,9 +109,9 @@
 		openModelPopup()
 	}
 
-	const radioChange = (provider: string, llmModel: string) => {
+	const radioChange = (provider: string, modelId: string) => {
 		uniAi.llm.provider = provider
-		uniAi.llm.model = llmModel
+		uniAi.llm.model = modelId
 		nextTick(()=>{closeModelPopup()})
 	}
 	
@@ -176,18 +174,17 @@
 	border: 1px solid var(--border-secondary);
 	border-radius: 8px;
 	padding: 8px 12px;
-}
-
-.uni-im-setting-logo {
-	width: 20px;
-	height: 20px;
-	margin-right: 5px;
+	max-width: 60%;
 }
 
 .uni-im-setting-value {
 	font-size: 14px;
 	color: var(--text-secondary);
 	margin-right: 8px;
+	flex-shrink: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .uni-im-setting-choose-llm-model {
@@ -208,37 +205,6 @@
 .uni-im-setting-scroll-view {
 	padding: 0 15px;
 	max-height: 550rpx;
-}
-
-.uni-im-setting-provider-item {
-	margin-bottom: 15px;
-}
-
-.uni-im-setting-info {
-	flex-direction: row;
-}
-
-.uni-im-setting-info-logo {
-	width: 20px;
-	height: 20px;
-	margin-right: 5px;
-}
-
-.uni-im-setting-content {
-	flex: 1;
-	flex-direction: column;
-	align-items: flex-start;
-	padding: 0;
-}
-
-.uni-im-setting-name {
-	font-size: 16px;
-	color: var(--text-secondary);
-}
-
-.uni-im-setting-description {
-	font-size: 16px;
-	color: var(--text-tertiary);
 }
 
 .uni-im-setting-model-item {

@@ -1,9 +1,9 @@
 <template>
 	<view class="input-tool-bar uni-theme-root">
 		<view class="input-tool-bar-btn" :class="currentLLMModel.thinking == true ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
-            <uni-ai-icon code="e639" :color="(isOpenClaw || !hasDeepseekR1Model) ? '#aaa' : ((currentLLMModel.thinking ?? false) ? '#3c76e4' : '#666')"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : (!hasDeepseekR1Model ? 'input-tool-bar-text-disable' : '')]">深度思考</text>
-			</view>
+            <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : ((currentLLMModel.thinking ?? false) ? '#3c76e4' : '#666')"></uni-ai-icon>
+            <text class="input-tool-bar-text" :class="[(currentLLMModel.thinking ?? false) ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : '']">深度思考</text>
+		</view>
 			<view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[!canWebSearch ? 'input-tool-bar-text-disable' : '', webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
@@ -30,13 +30,20 @@ import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capa
 
 const modelCapabilitySummary = getModelCapabilitySummary()
 const canWebSearchLLmList = modelCapabilitySummary.webSearchModelNames
-const hasDeepseekR1Model = modelCapabilitySummary.hasDeepseekR1Model
 const hasDoubaoSeed16Model = modelCapabilitySummary.hasDoubaoSeed16Model
 
-const nonThinkingModel = computed<string>(() => {
-    const configuredModel = llmModelMap.get(uniAi.llm.provider)?.models.find(model => model.thinking != true)
-    return configuredModel?.name ?? defaultLLM.model
+// 当前提供商下支持/不支持深度思考的模型，用于深度思考开关切换
+const thinkingModel = computed<LLMModel | null>(() => {
+    return llmModelMap.get(uniAi.llm.provider)?.models.find(model => model.thinking == true)
 })
+
+const nonThinkingModel = computed<LLMModel | null>(() => {
+    return llmModelMap.get(uniAi.llm.provider)?.models.find(model => model.thinking != true)
+})
+
+function modelLabel(model: LLMModel): string {
+    return model.name ?? model.modelId
+}
 
 const isOpenClaw = computed<boolean>(() => {
     return isCustomProvider(uniAi.llm.provider);
@@ -74,9 +81,9 @@ const currentLLMModel = computed<LLMModel>(() => {
             });
             console.error('provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider')
         }
-        return { name: model.length > 0 ? model : defaultLLM.model } as LLMModel
+        return { modelId: model.length > 0 ? model : defaultLLM.model } as LLMModel
     }
-    return currentProviderInfo.models.find(m => m.name == model) ?? currentProviderInfo.models[0]!
+    return currentProviderInfo.models.find(m => m.modelId == model) ?? currentProviderInfo.models[0]!
 });
 
 const webSearch = computed<boolean>(() => {
@@ -128,15 +135,26 @@ const setThinking = () => {
         });
         return
     }
-    if (!hasDeepseekR1Model) {
+    const current = currentLLMModel.value
+    const target = canThinking.value ? nonThinkingModel.value : thinkingModel.value
+    if (target == null) {
         uni.showToast({
-            title: '请在 config.json 中配置 deepseek-r1 模型',
+            title: canThinking.value ? '当前提供商没有不支持深度思考的模型' : '当前提供商没有支持深度思考的模型',
             duration: 3000,
             icon: 'none'
         });
-    } else {
-        uniAi.llm.model = canThinking.value ? nonThinkingModel.value : "deepseek-r1"
+        return
     }
+    const targetModelId = target.modelId
+    uni.showModal({
+        title: '提示',
+        content: '当前模型 ' + modelLabel(current) + '，是否切换为 ' + modelLabel(target) + '？',
+        success: (res) => {
+            if (res.confirm) {
+                uniAi.llm.model = targetModelId
+            }
+        }
+    })
 };
 
 const setWebSearch = () => {

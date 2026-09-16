@@ -27,7 +27,6 @@ export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userin
 // 3. 配置大语言模型
 /** 
  * 配置大语言模型
- * 注意需要在，目录：`/uni_modules/uni-ai-x/static/ai-provider/${provider}.png` 中添加对应的logo图片
  * 默认以第一个为默认模型
  */
 const llmModelMap = new Map<string, Provider>([
@@ -35,14 +34,12 @@ const llmModelMap = new Map<string, Provider>([
 	[
 		'qiniu', {
 			models: [
-				{ name: 'deepseek-v3', thinking: false, webSearch: true},
-				{ name: 'deepseek-v4-flash', thinking: true, webSearch: true},
-				{ name: 'deepseek-v4-pro', thinking: true, webSearch: true},
-				{ name: 'glm-5.3-flash', thinking: true, webSearch: true},
-				{ name: 'glm-5.3', thinking: true, webSearch: true},
-				{ name: 'kimi-k3', thinking: true, webSearch: true},
+				{ modelId: 'deepseek/deepseek-v4.1-flash', name: 'deepseek-v4.1-flash', thinking: true, image: true},
+				{ modelId: 'deepseek/deepseek-v4-pro', name: "deepseek-v4-pro", thinking: true, webSearch: true},
+				{ modelId: 'deepseek/deepseek-v3.2-251201', name: "deepseek-v3.2", thinking: false, webSearch: true},
+				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true, webSearch: true},
+				{ modelId: 'minimax/minimax-h3-max', name: "minimax-h3-max", thinking: true, webSearch: true}
 			],
-			description: '七牛云-专注云计算和大数据',
 			baseURL: "https://openai.qiniu.com/v1/chat/completions",
 			webSearchURL: "https://api.qnaigc.com/v1/search/web",
 			async getToken(): Promise<string> {
@@ -78,17 +75,16 @@ const llmModelMap = new Map<string, Provider>([
 				*/
 			}
 		}
-	],
+	]
+	/*,
 	// 阿里云百炼
 	[
 		'bailian', {
 			models: [
-				{ name: 'deepseek-v3'},
-				{ name: 'deepseek-r1', thinking: true },
-				{ name: 'qwen-turbo'},
-				{ name: 'qwen-plus', thinking: true }
+				{ modelId: 'deepseek-v3'},
+				{ modelId: 'qwen-turbo'},
+				{ modelId: 'qwen-plus', thinking: true }
 			],
-			description: '阿里云百炼 - 专注AI技术研究和应用',
 			baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
 			async getToken(): Promise<string> {
 
@@ -110,20 +106,19 @@ const llmModelMap = new Map<string, Provider>([
 				
 
 				// 非 unicloud项目 请求自己的服务器的接口得到临时 token 例如
-				/*
-				const res = await uni.request({
-					url: 'https://your-server.com/get-token',
-					method: 'GET'
-				})
-				if (res.statusCode != 200) {
-					throw new Error('获取临时token失败')
-				}
-				const tmpToken = res.getString('data.token', '')
-				return tmpToken
-				*/
+				
+				// const res = await uni.request({
+				// 	url: 'https://your-server.com/get-token',
+				// 	method: 'GET'
+				// })
+				// if (res.statusCode != 200) {
+				// 	throw new Error('获取临时token失败')
+				// }
+				// const tmpToken = res.getString('data.token', '')
+				// return tmpToken
 			}
 		}
-	]
+	]*/
 ])
 
 const providerNameList: string[] = []
@@ -136,7 +131,7 @@ if (providerNameList.length < 1) {
 }
 const defaultLLM: DefaultLLM = {
 	provider: providerNameList[0]!,
-	model: llmModelMap.get(providerNameList[0])?.models?.[0].name!
+	model: llmModelMap.get(providerNameList[0])?.models?.[0].modelId!
 }
 
 export default llmModelMap

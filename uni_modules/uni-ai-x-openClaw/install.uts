@@ -51,9 +51,8 @@ export function installOpenClaw() {
 		llmModelMap.clear()
 		llmModelMap.set('openClaw', {
 			models: [
-				{ name: 'auto', image: true }
+				{ modelId: 'auto', image: true }
 			],
-			description: 'OpenClaw - WebSocket 实时通信',
 			baseURL: ""
 		})
 		entries.forEach((entry) => {
