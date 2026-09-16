@@ -296,6 +296,8 @@ class RequestAiRunner {
 			}
 		}).finally(() => {
 			this.requestTask = null
+		}).catch(() => {
+			// 错误已由 onError 回调上报，这里兜住 reject，避免产生 Uncaught (in promise)
 		})
 	}
 	// #ifdef APP-ANDROID
@@ -452,12 +454,18 @@ class RequestAiRunner {
 				errMsg: '自定义提供商适配器未注册: ' + options.llm.provider
 			}
 			options.onError?.(errInfo)
-			throw errInfo
+			return {} as UTSJSONObject
 		}
 
+		// 适配器会先通过 onError 回调上报具体错误，这里记录上报状态，
+		// 避免 runner 再用通用错误覆盖具体错误，造成同一次失败被重复上报
+		let errorReported = false
 		const callbacks: CustomProviderCallbacks = {
 			onChunk: options.onChunk,
-			onError: options.onError,
+			onError: (err : UTSJSONObject) => {
+				errorReported = true
+				options.onError?.(err)
+			},
 			onDone: options.onDone
 		}
 		const currentChatId = options.chat_id ?? ''
@@ -466,20 +474,24 @@ class RequestAiRunner {
 			success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks)
 		} catch (e) {
 			console.error('自定义提供商请求异常', e)
-			const errInfo: UTSJSONObject = {
-				errCode: -204,
-				errMsg: '自定义提供商请求异常'
+			if (!errorReported) {
+				const errInfo: UTSJSONObject = {
+					errCode: -204,
+					errMsg: '自定义提供商请求异常'
+				}
+				options.onError?.(errInfo)
 			}
-			options.onError?.(errInfo)
-			throw errInfo
+			return {} as UTSJSONObject
 		}
 		if (!success) {
-			const errInfo: UTSJSONObject = {
-				errCode: -201,
-				errMsg: '自定义提供商发送消息失败'
+			if (!errorReported) {
+				const errInfo: UTSJSONObject = {
+					errCode: -201,
+					errMsg: '自定义提供商发送消息失败'
+				}
+				options.onError?.(errInfo)
 			}
-			options.onError?.(errInfo)
-			throw errInfo
+			return {} as UTSJSONObject
 		}
 		return {} as UTSJSONObject
 	}
@@ -640,6 +652,8 @@ class RequestAiRunner {
 				}
 				this.callbacks?.onChatTitle(newTitle)
 			}
+		}).catch(() => {
+			// 标题更新失败静默处理，错误已由 onError 回调输出，这里兜住 reject
 		})
 	}
 	abortRequest() {
