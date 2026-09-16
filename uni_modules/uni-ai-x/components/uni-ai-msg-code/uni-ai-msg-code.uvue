@@ -33,20 +33,12 @@
 				<scroll-view v-if="!showMermaidImage" class="uni-code-msg-code-scroll-view uni-code-msg-mermaid-code-scroll" direction="horizontal"
 					:show-scrollbar="false" :style="mermaidCodeScrollStyle"
 					>
-					<view class="uni-code-msg-code-lines" :style="codeLinesStyle">
-						<view class="uni-code-msg-code-line" v-for="(line, lineIndex) in codeLineSpans" :key="'m-line-' + lineIndex.toString()">
-							<text class="uni-code-msg-code-span" v-for="(seg, segIndex) in line" :key="'m-seg-' + lineIndex.toString() + '-' + segIndex.toString()" :style="'color:' + seg.color">{{seg.text}}</text>
-						</view>
-					</view>
+					<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
 			</scroll-view>
 		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
 			>
-			<view class="uni-code-msg-code-lines" :style="codeLinesStyle">
-				<view class="uni-code-msg-code-line" v-for="(line, lineIndex) in codeLineSpans" :key="'line-' + lineIndex.toString()">
-					<text class="uni-code-msg-code-span" v-for="(seg, segIndex) in line" :key="'seg-' + lineIndex.toString() + '-' + segIndex.toString()" :style="'color:' + seg.color">{{seg.text}}</text>
-				</view>
-			</view>
+			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
 		</scroll-view>
 	</view>
 </template>
@@ -56,6 +48,7 @@ import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interfac
 import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 // #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
 // #endif
@@ -492,69 +485,46 @@ const shouldUseOriginCode = computed<boolean>(() => {
 	return showOriginCode.value
 })
 
-type CodeLineSpan = {
-	text: string
-	color: string
+function escapeCodeHtml(text: string): string {
+	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-const CODE_DEFAULT_COLOR = '#d1fae5'
-
-function codeColorOf(className: string): string {
-	if (className == 'keyword' || className == 'storage') return '#7dd3fc'
-	if (className == 'string') return '#fda4af'
-	if (className == 'comment') return '#98a2b3'
-	if (className == 'constant') return '#86efac'
-	if (className == 'function') return '#fde68a'
-	if (className == 'variable') return '#bfdbfe'
-	if (className == 'entity' || className == 'support') return '#67e8f9'
-	if (className == 'meta') return '#e9d5ff'
-	if (className == 'punctuation') return '#f9fafb'
-	return CODE_DEFAULT_COLOR
-}
-
-function preserveCodeSpace(text: string): string {
-	return text.replace(/\t/g, '\u00A0\u00A0\u00A0\u00A0').replace(/ /g, '\u00A0')
-}
-
-const codeLineSpans = computed<CodeLineSpan[][]>(() => {
-	const result = [] as CodeLineSpan[][]
-	const useTokens = !shouldUseOriginCode.value && safeCodeTokens.value.length > 0
-	if (useTokens) {
-		const tokenLines = safeCodeTokens.value
-		for (let i = 0; i < tokenLines.length; i++) {
-			const segs = [] as CodeLineSpan[]
-			const lineTokens = tokenLines[i]
-			if (lineTokens != null && lineTokens.length > 0) {
-				for (let j = 0; j < lineTokens.length; j++) {
-					const item = lineTokens[j]
-					if (item == null) continue
-					segs.push({ text: preserveCodeSpace(item.text ?? ''), color: codeColorOf(item.className ?? '') } as CodeLineSpan)
-				}
-			}
-			if (segs.length == 0) segs.push({ text: '\u00A0', color: CODE_DEFAULT_COLOR } as CodeLineSpan)
-			result.push(segs)
-		}
-		return result
+function codeNodeHtml(node: UTSJSONObject): string {
+	const type = node['type'] as string | null
+	if (type == 'text') return escapeCodeHtml((node['text'] as string | null) ?? '')
+	const name = node['name'] as string | null
+	if (name == 'br') return '<br/>'
+	if (name == null) return ''
+	const attrs = node['attrs'] as UTSJSONObject | null
+	let html = '<' + name
+	if (attrs != null) {
+		const style = attrs['style'] as string | null
+		if (style != null) html += ' style="' + escapeCodeHtml(style) + '"'
 	}
-	const rawLines = rawCodeLines.value
-	for (let i = 0; i < rawLines.length; i++) {
-		result.push([{ text: preserveCodeSpace(rawLines[i]), color: CODE_DEFAULT_COLOR } as CodeLineSpan])
-	}
-	return result
+	html += '>'
+	const children = node['children'] as UTSJSONObject[] | null
+	if (children != null) for (let i = 0; i < children.length; i++) html += codeNodeHtml(children[i])
+	return html + '</' + name + '>'
+}
+
+const codeRichNodes = computed<UTSJSONObject[]>(() => {
+	const token: IToken = { type: 'code_block', lang: props.language, text: props.codeText, codeTokens: shouldUseOriginCode.value ? [] as IToken[][] : safeCodeTokens.value }
+	return markdownCodeTokenToRichTextNodes(token)
 })
 
-function normalizeRawCodeLines(text: string): string[] {
-	const normalizedText = normalizeCodeText(text)
-	const lines = normalizedText.split('\n')
-	return lines.map((line: string) => line.length > 0 ? line : ' ')
-}
+const codeRichHtml = computed<string>(() => {
+	const nodes = codeRichNodes.value
+	let html = ''
+	for (let i = 0; i < nodes.length; i++) html += codeNodeHtml(nodes[i])
+	return html
+})
 
 function updateWindowWidth() {
 	windowWidth.value = uni.getWindowInfo().windowWidth
 }
 
-const rawCodeLines = computed<string[]>(() => {
-	return normalizeRawCodeLines(props.codeText)
+const rawCodeLineCount = computed<number>(() => {
+	return normalizeCodeText(props.codeText).split('\n').length
 })
 
 function getCodeTextWidth(text: string): number {
@@ -578,6 +548,10 @@ const codeContentWidth = computed<string>(() => {
 const codeLinesStyle = computed<string>(() => {
 	return 'width:' + codeContentWidth.value + ';height:' + scrollViewHeight.value
 		+ ';font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;'
+})
+
+const codeRichTextStyle = computed<string>(() => {
+	return codeLinesStyle.value + ';color:#d1fae5;'
 })
 
 const mermaidGenerationFailed = computed<boolean>(() => {
@@ -669,7 +643,7 @@ onMounted(() => {
 
 const scrollViewHeight = computed<string>(() => {
 	if (props.language == 'mermaid') return mermaidContentHeight.value
-	const rawLineCount = rawCodeLines.value.length
+	const rawLineCount = rawCodeLineCount.value
 	const renderedLineCount = safeCodeTokens.value.length
 	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
 	return `${lineCount * codeLineHeight + codeVerticalPadding}px`
@@ -794,25 +768,6 @@ const copyCode = () => {
 	padding-right: 14px;
 	box-sizing: border-box;
 	background-color: #111827;
-}
-
-.uni-code-msg-code-lines {
-	align-self: flex-start;
-	flex-shrink: 0;
-	flex-direction: column;
-}
-
-.uni-code-msg-code-line {
-	flex-direction: row;
-	height: 22px;
-	line-height: 22px;
-}
-
-.uni-code-msg-code-span {
-	font-size: 14px;
-	line-height: 22px;
-	font-family: monospace;
-	white-space: pre;
 }
 
 .uni-code-msg-mermaid-image-box {
