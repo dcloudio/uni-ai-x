@@ -35,10 +35,9 @@ const llmModelMap = new Map<string, Provider>([
 	[
 		'qiniu', {
 			models: [
-				{ name: 'deepseek-v3', thinking: true, webSearch: true},
+				{ name: 'deepseek-v3', thinking: false, webSearch: true},
 				{ name: 'deepseek-v4-flash', thinking: true, webSearch: true},
 				{ name: 'deepseek-v4-pro', thinking: true, webSearch: true},
-				{ name: 'minimax/minimax-m2.5-highspeed', thinking: false, webSearch: true},
 				{ name: 'glm-5.3-flash', thinking: true, webSearch: true},
 				{ name: 'glm-5.3', thinking: true, webSearch: true},
 				{ name: 'kimi-k3', thinking: true, webSearch: true},
