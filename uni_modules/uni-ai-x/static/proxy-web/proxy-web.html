@@ -302,53 +302,58 @@
           }
 
 
+          highlightSingleLine(codeSource, language) {
+            const aliasMap = {
+              javascriptReact: 'jsx',
+              typescript: 'ts',
+              jsonl: 'plaintext',
+              'cuda-cpp': 'cpp',
+              xsl: 'xml'
+            };
+            const targetLanguage = aliasMap[language] || language;
+            const safeLanguage = hljs.getLanguage(targetLanguage) ? targetLanguage : 'plaintext';
+            const result = hljs.highlight(codeSource, {
+              language: safeLanguage,
+              ignoreIllegals: true
+            });
+            const container = document.createElement('div');
+            container.innerHTML = result.value;
+            const tokens = [];
+            const pushToken = (text, className) => {
+              if (!text || text.length === 0) return;
+              tokens.push({ text, className });
+            };
+            const normalizeClassName = (className) => {
+              if (!className) return '';
+              const names = className.split(/\s+/).filter(Boolean);
+              if (names.includes('hljs-comment')) return 'comment';
+              if (names.includes('hljs-string')) return 'string';
+              if (names.includes('hljs-number') || names.includes('hljs-literal')) return 'constant';
+              if (names.includes('hljs-keyword') || names.includes('hljs-operator')) return 'keyword';
+              if (names.includes('hljs-meta')) return 'meta';
+              if (names.includes('hljs-built_in') || names.includes('hljs-type') || names.includes('hljs-params')) return 'support';
+              if (names.includes('hljs-variable') || names.includes('hljs-template-variable')) return 'variable';
+              if (names.includes('hljs-title') || names.includes('hljs-function') || names.includes('function_')) return 'function';
+              if (names.includes('hljs-property') || names.includes('hljs-attr') || names.includes('hljs-tag')) return 'entity';
+              if (names.includes('hljs-punctuation')) return 'punctuation';
+              return '';
+            };
+            const walkNode = (node, inheritedClassName) => {
+              if (node.nodeType === Node.TEXT_NODE) {
+                pushToken(node.textContent || '', inheritedClassName);
+                return;
+              }
+              if (node.nodeType !== Node.ELEMENT_NODE) return;
+              const mergedClassName = normalizeClassName(node.className || '') || inheritedClassName;
+              Array.from(node.childNodes).forEach((child) => walkNode(child, mergedClassName));
+            };
+            Array.from(container.childNodes).forEach((child) => walkNode(child, ''));
+            return tokens;
+          }
+
           highlightCodeLine({ language, codeSource, requestId }) {
             try {
-              const aliasMap = {
-                javascriptReact: 'jsx',
-                typescript: 'ts',
-                jsonl: 'plaintext',
-                'cuda-cpp': 'cpp',
-                xsl: 'xml'
-              };
-              const targetLanguage = aliasMap[language] || language;
-              const safeLanguage = hljs.getLanguage(targetLanguage) ? targetLanguage : 'plaintext';
-              const result = hljs.highlight(codeSource, {
-                language: safeLanguage,
-                ignoreIllegals: true
-              });
-              const container = document.createElement('div');
-              container.innerHTML = result.value;
-              const tokens = [];
-              const pushToken = (text, className) => {
-                if (!text || text.length === 0) return;
-                tokens.push({ text, className });
-              };
-              const normalizeClassName = (className) => {
-                if (!className) return '';
-                const names = className.split(/\s+/).filter(Boolean);
-                if (names.includes('hljs-comment')) return 'comment';
-                if (names.includes('hljs-string')) return 'string';
-                if (names.includes('hljs-number') || names.includes('hljs-literal')) return 'constant';
-                if (names.includes('hljs-keyword') || names.includes('hljs-operator')) return 'keyword';
-                if (names.includes('hljs-meta')) return 'meta';
-                if (names.includes('hljs-built_in') || names.includes('hljs-type') || names.includes('hljs-params')) return 'support';
-                if (names.includes('hljs-variable') || names.includes('hljs-template-variable')) return 'variable';
-                if (names.includes('hljs-title') || names.includes('hljs-function') || names.includes('function_')) return 'function';
-                if (names.includes('hljs-property') || names.includes('hljs-attr') || names.includes('hljs-tag')) return 'entity';
-                if (names.includes('hljs-punctuation')) return 'punctuation';
-                return '';
-              };
-              const walkNode = (node, inheritedClassName) => {
-                if (node.nodeType === Node.TEXT_NODE) {
-                  pushToken(node.textContent || '', inheritedClassName);
-                  return;
-                }
-                if (node.nodeType !== Node.ELEMENT_NODE) return;
-                const mergedClassName = normalizeClassName(node.className || '') || inheritedClassName;
-                Array.from(node.childNodes).forEach((child) => walkNode(child, mergedClassName));
-              };
-              Array.from(container.childNodes).forEach((child) => walkNode(child, ''));
+              const tokens = this.highlightSingleLine(codeSource, language);
               this.postMessage({
                 action: "highlightCodeLine_callback_" + requestId,
                 param: {
@@ -361,6 +366,30 @@
                 action: "highlightCodeLine_callback_" + requestId,
                 param: {
                   tokensJson: '[]',
+                  errorMsg: error.message || String(error)
+                }
+              });
+            }
+          }
+
+          highlightCodeLines({ language, codeLines, requestId }) {
+            try {
+              const allLines = [];
+              for (let index = 0; index < codeLines.length; index++) {
+                allLines.push(JSON.stringify(this.highlightSingleLine(codeLines[index], language)));
+              }
+              this.postMessage({
+                action: "highlightCodeLines_callback_" + requestId,
+                param: {
+                  linesTokensJson: JSON.stringify(allLines),
+                  errorMsg: ''
+                }
+              });
+            } catch (error) {
+              this.postMessage({
+                action: "highlightCodeLines_callback_" + requestId,
+                param: {
+                  linesTokensJson: '[]',
                   errorMsg: error.message || String(error)
                 }
               });

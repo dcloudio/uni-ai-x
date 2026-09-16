@@ -96,14 +96,21 @@ let mermaidRenderRequestKey = ''
 let mermaidSourceKey = ''
 let mermaidWasClosed = false
 let codeHighlightRequestVersion = 0
-let highlightedCodeLanguage = ''
-let highlightedCodeLines = [] as string[]
+// 已高亮完成行的缓存：与代码行按索引前缀对齐（流式中已完成的行内容不再变化）
+let highlightedCacheLanguage = ''
+let cacheLineTexts = [] as string[]
+let cacheLineTokens = [] as IToken[][]
 const highlightedCodeTokens = ref<IToken[][]>([] as IToken[][])
 const codeLineHeight = 22
 const codeVerticalPadding = 16
 const codeFontSize = 14
 const codeHorizontalPadding = 14
 const estimatedCardHorizontalInset = 48
+// 行尾 1em 余量：覆盖各平台 monospace 回退字体的度量误差，防止估算宽度略小于实际渲染宽度导致折行
+const codeTailPadding = 14
+// 流式期间 6em 前瞻余量：未完成行仍在增长，提前占住宽度，
+// 吸收 chunk 到达时内容与容器更新的时间差，避免"先折行再弹回"的抖动；闭合后去掉，宽度单向收敛
+const codeLookaheadPadding = 84
 const windowWidth = ref<number>(0)
 
 const themePageBackgroundColor = computed<string>(() => {
@@ -399,76 +406,105 @@ const safeCodeTokens = computed<IToken[][]>(() => {
 	return propTokens.length > 0 ? propTokens : highlightedCodeTokens.value
 })
 
+function resetHighlightCache() {
+	cacheLineTexts = [] as string[]
+	cacheLineTokens = [] as IToken[][]
+}
+
+function placeholderLineTokens(line: string): IToken[] {
+	const token: IToken = { text: line }
+	return [token] as IToken[]
+}
+
+function truncateHighlightCache(length: number) {
+	if (cacheLineTexts.length <= length) return
+	const texts = [] as string[]
+	const tokens = [] as IToken[][]
+	for (let index = 0; index < length; index++) {
+		texts.push(cacheLineTexts[index])
+		tokens.push(cacheLineTokens[index])
+	}
+	cacheLineTexts = texts
+	cacheLineTokens = tokens
+}
+
+// 构建渲染 tokens：已高亮的行取缓存，未高亮与未完成的行用纯色占位 token，
+// 保证行数与行文本和源码完全一致（showOriginCode 完整性校验依赖这一点）
+function buildRenderedCodeTokens(lines: string[], completedCount: number): IToken[][] {
+	let matchPrefix = 0
+	while (matchPrefix < completedCount
+		&& matchPrefix < cacheLineTexts.length
+		&& matchPrefix < lines.length
+		&& cacheLineTexts[matchPrefix] == lines[matchPrefix]) {
+		matchPrefix += 1
+	}
+	truncateHighlightCache(matchPrefix)
+	const nextTokens = [] as IToken[][]
+	for (let index = 0; index < lines.length; index++) {
+		if (index < matchPrefix) nextTokens.push(cacheLineTokens[index])
+		else nextTokens.push(placeholderLineTokens(lines[index]))
+	}
+	return nextTokens
+}
+
 function highlightCode() {
 	codeHighlightRequestVersion += 1
 	const requestVersion = codeHighlightRequestVersion
 	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') {
-		highlightedCodeLanguage = ''
-		highlightedCodeLines = [] as string[]
+		highlightedCacheLanguage = ''
+		resetHighlightCache()
 		highlightedCodeTokens.value = [] as IToken[][]
 		return
 	}
-	if (props.isClose != 1) {
-		if (highlightedCodeTokens.value.length > 0) {
-			highlightedCodeLanguage = ''
-			highlightedCodeLines = [] as string[]
-			highlightedCodeTokens.value = [] as IToken[][]
-		}
-		return
+	if (props.language != highlightedCacheLanguage) {
+		highlightedCacheLanguage = props.language
+		resetHighlightCache()
 	}
-	const lines = normalizeCodeText(props.codeText).split('\n')
+	const lines = normalizeCodeText(displayCodeText.value).split('\n')
 	if (lines.length == 0) return
-	const nextTokens = [] as IToken[][]
-	for (let index = 0; index < lines.length; index++) nextTokens.push([] as IToken[])
-	const cachedTokens = highlightedCodeTokens.value
-	const canReuseHighlightedLines = highlightedCodeLanguage == props.language
-	let completed = 0
+	// 流式期间最后一行视为未完成行，不高亮；其余已完成行按行高亮
+	const completedCount = props.isClose == 1 ? lines.length : lines.length - 1
 	// #ifdef APP || WEB
-	for (let index = 0; index < lines.length; index++) {
-		const lineIndex = index
-		if (canReuseHighlightedLines
-			&& lineIndex < highlightedCodeLines.length
-			&& lineIndex < cachedTokens.length
-			&& highlightedCodeLines[lineIndex] == lines[lineIndex]) {
-			nextTokens[lineIndex] = cachedTokens[lineIndex]
-			completed += 1
-			continue
-		}
+	highlightedCodeTokens.value = buildRenderedCodeTokens(lines, completedCount)
+	const requestLines = [] as string[]
+	for (let index = cacheLineTexts.length; index < completedCount; index++) {
+		requestLines.push(lines[index])
+	}
+	if (requestLines.length > 0) {
 		proxyWeb.callMethod({
-			action: 'highlightCodeLine',
+			action: 'highlightCodeLines',
 			language: props.language,
-			codeSource: lines[lineIndex]
+			codeLines: requestLines
 		} as UTSJSONObject, (param: UTSJSONObject) => {
 			if (requestVersion != codeHighlightRequestVersion) return
-			const tokensJson = (param['tokensJson'] as string | null) ?? '[]'
+			const linesTokensJson = (param['linesTokensJson'] as string | null) ?? '[]'
 			const errorMsg = (param['errorMsg'] as string | null) ?? ''
-			if (errorMsg.length == 0 && tokensJson.length > 0) {
-				nextTokens[lineIndex] = JSON.parseArray<IToken>(tokensJson) as IToken[]
+			if (errorMsg.length > 0) return
+			const lineJsonList = JSON.parseArray<string>(linesTokensJson) ?? ([] as string[])
+			for (let index = 0; index < requestLines.length && index < lineJsonList.length; index++) {
+				const lineJson = lineJsonList[index] ?? '[]'
+				cacheLineTexts.push(requestLines[index])
+				cacheLineTokens.push(JSON.parseArray<IToken>(lineJson) as IToken[])
 			}
-			completed += 1
-			if (completed == lines.length) {
-				highlightedCodeLanguage = props.language
-				highlightedCodeLines = lines
-				highlightedCodeTokens.value = nextTokens
-			}
+			const currentLines = normalizeCodeText(displayCodeText.value).split('\n')
+			const currentCompleted = props.isClose == 1 ? currentLines.length : currentLines.length - 1
+			highlightedCodeTokens.value = buildRenderedCodeTokens(currentLines, currentCompleted)
 		})
-	}
-	if (completed == lines.length && requestVersion == codeHighlightRequestVersion) {
-		highlightedCodeLanguage = props.language
-		highlightedCodeLines = lines
-		highlightedCodeTokens.value = nextTokens
 	}
 	// #endif
 	// #ifdef MP-WEIXIN
+	const nextTokens = [] as IToken[][]
 	let blockCommentEnd = ''
 	for (let index = 0; index < lines.length; index++) {
-		const result = miniProgramCodeLineTokens(lines[index], props.language, blockCommentEnd)
-		nextTokens[index] = result.tokens
-		blockCommentEnd = result.blockCommentEnd
+		if (index < completedCount) {
+			const result = miniProgramCodeLineTokens(lines[index], props.language, blockCommentEnd)
+			nextTokens.push(result.tokens)
+			blockCommentEnd = result.blockCommentEnd
+		} else {
+			nextTokens.push(placeholderLineTokens(lines[index]))
+		}
 	}
 	if (requestVersion == codeHighlightRequestVersion) {
-		highlightedCodeLanguage = props.language
-		highlightedCodeLines = lines
 		highlightedCodeTokens.value = nextTokens
 	}
 	// #endif
@@ -476,7 +512,7 @@ function highlightCode() {
 
 const showOriginCode = computed<boolean>(() => {
 	if (safeCodeTokens.value.length == 0) return true
-	const rawCode = normalizeCodeText(props.codeText)
+	const rawCode = normalizeCodeText(displayCodeText.value)
 	const renderedCode = normalizeCodeText(buildRenderedCodeText(safeCodeTokens.value))
 	return rawCode != renderedCode
 })
@@ -508,7 +544,7 @@ function codeNodeHtml(node: UTSJSONObject): string {
 }
 
 const codeRichNodes = computed<UTSJSONObject[]>(() => {
-	const token: IToken = { type: 'code_block', lang: props.language, text: props.codeText, codeTokens: shouldUseOriginCode.value ? [] as IToken[][] : safeCodeTokens.value }
+	const token: IToken = { type: 'code_block', lang: props.language, text: displayCodeText.value, codeTokens: shouldUseOriginCode.value ? [] as IToken[][] : safeCodeTokens.value }
 	return markdownCodeTokenToRichTextNodes(token)
 })
 
@@ -524,7 +560,7 @@ function updateWindowWidth() {
 }
 
 const rawCodeLineCount = computed<number>(() => {
-	return normalizeCodeText(props.codeText).split('\n').length
+	return normalizeCodeText(displayCodeText.value).split('\n').length
 })
 
 function getCodeTextWidth(text: string): number {
@@ -542,7 +578,13 @@ function visibleCodeContentWidth(): number {
 }
 
 const codeContentWidth = computed<string>(() => {
-	return Math.max(visibleCodeContentWidth(), getCodeTextWidth(props.codeText)).toString() + 'px'
+	// 估算使用保守比率（text-width.uts mono 0.7/全角 1.05），保证估算宽度不小于实际渲染宽度
+	const estimatedWidth = getCodeTextWidth(props.codeText) + codeTailPadding
+	if (props.isClose != 1) {
+		return Math.max(visibleCodeContentWidth(), estimatedWidth + codeLookaheadPadding).toString() + 'px'
+	}
+	// 代码块闭合：去掉流式前瞻余量，按最终内容重算一次，宽度单向收敛且不折行
+	return Math.max(visibleCodeContentWidth(), estimatedWidth).toString() + 'px'
 })
 
 const codeLinesStyle = computed<string>(() => {
@@ -633,7 +675,19 @@ watch((): string => {
 	syncMermaidImageTheme()
 }, { immediate: true })
 
+// 渲染用文本：滞后一帧追上 props.codeText。
+// 宽度（codeContentWidth）依赖 props.codeText 在本次渲染立即生效，
+// 内容文本下一帧才更新，使 rich-text 布局新内容时容器宽度已就位，
+// 避免"内容先按旧宽度折行、宽度生效后弹回"的抖动（宽度变化帧与内容变化帧分离）
+const displayCodeText = ref<string>(props.codeText)
+
 watch((): string => props.language + '\n' + props.codeText + '\n' + props.isClose.toString(), () => {
+	nextTick(() => {
+		displayCodeText.value = props.codeText
+	})
+}, { immediate: true })
+
+watch((): string => props.language + '\n' + displayCodeText.value + '\n' + props.isClose.toString(), () => {
 	highlightCode()
 }, { immediate: true })
 

@@ -11,9 +11,11 @@ function isFullWidthChar(code: number): boolean {
 }
 
 function getCharWidthRatio(code: number, mode: TextWidthMode): number {
+	// mono 比率取保守值：各平台 monospace 回退字体的半角 advance 在 0.60~0.65em 漂移，
+	// 按 0.7 估算可避免流式期间实际渲染宽于估算导致的折行抖动。
 	if (code == 9) return mode == 'mono' ? 2.4 : 1.2
-	if (isFullWidthChar(code)) return 1
-	if (mode == 'mono') return 0.62
+	if (isFullWidthChar(code)) return mode == 'mono' ? 1.05 : 1
+	if (mode == 'mono') return 0.7
 	if ((code >= 65 && code <= 90) || code == 64 || code == 37) return 0.68
 	if (code >= 48 && code <= 57) return 0.56
 	if (code == 32) return 0.32

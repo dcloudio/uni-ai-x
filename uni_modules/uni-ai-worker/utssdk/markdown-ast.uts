@@ -185,7 +185,9 @@ export function buildMarkdownAstBlocks(astJson: string, isDone: boolean = false)
 			const info = (node.info ?? '').split(' ')[0]
 			let kind = 'code'
 			let language = info.length > 0 ? info : 'text'
-			let isComplete = isDone
+			// 未闭合的代码块会吞掉其后所有内容，必然是文档最后一个节点；
+			// 因此非最后节点一定已闭合，可提前进入高亮，无需等待整条消息完成。
+			let isComplete = isDone || index < children.length - 1
 			if (info == 'math-pending') {
 				kind = 'math'
 				language = 'math'
