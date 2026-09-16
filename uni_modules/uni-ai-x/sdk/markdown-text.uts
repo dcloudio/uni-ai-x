@@ -402,12 +402,12 @@ function appendListNode(result: MarkdownTextRenderBlock[], node: MarkdownAstNode
 			}
 			if (child.type == 'list' || child.type == 'tasklist') {
 				appendListNode(result, child, indent + 1, quoteDepth,
-					prefix + '-nested-' + childIndex.toString(), isDone)
+					prefix + '-item-' + index.toString() + '-nested-' + childIndex.toString(), isDone)
 				continue
 			}
 			if (isBlockNode(child.type)) {
 				appendAstNode(result, child, indent, quoteDepth,
-					prefix + '-child-' + childIndex.toString(), isDone)
+					prefix + '-item-' + index.toString() + '-child-' + childIndex.toString(), isDone)
 				continue
 			}
 			inlineFallback.push(child)
