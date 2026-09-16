@@ -33,7 +33,7 @@
 				<scroll-view v-if="!showMermaidImage" class="uni-code-msg-code-scroll-view uni-code-msg-mermaid-code-scroll" direction="horizontal"
 					:show-scrollbar="false" :style="mermaidCodeScrollStyle"
 					>
-					<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
+					<text class="uni-code-msg-mermaid-code-text">{{displayCodeText}}</text>
 			</scroll-view>
 		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
@@ -856,6 +856,15 @@ const copyCode = () => {
 	position: absolute;
 	left: 0;
 	top: 0;
+}
+
+.uni-code-msg-mermaid-code-text {
+	font-size: 14px;
+	line-height: 22px;
+	font-family: monospace;
+	color: #d1fae5;
+	white-space: pre;
+	align-self: flex-start;
 }
 
 .uni-code-msg-mermaid-loading {
