@@ -179,8 +179,8 @@
               svgElement.setAttribute('width', size.width.toFixed(2) + 'px');
               svgElement.setAttribute('height', size.height.toFixed(2) + 'px');
             } else if (viewBox != null) {
-              svgElement.setAttribute('width', viewBox[2].toString());
-              svgElement.setAttribute('height', viewBox[3].toString());
+              svgElement.setAttribute('width', viewBox[2] + 'px');
+              svgElement.setAttribute('height', viewBox[3] + 'px');
             }
             window.harmonySvgWorkaround.applyDecodeScale(svgElement, options.rasterScale);
             svgElement.setAttribute('preserveAspectRatio', options.preserveAspectRatio || 'xMidYMid meet');
@@ -262,7 +262,6 @@
             try {
               const mermaidRenderResult = await renderTask;
               const normalized = this.normalizeSvg(mermaidRenderResult.svg, {
-                frameAspectRatio: 5 / 4,
                 theme: renderTheme,
                 background: renderTheme === 'dark' ? '#25282c' : '#ffffff',
                 styleText: 'svg{background:transparent!important}',

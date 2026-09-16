@@ -21,10 +21,10 @@
 		</view>
 		<view v-if="language == 'mermaid'" class="uni-code-msg-mermaid-stage" :style="mermaidStageStyle">
 			<image v-if="buffer0MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer0MermaidHref"
-				:style="buffer0MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer0Load"
+				:style="buffer0MermaidImageStyle" mode="aspectFill" @load="onMermaidBuffer0Load"
 				@error="onMermaidBuffer0Error" @click.stop="previewMermaidImage" />
 			<image v-if="buffer1MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer1MermaidHref"
-				:style="buffer1MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer1Load"
+				:style="buffer1MermaidImageStyle" mode="aspectFill" @load="onMermaidBuffer1Load"
 				@error="onMermaidBuffer1Error" @click.stop="previewMermaidImage" />
 			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="mermaidImageBoxStyle">
 				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
