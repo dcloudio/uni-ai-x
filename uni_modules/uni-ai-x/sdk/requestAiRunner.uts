@@ -77,6 +77,22 @@ function extractAnswerContent(rawContent: string): string {
 	return answer.trim()
 }
 
+// 当前模型配置是否声明支持深度思考
+function supportsThinking(llm: Llm): boolean {
+	const providerConfig = llmModelMap.get(llm.provider)
+	if (providerConfig == null) return false
+	const model = providerConfig.models.find(m => m.modelId == llm.model)
+	return model?.thinking == true
+}
+
+// 构造深度思考开关参数：仅对支持思考的模型显式传递 thinking 配置（Anthropic/OpenAI 标准）
+// 未设置偏好时默认开启
+function buildThinkingParam(llm: Llm): UTSJSONObject | null {
+	if (!supportsThinking(llm)) return null
+	const enabled = llm.thinking ?? true
+	return { type: enabled ? 'enabled' : 'disabled' } as UTSJSONObject
+}
+
 function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
 	const value = snapshot[key] as string | null
 	return value == null ? defaultValue : value as string
@@ -322,6 +338,10 @@ class RequestAiRunner {
 				stream: true,
 				model: llm.model
 			} as UTSJSONObject
+			const thinkingParam = buildThinkingParam(llm)
+			if (thinkingParam != null) {
+				body['thinking'] = thinkingParam
+			}
 			this.workerSnapshotVersion = 0
 			this.workerActive = true
 			startAiWorkerRequest({
@@ -504,15 +524,20 @@ class RequestAiRunner {
 
 		const config = this.getProviderConfig(options.llm.provider, options)
 		const tmpToken = await this.requestProviderToken(config, options)
+		const requestData = {
+			messages: options.messages,
+			stream: options.stream ?? true,
+			model: options.llm.model
+		} as UTSJSONObject
+		const thinkingParam = buildThinkingParam(options.llm)
+		if (thinkingParam != null) {
+			requestData['thinking'] = thinkingParam
+		}
 		const requestTask: RequestTask = uni.request({
 			url: config.baseURL!,
 			method: 'POST',
 			dataType: 'text',
-			data: {
-				messages: options.messages,
-				stream: options.stream ?? true,
-				model: options.llm.model
-			},
+			data: requestData,
 			// @ts-ignore
 			enableChunked: options.stream ?? true,
 			header: {

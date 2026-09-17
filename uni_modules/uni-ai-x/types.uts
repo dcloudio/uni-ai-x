@@ -33,6 +33,8 @@ export type Llm = {
 	provider: string
 	model: string
 	webSearch: boolean
+	// 是否开启深度思考（仅对支持思考的模型生效，未设置或为 true 表示开启，false 表示关闭）
+	thinking?: boolean
 }
 
 // 对话
