@@ -1,27 +1,28 @@
 import uniAi from '@/uni_modules/uni-ai-x/sdk'
 import { ImgItem, LLMModel } from '@/uni_modules/uni-ai-x/types.uts'
+import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts'
 
-function ensureImageModel(currentModel: LLMModel, hasDoubaoSeed16Model: boolean): boolean {
+const modelCapabilitySummary = getModelCapabilitySummary()
+
+function ensureImageModel(currentModel: LLMModel): boolean {
 	if (currentModel.image == true) {
 		return true
 	}
-	if (hasDoubaoSeed16Model) {
-		uni.showModal({
-			title: '提示',
-			content: '当前模型不支持图片理解，是否切换到 doubao-seed-1.6 模型？',
-			success: (res) => {
-				if (res.confirm) {
-					uniAi.llm.model = 'doubao-seed-1.6'
-					uploadDraftImages({ modelId: 'doubao-seed-1.6', image: true }, hasDoubaoSeed16Model)
-				}
+	const content = modelCapabilitySummary.hasImageModel
+		? '当前模型不支持图像理解，请切换为其他模型'
+		: '你当前配的所有模型均不支持图像理解'
+	uni.showModal({
+		title: '提示',
+		content,
+		showCancel: true,
+		cancelText: '取消',
+		confirmText: '去设置',
+		success: (res) => {
+			if (res.confirm) {
+				// 打开系统设置弹窗，由用户自行切换模型
+				uniAi.emitOpenSetting()
 			}
-		})
-		return false
-	}
-	uni.showToast({
-		title: '请在 config.json 中配置支持图片理解的模型',
-		duration: 3000,
-		icon: 'none'
+		}
 	})
 	return false
 }
@@ -61,8 +62,8 @@ function updateUploadedImageUrl(file: UniCloudChooseAndUploadFileItem) {
 	})
 }
 
-export function uploadDraftImages(currentModel: LLMModel, hasDoubaoSeed16Model: boolean) {
-	if (!ensureImageModel(currentModel, hasDoubaoSeed16Model)) {
+export function uploadDraftImages(currentModel: LLMModel) {
+	if (!ensureImageModel(currentModel)) {
 		return
 	}
 	if (uniAi.imgList.length >= 9) {

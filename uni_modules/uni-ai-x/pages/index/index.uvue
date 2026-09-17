@@ -20,6 +20,7 @@
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
+	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 	// #ifndef MP-WEIXIN
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	// #endif
@@ -46,6 +47,19 @@
 	const openSetting = () => {
 		uniAiXSettingRef.value?.$callMethod('open')
 	}
+
+	// 模型不支持图像理解时，点击"去设置"直接打开模型选择弹窗
+	const openModelPopup = () => {
+		uniAiXSettingRef.value?.$callMethod('openModelPopup')
+	}
+
+	onMounted(() => {
+		uniAi.onOpenSetting(openModelPopup)
+	})
+
+	onUnmounted(() => {
+		uniAi.offOpenSetting(openModelPopup)
+	})
 
 	// #ifndef MP-WEIXIN
 	const proxyWebMsg = (e: UniWebViewMessageEvent) => {

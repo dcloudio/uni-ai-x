@@ -116,7 +116,8 @@
 	
 	defineExpose({
 		open,
-		close
+		close,
+		openModelPopup
 	})
 </script>
 

@@ -9,6 +9,7 @@ import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
+type OpenSettingFn = () => void
 type StressCopyProgress = (completed: number) => void
 
 export const uiTheme = ref<string>('light')
@@ -783,6 +784,21 @@ class UniAi {
 	}
 	emitBeforeRequestAi() {
 		this.beforeRequestAiFns.forEach((fn) => {
+			fn()
+		})
+	}
+	
+	// 监听"打开设置"的回调（如：模型不支持图片理解时，用户点击"去设置"）
+	openSettingFns: OpenSettingFn[] = []
+	onOpenSetting(fn: OpenSettingFn) {
+		this.openSettingFns.push(fn)
+	}
+	offOpenSetting(fn: OpenSettingFn) {
+		const index = this.openSettingFns.indexOf(fn)
+		if (index != -1) this.openSettingFns.splice(index, 1)
+	}
+	emitOpenSetting() {
+		this.openSettingFns.forEach((fn) => {
 			fn()
 		})
 	}

@@ -30,10 +30,6 @@
 import uniAi, { isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, defaultLLM, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
-import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts';
-
-const modelCapabilitySummary = getModelCapabilitySummary()
-const hasDoubaoSeed16Model = modelCapabilitySummary.hasDoubaoSeed16Model
 
 const isOpenClaw = computed<boolean>(() => {
     return isCustomProvider(uniAi.llm.provider);
@@ -152,7 +148,7 @@ const setWebSearch = () => {
 };
 
 function uploadImage() {
-    uploadDraftImages(currentLLMModel.value, hasDoubaoSeed16Model)
+    uploadDraftImages(currentLLMModel.value)
 }
 
 onMounted(() => {
