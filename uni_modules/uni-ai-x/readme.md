@@ -48,7 +48,7 @@ web pc端：
 
 ### Android端demo：
 
-<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/__UNI__8A096E7_0917211824.apk"/>
+<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/download_ai_x_v3.png"/>
 
 扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/__UNI__8A096E7_0917211824.apk)
 
@@ -61,5 +61,4 @@ web pc端：
 
 ## 声明
 本项目依赖以下作品
-1. markdown 语法解析库依赖 [cmark gfm](https://github.com/github/cmark-gfm)的 c 语言库，通过 ai 转为 so、wasm 等语言库实现
-2. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
+1. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
