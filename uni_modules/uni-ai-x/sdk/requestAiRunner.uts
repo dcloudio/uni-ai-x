@@ -72,19 +72,6 @@ function buildThinkingParam(llm: Llm, thinkingOverride: boolean | null = null): 
 	return { type: enabled ? 'enabled' : 'disabled' } as UTSJSONObject
 }
 
-// 标题总结与正式回答错开模型：优先选取同 provider 下另一个模型，
-// 避免同一个模型在极短时间内被调用两次；无其他模型时回退当前模型
-function resolveTitleLlm(llm: Llm): Llm {
-	const providerConfig = llmModelMap.get(llm.provider)
-	if (providerConfig != null) {
-		const candidate = providerConfig.models.find(m => m.modelId != llm.model)
-		if (candidate != null) {
-			return { ...llm, model: candidate.modelId } as Llm
-		}
-	}
-	return llm
-}
-
 function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
 	const value = snapshot[key] as string | null
 	return value == null ? defaultValue : value as string
@@ -651,7 +638,7 @@ class RequestAiRunner {
 			content: '请总结一下这段对话的内容，不包含本对话，用于更新会话的标题。注意：可以直接使用的不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
 		})
 		this.requestAiServer({
-			llm: resolveTitleLlm(llm),
+			llm,
 			messages,
 			stream: false,
 			thinkingOverride: false,

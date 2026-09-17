@@ -55,6 +55,17 @@
 
 	onMounted(() => {
 		uniAi.onOpenSetting(openModelPopup)
+		const notices = uniAi.consumeSettingNotices()
+		if (notices.length > 0) {
+			setTimeout(() => {
+				uni.showModal({
+					title: '模型设置已调整',
+					content: notices.join('\n'),
+					showCancel: false,
+					confirmText: '知道了'
+				})
+			}, 300)
+		}
 	})
 
 	onUnmounted(() => {

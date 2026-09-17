@@ -46,7 +46,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
+	import {uniAi, uiTheme, getLlmDisplayName} from '@/uni_modules/uni-ai-x/sdk';
 	import {Provider} from '@/uni_modules/uni-ai-x/types.uts';
 	
 	import {llmModelMap, providerNameList} from '@/uni_modules/uni-ai-x/config';
@@ -63,13 +63,7 @@
 	})
 	
 	const currentModel = computed<string>(() => {
-		const modelId = uniAi.llm.model
-		const providerInfo = llmModelMap.get(uniAi.llm.provider)
-		if (providerInfo == null) {
-			return modelId
-		}
-		const matched = providerInfo.models.find(m => m.modelId == modelId)
-		return matched?.name ?? modelId
+		return getLlmDisplayName(uniAi.llm)
 	})
 
 	const openModelPopup = () => {
@@ -174,7 +168,7 @@
 	border: 1px solid var(--border-secondary);
 	border-radius: 8px;
 	padding: 8px 12px;
-	max-width: 60%;
+	max-width: 180px;
 }
 
 .uni-im-setting-value {

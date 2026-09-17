@@ -28,7 +28,7 @@
 </template>
 <script lang="uts" setup>
 import uniAi, { isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
-import {llmModelMap, defaultLLM, type LLMModel} from '../config';
+import {llmModelMap, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 
 const isOpenClaw = computed<boolean>(() => {
@@ -60,17 +60,27 @@ const currentLLMModel = computed<LLMModel>(() => {
     const model = uniAi.llm.model
     const currentProviderInfo = llmModelMap.get(provider)
     if (currentProviderInfo == null) {
-        if (!isCustomProvider(provider)) {
-            uni.showModal({
-                content: 'provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider',
-                showCancel: false
-            });
-            console.error('provider：' + provider + ' 不可用，请到系统设置中切换为其他 provider')
-        }
-        return { modelId: model.length > 0 ? model : defaultLLM.model } as LLMModel
+        return { modelId: model } as LLMModel
     }
     return currentProviderInfo.models.find(m => m.modelId == model) ?? currentProviderInfo.models[0]!
 });
+
+let unavailableModelWarned = false
+watch((): string => uniAi.llm.provider + '/' + uniAi.llm.model, (): void => {
+    const providerConfig = llmModelMap.get(uniAi.llm.provider)
+    const matched = providerConfig?.models.find(m => m.modelId == uniAi.llm.model)
+    if (providerConfig != null && matched != null) {
+        unavailableModelWarned = false
+        return
+    }
+    if (unavailableModelWarned) return
+    unavailableModelWarned = true
+    uni.showModal({
+        title: '当前模型不可用',
+        content: '当前模型「' + uniAi.llm.model + '」不可用，请到系统设置中重新选择模型',
+        showCancel: false
+    })
+})
 
 const webSearch = computed<boolean>(() => {
     return uniAi.llm.webSearch as boolean;

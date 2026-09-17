@@ -1,5 +1,5 @@
 import { reactive, watch, nextTick, ref } from 'vue';
-import { defaultLLM, currentUser } from '../config';
+import { defaultLLM, currentUser, llmModelMap } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
@@ -75,6 +75,13 @@ function applyAppTheme(theme: Theme) {
 	// #endif
 }
 
+export function getLlmDisplayName(llm: Llm): string {
+	const providerConfig = llmModelMap.get(llm.provider)
+	if (providerConfig == null) return llm.model
+	const matched = providerConfig.models.find(m => m.modelId == llm.model)
+	return matched?.name ?? llm.model
+}
+
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
@@ -115,6 +122,16 @@ class UniAi {
 	}
 	set llm(value: Llm) {
 		this.setting.llm = value
+	}
+	// 设置被系统调整（如旧模型不可用）时的用户通知，等待 UI 就绪后展示
+	private settingNotices: string[] = []
+	private pushSettingNotice(message: string) {
+		this.settingNotices.push(message)
+	}
+	consumeSettingNotices(): string[] {
+		const notices = this.settingNotices.slice(0)
+		this.settingNotices.length = 0
+		return notices
 	}
 
 	chat: Chat = reactive<Chat>({
@@ -443,21 +460,65 @@ class UniAi {
 		this.loadSetting()
 		this.watchSetting()
 	}
+	private buildDefaultLlm(): Llm {
+		return {
+			provider: defaultLLM.provider,
+			model: defaultLLM.model,
+			webSearch: false,
+			thinking: true
+		} as Llm
+	}
+	// 同步读取设置，避免与 watchSetting 的立即保存在时序上互相覆盖
 	private loadSetting() {
-		uni.getStorage({
-			key: 'uni-ai-setting',
-			success: (res) => {
-				if (res.data != null) {
-					const setting = JSON.parse<Setting>(JSON.stringify(res.data)) as Setting
-					this.setting.theme = setting.theme
-					this.setting.language = setting.language
-					this.setting.llm = setting.llm
-				}
-			},
-			fail: (err) => {
-				// console.error('uni-ai-setting 获取失败', err)
+		let raw: UTSJSONObject | null = null
+		try {
+			const stored = uni.getStorageSync('uni-ai-setting')
+			if (stored != null) {
+				const text = typeof stored == 'string' ? stored as string : JSON.stringify(stored)
+				if (text.length > 0) raw = JSON.parse<UTSJSONObject>(text) as UTSJSONObject
 			}
-		})
+		} catch (error) {
+			console.error('uni-ai-setting 读取失败', error)
+			this.pushSettingNotice('本地设置数据读取失败，已恢复默认设置')
+			return
+		}
+		if (raw == null) return
+		const themeValue = raw['theme'] as string | null
+		if (themeValue == 'dark') {
+			this.setting.theme = 'dark'
+		} else if (themeValue == 'light') {
+			this.setting.theme = 'light'
+		} else {
+			this.setting.theme = 'auto'
+		}
+		const languageValue = raw['language'] as string | null
+		if (languageValue == 'en-US') {
+			this.setting.language = 'en-US'
+		} else {
+			this.setting.language = 'zh-CN'
+		}
+		const llmJson = raw.getJSON('llm')
+		if (llmJson == null) return
+		const providerValue = llmJson['provider'] as string | null
+		const modelValue = llmJson['model'] as string | null
+		const provider = providerValue ?? ''
+		const model = modelValue ?? ''
+		const providerConfig = llmModelMap.get(provider)
+		const matchedModel = providerConfig?.models.find(m => m.modelId == model)
+		if (providerConfig != null && matchedModel != null) {
+			const webSearchValue = llmJson['webSearch'] as boolean | null
+			const thinkingValue = llmJson['thinking'] as boolean | null
+			this.setting.llm = {
+				provider: provider,
+				model: model,
+				webSearch: webSearchValue ?? false,
+				thinking: thinkingValue ?? true
+			} as Llm
+			return
+		}
+		this.setting.llm = this.buildDefaultLlm()
+		const previousModel = model.length > 0 ? model : '未知'
+		this.pushSettingNotice('原选择的模型「' + previousModel + '」已不可用，已切换到「' + getLlmDisplayName(this.setting.llm) + '」')
 	}
 	private watchSetting() {
 		watch((): Theme => this.setting.theme, (theme: Theme) => {
@@ -468,13 +529,12 @@ class UniAi {
 		}, { deep: true, immediate: true })
 	}
 	private saveSetting() {
-		uni.setStorage({
-			key: 'uni-ai-setting',
-			data: this.setting,
-			fail: (err) => {
-				console.error('uni-ai-setting 存储失败', err)
-			}
-		})
+		try {
+			const plainSetting = JSON.parse<Setting>(JSON.stringify(this.setting)) as Setting
+			uni.setStorageSync('uni-ai-setting', plainSetting)
+		} catch (error) {
+			console.error('uni-ai-setting 存储失败', error)
+		}
 	}
 	/**
 	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
