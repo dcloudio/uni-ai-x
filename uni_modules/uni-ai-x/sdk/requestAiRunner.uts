@@ -33,7 +33,9 @@ export type RequestAiRunnerCallbacks = {
 export type RequestAiStartOptions = {
 	messages: RequestAiCoMessage[],
 	llm: Llm,
-	chat_id: string
+	chat_id: string,
+	// 是否在回答成功结束后自动更新会话标题（仅会话首条提问时传 true，避免每轮都消耗模型 RPM）
+	updateTitleAfterDone ?: boolean
 }
 type RequestAiOnChunkFn = (chunkObj : Chunk) => void
 type RequestAiOnErrorFn = (err : UTSJSONObject) => void
@@ -103,6 +105,9 @@ class RequestAiRunner {
 	private workerActive: boolean = false
 	private finishRequested: boolean = false
 	private streamParser: SseStreamParser | null = null
+	// 等回答成功结束后再触发标题总结，避免与回答请求并发占用同一模型的 RPM
+	private pendingTitleMessages : RequestAiCoMessage[] | null = null
+	private pendingTitleLlm : Llm | null = null
 	constructor(callbacks: RequestAiRunnerCallbacks) {
 		this.callbacks = callbacks
 	}
@@ -175,6 +180,7 @@ class RequestAiRunner {
 	}
 	handleRequestError(errRes: UTSJSONObject) {
 		if (this.workerActive) this.stopWorkerRuntime(true)
+		this.clearPendingTitleUpdate()
 		console.error('requestAiServer error', errRes)
 		const errCodeValue = errRes['errCode'] as string | number | null
 		const errCode = errCodeValue == null ? '' : `${errCodeValue}`
@@ -209,10 +215,12 @@ class RequestAiRunner {
 		} as UTSJSONObject)
 	}
 	start(options: RequestAiStartOptions) {
-		this.requestAi(options.messages, options.llm, options.chat_id)
+		this.requestAi(options.messages, options.llm, options.chat_id, options.updateTitleAfterDone ?? false)
 	}
-	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string, updateTitleAfterDone: boolean = false) {
 		this.resetRequestState()
+		this.pendingTitleMessages = updateTitleAfterDone ? messages.slice(0) : null
+		this.pendingTitleLlm = updateTitleAfterDone ? llm : null
 
 		// #ifndef APP-ANDROID
 		// #ifndef APP-IOS
@@ -234,7 +242,6 @@ class RequestAiRunner {
 			this.searchThenRequestAi(messages, llm, chat_id)
 			return
 		}
-		this.updateChatTitle(messages, llm)
 		this.requestRemoteAi(messages, llm, chat_id)
 	}
 
@@ -259,7 +266,6 @@ class RequestAiRunner {
 			}
 		}
 		if (this.userAbort) return
-		this.updateChatTitle(messages, llm)
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
@@ -407,6 +413,7 @@ class RequestAiRunner {
 			this.currentChatState = 'completed'
 			this.callbacks?.onState('completed')
 			this.callbacks?.onRendered(true)
+			this.updateChatTitleAfterDone()
 		}
 	}
 
@@ -629,10 +636,28 @@ class RequestAiRunner {
 			parser.push(chunk.data as ArrayBuffer)
 		})
 	}
-	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm) {
+	// 回答成功后触发的标题总结：此时与回答请求不再并发，且可把回答内容一并作为总结输入
+	private updateChatTitleAfterDone() {
+		const titleMessages = this.pendingTitleMessages
+		const titleLlm = this.pendingTitleLlm
+		this.clearPendingTitleUpdate()
+		if (titleMessages == null || titleLlm == null) return
+		this.updateChatTitle(titleMessages, titleLlm, this.msgBody)
+	}
+	private clearPendingTitleUpdate() {
+		this.pendingTitleMessages = null
+		this.pendingTitleLlm = null
+	}
+	updateChatTitle(messages: RequestAiCoMessage[], llm: Llm, answerBody: string = '') {
 		const customAdapter = getCustomProvider(llm.provider)
 		if (customAdapter != null && customAdapter.supportsTitleUpdate != true) return;
 		messages = messages.slice(0)
+		if (answerBody.length > 0) {
+			messages.push({
+				role: 'assistant',
+				content: answerBody
+			})
+		}
 		messages.push({
 			role: 'user',
 			content: '请总结一下这段对话的内容，不包含本对话，用于更新会话的标题。注意：可以直接使用的不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
@@ -662,6 +687,7 @@ class RequestAiRunner {
 	abortRequest() {
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
+		this.clearPendingTitleUpdate()
 		this.userAbort = true
 		this.streamParser = null
 		this.stopWorkerRuntime(true)

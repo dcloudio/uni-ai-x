@@ -647,9 +647,11 @@ class UniAi {
 		msgList.push(newMsg)
 		this.storageManager.addMessage(newMsg)
 		if (msg.from_uid != 'uni-ai') {
-			// 把用户提的问题 内容的前 20 个字符作为标题，去掉换行符
-			const title = msg.body.substring(0, 20).replace(/\n/g, '')
-			this.currentChat!.title = title
+			// 仅首次提问时用问题前缀作为临时标题，避免后续消息覆盖已生成的总结标题
+			if (this.currentChat!.title == '新对话') {
+				const title = msg.body.substring(0, 20).replace(/\n/g, '')
+				this.currentChat!.title = title
+			}
 		}
 		// 更新会话的更新时间
 		this.updateChatUpdateTime(this.currentChat!.id)
@@ -821,10 +823,16 @@ class UniAi {
 		}
 		const remoteRunner = new RequestAiRunner(runnerCallbacks)
 		requestAiRunner = remoteRunner
+		// 仅会话首条提问在回答成功后总结标题，避免每轮对话都与回答请求一起占用同一模型的 RPM
+		let userMsgCount = 0
+		this.currentChat!.msgList.forEach((item: MsgItem) => {
+			if (item.from_uid != 'uni-ai') userMsgCount += 1
+		})
 		remoteRunner.start({
 			messages,
 			llm: this.llm as Llm,
-			chat_id: this.currentChat!.id
+			chat_id: this.currentChat!.id,
+			updateTitleAfterDone: userMsgCount == 1
 		})
 	}
 	
