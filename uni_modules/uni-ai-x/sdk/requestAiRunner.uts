@@ -46,6 +46,7 @@ type RequestAiServerOptions = {
 	messages : RequestAiCoMessage[],
 	stream ?: boolean,
 	chat_id ?: string,
+	thinkingOverride ?: boolean,
 	onChunk ?: RequestAiOnChunkFn,
 	onError ?: RequestAiOnErrorFn,
 	onDone ?: RequestAiOnDoneFn,
@@ -54,28 +55,6 @@ type RequestAiServerOptions = {
 }
 
 const MARKDOWN_RENDER_INTERVAL = 300
-
-const THINK_OPEN_TAG = '<think>'
-const THINK_CLOSE_TAG = '</think>'
-
-// 过滤深度思考内容（<think>...</think>），只保留正式答案。
-// 兼容多段思考块；响应被截断导致 <think> 未闭合时，丢弃其后的所有内容。
-function extractAnswerContent(rawContent: string): string {
-	let answer = ''
-	let rest = rawContent
-	while (rest.length > 0) {
-		const openIndex = rest.indexOf(THINK_OPEN_TAG)
-		if (openIndex == -1) {
-			answer += rest
-			break
-		}
-		answer += rest.substring(0, openIndex)
-		const closeIndex = rest.indexOf(THINK_CLOSE_TAG, openIndex + THINK_OPEN_TAG.length)
-		if (closeIndex == -1) break
-		rest = rest.substring(closeIndex + THINK_CLOSE_TAG.length)
-	}
-	return answer.trim()
-}
 
 // 当前模型配置是否声明支持深度思考
 function supportsThinking(llm: Llm): boolean {
@@ -86,11 +65,24 @@ function supportsThinking(llm: Llm): boolean {
 }
 
 // 构造深度思考开关参数：仅对支持思考的模型显式传递 thinking 配置（Anthropic/OpenAI 标准）
-// 未设置偏好时默认开启
-function buildThinkingParam(llm: Llm): UTSJSONObject | null {
+// 未设置偏好时默认开启；thinkingOverride 可对单次请求强制指定开关（如标题总结关闭思考）
+function buildThinkingParam(llm: Llm, thinkingOverride: boolean | null = null): UTSJSONObject | null {
 	if (!supportsThinking(llm)) return null
-	const enabled = llm.thinking ?? true
+	const enabled = thinkingOverride ?? llm.thinking ?? true
 	return { type: enabled ? 'enabled' : 'disabled' } as UTSJSONObject
+}
+
+// 标题总结与正式回答错开模型：优先选取同 provider 下另一个模型，
+// 避免同一个模型在极短时间内被调用两次；无其他模型时回退当前模型
+function resolveTitleLlm(llm: Llm): Llm {
+	const providerConfig = llmModelMap.get(llm.provider)
+	if (providerConfig != null) {
+		const candidate = providerConfig.models.find(m => m.modelId != llm.model)
+		if (candidate != null) {
+			return { ...llm, model: candidate.modelId } as Llm
+		}
+	}
+	return llm
 }
 
 function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
@@ -529,7 +521,7 @@ class RequestAiRunner {
 			stream: options.stream ?? true,
 			model: options.llm.model
 		} as UTSJSONObject
-		const thinkingParam = buildThinkingParam(options.llm)
+		const thinkingParam = buildThinkingParam(options.llm, options.thinkingOverride ?? null)
 		if (thinkingParam != null) {
 			requestData['thinking'] = thinkingParam
 		}
@@ -659,20 +651,19 @@ class RequestAiRunner {
 			content: '请总结一下这段对话的内容，不包含本对话，用于更新会话的标题。注意：可以直接使用的不要有多余的文字，只保留总结的内容。字数控制在 10 个字以内。'
 		})
 		this.requestAiServer({
-			llm,
+			llm: resolveTitleLlm(llm),
 			messages,
 			stream: false,
+			thinkingOverride: false,
 			onError: (err: UTSJSONObject) => {
 				console.error('updateChatTitle error', err)
 			},
 			onSuccess: (chunkObj: Chunk) => {
 				const message = chunkObj.choices?.[0]?.message
-				const rawContent = message?.content ?? ''
-				// 深度思考模型可能把 <think> 思考过程混在 content 里，需过滤后再作为标题
-				const newTitle = extractAnswerContent(rawContent)
+				const newTitle = (message?.content ?? '').trim()
 				if (newTitle.length == 0) {
-					// 内容只有思考（或响应被截断）时保留原临时标题，避免标题被清空
-					console.log('updateChatTitle 未提取到答案，保留原标题')
+					// 返回内容为空时保留原临时标题，避免标题被清空
+					console.log('updateChatTitle 返回内容为空，保留原标题')
 					return
 				}
 				this.callbacks?.onChatTitle(newTitle)
