@@ -412,6 +412,13 @@
 		setIsInScrollBottom()
 	}
 	
+	const resolveCopyText = (item: MsgItem): string => {
+		// 请求出错时错误信息存放于 error_msg，优先复制错误信息，便于用户反馈问题
+		const errorMsg = item.error_msg
+		if (errorMsg != null && errorMsg.length > 0) return errorMsg
+		return item.body
+	}
+	
 	const onlongTapMsg = (item: MsgItem) => {
 		if (scrolling.value) {
 			return
@@ -424,7 +431,7 @@
 			success: (res: ShowActionSheetSuccess) => {
 				if (res.tapIndex == 0) {
 					uni.setClipboardData({
-						data: item.body,
+						data: resolveCopyText(item),
 						showToast: false,
 						success: () => {
 							nextTick(()=>{

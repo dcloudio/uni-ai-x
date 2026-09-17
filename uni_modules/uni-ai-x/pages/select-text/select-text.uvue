@@ -35,6 +35,11 @@
 
 	onMounted(() => {
 		const msg = uniAi.currentChat?.msgList.find((item: MsgItem) => item._id == props.msgId)
+		const errorMsg = msg?.error_msg ?? null
+		if (errorMsg != null && errorMsg.length > 0) {
+			text.value = errorMsg
+			return
+		}
 		text.value = msg?.body ?? '没有数据'
 	})
 </script>

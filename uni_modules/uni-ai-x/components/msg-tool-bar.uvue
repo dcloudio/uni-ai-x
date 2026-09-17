@@ -77,13 +77,9 @@
 		return 'font-size:20px;color:' + toolBarIconColor.value + ';font-family:UniIconsFontFamily;'
 	})
 	
-	const copy = () => {
-		if (typeof msg.body != 'string') {
-			utils.showCopyFailureToast()
-			return
-		}
+	const copyToClipboard = (text: string) => {
 		uni.setClipboardData({
-			data: msg.body as string,
+			data: text,
 			showToast: false,
 			success: () => {
 				utils.showCopySuccessToast()
@@ -92,6 +88,20 @@
 				utils.showCopyFailureToast()
 			}
 		})
+	}
+	
+	const copy = () => {
+		// 请求出错时错误信息存放于 error_msg，优先复制错误信息，便于用户反馈问题
+		const errorMsg = msg.error_msg
+		if (errorMsg != null && errorMsg.length > 0) {
+			copyToClipboard(errorMsg)
+			return
+		}
+		if (typeof msg.body != 'string') {
+			utils.showCopyFailureToast()
+			return
+		}
+		copyToClipboard(msg.body as string)
 	}
 	
 	const loop = async () => {
