@@ -1,8 +1,12 @@
 <template>
 	<view class="input-tool-bar uni-theme-root">
-		<view class="input-tool-bar-btn" :class="thinkingActive ? 'input-tool-bar-btn-active' : ''" @click="setThinking">
-            <uni-ai-icon code="e639" :color="isOpenClaw ? '#aaa' : (thinkingActive ? '#3c76e4' : '#666')"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', isOpenClaw ? 'input-tool-bar-text-disable' : '']">深度思考</text>
+		<view class="input-tool-bar-btn" :class="[thinkingActive ? 'input-tool-bar-btn-active' : '', !canThinking ? 'input-tool-bar-btn-disable' : '']" @click="setThinking"
+					<!-- #ifdef WEB -->
+					:title="thinkingTitle"
+					<!-- #endif -->
+				>
+            <uni-ai-icon code="e639" :color="!canThinking ? '#aaa' : (thinkingActive ? '#3c76e4' : '#666')"></uni-ai-icon>
+            <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', !canThinking ? 'input-tool-bar-text-disable' : '']">深度思考</text>
 		</view>
 			<view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
@@ -120,6 +124,14 @@ const thinkingActive = computed<boolean>(() => {
     return canThinking.value && (uniAi.llm.thinking ?? true);
 });
 
+// Web 端 hover 提示：不支持时提示不可操作，支持时提示切换动作
+const thinkingTitle = computed<string>(() => {
+    if (!canThinking.value) {
+        return '当前模型不支持操作'
+    }
+    return thinkingActive.value ? '关闭深度思考' : '开启深度思考'
+});
+
 const setThinking = () => {
     if (isOpenClaw.value) {
         uni.showToast({
@@ -196,6 +208,12 @@ onMounted(() => {
 
 .input-tool-bar-btn-active {
     background-color: var(--input-btn-active-bg);
+}
+
+.input-tool-bar-btn-disable {
+    /* #ifdef WEB */
+    cursor: not-allowed;
+    /* #endif */
 }
 
 .input-tool-bar-text {
