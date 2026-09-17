@@ -2,8 +2,8 @@
 	"name": "uni-ai-x",
 	"appid": "__UNI__8A096E7",
 	"description": "",
-	"versionName": "2.1.8",
-	"versionCode": "26090801",
+	"versionName": "3.0.0",
+	"versionCode": "26091701",
 	"uni-app-x": {
 		"vapor": true,
 		"styleIsolationVersion": "2",
@@ -81,7 +81,7 @@
 	},
 	"app-harmony": {
 		"distribute": {
-			"bundleName": "io.dcloud.uniappx",
+			"bundleName": "test.json.xml",
 			"deviceTypes": [
 				"phone"
 			],
@@ -90,13 +90,13 @@
 			],
 			"signingConfigs": {
 				"default": {
-					"certpath": "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1782879524847.cer",
+					"certpath": "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1789649321680.cer",
 					"keyAlias": "debugKey",
-					"keyPassword": "0000001B291F0A4869F4D01D03E3F789B41BA18F24CF0A4EEB4B69B0A803EEA8C06A2F939543A795DBB1E1",
-					"profile": "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1782879524847.p7b",
+					"keyPassword": "0000001B68553F0E3E449CDDF19F604B17B74573DEE135F3A2FCF535B68BCF07E2EEFFB58BAE2E399637DD",
+					"profile": "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1789649321680.p7b",
 					"signAlg": "SHA256withECDSA",
-					"storeFile": "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1782879524847.p12",
-					"storePassword": "0000001B291F0A4869F4D01D03E3F789B41BA18F24CF0A4EEB4B69B0A803EEA8C06A2F939543A795DBB1E1"
+					"storeFile": "/Users/json/Library/Application Support/HBuilder X/extensions/launcher/agc-certs/1789113937849.p12",
+					"storePassword": "0000001B68553F0E3E449CDDF19F604B17B74573DEE135F3A2FCF535B68BCF07E2EEFFB58BAE2E399637DD"
 				}
 			}
 		}
