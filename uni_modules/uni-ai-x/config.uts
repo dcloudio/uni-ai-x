@@ -35,10 +35,9 @@ const llmModelMap = new Map<string, Provider>([
 		'qiniu', {
 			models: [
 				{ modelId: 'deepseek/deepseek-v4.1-flash', name: 'deepseek-v4.1-flash', thinking: true, image: true},
-				{ modelId: 'deepseek/deepseek-v4-pro', name: "deepseek-v4-pro", thinking: true, webSearch: true},
-				{ modelId: 'deepseek/deepseek-v3.2-251201', name: "deepseek-v3.2", thinking: false, webSearch: true},
-				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true, webSearch: true},
-				{ modelId: 'minimax/minimax-h3-max', name: "minimax-h3-max", thinking: true, webSearch: true}
+				{ modelId: 'deepseek/deepseek-v4-pro', name: "deepseek-v4-pro", thinking: true},
+				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true},
+				{ modelId: 'minimax/minimax-h3-max', name: "minimax-h3-max", thinking: true}
 			],
 			baseURL: "https://openai.qiniu.com/v1/chat/completions",
 			webSearchURL: "https://api.qnaigc.com/v1/search/web",

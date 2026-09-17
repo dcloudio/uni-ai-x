@@ -4,7 +4,6 @@ export type LLMModel = {
 	// 选择界面展示的模型名，未配置时展示 modelId
 	name?: string,
 	thinking?: boolean,
-	webSearch?: boolean,
 	image?: boolean,
 	video?: boolean,
 	audio?: boolean
@@ -13,7 +12,7 @@ export type LLMModel = {
 export type Provider = {
 	models: LLMModel[],
 	baseURL?: string,
-	// 联网搜索接口地址（POST {query, max_results, search_type}），配置后该 provider 的模型可开启“联网搜索”
+	// 联网搜索接口地址（POST {query, max_results, search_type}），配置后该 provider 可开启“联网搜索”
 	webSearchURL?: string,
 	getToken?: () => Promise<string>,
 }

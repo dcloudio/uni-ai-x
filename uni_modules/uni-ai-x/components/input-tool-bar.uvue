@@ -8,9 +8,9 @@
             <uni-ai-icon code="e639" :color="!canThinking ? '#aaa' : (thinkingActive ? '#3c76e4' : '#666')"></uni-ai-icon>
             <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', !canThinking ? 'input-tool-bar-text-disable' : '']">深度思考</text>
 		</view>
-			<view class="input-tool-bar-btn input-tool-bar-search" :class="[!canWebSearch ? 'input-tool-bar-btn-disable' : '', webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
-            <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4': !canWebSearch ? '#aaa' : '#666'"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[!canWebSearch ? 'input-tool-bar-text-disable' : '', webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
+			<view class="input-tool-bar-btn input-tool-bar-search" :class="[webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
+            <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4' : '#666'"></uni-ai-icon>
+            <text class="input-tool-bar-text" :class="[webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
 			</view>
 			<uni-icons v-if="canParseImg" @click="uploadImage" class="input-tool-bar-upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
 		<view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active"
@@ -33,7 +33,6 @@ import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 import { getModelCapabilitySummary } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts';
 
 const modelCapabilitySummary = getModelCapabilitySummary()
-const canWebSearchLLmList = modelCapabilitySummary.webSearchModelNames
 const hasDoubaoSeed16Model = modelCapabilitySummary.hasDoubaoSeed16Model
 
 const isOpenClaw = computed<boolean>(() => {
@@ -79,14 +78,6 @@ const currentLLMModel = computed<LLMModel>(() => {
 
 const webSearch = computed<boolean>(() => {
     return uniAi.llm.webSearch as boolean;
-});
-
-const canWebSearch = computed<boolean>(() => {
-    const canWebSearch = currentLLMModel.value.webSearch ?? false;
-    if (!canWebSearch) {
-        uniAi.llm.webSearch = false;
-    }
-    return canWebSearch
 });
 
 const stop = async () => {
@@ -157,16 +148,7 @@ const setThinking = () => {
 };
 
 const setWebSearch = () => {
-    if (canWebSearch.value) {
-        uniAi.llm.webSearch = !webSearch.value;
-    } else {
-        const title: string = canWebSearchLLmList.length > 0 ? `仅${canWebSearchLLmList.join('、')}模型支持联网搜索` : '当前模型不支持联网搜索';
-        uni.showToast({
-            title,
-            duration: 3000,
-            icon: 'none'
-        });
-    }
+    uniAi.llm.webSearch = !webSearch.value;
 };
 
 function uploadImage() {
