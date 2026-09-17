@@ -137,10 +137,6 @@ const setThinking = () => {
     }
     const enabled = !thinkingActive.value
     uniAi.llm.thinking = enabled
-    uni.showToast({
-        title: enabled ? '已开启深度思考' : '已关闭深度思考',
-        icon: 'none'
-    })
 };
 
 const setWebSearch = () => {
