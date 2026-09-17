@@ -287,7 +287,8 @@ function mpSetError(code: string, message: string): void {
 }
 
 function mpPublishSnapshot(isDone: boolean): void {
-	if (mpContent.length == 0 && !isDone) return
+	// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
+	if (mpContent.length == 0 && mpReasoningContent.length == 0 && !isDone) return
 	const processedMarkdownValue = mpPreprocessor.process(mpContent, isDone)
 	if (processedMarkdownValue == null) return
 	if (!isMd2htmlAvailable()) {
@@ -425,7 +426,7 @@ const appendMpMarkdown: AppendAiWorkerMarkdown = function (
 	mpEventCount += 1
 	mpNetworkChunkCount += 1
 	mpReceivedBytes += content.length + reasoningContent.length
-	if (content.length > 0) mpScheduleSnapshot()
+	if (content.length > 0 || reasoningContent.length > 0) mpScheduleSnapshot()
 }
 
 const completeMpMarkdown: CompleteAiWorkerMarkdown = function (requestVersion: number): void {

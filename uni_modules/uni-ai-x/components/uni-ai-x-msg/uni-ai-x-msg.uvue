@@ -18,7 +18,7 @@
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:html="part.block.html" :column-widths="part.block.columnWidths" :row-text-widths="part.block.rowTextWidths" />
 		<uni-ai-msg-code v-else-if="part.block != null && (part.block.kind == 'code' || part.block.kind == 'mermaid')"
-			:code-text="part.block.text" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" />
+			:code-text="part.block.text" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" :msg="msg" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" />

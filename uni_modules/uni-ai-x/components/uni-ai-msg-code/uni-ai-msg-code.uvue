@@ -45,7 +45,7 @@
 
 <script lang="uts" setup>
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import {uiTheme} from '@/uni_modules/uni-ai-x/sdk';
+import {uiTheme, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
@@ -63,6 +63,9 @@ type UniAiMsgCodeProps = {
 	href?: string
 	renderTheme?: string
 	isClose?: number
+	// 所属消息对象（reactive 引用）：list-view 复用 item 的子组件 props 更新在长流式过程中
+	// 可能丢失（vapor v-for/组件 props diff 缺陷），msg 对象属性为响应式直连不受影响，用于兜底
+	msg?: MsgItem | null
 }
 
 const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
@@ -71,7 +74,8 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	language: 'text',
 	href: '',
 	renderTheme: '',
-	isClose: 0
+	isClose: 0,
+	msg: null
 })
 
 function hasMermaidImage(href: string | null): boolean {
@@ -601,20 +605,22 @@ const mermaidGenerationFailed = computed<boolean>(() => {
 		&& (mermaidImageLoadFailed.value || (props.isClose == 1 && !mermaidRenderPending.value && !hasQueuedMermaidImage()))
 })
 
-function syncMermaidImageTheme() {
+function syncMermaidImageTheme(textOverride: string | null = null) {
 	if (props.language != 'mermaid') {
 		mermaidImageModeLatched.value = false
 		showMermaidImage.value = false
 		return
 	}
-	const nextSourceKey = props.language + '\n' + props.codeText
+	// 兜底路径（textOverride 非空）时以直连数据为准：props 更新链可能已失效
+	const effectiveText = textOverride ?? props.codeText
+	const nextSourceKey = props.language + '\n' + effectiveText
 	if (mermaidSourceKey != nextSourceKey) {
 		mermaidSourceKey = nextSourceKey
 		mermaidImageLoadFailed.value = false
 		mermaidViewSelectedByUser.value = false
 		resetMermaidImages()
 	}
-	const isClosed = props.isClose == 1
+	const isClosed = props.isClose == 1 || textOverride != null
 	if (!isClosed) {
 		if (mermaidWasClosed) resetMermaidImages()
 		mermaidWasClosed = false
@@ -625,46 +631,46 @@ function syncMermaidImageTheme() {
 		return
 	}
 	mermaidWasClosed = true
-	// #ifdef MP-WEIXIN
-	// 微信小程序不支持隐藏 WebView，流程图保留源码显示。
-	mermaidImageModeLatched.value = false
-	showMermaidImage.value = false
+// #ifdef MP-WEIXIN
+// 微信小程序不支持隐藏 WebView，流程图保留源码显示。
+mermaidImageModeLatched.value = false
+showMermaidImage.value = false
+mermaidRenderRequestKey = ''
+mermaidRenderPending.value = false
+return
+// #endif
+// #ifndef MP-WEIXIN
+mermaidImageModeLatched.value = true
+if (!mermaidViewSelectedByUser.value && mermaidImageModeLatched.value && !mermaidImageLoadFailed.value) showMermaidImage.value = true
+//#ifdef uniVersion < 4.81 && APP-IOS
+showMermaidImage.value = false
+//#endif
+const theme = uiTheme.value
+const sourceHref = props.href ?? ''
+if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
+if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
 	mermaidRenderRequestKey = ''
 	mermaidRenderPending.value = false
+	queueMermaidImage(sourceHref)
 	return
-	// #endif
-	// #ifndef MP-WEIXIN
-	mermaidImageModeLatched.value = true
-	if (!mermaidViewSelectedByUser.value && mermaidImageModeLatched.value && !mermaidImageLoadFailed.value) showMermaidImage.value = true
-	//#ifdef uniVersion < 4.81 && APP-IOS
-	showMermaidImage.value = false
-	//#endif
-	const theme = uiTheme.value
-	const sourceHref = props.href ?? ''
-	if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
-	if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
-		mermaidRenderRequestKey = ''
-		mermaidRenderPending.value = false
-		queueMermaidImage(sourceHref)
+}
+const mermaidText = effectiveText
+if (mermaidText.trim().length == 0) return
+const requestKey = theme + '\n' + mermaidText
+mermaidRenderRequestKey = requestKey
+mermaidRenderPending.value = true
+renderMermaidSvgForTheme(mermaidText, theme, (result: ThemedSvgResult) => {
+	if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme) return
+	mermaidRenderRequestKey = ''
+	mermaidRenderPending.value = false
+	if (result.imageSource.length == 0) {
+		mermaidImageLoadFailed.value = true
+		showMermaidImage.value = false
 		return
 	}
-	const mermaidText = props.codeText
-	if (mermaidText.trim().length == 0) return
-	const requestKey = theme + '\n' + mermaidText
-	mermaidRenderRequestKey = requestKey
-	mermaidRenderPending.value = true
-	renderMermaidSvgForTheme(mermaidText, theme, (result: ThemedSvgResult) => {
-		if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme) return
-		mermaidRenderRequestKey = ''
-		mermaidRenderPending.value = false
-		if (result.imageSource.length == 0) {
-			mermaidImageLoadFailed.value = true
-			showMermaidImage.value = false
-			return
-		}
-		queueMermaidImage(result.imageSource)
-	})
-	// #endif
+	queueMermaidImage(result.imageSource)
+})
+// #endif
 }
 
 watch((): string => {
@@ -674,6 +680,42 @@ watch((): string => {
 }, () => {
 	syncMermaidImageTheme()
 }, { immediate: true })
+
+// 从消息正文中提取 mermaid 围栏内容（未闭合则取到末尾）
+function extractMermaidText(body: string): string {
+	const marker = '```mermaid'
+	const start = body.indexOf(marker)
+	if (start < 0) return ''
+	const contentStart = body.indexOf('\n', start)
+	if (contentStart < 0) return ''
+	const closeIndex = body.indexOf('\n```', contentStart)
+	if (closeIndex < 0) return body.slice(contentStart + 1)
+	return body.slice(contentStart + 1, closeIndex)
+}
+
+// 直连兜底：list-view 复用 item 的子组件 props 更新在长流式（多帧思考/滚动）后可能丢失，
+// msg 为 reactive 对象引用，其 body/rendered 属性为响应式直连，不受 props 断链影响。
+// watch msg.body：流式期间直连更新源码显示；围栏闭合或消息完成时以直连数据强制同步图片渲染。
+watch((): string => {
+	const msgItem = props.msg
+	if (msgItem == null) return ''
+	return msgItem.body + '\n' + (msgItem.rendered ? '1' : '0')
+}, () => {
+	if (props.language != 'mermaid') return
+	const msgItem = props.msg
+	if (msgItem == null) return
+	const body = msgItem.body
+	if (body.length == 0) return
+	const mermaidText = extractMermaidText(body)
+	if (mermaidText.length == 0) return
+	const fenceClosed = body.indexOf('\n```', body.indexOf('```mermaid')) >= 0
+	if (mermaidText != displayCodeText.value) {
+		displayCodeText.value = mermaidText
+	}
+	if (fenceClosed || msgItem.rendered) {
+		syncMermaidImageTheme(mermaidText)
+	}
+})
 
 // 渲染用文本：滞后一帧追上 props.codeText。
 // 宽度（codeContentWidth）依赖 props.codeText 在本次渲染立即生效，

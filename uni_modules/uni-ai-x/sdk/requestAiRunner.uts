@@ -405,10 +405,14 @@ class RequestAiRunner {
 				terminalSource: readSnapshotString(snapshot, 'terminalSource'),
 				elapsed: readSnapshotNumber(snapshot, 'elapsed')
 			} as UTSJSONObject))
-			this.stopWorkerRuntime(false)
-		}
-		this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
-		this.callbacks?.onMarkdownAst?.(readSnapshotString(snapshot, 'ast'))
+		this.stopWorkerRuntime(false)
+	}
+	// 先更新 ast 再更新 html：渲染管线 AST 路径优先，
+	// 先 ast 后 html 的中间态（新 ast + 旧 html）解析结果与最终态一致，
+	// 避免先 html 后 ast 的中间态（旧 ast 空文档 + 新 html）走 HTML 兜底路径
+	// 解析出不一致 blocks，造成同帧 block 增删抖动
+	this.callbacks?.onMarkdownAst?.(readSnapshotString(snapshot, 'ast'))
+	this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
 		if (isDone) {
 			this.currentChatState = 'completed'
 			this.callbacks?.onState('completed')

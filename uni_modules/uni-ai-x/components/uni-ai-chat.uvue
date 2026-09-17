@@ -141,6 +141,7 @@
 	const RENDER_ITEM_TYPE_AI_TABLE = 11
 	const RENDER_ITEM_TYPE_AI_CODE = 13
 	const RENDER_ITEM_TYPE_AI_MERMAID = 20
+	const RENDER_ITEM_TYPE_AI_MERMAID_DONE = 23
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
 	const RENDER_ITEM_TYPE_AI_SVG = 22
 
@@ -170,7 +171,10 @@
 
 	function markdownBlockItemType(block: MarkdownTextRenderBlock): number {
 		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
-		if (block.kind == 'mermaid') return RENDER_ITEM_TYPE_AI_MERMAID
+		// mermaid 闭合（流式转完成）时使用独立 type：list-view 按 type 复用 item，
+		// 同 type 复用路径下长流式过程中 props 更新可能丢失（组件 watch 不触发），
+		// type 变化可强制该 item 走新建路径，保证围栏闭合后的图片渲染必然生效
+		if (block.kind == 'mermaid') return block.isComplete ? RENDER_ITEM_TYPE_AI_MERMAID_DONE : RENDER_ITEM_TYPE_AI_MERMAID
 		if (block.kind == 'code') return RENDER_ITEM_TYPE_AI_CODE
 		return RENDER_ITEM_TYPE_AI_NORMAL
 	}
@@ -234,8 +238,12 @@
 			}
 			const appendRichTextBlock = (block: MarkdownTextRenderBlock) => {
 				flushNormalParts()
-				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, block.key,
-					[aiRenderPart(block.kind, block.key, block)] as AiMsgRenderPart[])
+				// 块闭合（流式转完成）时在 key 上追加后缀强制重建该 list-item：
+				// 长流式过程中 list-view 既有 item 的 props 更新可能丢失（组件 watch 不触发），
+				// 重建可保证代码块/流程图的最终状态（如 mermaid 围栏闭合后的图片渲染）必然生效
+				const blockKey = block.key + (block.isComplete ? '-c' : '')
+				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, blockKey,
+					[aiRenderPart(block.kind, blockKey, block)] as AiMsgRenderPart[])
 				hasAiSegment = true
 			}
 			const stressSvgSource = msg.stressSvgSource ?? ''
@@ -303,7 +311,9 @@
 		scrollWithAnimation.value = userClick
 		bottomAnchorId.value = bottomAnchorId.value == 'last-msg-a' ? 'last-msg-b' : 'last-msg-a'
 		nextTick(() => {
-			scrollTop.value = scrollTop.value > 100000000 ? 100000 : scrollTop.value + 100000
+			// 限幅在 10 万~20 万间震荡：流式期间每帧递增会累计到数百万，
+			// 超大 scrollTop 疑似导致 list-view 内部状态异常（既有 item 的子组件 props 更新丢失）
+			scrollTop.value = scrollTop.value > 100000 ? 100000 : scrollTop.value + 100000
 			scrollInBottom.value = true
 		})
 	}

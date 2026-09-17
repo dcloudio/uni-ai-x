@@ -172,7 +172,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.eventCount += 1
 		this.networkChunkCount += 1
 		this.receivedBytes += contentDelta.length + reasoningDelta.length
-		if (contentDelta.length > 0) this.scheduleHtmlSnapshot()
+		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
 	// #ifdef APP-ANDROID
@@ -210,7 +210,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
-		if (contentDelta.length > 0) this.scheduleHtmlSnapshot()
+		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 	// #endif
 
@@ -235,7 +235,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private publishSnapshot(isDone: boolean) {
-		if (this.content.length == 0 && !isDone) return
+		// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
+		if (this.content.length == 0 && this.reasoningContent.length == 0 && !isDone) return
 		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdownValue == null) return
 		const processedMarkdown = processedMarkdownValue!
