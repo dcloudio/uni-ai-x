@@ -1,18 +1,10 @@
 # 简介
 
-> 新增于HBuilderX 4.72+  
+> uni-ai x v3.0.0 新增于 HBuilderX 5.26
 
-`uni-ai x`，是一个开源的、全平台的、原生的、云端一体的ai聊天套件。
+`uni-ai x`，是一个基于uni-app x 蒸汽模式的开源的、全平台的、原生的、云端一体的ai聊天套件。
 
-能够连接ai大模型，真流式接收和输出内容，原生渲染markdown。  
-基于跨平台原生开发框架 [uni-app x](https://doc.dcloud.net.cn/uni-app-x/) 可以被编译为不同平台的编程语言，如： 
-
-| 平台						| 编译语言		|
-|------					|----------	|
-| web平台/小程序	| JavaScript|
-| Android平台		| Kotlin		|
-| iOS平台				| Swift			|
-| 鸿蒙OS平台			| ArkTS			|
+能够连接ai大模型，真流式接收和输出内容，原生渲染markdown。
 
 ## 项目背景：
 市面上开源的AI聊天套件大多以Web端为主，像ChatGPT、DeepSeek等的App端并不开源。  
@@ -56,9 +48,9 @@ web pc端：
 
 ### Android端demo：
 
-<img width="200px" src="https://web-ext-storage.dcloud.net.cn/doc/uni-ai-x/qrcode.png"/>
+<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/download_ai_x_v3.png"/>
 
-扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/doc/uni-ai-x/qrcode.png)
+扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/__UNI__8A096E7_0917211824.apk)
 
 ## 交流群  
 更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=68511b0b7ae60eb5c891cfbc)加入uni-ai官方交流群
@@ -69,5 +61,4 @@ web pc端：
 
 ## 声明
 本项目依赖以下作品
-1. Android Markdown 转 HTML 依赖 [uni-cmark](https://ext.dcloud.net.cn/plugin?name=uni-cmark)，基于 cmark-gfm 的 C 语言库实现
-2. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
+1. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
