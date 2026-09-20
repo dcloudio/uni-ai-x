@@ -587,9 +587,52 @@ function textBlock(key: string, text: string): MarkdownHtmlBlock {
 	return block
 }
 
-function contentBlock(index: number, html: string): MarkdownHtmlBlock {
-	if (html.trim().length == 0) return textBlock('text-' + index.toString(), html)
-	return richBlock('rich-' + index.toString(), html)
+function isTopLevelParagraph(source: string, fromIndex: number, paragraphStart: number): boolean {
+	let depth = 0
+	let cursor = fromIndex
+	while (cursor < paragraphStart) {
+		const tagStart = source.indexOf('<', cursor)
+		if (tagStart < 0 || tagStart >= paragraphStart) break
+		const tagEnd = source.indexOf('>', tagStart)
+		if (tagEnd < 0 || tagEnd >= paragraphStart) return false
+		const tag = source.slice(tagStart, tagEnd + 1)
+		const isClosing = tag.startsWith('</')
+		const isComment = tag.startsWith('<!--')
+		const isSelfClosing = tag.endsWith('/>')
+		if (!isComment && !isSelfClosing) {
+			if (isClosing) depth = Math.max(0, depth - 1)
+			else if (!tag.startsWith('<!') && !tag.startsWith('<?') && !tag.startsWith('<p')) depth += 1
+		}
+		cursor = tagEnd + 1
+	}
+	return depth == 0
+}
+
+function contentBlocks(index: number, html: string): MarkdownHtmlBlock[] {
+	if (html.trim().length == 0) return [textBlock('text-' + index.toString(), html)] as MarkdownHtmlBlock[]
+	const blocks = [] as MarkdownHtmlBlock[]
+	let cursor = 0
+	let paragraphIndex = 0
+	while (cursor < html.length) {
+		const paragraphStart = findOpenTag(html, 'p', cursor)
+		if (paragraphStart < 0 || !isTopLevelParagraph(html, cursor, paragraphStart)) break
+		const paragraphOpenEnd = html.indexOf('>', paragraphStart)
+		const paragraphCloseStart = paragraphOpenEnd >= 0 ? html.indexOf('</p>', paragraphOpenEnd + 1) : -1
+		if (paragraphOpenEnd < 0 || paragraphCloseStart < 0) break
+		if (paragraphStart > cursor) {
+			blocks.push(richBlock('rich-' + index.toString() + '-' + paragraphIndex.toString(), html.slice(cursor, paragraphStart)))
+			paragraphIndex += 1
+		}
+		const paragraphEnd = paragraphCloseStart + '</p>'.length
+		blocks.push(richBlock('rich-' + index.toString() + '-' + paragraphIndex.toString(), html.slice(paragraphStart, paragraphEnd)))
+		paragraphIndex += 1
+		cursor = paragraphEnd
+	}
+	if (blocks.length == 0 || cursor < html.length) {
+		if (cursor == 0) return [richBlock('rich-' + index.toString(), html)] as MarkdownHtmlBlock[]
+		if (cursor < html.length) blocks.push(richBlock('rich-' + index.toString() + '-' + paragraphIndex.toString(), html.slice(cursor)))
+	}
+	return blocks
 }
 
 type HtmlSpecialBlock = {
@@ -741,11 +784,15 @@ export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean =
 		const range = findNextSpecialBlock(html, cursor)
 		if (range == null) {
 			const trailingHtml = html.slice(cursor)
-			if (trailingHtml.length > 0) blocks.push(contentBlock(richIndex, trailingHtml))
+			if (trailingHtml.length > 0) {
+				const content = contentBlocks(richIndex, trailingHtml)
+				for (let contentIndex = 0; contentIndex < content.length; contentIndex++) blocks.push(content[contentIndex])
+			}
 			break
 		}
 		if (range.start > cursor) {
-			blocks.push(contentBlock(richIndex, html.slice(cursor, range.start)))
+			const content = contentBlocks(richIndex, html.slice(cursor, range.start))
+			for (let contentIndex = 0; contentIndex < content.length; contentIndex++) blocks.push(content[contentIndex])
 			richIndex += 1
 		}
 		if (range.kind == 'table') {
@@ -762,7 +809,10 @@ export function buildMarkdownHtmlBlocks(html: string, messageComplete: boolean =
 		}
 		cursor = range.end
 	}
-	if (blocks.length == 0 && html.length > 0) blocks.push(contentBlock(0, html))
+	if (blocks.length == 0 && html.length > 0) {
+		const content = contentBlocks(0, html)
+		for (let contentIndex = 0; contentIndex < content.length; contentIndex++) blocks.push(content[contentIndex])
+	}
 	return blocks
 }
 
