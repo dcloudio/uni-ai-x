@@ -25,6 +25,12 @@
 						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
 					</view>
 				</view>
+				<!-- #ifdef APP -->
+				<view class="uni-im-setting-item uni-im-setting-action" @click="checkForUpdate">
+					<text class="uni-im-setting-label">检查更新</text>
+					<text class="uni-im-setting-action-text">{{checkingUpdate ? '检查中...' : '立即检查'}}</text>
+				</view>
+				<!-- #endif -->
 			</view>
 		</uni-popup>
 		<uni-popup ref="modelPopupRef" @clickMask="closeModelPopup">
@@ -48,6 +54,9 @@
 <script lang="uts" setup>
 	import {uniAi, uiTheme, getLlmDisplayName} from '@/uni_modules/uni-ai-x/sdk';
 	import {Provider} from '@/uni_modules/uni-ai-x/types.uts';
+	// #ifdef APP
+	import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update'
+	// #endif
 	
 	import {llmModelMap, providerNameList} from '@/uni_modules/uni-ai-x/config';
 	
@@ -65,6 +74,10 @@
 	const currentModel = computed<string>(() => {
 		return getLlmDisplayName(uniAi.llm)
 	})
+
+	// #ifdef APP
+	const checkingUpdate = ref<boolean>(false)
+	// #endif
 
 	const openModelPopup = () => {
 		(modelPopupRef.value as ComponentPublicInstance).$callMethod('open');
@@ -101,6 +114,36 @@
 	const changeModel = () => {
 		openModelPopup()
 	}
+
+	// #ifdef APP
+	const checkForUpdate = () => {
+		if (checkingUpdate.value) return
+		checkingUpdate.value = true
+		checkUpdate().then((result) => {
+			if (result.code <= 0) {
+				uni.showToast({
+					title: '当前已是最新版本',
+					icon: 'none'
+				})
+			}
+		}).catch((error) => {
+			const result = error as any
+			if (result != null && (result.code == 0 || result.code == -101)) {
+				uni.showToast({
+					title: '当前已是最新版本',
+					icon: 'none'
+				})
+			} else {
+				uni.showToast({
+					title: '检查更新失败',
+					icon: 'none'
+				})
+			}
+		}).finally(() => {
+			checkingUpdate.value = false
+		})
+	}
+	// #endif
 
 	const radioChange = (provider: string, modelId: string) => {
 		uniAi.llm.provider = provider
@@ -179,6 +222,11 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.uni-im-setting-action-text {
+	font-size: 14px;
+	color: var(--accent-primary);
 }
 
 .uni-im-setting-choose-llm-model {

@@ -21,6 +21,9 @@
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
+	// #ifdef APP
+	import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update'
+	// #endif
 	// #ifndef MP-WEIXIN
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	// #endif
@@ -66,6 +69,17 @@
 				})
 			}, 300)
 		}
+	})
+
+	onReady(() => {
+		// #ifdef APP
+		checkUpdate().catch((error) => {
+			const result = error as any
+			if (result == null || (result.code != 0 && result.code != -101)) {
+				console.error('检查应用更新失败', error)
+			}
+		})
+		// #endif
 	})
 
 	onUnmounted(() => {

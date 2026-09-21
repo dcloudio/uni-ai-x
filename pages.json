@@ -22,6 +22,12 @@
 			{
 				"navigationBarTitleText" : "选择文本"
 			}
+		},
+		{
+			"path" : "uni_modules/uni-upgrade-center-app/pages/uni-app-x/upgrade-popup",
+			"style" : {
+				"navigationBarTitleText" : ""
+			}
 		}
 	],
 	"globalStyle": {

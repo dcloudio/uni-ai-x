@@ -59,6 +59,12 @@ web pc端：
 
 ## 开发文档[详情查看](https://doc.dcloud.net.cn/uniCloud/uni-ai-x.html#install)
 
+## App升级中心
+
+项目已集成 `uni-upgrade-center-app`，App 启动后会自动检查更新。使用前请将本项目和 `uni-admin` 关联到同一个 uniCloud 服务空间，并在 `uni-admin` 中部署 `uni-upgrade-center` 云函数、添加当前 `appid`，再发布线上版本。发布新安装包时请同步递增 `manifest.json` 的 `versionName` 和 `versionCode`。
+
+uni-app x 的 App-Android 为整包更新，不支持 wgt 热更新；iOS 更新使用 App Store 链接。
+
 ## 声明
 本项目依赖以下作品
 1. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
