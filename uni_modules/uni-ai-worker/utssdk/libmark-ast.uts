@@ -1,0 +1,486 @@
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import { prepareMarkdownTable } from './markdown-html.uts'
+
+export type LibmarkTextSpan = {
+	text: string
+	styles: string[]
+	href: string
+	isImage: boolean
+	imageSrc: string
+	svgSource: string
+	svgWidth: number
+	svgHeight: number
+	svgBaseline: number
+}
+
+export type LibmarkRenderBlock = {
+	kind: string
+	key: string
+	text: string
+	language: string
+	isComplete: boolean
+	level: number
+	indent: number
+	marker: string
+	quoteDepth: number
+	spans: LibmarkTextSpan[]
+	html: string
+	columnWidths: number[]
+	rowTextWidths: number[][]
+	svgSource: string
+	svgWidth: number
+	svgHeight: number
+}
+
+type LibmarkPayload = {
+	media_type?: string
+	data?: string
+	width?: number
+	height?: number
+	baseline?: number
+}
+
+type LibmarkLink = {
+	href?: string
+	title?: string
+	safe?: boolean
+}
+
+type LibmarkRun = {
+	kind?: string
+	text?: string
+	styles?: string[]
+	soft?: boolean
+	link?: LibmarkLink
+	src?: string
+	alt?: string
+	title?: string
+	safe?: boolean
+	literal?: string
+	plugin?: string
+	syntax_id?: number
+	source?: string
+	payload?: LibmarkPayload
+}
+
+type LibmarkBlock = {
+	id?: number
+	type?: string
+	level?: number
+	ordered?: boolean
+	start?: number
+	delim?: string
+	tight?: boolean
+	checked?: boolean
+	info?: string
+	literal?: string
+	omitted?: boolean
+	align?: string[]
+	plugin?: string
+	source?: string
+	payload?: LibmarkPayload
+	runs?: LibmarkRun[]
+	children?: LibmarkBlock[]
+}
+
+type LibmarkDocument = {
+	schema?: string
+	blocks?: LibmarkBlock[]
+}
+
+const LIBMARK_AST_SCHEMA = 'libmark.ast/1'
+
+function emptyStrings(): string[] {
+	return [] as string[]
+}
+
+function emptySpans(): LibmarkTextSpan[] {
+	return [] as LibmarkTextSpan[]
+}
+
+function emptyBlocks(): LibmarkBlock[] {
+	return [] as LibmarkBlock[]
+}
+
+function emptyNumbers(): number[] {
+	return [] as number[]
+}
+
+function emptyNumberRows(): number[][] {
+	return [] as number[][]
+}
+
+function childrenOf(block: LibmarkBlock | null): LibmarkBlock[] {
+	if (block == null || block.children == null) return emptyBlocks()
+	return block.children!
+}
+
+function runsOf(block: LibmarkBlock | null): LibmarkRun[] {
+	if (block == null || block.runs == null) return [] as LibmarkRun[]
+	return block.runs!
+}
+
+function payloadData(payload: LibmarkPayload | null): string {
+	return payload != null && payload.data != null ? payload.data! : ''
+}
+
+function payloadNumber(payload: LibmarkPayload | null, name: string): number {
+	if (payload == null) return 0
+	if (name == 'width' && payload.width != null) return payload.width!
+	if (name == 'height' && payload.height != null) return payload.height!
+	if (name == 'baseline' && payload.baseline != null) return payload.baseline!
+	return 0
+}
+
+function escapeHtml(value: string): string {
+	let result = value.replace(/&/g, '&amp;')
+	result = result.replace(/</g, '&lt;')
+	result = result.replace(/>/g, '&gt;')
+	result = result.replace(/"/g, '&quot;')
+	return result.replace(/'/g, '&#39;')
+}
+
+function htmlToPlainText(html: string): string {
+	let result = html.replace(/<br\s*\/?\s*>/gi, '\n')
+	result = result.replace(/<[^>]*>/g, '')
+	result = result.replace(/&amp;/gi, '&')
+	result = result.replace(/&lt;/gi, '<')
+	result = result.replace(/&gt;/gi, '>')
+	result = result.replace(/&quot;/gi, '"')
+	return result.replace(/&#39;/gi, "'")
+}
+
+function inlineText(run: LibmarkRun): string {
+	const kind = run.kind ?? ''
+	if (kind == 'break') return run.soft == true ? ' ' : '\n'
+	if (kind == 'image') return run.alt ?? ''
+	if (kind == 'code') return run.text ?? run.literal ?? ''
+	if (kind == 'raw_html') return run.literal ?? run.text ?? ''
+	if (kind == 'plugin') return run.source ?? run.text ?? ''
+	return run.text ?? run.literal ?? ''
+}
+
+function appendSpan(spans: LibmarkTextSpan[], text: string, styles: string[], href: string = ''): void {
+	if (text.length == 0) return
+	spans.push({
+		text: text,
+		styles: styles.slice(),
+		href: href,
+		isImage: false,
+		imageSrc: '',
+		svgSource: '',
+		svgWidth: 0,
+		svgHeight: 0,
+		svgBaseline: 0
+	} as LibmarkTextSpan)
+}
+
+function appendRun(run: LibmarkRun, spans: LibmarkTextSpan[], inheritedStyles: string[] = [] as string[]): void {
+	const kind = run.kind ?? ''
+	const styles = inheritedStyles.concat(run.styles ?? emptyStrings())
+	const href = run.link != null ? run.link!.href ?? '' : ''
+	if (kind == 'plugin') {
+		const data = payloadData(run.payload ?? null)
+		if (data.length > 0) {
+			spans.push({ text: '', styles: styles, href: href, isImage: true, imageSrc: '',
+				svgSource: data, svgWidth: payloadNumber(run.payload ?? null, 'width'),
+				svgHeight: payloadNumber(run.payload ?? null, 'height'),
+				svgBaseline: payloadNumber(run.payload ?? null, 'baseline') } as LibmarkTextSpan)
+			return
+		}
+		const fallbackStyles = styles.slice()
+		if (fallbackStyles.indexOf('code') < 0) fallbackStyles.push('code')
+		appendSpan(spans, inlineText(run), fallbackStyles, href)
+		return
+	}
+	if (kind == 'image') {
+		const src = run.src ?? ''
+		const alt = run.alt ?? ''
+		if (src.length > 0) {
+			spans.push({ text: alt, styles: styles, href: href, isImage: true, imageSrc: src,
+				svgSource: '', svgWidth: 0, svgHeight: 0, svgBaseline: 0 } as LibmarkTextSpan)
+		} else appendSpan(spans, alt, styles, href)
+		return
+	}
+	appendSpan(spans, inlineText(run), styles, href)
+}
+
+function inlineSpans(runs: LibmarkRun[]): LibmarkTextSpan[] {
+	const spans = emptySpans()
+	for (let index = 0; index < runs.length; index++) appendRun(runs[index], spans)
+	return spans
+}
+
+function runsText(runs: LibmarkRun[]): string {
+	let text = ''
+	for (let index = 0; index < runs.length; index++) text += inlineText(runs[index])
+	return text
+}
+
+function styledInlineHtml(text: string, styles: string[]): string {
+	let html = escapeHtml(text)
+	let strong = false
+	let emphasis = false
+	let deletion = false
+	let code = false
+	for (let index = 0; index < styles.length; index++) {
+		const style = styles[index]
+		if (style == 'strong') strong = true
+		else if (style == 'em' || style == 'emphasis') emphasis = true
+		else if (style == 'del' || style == 'strikethrough') deletion = true
+		else if (style == 'code') code = true
+	}
+	if (code) html = '<code>' + html + '</code>'
+	if (deletion) html = '<del>' + html + '</del>'
+	if (emphasis) html = '<em>' + html + '</em>'
+	if (strong) html = '<strong>' + html + '</strong>'
+	return html
+}
+
+function tableInlineHtml(runs: LibmarkRun[]): string {
+	let html = ''
+	for (let index = 0; index < runs.length; index++) {
+		const run = runs[index]
+		const kind = run.kind ?? ''
+		if (kind == 'break') html += '<br>'
+		else if (kind == 'image') html += '<img src="' + escapeHtml(run.src ?? '') + '" alt="' + escapeHtml(run.alt ?? '') + '" />'
+		else if (kind == 'plugin' && payloadData(run.payload ?? null).length > 0) html += '<img src="' + escapeHtml(payloadData(run.payload ?? null)) + '" alt="" />'
+		else {
+			const content = styledInlineHtml(inlineText(run), run.styles ?? emptyStrings())
+			if (run.link != null && (run.link!.href ?? '').length > 0) {
+				html += '<a href="' + escapeHtml(run.link!.href ?? '') + '">' + content + '</a>'
+			} else {
+				html += content
+			}
+		}
+	}
+	return html
+}
+
+function safeAlign(value: string): string {
+	return value == 'center' || value == 'right' ? value : 'left'
+}
+
+function tableHtml(block: LibmarkBlock): string {
+	const align = block.align ?? emptyStrings()
+	const rows = childrenOf(block)
+	let header = ''
+	let body = ''
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex]
+		const cells = childrenOf(row)
+		const tag = rowIndex == 0 ? 'th' : 'td'
+		let rowHtml = '<tr>'
+		for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+			const alignment = cellIndex < align.length ? safeAlign(align[cellIndex]) : 'left'
+			rowHtml += '<' + tag + ' style="text-align:' + alignment + '">' +
+				tableInlineHtml(runsOf(cells[cellIndex])) + '</' + tag + '>'
+		}
+		rowHtml += '</tr>'
+		if (tag == 'th') header += rowHtml
+		else body += rowHtml
+	}
+	let html = '<table>'
+	if (header.length > 0) html += '<thead>' + header + '</thead>'
+	if (body.length > 0) html += '<tbody>' + body + '</tbody>'
+	return html + '</table>'
+}
+
+function makeBlock(kind: string, key: string, indent: number, quoteDepth: number): LibmarkRenderBlock {
+	return {
+		kind: kind, key: key, text: '', language: '', isComplete: true,
+		level: 0, indent: indent, marker: '', quoteDepth: quoteDepth,
+		spans: emptySpans(), html: '', columnWidths: emptyNumbers(),
+		rowTextWidths: emptyNumberRows(), svgSource: '', svgWidth: 0, svgHeight: 0
+	} as LibmarkRenderBlock
+}
+
+function listMarker(list: LibmarkBlock, item: LibmarkBlock, index: number): string {
+	if (item.checked != null) return item.checked == true ? '[x] ' : '[ ] '
+	if (list.ordered == true) return ((list.start ?? 1) + index).toString() + '. '
+	return '• '
+}
+
+function appendBlock(result: LibmarkRenderBlock[], block: LibmarkBlock, key: string,
+	indent: number, quoteDepth: number, list: LibmarkBlock | null = null, listIndex: number = 0): void {
+	const type = block.type ?? ''
+	if (type == 'block_quote') {
+		const nested = childrenOf(block)
+		for (let index = 0; index < nested.length; index++) appendBlock(result, nested[index], key + '-quote-' + index.toString(), indent + 1, quoteDepth + 1)
+		return
+	}
+	if (type == 'list') {
+		const items = childrenOf(block)
+		for (let index = 0; index < items.length; index++) appendBlock(result, items[index], key + '-item-' + index.toString(), indent, quoteDepth, block, index)
+		return
+	}
+	if (type == 'item') {
+		const itemChildren = childrenOf(block)
+		let textChild: LibmarkBlock | null = null
+		let textChildIndex = -1
+		for (let index = 0; index < itemChildren.length; index++) {
+			if ((itemChildren[index].type ?? '') == 'paragraph' || (itemChildren[index].type ?? '') == 'heading') {
+				textChild = itemChildren[index]
+				textChildIndex = index
+				break
+			}
+		}
+		if (textChild != null) appendBlock(result, textChild!, key, indent, quoteDepth, list, listIndex)
+		for (let index = 0; index < itemChildren.length; index++) {
+			const child = itemChildren[index]
+			if (index == textChildIndex) continue
+			appendBlock(result, child, key + '-child-' + index.toString(), indent + 1, quoteDepth)
+		}
+		return
+	}
+	if (type == 'thematic_break') {
+		result.push(makeBlock('hr', key, indent, quoteDepth))
+		return
+	}
+	if (type == 'code_block') {
+		const blockResult = makeBlock('code', key, indent, quoteDepth)
+		const info = (block.info ?? '').split(' ')[0]
+		blockResult.language = info.length > 0 ? info : 'text'
+		blockResult.kind = info == 'mermaid' ? 'mermaid' : 'code'
+		blockResult.text = (block.literal ?? '').replace(/\n$/, '')
+		result.push(blockResult)
+		return
+	}
+	if (type == 'table') {
+		const prepared = prepareMarkdownTable(tableHtml(block), result.length)
+		const tableResult = makeBlock('table', key, indent, quoteDepth)
+		tableResult.html = prepared.html
+		tableResult.columnWidths = prepared.columnWidths
+		tableResult.rowTextWidths = prepared.rowTextWidths
+		result.push(tableResult)
+		return
+	}
+	if (type == 'plugin_block') {
+		const pluginResult = makeBlock('math', key, indent, quoteDepth)
+		pluginResult.svgSource = payloadData(block.payload ?? null)
+		pluginResult.svgWidth = payloadNumber(block.payload ?? null, 'width')
+		pluginResult.svgHeight = payloadNumber(block.payload ?? null, 'height')
+		pluginResult.text = pluginResult.svgSource.length > 0 ? '' : (block.source ?? block.literal ?? '')
+		result.push(pluginResult)
+		return
+	}
+	if (type == 'html_block') {
+		const htmlResult = makeBlock('text', key, indent, quoteDepth)
+		const plainText = htmlToPlainText(block.literal ?? '')
+		htmlResult.text = plainText
+		htmlResult.spans = inlineSpans([{ kind: 'text', text: plainText } as LibmarkRun])
+		result.push(htmlResult)
+		return
+	}
+	const nested = childrenOf(block)
+	const blockRuns = runsOf(block)
+	if (type != 'heading' && type != 'paragraph' && blockRuns.length == 0) {
+		if (nested.length == 0) return
+		for (let index = 0; index < nested.length; index++) appendBlock(result, nested[index], key + '-child-' + index.toString(), indent, quoteDepth)
+		return
+	}
+	const textResult = makeBlock(type == 'heading' ? 'heading' : 'paragraph', key, indent, quoteDepth)
+	textResult.level = type == 'heading' ? Math.max(1, Math.min(block.level ?? 1, 6)) : 0
+	textResult.marker = list != null ? listMarker(list!, block, listIndex) : ''
+	textResult.spans = inlineSpans(blockRuns)
+	textResult.text = runsText(blockRuns)
+	result.push(textResult)
+	if (type != 'paragraph' && type != 'heading') {
+		for (let index = 0; index < nested.length; index++) appendBlock(result, nested[index], key + '-child-' + index.toString(), indent, quoteDepth)
+	}
+}
+
+function parseDocument(source: string): LibmarkDocument | null {
+	if (source.length == 0) return null
+	try {
+		const parsedDocument = JSON.parse<LibmarkDocument>(source) as LibmarkDocument
+		if (parsedDocument == null || parsedDocument.schema != LIBMARK_AST_SCHEMA) return null
+		return parsedDocument
+	} catch (_error) {
+		return null
+	}
+}
+
+export class LibmarkStreamAdapter {
+	private slots: Array<LibmarkBlock | null> = []
+	private slotComplete: boolean[] = []
+	private blocks: LibmarkRenderBlock[] = []
+	private dirty: boolean = true
+
+	applyOps(ops: AiWorkerOp[]): boolean {
+		let applied = false
+		for (let index = 0; index < ops.length; index++) {
+			const op = ops[index]
+			if (op.op == 4) {
+				this.reset()
+				applied = true
+				continue
+			}
+			if (op.kind != 'ast') continue
+			const parsedDocument = parseDocument(op.content)
+			if (parsedDocument == null) continue
+			const payloadBlocks = parsedDocument.blocks ?? emptyBlocks()
+			if (payloadBlocks.length == 0) continue
+			const slot = op.index >= 0 ? op.index : 0
+			while (this.slots.length <= slot) this.slots.push(null)
+			while (this.slotComplete.length <= slot) this.slotComplete.push(true)
+			this.slots[slot] = payloadBlocks[0]
+			this.slotComplete[slot] = op.op != 2
+			this.dirty = true
+			applied = true
+		}
+		return applied
+	}
+
+	loadDocument(astJson: string): void {
+		this.reset()
+		const parsedDocument = parseDocument(astJson)
+		if (parsedDocument == null) return
+		const sourceBlocks = parsedDocument.blocks ?? emptyBlocks()
+		for (let index = 0; index < sourceBlocks.length; index++) {
+			this.slots.push(sourceBlocks[index])
+			this.slotComplete.push(true)
+		}
+		this.dirty = true
+	}
+
+	getBlocks(): LibmarkRenderBlock[] {
+		if (this.dirty) {
+			const result = [] as LibmarkRenderBlock[]
+			for (let index = 0; index < this.slots.length; index++) {
+				const block = this.slots[index]
+				if (block == null) continue
+				const blockStart = result.length
+				appendBlock(result, block!, 'libmark-' + index.toString(), 0, 0)
+				const complete = index < this.slotComplete.length ? this.slotComplete[index] : true
+				for (let blockIndex = blockStart; blockIndex < result.length; blockIndex++) result[blockIndex].isComplete = complete
+			}
+			this.blocks = result
+			this.dirty = false
+		}
+		return this.blocks.slice()
+	}
+
+	getCompleteAstJson(): string {
+		const sourceBlocks = [] as LibmarkBlock[]
+		for (let index = 0; index < this.slots.length; index++) {
+			const block = this.slots[index]
+			if (block != null) sourceBlocks.push(block!)
+		}
+		return JSON.stringify({ schema: LIBMARK_AST_SCHEMA, blocks: sourceBlocks } as LibmarkDocument)
+	}
+
+	reset(): void {
+		this.slots = []
+		this.slotComplete = []
+		this.blocks = []
+		this.dirty = true
+	}
+
+	hasContent(): boolean {
+		for (let index = 0; index < this.slots.length; index++) {
+			if (this.slots[index] != null) return true
+		}
+		return false
+	}
+}

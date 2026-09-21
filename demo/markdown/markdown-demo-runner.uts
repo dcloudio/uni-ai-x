@@ -18,6 +18,11 @@ import {
 	startAiWorkerMarkdown
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
+// #ifdef APP-HARMONY
+import { takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
+import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
+import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
+// #endif
 
 const DEMO_RENDER_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
@@ -138,6 +143,15 @@ export default class MarkdownDemoRunner {
 
 	private pollWorkerSnapshot() {
 		if (!this.workerActive || this.stopped) return
+		// #ifdef APP-HARMONY
+		const ops = takeAiWorkerOps()
+		for (let i = 0; i < ops.length; i++) {
+			const op = ops[i]
+			if (op.op != OP_RESET) {
+				logBlockPayload(op.kind, op.content, op.index, op.op, op.unchanged)
+			}
+		}
+		// #endif
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject

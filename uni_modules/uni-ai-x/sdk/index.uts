@@ -6,6 +6,15 @@ import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
+// #ifdef APP-HARMONY
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import {
+	libmarkStreamApply,
+	libmarkStreamComplete,
+	libmarkStreamReset,
+	libmarkStreamRelease
+} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+// #endif
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
@@ -85,6 +94,7 @@ export function getLlmDisplayName(llm: Llm): string {
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
+	private answerGeneration: number = 0
 	private stressDataSequence: number = 0
 	private stressMessageRunSequence: number = 0
 	private loadedChatIds: string[] = [] as string[]
@@ -402,6 +412,14 @@ class UniAi {
 	
 	deleteChat(chatId: string): void {
 		this.cancelEditMsg()
+		this.clearPendingMsgSave()
+		const deletingChat = this.chat.datas.find((item) => item.id == chatId)
+		if (this.chat.activeId == chatId && deletingChat?.state == 'processing') this.abortRequest()
+		// #ifdef APP-HARMONY
+		if (deletingChat != null) {
+			for (let i = 0; i < deletingChat.msgList.length; i++) libmarkStreamRelease(deletingChat.msgList[i]._id)
+		}
+		// #endif
 		// 如果只有一个，删之前需要先创建一个并设置为选中，否则会照成无选中会话导致崩溃
 		if (uniAi.chat.datas.length == 1) {
 			uniAi.addChat(false)
@@ -421,7 +439,15 @@ class UniAi {
 	}
 
 	deleteAllChats(): void {
+		this.clearPendingMsgSave()
+		if (this.currentChat?.state == 'processing') this.abortRequest()
 		const chatIds = this.chat.datas.map((item: ChatItem): string => item.id)
+		// #ifdef APP-HARMONY
+		for (let chatIndex = 0; chatIndex < this.chat.datas.length; chatIndex++) {
+			const msgList = this.chat.datas[chatIndex].msgList
+			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) libmarkStreamRelease(msgList[msgIndex]._id)
+		}
+		// #endif
 		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChat(chatIds[index])
 		this.chat.datas.splice(0, this.chat.datas.length)
 		this.loadedChatIds.splice(0, this.loadedChatIds.length)
@@ -431,6 +457,13 @@ class UniAi {
 
 	selectChat(chatId: string) {
 		this.cancelEditMsg()
+		if (this.chat.activeId != chatId) {
+			if (this.currentChat?.state == 'processing') {
+				this.abortRequest()
+			} else {
+				this.answerGeneration += 1
+			}
+		}
 		this.loadChatMessages(chatId)
 		this.chat.activeId = chatId
 	}
@@ -666,6 +699,9 @@ class UniAi {
 		const msgList = this.currentChat!.msgList
 		const index = msgList.findIndex((item) => item._id == msgId)
 		if (index != -1) {
+			// #ifdef APP-HARMONY
+			libmarkStreamRelease(msgId)
+			// #endif
 			msgList.splice(index, 1)
 			this.storageManager.removeMessages(this.currentChat!.id, [msgId] as string[])
 		} else {
@@ -707,12 +743,16 @@ class UniAi {
 		}
 		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
 		this.clearPendingMsgSave()
+		// #ifdef APP-HARMONY
+		for (let i = index; i < msgList.length; i++) libmarkStreamRelease(msgList[i]._id)
+		// #endif
 		msgList.splice(index, msgList.length - index)
 		this.storageManager.removeMessages(chat.id, removedIds)
 		this.updateChatUpdateTime(chat.id)
 	}
 	
 	abortRequest() {
+		this.answerGeneration += 1
 		requestAiRunner?.abortRequest()
 	}
 	
@@ -762,6 +802,10 @@ class UniAi {
 		return this.answerQuestion(aiMsgItem)
 	}
 	resetMsg(msg: MsgItem) {
+		this.answerGeneration += 1
+		// #ifdef APP-HARMONY
+		libmarkStreamReset(msg._id)
+		// #endif
 		msg.body = ''
 		msg.rendered = false
 		msg.error_msg = null
@@ -773,48 +817,80 @@ class UniAi {
 	
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
-		requestAiRunner?.abortRequest()
+		this.abortRequest()
+		const answerGeneration = this.answerGeneration
 		this.emitBeforeRequestAi()
 		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
+		const isActiveAiMsg = (): boolean => {
+			const chat = this.currentChat
+			return this.answerGeneration == answerGeneration && chat != null && chat.id == aiMsgItem.chat_id && chat.msgList.find((item) => item._id == aiMsgItem._id) != null
+		}
 		const runnerCallbacks: RequestAiRunnerCallbacks = {
+			// #ifdef APP-HARMONY
+			onMarkdownAstDelta: (ops: AiWorkerOp[]) => {
+				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
+				if (libmarkStreamApply(aiMsgItem._id, ops)) {
+					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
+					this.updateMsg2Storage(aiMsgItem)
+				}
+			},
+			// #endif
 			onMarkdownHtml: (html: string) => {
-				if (this.currentChat!.state == 'stop') return
+				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownHtml = html
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onMarkdownAst: (ast: string) => {
 				// 调试日志：排查 ast 是否透传到消息时启用
 				// console.log('[uni-ai-x][runner] ast=' + ast.length.toString())
-				if (this.currentChat!.state == 'stop') return
+				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
+				// #ifdef APP-HARMONY
+				if (ast.length == 0 && (aiMsgItem.markdownAst ?? '').indexOf('libmark.ast/1') >= 0) return
+				// #endif
 				aiMsgItem.markdownAst = ast
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.thinkContent = thinkContent
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onMsgBody: (msgBody: string) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.body = msgBody
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onState: (state: string) => {
+				if (!isActiveAiMsg()) return
 				this.currentChat!.state = state
+				// #ifdef APP-HARMONY
+				if (state == 'completed') {
+					const markdownAst = libmarkStreamComplete(aiMsgItem._id)
+					if (markdownAst.length > 0) {
+						aiMsgItem.markdownAst = markdownAst
+						aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
+					}
+				}
+				// #endif
 				if (state == 'stop') {
 					aiMsgItem.rendered = true
 				}
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onErrorMsg: (errorMsg: string) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.error_msg = errorMsg
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onRendered: (rendered: boolean) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.rendered = rendered
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onChatTitle: (title: string) => {
+				if (!isActiveAiMsg()) return
 				this.updateChatTitle(aiMsgItem.chat_id, title)
 			}
 		}

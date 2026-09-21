@@ -6,6 +6,7 @@ import {
 	MarkdownHtmlBlock,
 	prepareMarkdownTable
 } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import type { LibmarkRenderBlock, LibmarkTextSpan } from '@/uni_modules/uni-ai-worker/utssdk/libmark-ast.uts'
 
 export type MarkdownTextSpan = {
 	text: string
@@ -13,6 +14,10 @@ export type MarkdownTextSpan = {
 	href: string
 	isImage: boolean
 	imageSrc: string
+	svgSource: string
+	svgWidth: number
+	svgHeight: number
+	svgBaseline: number
 }
 
 export type MarkdownTextRenderBlock = {
@@ -29,6 +34,9 @@ export type MarkdownTextRenderBlock = {
 	indent: number
 	marker: string
 	quoteDepth: number
+	svgSource: string
+	svgWidth: number
+	svgHeight: number
 }
 
 function emptyAstNodes(): MarkdownAstNode[] {
@@ -166,13 +174,18 @@ function spanClassName(styles: string[]): string {
 }
 
 function makeSpan(text: string, styles: string[] = [] as string[], href: string = '',
-	isImage: boolean = false, imageSrc: string = ''): MarkdownTextSpan {
+	isImage: boolean = false, imageSrc: string = '', svgSource: string = '',
+	svgWidth: number = 0, svgHeight: number = 0, svgBaseline: number = 0): MarkdownTextSpan {
 	return {
 		text: text,
 		className: spanClassName(styles),
 		href: href,
 		isImage: isImage,
-		imageSrc: imageSrc
+		imageSrc: imageSrc,
+		svgSource: svgSource,
+		svgWidth: svgWidth,
+		svgHeight: svgHeight,
+		svgBaseline: svgBaseline
 	}
 }
 
@@ -282,7 +295,10 @@ function createTextBlock(kind: string, key: string, spans: MarkdownTextSpan[],
 		level: level,
 		indent: indent,
 		marker: marker,
-		quoteDepth: quoteDepth
+		quoteDepth: quoteDepth,
+		svgSource: '',
+		svgWidth: 0,
+		svgHeight: 0
 	}
 }
 
@@ -302,7 +318,10 @@ function createSpecialBlock(kind: string, key: string, html: string = '',
 		level: 0,
 		indent: 0,
 		marker: '',
-		quoteDepth: 0
+		quoteDepth: 0,
+		svgSource: '',
+		svgWidth: 0,
+		svgHeight: 0
 	}
 }
 
@@ -515,6 +534,60 @@ function legacyHtmlBlockToText(block: MarkdownHtmlBlock): MarkdownTextRenderBloc
 	renderBlock.language = block.language
 	renderBlock.isComplete = block.isComplete
 	return renderBlock
+}
+
+function libmarkSpanToTextSpan(span: LibmarkTextSpan): MarkdownTextSpan {
+	return makeSpan(span.text, span.styles, span.href, span.isImage, span.imageSrc,
+		span.svgSource, span.svgWidth, span.svgHeight, span.svgBaseline)
+}
+
+function libmarkBlockComplete(block: LibmarkRenderBlock, isDone: boolean): boolean {
+	return isDone ? true : block.isComplete
+}
+
+function libmarkTextBlock(block: LibmarkRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
+	const spans = [] as MarkdownTextSpan[]
+	if (block.kind != 'math') {
+		for (let spanIndex = 0; spanIndex < block.spans.length; spanIndex++) {
+			spans.push(libmarkSpanToTextSpan(block.spans[spanIndex]))
+		}
+	}
+	const result = createTextBlock(block.kind, block.key, spans, block.level, block.indent,
+		block.marker, block.quoteDepth)
+	result.text = block.text
+	result.language = block.language
+	result.isComplete = libmarkBlockComplete(block, isDone)
+	result.svgSource = block.svgSource
+	result.svgWidth = block.svgWidth
+	result.svgHeight = block.svgHeight
+	return result
+}
+
+function libmarkSpecialBlock(block: LibmarkRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
+	const result = createSpecialBlock(block.kind, block.key, block.html, block.text, block.language,
+		libmarkBlockComplete(block, isDone), block.columnWidths, block.rowTextWidths)
+	result.indent = block.indent
+	result.marker = block.marker
+	result.quoteDepth = block.quoteDepth
+	result.level = block.level
+	result.svgSource = block.svgSource
+	result.svgWidth = block.svgWidth
+	result.svgHeight = block.svgHeight
+	return result
+}
+
+export function libmarkRenderBlocksToTextBlocks(blocks: LibmarkRenderBlock[],
+	isDone: boolean = false): MarkdownTextRenderBlock[] {
+	const result = [] as MarkdownTextRenderBlock[]
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		if (block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid') {
+			result.push(libmarkSpecialBlock(block, isDone))
+		} else {
+			result.push(libmarkTextBlock(block, isDone))
+		}
+	}
+	return result
 }
 
 export function markdownRenderBlocksToTextBlocks(blocks: MarkdownRenderBlock[],

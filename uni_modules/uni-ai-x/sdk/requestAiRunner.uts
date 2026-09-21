@@ -19,10 +19,19 @@ import {
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
+// #ifdef APP-HARMONY
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import { takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
+import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
+import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
+// #endif
 
 export type RequestAiRunnerCallbacks = {
 	onMarkdownHtml: (html: string) => void,
 	onMarkdownAst?: (ast: string) => void,
+	// #ifdef APP-HARMONY
+	onMarkdownAstDelta?: (ops: AiWorkerOp[]) => void,
+	// #endif
 	onThinkContent: (thinkContent: string) => void,
 	onMsgBody: (msgBody: string) => void,
 	onState: (state: string) => void,
@@ -351,6 +360,16 @@ class RequestAiRunner {
 	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private pollWorkerSnapshot(requestVersion: number) {
 		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
+		// #ifdef APP-HARMONY
+		const ops = takeAiWorkerOps()
+		for (let i = 0; i < ops.length; i++) {
+			const op = ops[i]
+			if (op.op != OP_RESET) {
+				logBlockPayload(op.kind, op.content, op.index, op.op, op.unchanged)
+			}
+		}
+		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
+		// #endif
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject

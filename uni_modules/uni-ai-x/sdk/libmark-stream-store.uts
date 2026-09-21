@@ -1,0 +1,121 @@
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import { LibmarkStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/libmark-ast.uts'
+import { libmarkRenderBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+import type { MarkdownTextRenderBlock, MarkdownTextSpan } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+
+type LibmarkStreamEntry = {
+	adapter: LibmarkStreamAdapter
+	textBlocks: MarkdownTextRenderBlock[]
+}
+
+const streamEntries = new Map<string, LibmarkStreamEntry>()
+
+function emptyBlocks(): MarkdownTextRenderBlock[] {
+	return [] as MarkdownTextRenderBlock[]
+}
+
+function entryFor(msgId: string): LibmarkStreamEntry {
+	const existing = streamEntries.get(msgId)
+	if (existing != null) return existing!
+	const entry = {
+		adapter: new LibmarkStreamAdapter(),
+		textBlocks: emptyBlocks()
+	} as LibmarkStreamEntry
+	streamEntries.set(msgId, entry)
+	return entry
+}
+
+function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void {
+	entry.textBlocks = libmarkRenderBlocksToTextBlocks(entry.adapter.getBlocks(), isDone)
+}
+
+function cloneSpan(span: MarkdownTextSpan): MarkdownTextSpan {
+	return {
+		text: span.text,
+		className: span.className,
+		href: span.href,
+		isImage: span.isImage,
+		imageSrc: span.imageSrc,
+		svgSource: span.svgSource,
+		svgWidth: span.svgWidth,
+		svgHeight: span.svgHeight,
+		svgBaseline: span.svgBaseline
+	}
+}
+
+function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
+	const spans = [] as MarkdownTextSpan[]
+	for (let index = 0; index < block.spans.length; index++) spans.push(cloneSpan(block.spans[index]))
+	const columnWidths = [] as number[]
+	for (let index = 0; index < block.columnWidths.length; index++) columnWidths.push(block.columnWidths[index])
+	const rowTextWidths = [] as number[][]
+	for (let rowIndex = 0; rowIndex < block.rowTextWidths.length; rowIndex++) {
+		const row = [] as number[]
+		for (let columnIndex = 0; columnIndex < block.rowTextWidths[rowIndex].length; columnIndex++) {
+			row.push(block.rowTextWidths[rowIndex][columnIndex])
+		}
+		rowTextWidths.push(row)
+	}
+	return {
+		kind: block.kind,
+		key: block.key,
+		html: block.html,
+		text: block.text,
+		language: block.language,
+		isComplete: block.isComplete,
+		columnWidths: columnWidths,
+		rowTextWidths: rowTextWidths,
+		spans: spans,
+		level: block.level,
+		indent: block.indent,
+		marker: block.marker,
+		quoteDepth: block.quoteDepth,
+		svgSource: block.svgSource,
+		svgWidth: block.svgWidth,
+		svgHeight: block.svgHeight
+	}
+}
+
+function cloneBlocks(blocks: MarkdownTextRenderBlock[]): MarkdownTextRenderBlock[] {
+	const result = [] as MarkdownTextRenderBlock[]
+	for (let index = 0; index < blocks.length; index++) result.push(cloneBlock(blocks[index]))
+	return result
+}
+
+export function libmarkStreamApply(msgId: string, ops: AiWorkerOp[]): boolean {
+	if (ops.length == 0) return false
+	const entry = entryFor(msgId)
+	const applied = entry.adapter.applyOps(ops)
+	refreshEntry(entry)
+	return applied
+}
+
+export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[] {
+	const entry = streamEntries.get(msgId)
+	if (entry == null) return emptyBlocks()
+	return cloneBlocks(entry!.textBlocks)
+}
+
+export function libmarkStreamComplete(msgId: string): string {
+	const entry = entryFor(msgId)
+	refreshEntry(entry, true)
+	if (!entry.adapter.hasContent()) return ''
+	return entry.adapter.getCompleteAstJson()
+}
+
+export function libmarkStreamReset(msgId: string): void {
+	const entry = entryFor(msgId)
+	entry.adapter.reset()
+	entry.textBlocks = emptyBlocks()
+}
+
+export function libmarkStreamLoadFromAst(msgId: string, astJson: string): boolean {
+	const entry = entryFor(msgId)
+	entry.adapter.loadDocument(astJson)
+	refreshEntry(entry, true)
+	return entry.textBlocks.length > 0
+}
+
+export function libmarkStreamRelease(msgId: string): void {
+	streamEntries.delete(msgId)
+}

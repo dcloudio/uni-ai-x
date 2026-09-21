@@ -44,6 +44,12 @@
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 	import { buildMarkdownAstBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
+	// #ifdef APP-HARMONY
+	import {
+		libmarkStreamGetBlocks,
+		libmarkStreamLoadFromAst
+	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	// #endif
 	import {
 		markdownHtmlBlocksToTextBlocks,
 		markdownRenderBlocksToTextBlocks,
@@ -117,6 +123,7 @@
 	type MarkdownBlockCache = {
 		html: string
 		ast: string
+		libmarkRevision: number
 		complete: boolean
 		blocks: MarkdownTextRenderBlock[]
 	}
@@ -145,15 +152,52 @@
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
 	const RENDER_ITEM_TYPE_AI_SVG = 22
 
+	function hasLibmarkRenderData(msg: MsgItem): boolean {
+		// #ifdef APP-HARMONY
+		return (msg.libmarkRevision ?? 0) > 0
+		// #endif
+		// #ifndef APP-HARMONY
+		return false
+		// #endif
+	}
+
+	function isLibmarkAst(ast: string): boolean {
+		if (ast.length == 0) return false
+		try {
+			const parsed = JSON.parse<UTSJSONObject>(ast) as UTSJSONObject
+			return (parsed['schema'] as string | null) == 'libmark.ast/1'
+		} catch (_error) {
+			return false
+		}
+	}
+
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
 		const html = msg.markdownHtml ?? ''
 		const ast = msg.markdownAst ?? ''
+		const libmarkRevision = msg.libmarkRevision ?? 0
 		const complete = msg.rendered
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.html == html && cached.ast == ast && cached.complete == complete) {
+		if (cached != null && cached.html == html && cached.ast == ast && cached.libmarkRevision == libmarkRevision && cached.complete == complete) {
 			return cached.blocks
 		}
 		let blocks = [] as MarkdownTextRenderBlock[]
+		// #ifdef APP-HARMONY
+		blocks = libmarkStreamGetBlocks(msg._id)
+		if (blocks.length == 0 && isLibmarkAst(ast)) {
+			libmarkStreamLoadFromAst(msg._id, ast)
+			blocks = libmarkStreamGetBlocks(msg._id)
+		}
+		// #endif
+		if (blocks.length > 0) {
+			markdownBlockCache.set(msg._id, {
+				html: html,
+				ast: ast,
+				libmarkRevision: libmarkRevision,
+				complete: complete,
+				blocks: blocks
+			} as MarkdownBlockCache)
+			return blocks
+		}
 		if (ast.length > 0) {
 			blocks = markdownRenderBlocksToTextBlocks(buildMarkdownAstBlocks(ast, complete), complete)
 		}
@@ -163,6 +207,7 @@
 		markdownBlockCache.set(msg._id, {
 			html: html,
 			ast: ast,
+			libmarkRevision: libmarkRevision,
 			complete: complete,
 			blocks: blocks
 		} as MarkdownBlockCache)
@@ -260,7 +305,7 @@
 				}
 				const markdownHtml = msg.markdownHtml ?? ''
 				const markdownAst = msg.markdownAst ?? ''
-				if (markdownAst.length > 0 || markdownHtml.length > 0) {
+				if (markdownAst.length > 0 || markdownHtml.length > 0 || hasLibmarkRenderData(msg)) {
 					const blocks = getMarkdownBlocks(msg)
 					if (blocks.length > 0) {
 						for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {

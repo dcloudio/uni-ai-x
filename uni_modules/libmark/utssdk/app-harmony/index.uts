@@ -1,0 +1,18 @@
+import bridge from 'libmark_bridge.so'
+import type { LibmarkEvent } from '../interface.uts'
+
+export function createSession(mode?: string): object {
+	return bridge.createSession(mode)
+}
+
+export function feedChunk(handle: object, chunk: string): LibmarkEvent | undefined {
+	return bridge.feedChunk(handle, chunk) as LibmarkEvent | undefined
+}
+
+export function finishSession(handle: object): LibmarkEvent | undefined {
+	return bridge.finishSession(handle) as LibmarkEvent | undefined
+}
+
+export function destroySession(handle: object): void {
+	bridge.destroySession(handle)
+}

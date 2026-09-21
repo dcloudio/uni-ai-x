@@ -96,6 +96,7 @@ export type MsgItem = {
 	chat_id: string,
 	markdownHtml?: string
 	markdownAst?: string
+	libmarkRevision?: number
 	stressSvgSource?: string
 	stressSvgWidth?: number
 	stressSvgHeight?: number
