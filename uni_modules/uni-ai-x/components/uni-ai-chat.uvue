@@ -11,7 +11,7 @@
 						<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
 					</view>
 				</view>
-				<list-view v-show="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
@@ -25,7 +25,7 @@
 				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
 					<add-chat-btn />
 				</view>
-				<view :style="{visibility: showScrollToBottom ? 'visible' : 'hidden'}" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
+				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
@@ -300,11 +300,7 @@
 	
 	function scrollToLastMsg(userClick: boolean){
 		if (msgList.value.length == 0) {
-			autoToLastMsg = false
-			scrollWithAnimation.value = false
-			scrollTop.value = 0
-			scrollInBottom.value = true
-			showScrollToBottom.value = false
+			resetScrollStateForEmptyChat()
 			return
 		}
 		autoToLastMsg = true
@@ -324,8 +320,21 @@
 		}
 		return 0
 	}
+
+	function resetScrollStateForEmptyChat() {
+		autoToLastMsg = false
+		scrollWithAnimation.value = false
+		scrollTop.value = 0
+		scrollInBottom.value = true
+		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
+		showScrollToBottom.value = false
+	}
 	
 	function syncScrollToBottomBtn() {
+		if (msgList.value.length == 0) {
+			resetScrollStateForEmptyChat()
+			return
+		}
 		const shouldShow = !scrollInBottom.value && !scrolling.value
 		if (!shouldShow) {
 			showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
@@ -376,6 +385,7 @@
 		scrollWithAnimation.value = false
 		scrollTop.value = 0
 		scrollInBottom.value = true
+		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
 		showScrollToBottom.value = false
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
@@ -385,6 +395,9 @@
 
 	// 消息被删除（如编辑重发）后，清理对应消息的 Markdown 缓存
 	watch((): number => msgList.value.length, () => {
+		if (msgList.value.length == 0) {
+			resetScrollStateForEmptyChat()
+		}
 		const activeMsgIds = [] as string[]
 		for (let i = 0; i < msgList.value.length; i++) {
 			activeMsgIds.push(msgList.value[i]._id)
