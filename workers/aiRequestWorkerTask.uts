@@ -14,6 +14,7 @@ import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_module
 import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
 import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-harmony/index.uts'
 import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
+import { LibmarkChunk, LibmarkOpEntry } from '@uni_modules/uni-ai-worker-runtime'
 // #endif
 import {
 	MarkdownPreprocessor,
@@ -51,11 +52,6 @@ function readEsString(message: ESObject, key: string): string {
 	const value = message[key] as string | null
 	return value == null ? '' : value as string
 }
-
-function readEsNumber(message: ESObject, key: string): number {
-	const value = message[key] as number | null
-	return value == null ? 0 : value as number
-}
 // #endif
 
 export class AiRequestWorkerTask extends WorkerTaskImpl {
@@ -78,12 +74,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
 	// #ifdef APP-HARMONY
 	private libmarkSession: object | null = null
-	private opQueue: ESObject | null = null
 	private libmarkPendingOps: LibmarkOp[] = []
 	private libmarkPendingOpOffset: number = 0
 	private libmarkPendingContent: string = ''
-	private libmarkAwaitingAck: boolean = false
-	private libmarkBatchSeq: number = 0
 	private libmarkCompletionPending: boolean = false
 	private libmarkFinishCalled: boolean = false
 	// #endif
@@ -116,13 +109,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	override onMessage(message: ESObject) {
 		// #ifdef APP-HARMONY
 		const messageTag = readEsString(message, 'tag')
-		if (messageTag == 'libmark-op-queue') {
-			this.opQueue = message as ESObject
-			if (readEsNumber(message, 'requestVersion') == this.requestVersion) {
-				this.pumpLibmark()
-			}
-			return
-		}
 		if (messageTag == 'libmark-chunk') {
 			this.handleLibmarkChunk(message)
 			return
@@ -134,12 +120,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) this.cancelCurrent()
 			return
 		}
-		// #ifdef APP-HARMONY
-		if (action == 'libmark-ack') {
-			this.handleLibmarkAck(payload)
-			return
-		}
-		// #endif
 		if (action == 'append-markdown') {
 			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) {
 				this.appendExternalMarkdown(
@@ -182,45 +162,22 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 	}
 
-	private sendNextLibmarkBatch(): boolean {
-		if (this.libmarkAwaitingAck || this.opQueue == null) return false
-		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return false
-		const queue: ESObject = this.opQueue
-		if (readEsNumber(queue, 'requestVersion') != this.requestVersion) return false
-		this.libmarkBatchSeq += 1
-		queue['beginBatch'](this.requestVersion, this.libmarkBatchSeq)
-		let pushed = 0
-		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length && pushed < (queue['capacity'] as number)) {
+	private flushLibmarkOps(): void {
+		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return
+		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
 			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
-			if ((queue['pushOp'](op.op, op.kind, op.content, op.index, op.unchanged) as boolean) == false) break
+			const entry = new LibmarkOpEntry()
+			entry.requestVersion = this.requestVersion
+			entry.op = op.op
+			entry.kind = op.kind
+			entry.content = op.content
+			entry.index = op.index
+			entry.unchanged = op.unchanged
+			this.postMessage(entry, { harmonySendable: true } as WorkerPostMessageOptions)
 			this.libmarkPendingOpOffset += 1
-			pushed += 1
 		}
-		if (pushed == 0) {
-			this.failLibmark('libmark_queue_unavailable', 'libmark 操作队列不可用')
-			return false
-		}
-		this.libmarkAwaitingAck = true
-		this.postMessage({
-			phase: 'libmark-ops',
-			requestVersion: this.requestVersion,
-			batchSeq: this.libmarkBatchSeq
-		} as UTSJSONObject)
-		return true
-	}
-
-	private handleLibmarkAck(message: UTSJSONObject) {
-		if (!this.libmarkAwaitingAck) return
-		if (readMessageNumber(message, 'requestVersion') != this.requestVersion) return
-		if (readMessageNumber(message, 'batchSeq') != this.libmarkBatchSeq) return
-		if (this.opQueue == null || readEsNumber(this.opQueue!, 'requestVersion') != this.requestVersion) return
-		this.libmarkAwaitingAck = false
-		this.opQueue!['beginBatch'](this.requestVersion, this.libmarkBatchSeq)
-		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) {
-			this.libmarkPendingOps = [] as LibmarkOp[]
-			this.libmarkPendingOpOffset = 0
-		}
-		this.pumpLibmark()
+		this.libmarkPendingOps = [] as LibmarkOp[]
+		this.libmarkPendingOpOffset = 0
 	}
 
 	private processLibmarkContent(contentDelta: string): boolean {
@@ -238,16 +195,13 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private pumpLibmark() {
-		if (this.finished || this.libmarkAwaitingAck) return
-		if (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
-			if (this.opQueue == null) return
-			if (this.sendNextLibmarkBatch()) return
-		}
+		if (this.finished) return
+		this.flushLibmarkOps()
 		if (this.libmarkPendingContent.length > 0) {
 			const content = this.libmarkPendingContent
 			this.libmarkPendingContent = ''
 			if (this.processLibmarkContent(content) == false) return
-			if (this.sendNextLibmarkBatch()) return
+			this.flushLibmarkOps()
 		}
 		if (!this.libmarkCompletionPending) return
 		if (!this.libmarkFinishCalled) {
@@ -262,10 +216,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				}
 				this.destroyLibmarkSession()
 			}
-			if (this.libmarkPendingOps.length > 0 && this.opQueue == null) return
-			if (this.sendNextLibmarkBatch()) return
+			this.flushLibmarkOps()
 			if (this.finished) return
-			if (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) return
 		}
 		this.finished = true
 		this.postMessage({ phase: 'libmark-complete', requestVersion: this.requestVersion } as UTSJSONObject)
@@ -275,10 +227,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private handleLibmarkChunk(message: ESObject) {
 		if (this.finished || this.libmarkCompletionPending) return
-		const requestVersion = readEsNumber(message, 'requestVersion')
-		if (requestVersion != this.requestVersion) return
-		const contentDelta = readEsString(message, 'content')
-		const reasoningDelta = readEsString(message, 'reasoningContent')
+		const chunk = message as LibmarkChunk
+		if (chunk.requestVersion != this.requestVersion) return
+		const contentDelta = chunk.content
+		const reasoningDelta = chunk.reasoningContent
 		if (contentDelta.length == 0 && reasoningDelta.length == 0) return
 		this.eventCount += 1
 		this.networkChunkCount += 1
@@ -286,7 +238,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
 		if (contentDelta.length > 0) {
-			if (this.libmarkAwaitingAck || this.libmarkPendingOps.length > 0) {
+			if (this.libmarkPendingOps.length > 0) {
 				this.libmarkPendingContent += contentDelta
 			} else if (this.processLibmarkContent(contentDelta) == false) return
 		}
@@ -299,7 +251,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		this.destroyLibmarkSession()
-		this.opQueue = null
 		this.resetLibmarkProtocol()
 		this.postMessage({
 			phase: 'libmark-error',
@@ -325,8 +276,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.libmarkPendingOps = [] as LibmarkOp[]
 		this.libmarkPendingOpOffset = 0
 		this.libmarkPendingContent = ''
-		this.libmarkAwaitingAck = false
-		this.libmarkBatchSeq = 0
 		this.libmarkCompletionPending = false
 		this.libmarkFinishCalled = false
 	}
@@ -381,17 +330,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private startMarkdown(payload: UTSJSONObject) {
 		const requestVersion = readMessageNumber(payload, 'requestVersion')
-		// #ifdef APP-HARMONY
-		const queue: ESObject | null = this.opQueue
-		const queueRequestVersion = queue == null ? 0 : readEsNumber(queue, 'requestVersion')
-		this.opQueue = null
-		// #endif
 		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
-		// #ifdef APP-HARMONY
-		if (queueRequestVersion == requestVersion) {
-			this.opQueue = queue
-		}
-		// #endif
 		if (requestVersion <= 0) {
 			this.fail('invalid_markdown_request', 'Worker Markdown 请求参数不完整')
 			return
@@ -566,7 +505,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.renderTimer = 0
 		// #ifdef APP-HARMONY
 		this.destroyLibmarkSession()
-		this.opQueue = null
 		this.resetLibmarkProtocol()
 		// #endif
 		// #ifdef APP-ANDROID
@@ -610,8 +548,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = true
 		// #ifdef APP-HARMONY
 		this.destroyLibmarkSession()
-		if (this.opQueue != null) this.opQueue!['beginBatch'](this.requestVersion, this.libmarkBatchSeq)
-		this.opQueue = null
 		this.resetLibmarkProtocol()
 		// #endif
 		// #ifdef APP-ANDROID

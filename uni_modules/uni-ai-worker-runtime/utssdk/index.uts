@@ -15,25 +15,19 @@ import {
 // #ifdef APP-HARMONY
 import {
 	LibmarkChunk,
-	LibmarkOpQueue,
-	createOpQueue,
-	queueBatchSeq,
-	queueCount,
-	queueRequestVersion,
-	slotContent,
-	slotIndex,
-	slotKind,
-	slotOp,
-	slotUnchanged
+	LibmarkOpEntry
 } from './sendable.ets'
+
+export {
+	LibmarkChunk,
+	LibmarkOpEntry
+}
 
 type SendablePostMessageOptions = {
 	harmonySendable?: boolean
 	transfer?: any[]
 }
 
-const OP_QUEUE_CAPACITY = 1024
-let opQueue: LibmarkOpQueue | null = null
 let pendingLibmarkOps = [] as AiWorkerOp[]
 // #endif
 
@@ -70,6 +64,11 @@ function readMessageNumber(message: UTSJSONObject, key: string, defaultValue: nu
 	return value == null ? defaultValue : value as number
 }
 
+function readMessageBoolean(message: UTSJSONObject, key: string, defaultValue: boolean = false): boolean {
+	const value = message[key] as boolean | null
+	return value == null ? defaultValue : value as boolean
+}
+
 function postStart(options: AiWorkerStartOptions): void {
 	if (worker == null || !workerReady) return
 	const message = new UTSJSONObject()
@@ -90,9 +89,6 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	if (worker == null || !workerReady) return
 	// #ifdef APP-HARMONY
 	pendingLibmarkOps = [] as AiWorkerOp[]
-	opQueue = createOpQueue(OP_QUEUE_CAPACITY)
-	opQueue!.beginBatch(options.requestVersion, 0)
-	worker!.postMessage(opQueue, { harmonySendable: true } as SendablePostMessageOptions)
 	// #endif
 	worker!.postMessage({
 		action: 'start-markdown',
@@ -136,28 +132,15 @@ function postMarkdownComplete(requestVersion: number): void {
 }
 
 // #ifdef APP-HARMONY
-function receiveLibmarkOps(message: UTSJSONObject): void {
-	const queue = opQueue
-	if (queue == null || worker == null) return
-	const requestVersion = readMessageNumber(message, 'requestVersion')
-	const batchSeq = readMessageNumber(message, 'batchSeq')
-	if (requestVersion != currentRequestVersion) return
-	if (queueRequestVersion(queue) != requestVersion || queueBatchSeq(queue) != batchSeq) return
-	const count = queueCount(queue)
-	for (let i = 0; i < count; i++) {
-		pendingLibmarkOps.push({
-			op: slotOp(queue, i),
-			kind: slotKind(queue, i),
-			content: slotContent(queue, i),
-			index: slotIndex(queue, i),
-			unchanged: slotUnchanged(queue, i)
-		} as AiWorkerOp)
-	}
-	worker!.postMessage({
-		action: 'libmark-ack',
-		requestVersion: requestVersion,
-		batchSeq: batchSeq
-	} as UTSJSONObject, null)
+function receiveLibmarkOp(message: UTSJSONObject): void {
+	if (readMessageNumber(message, 'requestVersion') != currentRequestVersion) return
+	pendingLibmarkOps.push({
+		op: readMessageNumber(message, 'op'),
+		kind: readMessageString(message, 'kind'),
+		content: readMessageString(message, 'content'),
+		index: readMessageNumber(message, 'index'),
+		unchanged: readMessageBoolean(message, 'unchanged')
+	} as AiWorkerOp)
 }
 // #endif
 
@@ -169,13 +152,13 @@ function createWorkerNow(generation: number): void {
 	worker!.onMessage((message: any) => {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
-		const phase = readMessageString(result, 'phase')
 		// #ifdef APP-HARMONY
-		if (phase == 'libmark-ops') {
-			receiveLibmarkOps(result)
+		if (readMessageString(result, 'tag') == 'libmark-op') {
+			receiveLibmarkOp(result)
 			return
 		}
 		// #endif
+		const phase = readMessageString(result, 'phase')
 		if (phase == 'ready') {
 			workerReady = true
 			if (pendingMarkdownStart != null) {
@@ -288,7 +271,6 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	pendingMarkdownComplete = false
 	// #ifdef APP-HARMONY
 	pendingLibmarkOps = [] as AiWorkerOp[]
-	opQueue = null
 	currentRequestVersion = 0
 	// #endif
 	if (worker == null || !workerReady) return
@@ -311,7 +293,6 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	latestSnapshotJson = ''
 	currentRequestVersion = 0
 	// #ifdef APP-HARMONY
-	opQueue = null
 	pendingLibmarkOps = [] as AiWorkerOp[]
 	// #endif
 	if (previousWorker != null) {
