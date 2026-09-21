@@ -20,7 +20,8 @@
 		<uni-ai-msg-code v-else-if="part.block != null && (part.block.kind == 'code' || part.block.kind == 'mermaid')"
 			:code-text="part.block.text" :block-key="part.block.key" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" :msg="msg" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
-			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" />
+			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
+			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 		<template v-else-if="part.kind == 'empty'">

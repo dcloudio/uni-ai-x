@@ -1,0 +1,22 @@
+{
+  "id": "libmark",
+  "displayName": "libmark",
+  "version": "1.0.0",
+  "description": "libmark 的 uni-app x UTS 封装，提供 Markdown 流式解析的块级事件接口",
+  "keywords": [
+    "libmark",
+    "markdown",
+    "harmony"
+  ],
+  "engines": {
+    "HBuilderX": "^5.0",
+    "uni-app": "",
+    "uni-app-x": "^5.0"
+  },
+  "dcloudext": {
+    "type": "uts"
+  },
+  "uni_modules": {
+    "dependencies": []
+  }
+}

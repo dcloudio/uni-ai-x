@@ -68,3 +68,7 @@ uni-app x 的 App-Android 为整包更新，不支持 wgt 热更新；iOS 更新
 ## 声明
 本项目依赖以下作品
 1. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
+
+## 遗留事项
+
+- **Worker 侧 Sendable 创建（鸿蒙 libmark 通信优化）**：当前 uni-app x 工具链不支持 Worker 任务引用 UTS 插件的 `.ets` Sendable 类（Worker 编译时不内联 `.ets`，产物中相对路径无法解析），鸿蒙 libmark 接入采用"主线程创建共享 Sendable 队列、Worker 写入、轻量通知读取"的无序列化通信方案。若后续工具链支持 Worker 引用插件 `.ets`（或允许在 Worker 中定义 `@Sendable` 类），可改为 Worker 侧直接创建并发送 Sendable 的方案，简化队列协议。

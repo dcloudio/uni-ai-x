@@ -1,0 +1,6 @@
+{
+  "minApiLevel": "9",
+  "dependencies": {
+    "libmark": "./libs/libmark.har"
+  }
+}

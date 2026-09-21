@@ -95,7 +95,8 @@ export type MsgItem = {
 	// 所属对话id
 	chat_id: string,
 	markdownHtml?: string
-	markdownBlocks?: string
+	markdownAst?: string
+	libmarkRevision?: number
 	stressSvgSource?: string
 	stressSvgWidth?: number
 	stressSvgHeight?: number

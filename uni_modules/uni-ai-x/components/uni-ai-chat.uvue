@@ -42,9 +42,17 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
-	import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { buildMarkdownAstBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
+	// #ifdef APP-HARMONY
+	import {
+		libmarkStreamGetBlocks,
+		libmarkStreamLoadFromAst
+	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	// #endif
 	import {
 		markdownHtmlBlocksToTextBlocks,
+		markdownRenderBlocksToTextBlocks,
 		MarkdownTextRenderBlock
 	} from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
@@ -114,7 +122,8 @@
 
 	type MarkdownBlockCache = {
 		html: string
-		blocksJson: string
+		ast: string
+		libmarkRevision: number
 		complete: boolean
 		blocks: MarkdownTextRenderBlock[]
 	}
@@ -143,28 +152,62 @@
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
 	const RENDER_ITEM_TYPE_AI_SVG = 22
 
+	function hasLibmarkRenderData(msg: MsgItem): boolean {
+		// #ifdef APP-HARMONY
+		return (msg.libmarkRevision ?? 0) > 0
+		// #endif
+		// #ifndef APP-HARMONY
+		return false
+		// #endif
+	}
+
+	function isLibmarkAst(ast: string): boolean {
+		if (ast.length == 0) return false
+		try {
+			const parsed = JSON.parse<UTSJSONObject>(ast) as UTSJSONObject
+			return (parsed['schema'] as string | null) == 'libmark.ast/1'
+		} catch (_error) {
+			return false
+		}
+	}
+
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
 		const html = msg.markdownHtml ?? ''
-		const blocksJson = msg.markdownBlocks ?? ''
+		const ast = msg.markdownAst ?? ''
+		const libmarkRevision = msg.libmarkRevision ?? 0
 		const complete = msg.rendered
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.html == html && cached.blocksJson == blocksJson && cached.complete == complete) {
+		if (cached != null && cached.html == html && cached.ast == ast && cached.libmarkRevision == libmarkRevision && cached.complete == complete) {
 			return cached.blocks
 		}
 		let blocks = [] as MarkdownTextRenderBlock[]
-		if (blocksJson.length > 0) {
-			try {
-				const workerBlocks = JSON.parse<MarkdownHtmlBlock[]>(blocksJson) as MarkdownHtmlBlock[]
-				blocks = markdownHtmlBlocksToTextBlocks(workerBlocks)
-			} catch (_error) {
-				console.error('[uni-ai-x] Worker markdown blocks parse failed.')
-			}
-		} else if (html.length > 0) {
-			console.error('[uni-ai-x] Worker did not return markdown blocks.')
+		// #ifdef APP-HARMONY
+		blocks = libmarkStreamGetBlocks(msg._id)
+		if (blocks.length == 0 && isLibmarkAst(ast)) {
+			libmarkStreamLoadFromAst(msg._id, ast)
+			blocks = libmarkStreamGetBlocks(msg._id)
+		}
+		// #endif
+		if (blocks.length > 0) {
+			markdownBlockCache.set(msg._id, {
+				html: html,
+				ast: ast,
+				libmarkRevision: libmarkRevision,
+				complete: complete,
+				blocks: blocks
+			} as MarkdownBlockCache)
+			return blocks
+		}
+		if (ast.length > 0) {
+			blocks = markdownRenderBlocksToTextBlocks(buildMarkdownAstBlocks(ast, complete), complete)
+		}
+		if (blocks.length == 0 && html.length > 0) {
+			blocks = markdownHtmlBlocksToTextBlocks(buildMarkdownHtmlBlocks(html, complete))
 		}
 		markdownBlockCache.set(msg._id, {
 			html: html,
-			blocksJson: blocksJson,
+			ast: ast,
+			libmarkRevision: libmarkRevision,
 			complete: complete,
 			blocks: blocks
 		} as MarkdownBlockCache)
@@ -261,8 +304,8 @@
 					appendNormalPart(aiRenderPart('think', 'think'))
 				}
 				const markdownHtml = msg.markdownHtml ?? ''
-				const markdownBlocks = msg.markdownBlocks ?? ''
-				if (markdownBlocks.length > 0 || markdownHtml.length > 0) {
+				const markdownAst = msg.markdownAst ?? ''
+				if (markdownAst.length > 0 || markdownHtml.length > 0 || hasLibmarkRenderData(msg)) {
 					const blocks = getMarkdownBlocks(msg)
 					if (blocks.length > 0) {
 						for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
@@ -532,7 +575,7 @@
 			console.error('[uni-ai-x][Markdown示例] 运行失败', error)
 		}
 	}
-
+	
 	const beforeRequestAi = () => {
 		autoToLastMsg = true
 		needSetLockAutoToLastMsg = true

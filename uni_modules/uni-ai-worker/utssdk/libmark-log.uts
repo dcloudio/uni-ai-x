@@ -1,0 +1,261 @@
+// 块事件日志：libmark 下发的 html / data / ast 载荷都按同一套格式打印到控制台，
+// 前缀 [libmark] 便于过滤。模块内只有纯函数，格式与 libmark 的 uni-app-x demo 一致。
+import { OP_APPEND, OP_TAIL, OP_COMMIT, OP_RESET } from '../../libmark/utssdk/interface.uts'
+
+// 单行日志上限：超过则截断保留头部并附上原始长度。
+const LOG_LINE_LIMIT: number = 400
+// 单行日志最短长度：不足的部分在尾部补空格，便于日志行对齐。
+const LOG_LINE_MIN: number = 80
+// data URI 前缀与最小需要截断的 base64 体长度。
+const LOG_BASE64_MARKER: string = 'base64,'
+const LOG_BASE64_MIN: number = 32
+const LOG_BASE64_KEEP: number = 16
+
+function isBase64Char(code: number): boolean {
+	return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a) ||
+		(code >= 0x30 && code <= 0x39) || code == 0x2b || code == 0x2f ||
+		code == 0x3d
+}
+
+/**
+ * 把 `data:...;base64,<body>` 的 base64 体压成 `base64,<前 16 字符>...(<原长度> chars)`。
+ * 逐字符扫描而不是正则：不同 JS 引擎对 `{n,}` 这类量词的支持不一致，扫描保证行为一致。
+ */
+function truncateDataUris(text: string): string {
+	let result = ''
+	let index = 0
+	while (index < text.length) {
+		const found = text.indexOf(LOG_BASE64_MARKER, index)
+		if (found < 0) {
+			result += text.substring(index)
+			break
+		}
+		const bodyStart = found + LOG_BASE64_MARKER.length
+		let bodyEnd = bodyStart
+		while (bodyEnd < text.length && isBase64Char(text.charCodeAt(bodyEnd))) {
+			bodyEnd++
+		}
+		result += text.substring(index, bodyStart)
+		const bodyLength = bodyEnd - bodyStart
+		if (bodyLength < LOG_BASE64_MIN) {
+			result += text.substring(bodyStart, bodyEnd)
+		} else {
+			result += text.substring(bodyStart, bodyStart + LOG_BASE64_KEEP) +
+				`...(${bodyLength} chars)`
+		}
+		index = bodyEnd
+	}
+	return result
+}
+
+// 兜底：任何字段展开后仍然过长的行都截断，保证日志不会刷出整屏。
+function limitLogLine(line: string): string {
+	if (line.length <= LOG_LINE_LIMIT) return line
+	return `${line.substring(0, LOG_LINE_LIMIT)}...(${line.length} chars)`
+}
+
+// 不足 LOG_LINE_MIN 个字符的行在尾部补空格；达到或超过则原样返回。
+function padLogLine(line: string): string {
+	if (line.length >= LOG_LINE_MIN) return line
+	let padding = ''
+	for (let i = line.length; i < LOG_LINE_MIN; i++) {
+		padding += ' '
+	}
+	return line + padding
+}
+
+// JSON 日志格式化的解析状态：在 libmark 输出的紧凑 JSON 上按字符扫描，
+// 不构造对象，避免日志内容受 schema 字段变化影响。
+class LogFormatState {
+	text: string = ''
+	pos: number = 0
+	lines: string[] = []
+}
+
+const LOG_INDENT: string = '  '
+
+function logIndent(depth: number): string {
+	let text = ''
+	for (let i = 0; i < depth; i++) text += LOG_INDENT
+	return text
+}
+
+function logSkipSpace(state: LogFormatState): void {
+	while (state.pos < state.text.length) {
+		const ch = state.text.charAt(state.pos)
+		if (ch != ' ' && ch != '\n' && ch != '\r' && ch != '\t') break
+		state.pos++
+	}
+}
+
+// 读取一个 JSON 字符串，返回去掉引号的文本（转义序列保持原样）。
+function logReadString(state: LogFormatState): string {
+	const start = state.pos
+	let escaped = false
+
+	state.pos++
+	while (state.pos < state.text.length) {
+		const ch = state.text.charAt(state.pos)
+		state.pos++
+		if (escaped) {
+			escaped = false
+		} else if (ch == '\\') {
+			escaped = true
+		} else if (ch == '"') {
+			break
+		}
+	}
+	if (state.pos <= start + 1) return ''
+	return state.text.substring(start + 1, state.pos - 1)
+}
+
+function logReadScalar(state: LogFormatState): string {
+	const start = state.pos
+
+	while (state.pos < state.text.length) {
+		const ch = state.text.charAt(state.pos)
+		if (ch == ',' || ch == '}' || ch == ']') break
+		state.pos++
+	}
+	return state.text.substring(start, state.pos)
+}
+
+// key 为空表示数组元素；标量值的键与值之间留一个空格。
+function logPushValue(state: LogFormatState, depth: number, key: string): void {
+	const ch = state.text.charAt(state.pos)
+	const prefix = key.length > 0 ? key + ': ' : ''
+
+	if (ch == '{') {
+		if (key.length > 0) state.lines.push(logIndent(depth) + key + ':')
+		logEmitObject(state, depth + (key.length > 0 ? 1 : 0))
+	} else if (ch == '[') {
+		if (key.length > 0) state.lines.push(logIndent(depth) + key + ':')
+		logEmitArray(state, depth + (key.length > 0 ? 1 : 0))
+	} else if (ch == '"') {
+		state.lines.push(logIndent(depth) + prefix + logReadString(state))
+	} else {
+		state.lines.push(logIndent(depth) + prefix + logReadScalar(state))
+	}
+}
+
+function logEmitObject(state: LogFormatState, depth: number): void {
+	if (state.text.charAt(state.pos) != '{') return
+	state.pos++
+	logSkipSpace(state)
+	if (state.text.charAt(state.pos) == '}') {
+		state.pos++
+		return
+	}
+	while (state.pos < state.text.length) {
+		logSkipSpace(state)
+		const key = logReadString(state)
+		logSkipSpace(state)
+		if (state.text.charAt(state.pos) == ':') state.pos++
+		logSkipSpace(state)
+		logPushValue(state, depth, key)
+		logSkipSpace(state)
+		if (state.text.charAt(state.pos) == ',') {
+			state.pos++
+			continue
+		}
+		if (state.text.charAt(state.pos) == '}') state.pos++
+		break
+	}
+}
+
+// 数组元素各占一层缩进；`--` 作为元素边界只输出一次：第一个元素之前、每两个元素
+// 之间、最后一个元素之后各一行。
+function logEmitArray(state: LogFormatState, depth: number): void {
+	if (state.text.charAt(state.pos) != '[') return
+	state.pos++
+	logSkipSpace(state)
+	if (state.text.charAt(state.pos) == ']') {
+		state.pos++
+		return
+	}
+	state.lines.push(logIndent(depth) + '--')
+	while (state.pos < state.text.length) {
+		logSkipSpace(state)
+		logPushValue(state, depth, '')
+		state.lines.push(logIndent(depth) + '--')
+		logSkipSpace(state)
+		if (state.text.charAt(state.pos) == ',') {
+			state.pos++
+			continue
+		}
+		if (state.text.charAt(state.pos) == ']') state.pos++
+		break
+	}
+}
+
+// 展开成 [libmark]<缩进><key>: <value> 形式的日志行。顶级属性缩进一级（两个空格），
+// 嵌套层级与数组元素在此基础上继续叠加。
+function formatJsonLogLines(payload: string): string[] {
+	const state = new LogFormatState()
+
+	state.text = payload
+	logSkipSpace(state)
+	logPushValue(state, 1, '')
+	if (state.lines.length == 0) state.lines.push(payload)
+	return state.lines
+}
+
+// 文本载荷（HTML 标记、非 JSON 的 DATA）按行展开，整体缩进一级。
+function formatTextLogLines(payload: string): string[] {
+	const lines: string[] = []
+	const parts = payload.split('\n')
+	for (let i = 0; i < parts.length; i++) {
+		lines.push(logIndent(1) + parts[i])
+	}
+	return lines
+}
+
+// 跳过前导空白后判断载荷是否是 JSON 文档（DATA 通道的 math 信封是 JSON）。
+function isJsonDocument(payload: string): boolean {
+	let index = 0
+
+	while (index < payload.length) {
+		const ch = payload.charAt(index)
+		if (ch != ' ' && ch != '\n' && ch != '\r' && ch != '\t') break
+		index++
+	}
+	const head = index < payload.length ? payload.charAt(index) : ''
+	return head == '{' || head == '['
+}
+
+// 通道内容按各自格式展开：AST 与 DATA 的 JSON 文档展开成 key/value 行，HTML 标记与
+// 其它 DATA 载荷按文本行输出。
+function formatBlockLogLines(kind: string, payload: string): string[] {
+	if (kind == 'html') return formatTextLogLines(payload)
+	if (kind == 'data' && !isJsonDocument(payload)) return formatTextLogLines(payload)
+	return formatJsonLogLines(payload)
+}
+
+// 事件类型名，用于 block 包装行。
+function opKindName(op: number): string {
+	if (op == OP_APPEND) return 'append'
+	if (op == OP_TAIL) return 'tail'
+	if (op == OP_COMMIT) return 'commit'
+	if (op == OP_RESET) return 'reset'
+	return op.toString()
+}
+
+/**
+ * 每个收到的块事件都写进日志：先输出一行 block 包装信息
+ * `BLOCK <事件类型> [<通道>] #<块序号>`，随后输出内容。AST 与 DATA 的 JSON 文档每行是
+ * `<key>: <value>`，数组元素再多缩进一层并用 `--` 标出边界；HTML 标记与其它 DATA 载荷
+ * 按行输出，整体缩进一级。只有 data URI 这类超长字段做截断：保留媒体类型、base64
+ * 前缀和原长度。
+ */
+export function logBlockPayload(kind: string, payload: string, index: number,
+	op: number, unchanged: boolean): void {
+	const compact = truncateDataUris(payload)
+	console.log(padLogLine(`[libmark]BLOCK ${opKindName(op)} [${kind}] #${index}` +
+		(unchanged ? ' (unchanged)' : '')))
+	// 内容未变的提交不再重复打印内容。
+	if (unchanged) return
+	const lines = formatBlockLogLines(kind, compact)
+	for (let i = 0; i < lines.length; i++) {
+		console.log(padLogLine(`[libmark]${limitLogLine(lines[i])}`))
+	}
+}

@@ -21,8 +21,11 @@
     // #endif
     const props = defineProps<{
         href?: string
-        width?: number
-        height?: number
+	        width?: number
+	        height?: number
+	        svgSource?: string
+	        svgWidth?: number
+	        svgHeight?: number
 	        text?: string
 	        codeTokens?: MarkdownToken[][]
 	        renderTheme?: string
@@ -238,12 +241,30 @@
 
 	    function syncMathImageTheme() {
 	        const mathText = (props.text ?? '').trim()
-	        if (mathSourceKey != mathText) {
-	            mathSourceKey = mathText
+	        const svgSource = props.svgSource ?? ''
+	        const sourceKey = mathText + '\n' + svgSource + '\n' + (props.svgWidth ?? 0).toString()
+	            + '\n' + (props.svgHeight ?? 0).toString()
+	        if (mathSourceKey != sourceKey) {
+	            mathSourceKey = sourceKey
 	            mathImageLoadFailed.value = false
 	            resetMathImages()
 	        }
 	        const isClosed = (props.isClose ?? 0) == 1
+	        if (svgSource.length > 0 && !isClosed) {
+	            mathWasClosed = false
+	            mathImageModeLatched.value = false
+	            mathRenderRequestKey = ''
+	            resetMathImages()
+	            return
+	        }
+	        if (svgSource.length > 0 && isClosed) {
+	            mathWasClosed = true
+	            mathImageModeLatched.value = true
+	            mathImageLoadFailed.value = false
+	            mathRenderRequestKey = ''
+	            queueMathImage(svgSource, props.svgWidth ?? 1, props.svgHeight ?? 1)
+	            return
+	        }
 	        if (!isClosed) {
 	            if (mathWasClosed) resetMathImages()
 	            mathWasClosed = false
@@ -284,6 +305,8 @@
 
 	    watch((): string => {
 	        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n'
+	            + (props.svgSource ?? '') + '\n' + (props.svgWidth ?? 0).toString() + '\n'
+	            + (props.svgHeight ?? 0).toString() + '\n'
 	            + (props.isClose ?? 0).toString() + '\n'
 	            + ((props.href ?? '').length > 0 ? '1' : '0')
     }, () => {
