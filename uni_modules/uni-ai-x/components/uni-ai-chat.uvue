@@ -240,7 +240,7 @@
 				flushNormalParts()
 				// 块闭合（流式转完成）时在 key 上追加后缀强制重建该 list-item：
 				// 长流式过程中 list-view 既有 item 的 props 更新可能丢失（组件 watch 不触发），
-				// 重建可保证代码块/流程图的最终状态（如 mermaid 围栏闭合后的图片渲染）必然生效
+				// 重建可保证代码块/图表的最终状态（如 mermaid 围栏闭合后的图片渲染）必然生效
 				const blockKey = block.key + (block.isComplete ? '-c' : '')
 				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, blockKey,
 					[aiRenderPart(block.kind, blockKey, block)] as AiMsgRenderPart[])

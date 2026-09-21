@@ -18,7 +18,7 @@ export const demoMarkdownScenarios: DemoMarkdownScenario[] = [
 	{ id: 'code', label: '代码', prompt: '持续生成 Markdown 代码块测试数据' },
 	{ id: 'link', label: '链接', prompt: '持续生成 Markdown 链接测试数据' },
 	{ id: 'math', label: '公式', prompt: '持续生成 Markdown 数学公式测试数据' },
-	{ id: 'mermaid', label: '流程图', prompt: '持续生成 Mermaid 流程图测试数据' },
+	{ id: 'mermaid', label: '图表', prompt: '持续生成 Mermaid 图表测试数据' },
 	{ id: 'divider', label: '分割线', prompt: '持续生成 Markdown 分割线测试数据' },
 	{ id: 'paragraph', label: '长文本', prompt: '持续生成 Markdown 长文本测试数据' },
 	{ id: 'mixed', label: '混合', prompt: '持续生成混合 Markdown 测试数据' }
