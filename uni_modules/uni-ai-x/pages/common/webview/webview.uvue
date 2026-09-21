@@ -6,8 +6,10 @@
 		</view>
 		<text class="nav-bar-title">{{title}}</text>
 		<view class="nav-bar-right">
-			<!-- #ifdef APP -->
-			<uni-icons type="refresh" size="20" color="#000" @click="refresh"></uni-icons>
+			<!-- #ifndef MP -->
+			<view class="external-browser-button" hover-class="external-browser-button-active" @click.stop="openInExternalBrowser">
+				<uni-ai-icon class="external-browser-icon" code="e797" size="24" color="#000"></uni-ai-icon>
+			</view>
 			<!-- #endif -->
 		</view>
 	</view>
@@ -15,6 +17,10 @@
 </template>
 
 <script lang="uts" setup>
+	// #ifdef APP
+	import { openSchema } from '@/uni_modules/uts-openSchema'
+	// #endif
+
 	const url = ref<string>("")
 	const title = ref<string>("")
 	
@@ -51,29 +57,51 @@
 	const back = () => {
 		uni.navigateBack()
 	}
-	
-	// #ifdef APP
-	const refresh = () => {
-		uni.createWebviewContext('webview')?.reload()
+
+	const openInExternalBrowser = () => {
+		if (url.value.length == 0) return
+		console.log('[webview] open external browser:', url.value)
+		uni.showToast({ title: '正在打开浏览器', icon: 'none', duration: 800 })
+		// #ifdef APP
+		openSchema(url.value)
+		// #endif
+		// #ifdef WEB
+		window.open(url.value, '_blank')
+		// #endif
 	}
-	// #endif
+
 </script>
 <style lang="scss">
 	/* 蒸汽模式：仅单层 class */
 	.nav-bar {
 		flex-direction: row;
 		padding: 10px;
-		/* #ifndef WEB */
-		padding-top: env(safe-area-inset-top);
-		/* #endif */
+		padding-top: var(--status-bar-height);
 		justify-content: space-between;
 		border-bottom: 1px solid #ccc;
 	}
 
 	.nav-bar-left,
 	.nav-bar-right {
-		width: 25px;
+		width: 52px;
+		height: 24px;
+		flex-direction: row;
 		align-items: center;
+	}
+
+	.nav-bar-right {
+		justify-content: flex-end;
+	}
+
+	.external-browser-button {
+		width: 44px;
+		height: 44px;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.external-browser-button-active {
+		opacity: 0.55;
 	}
 
 	.nav-bar-title {

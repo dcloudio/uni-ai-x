@@ -1,0 +1,31 @@
+{
+	"id": "uts-openSchema",
+	"displayName": "uts-openSchema",
+	"version": "1.0.0",
+	"description": "在 Android、iOS、HarmonyOS 和 Web 上打开链接的 UTS API",
+	"keywords": ["uts-openSchema"],
+	"engines": {
+		"HBuilderX": "^4.0",
+		"uni-app-x": "^4.75"
+	},
+	"dcloudext": {
+		"type": "uts",
+		"darkmode": "x",
+		"i18n": "x",
+		"widescreen": "x"
+	},
+	"uni_modules": {
+		"platforms": {
+			"client": {
+				"uni-app-x": {
+					"web": { "safari": "x", "chrome": "x" },
+					"app": {
+						"android": { "minVersion": "21" },
+						"ios": { "minVersion": "12" },
+						"harmony": { "minVersion": "5.0.0" }
+					}
+				}
+			}
+		}
+	}
+}

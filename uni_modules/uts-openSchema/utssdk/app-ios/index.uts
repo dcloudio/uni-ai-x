@@ -1,0 +1,16 @@
+import { UIApplication } from 'UIKit'
+import { URL } from 'Foundation'
+import { OpenSchema, CanOpenURL } from '../interface.uts'
+
+export const openSchema : OpenSchema = function (url : string) : void {
+	if (canOpenURL(url)) {
+		const uri = new URL(string = url)
+		UIApplication.shared.open(uri!)
+	}
+}
+
+export const canOpenURL : CanOpenURL = function (url : string) : boolean {
+	if (url.length == 0) return false
+	const uri = new URL(string = url)
+	return uri != null && UIApplication.shared.canOpenURL(uri!)
+}
