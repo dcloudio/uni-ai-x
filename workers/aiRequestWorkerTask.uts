@@ -14,7 +14,7 @@ import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_module
 import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
 import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-harmony/index.uts'
 import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
-import { LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
+import { AiWorkerState, LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
 // #endif
 import {
 	MarkdownPreprocessor,
@@ -86,16 +86,15 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	override entry() {
-		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-HARMONY
+		this.postMessage({ phase: 'ready' } as UTSJSONObject)
+		return
+		// #endif
+		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN
 		initMd2html().then(() => {
 			this.postMessage({ phase: 'ready' } as UTSJSONObject)
 		}).catch((error) => {
-			// #ifdef APP-HARMONY
-			const errMsg = 'cmark-gfm WebAssembly 初始化失败'
-			// #endif
-			// #ifndef APP-HARMONY
 			const errMsg = error instanceof Error ? error.message : 'cmark-gfm WebAssembly 初始化失败'
-			// #endif
 			this.postMessage({
 				phase: 'init-error',
 				errMsg: errMsg
@@ -407,9 +406,33 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
+	// #ifdef APP-HARMONY
+	// 鸿蒙不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 libmark ops 驱动
+	private publishLibmarkState(phase: string, errCode: string = '', errMsg: string = ''): void {
+		this.snapshotVersion += 1
+		const state = new AiWorkerState()
+		state.requestVersion = this.requestVersion
+		state.snapshotVersion = this.snapshotVersion
+		state.phase = phase
+		state.msgBody = this.content
+		state.thinkContent = this.reasoningContent.trim()
+		state.eventCount = this.eventCount
+		state.networkChunkCount = this.networkChunkCount
+		state.receivedBytes = this.receivedBytes
+		state.elapsed = Date.now() - this.startedAt
+		state.errCode = errCode
+		state.errMsg = errMsg
+		this.postMessage(state, { harmonySendable: true } as WorkerPostMessageOptions)
+	}
+	// #endif
+
 	private publishSnapshot(isDone: boolean) {
 		// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
 		if (this.content.length == 0 && this.reasoningContent.length == 0 && !isDone) return
+		// #ifdef APP-HARMONY
+		this.publishLibmarkState(isDone ? 'complete' : 'snapshot')
+		return
+		// #endif
 		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdownValue == null) return
 		const processedMarkdown = processedMarkdownValue!
@@ -510,6 +533,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private publishErrorSnapshot(code: string, message: string) {
+		// #ifdef APP-HARMONY
+		this.publishLibmarkState('error', code, message)
+		return
+		// #endif
 		this.snapshotVersion += 1
 		const snapshot = {
 			requestVersion: this.requestVersion,

@@ -19,7 +19,7 @@ import {
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 // #ifdef APP-HARMONY
-import { takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
+import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
 import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
 // #endif
@@ -151,7 +151,11 @@ export default class MarkdownDemoRunner {
 				logBlockPayload(op.kind, op.content, op.index, op.op, op.unchanged)
 			}
 		}
+		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
+		this.pollLibmarkState()
+		return
 		// #endif
+		// #ifndef APP-HARMONY
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -198,7 +202,44 @@ export default class MarkdownDemoRunner {
 		finishDemoMarkdownRun()
 		this.callbacks?.onState('completed')
 		this.callbacks?.onRendered(true)
+		// #endif
 	}
+
+	// #ifdef APP-HARMONY
+	private pollLibmarkState() {
+		const state = readAiWorkerState()
+		if (state == null) return
+		if (readSnapshotNumber(state, 'requestVersion') != this.requestVersion) return
+		const phase = readSnapshotString(state, 'phase')
+		const nextSnapshotVersion = readSnapshotNumber(state, 'snapshotVersion')
+		if (phase != 'error' && nextSnapshotVersion <= this.snapshotVersion) return
+		if (nextSnapshotVersion > this.snapshotVersion) this.snapshotVersion = nextSnapshotVersion
+		if (phase == 'error') {
+			this.fail(readSnapshotString(state, 'errMsg', 'Worker 请求失败'))
+			return
+		}
+		if (phase != 'snapshot' && phase != 'complete') return
+		const msgBody = readSnapshotString(state, 'msgBody')
+		const thinkContent = readSnapshotString(state, 'thinkContent')
+		const scenarioId = activeDemoMarkdownScenarioId()
+		const blockCount = scenarioId == FULL_MARKDOWN_SCENARIO_ID && msgBody.length > 0
+			? 1
+			: this.completedBlockCount
+		reportDemoMarkdownSnapshot(
+			msgBody.length,
+			blockCount,
+			readSnapshotNumber(state, 'elapsed')
+		)
+		this.callbacks?.onMsgBody(msgBody)
+		this.callbacks?.onThinkContent(thinkContent)
+		if (phase != 'complete') return
+
+		this.stopWorkerRuntime(false)
+		finishDemoMarkdownRun()
+		this.callbacks?.onState('completed')
+		this.callbacks?.onRendered(true)
+	}
+	// #endif
 	// #endif
 
 	private fail(message: string) {

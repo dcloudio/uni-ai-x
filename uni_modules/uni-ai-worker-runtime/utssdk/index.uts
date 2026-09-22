@@ -8,12 +8,14 @@ import {
 	CreateAiWorkerRuntime,
 	DestroyAiWorkerRuntime,
 	ReadAiWorkerSnapshot,
+	ReadAiWorkerState,
 	StartAiWorkerMarkdown,
 	StartAiWorkerRequest
 } from './interface.uts'
 
 // #ifdef APP-HARMONY
 import {
+	AiWorkerState,
 	LibmarkChunk,
 	LibmarkOpBatch,
 	LibmarkOpEntry,
@@ -24,6 +26,7 @@ import {
 } from './sendable.ets'
 
 export {
+	AiWorkerState,
 	LibmarkChunk,
 	LibmarkOpBatch,
 	LibmarkOpEntry,
@@ -36,6 +39,7 @@ type SendablePostMessageOptions = {
 }
 
 let pendingLibmarkOps = [] as AiWorkerOp[]
+let latestLibmarkState: UTSJSONObject | null = null
 // #endif
 
 // #ifdef MP-WEIXIN
@@ -96,6 +100,7 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	if (worker == null || !workerReady) return
 	// #ifdef APP-HARMONY
 	pendingLibmarkOps = [] as AiWorkerOp[]
+	latestLibmarkState = null
 	// #endif
 	worker!.postMessage({
 		action: 'start-markdown',
@@ -168,6 +173,10 @@ function createWorkerNow(generation: number): void {
 			receiveLibmarkOpBatch(message as LibmarkOpBatch)
 			return
 		}
+		if (readMessageString(result, 'tag') == 'ai-worker-state') {
+			latestLibmarkState = result
+			return
+		}
 		// #endif
 		const phase = readMessageString(result, 'phase')
 		if (phase == 'ready') {
@@ -203,6 +212,23 @@ function createWorkerNow(generation: number): void {
 	})
 	worker!.onError((_error: any) => {
 		if (generation != runtimeGeneration) return
+		// #ifdef APP-HARMONY
+		latestLibmarkState = {
+			tag: 'ai-worker-state',
+			requestVersion: currentRequestVersion,
+			snapshotVersion: 0,
+			phase: 'error',
+			msgBody: '',
+			thinkContent: '',
+			eventCount: 0,
+			networkChunkCount: 0,
+			receivedBytes: 0,
+			elapsed: 0,
+			errCode: 'worker_error',
+			errMsg: 'Worker 运行失败'
+		} as UTSJSONObject
+		return
+		// #endif
 		latestSnapshotJson = JSON.stringify({
 			requestVersion: currentRequestVersion,
 			snapshotVersion: 0,
@@ -282,6 +308,7 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	pendingMarkdownComplete = false
 	// #ifdef APP-HARMONY
 	pendingLibmarkOps = [] as AiWorkerOp[]
+	latestLibmarkState = null
 	currentRequestVersion = 0
 	// #endif
 	if (worker == null || !workerReady) return
@@ -305,6 +332,7 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	currentRequestVersion = 0
 	// #ifdef APP-HARMONY
 	pendingLibmarkOps = [] as AiWorkerOp[]
+	latestLibmarkState = null
 	// #endif
 	if (previousWorker != null) {
 		setTimeout(() => {
@@ -596,6 +624,15 @@ export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 	// #endif
 	// #ifndef MP-WEIXIN
 	return readWorkerSnapshot()
+	// #endif
+}
+
+export const readAiWorkerState: ReadAiWorkerState = function (): UTSJSONObject | null {
+	// #ifdef APP-HARMONY
+	return latestLibmarkState
+	// #endif
+	// #ifndef APP-HARMONY
+	return null
 	// #endif
 }
 

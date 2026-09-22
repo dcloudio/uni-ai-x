@@ -21,7 +21,7 @@ import {
 // #endif
 // #ifdef APP-HARMONY
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
-import { takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
+import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
 import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
 // #endif
@@ -434,7 +434,10 @@ class RequestAiRunner {
 			}
 		}
 		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
+		this.pollLibmarkState(requestVersion)
+		return
 		// #endif
+		// #ifndef APP-HARMONY
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -503,7 +506,55 @@ class RequestAiRunner {
 			this.callbacks?.onRendered(true)
 			this.updateChatTitleAfterDone()
 		}
+		// #endif
 	}
+
+	// #ifdef APP-HARMONY
+	private pollLibmarkState(requestVersion: number): void {
+		const state = readAiWorkerState()
+		if (state == null) return
+		if (readSnapshotNumber(state, 'requestVersion') != requestVersion) return
+		const phase = readSnapshotString(state, 'phase')
+		const snapshotVersion = readSnapshotNumber(state, 'snapshotVersion')
+		if (phase != 'error' && snapshotVersion <= this.workerSnapshotVersion) return
+		if (snapshotVersion > this.workerSnapshotVersion) this.workerSnapshotVersion = snapshotVersion
+		if (phase == 'error') {
+			console.log('[uni-ai-x][AI Worker] error', JSON.stringify({
+				requestVersion: requestVersion,
+				snapshotVersion: snapshotVersion,
+				eventCount: readSnapshotNumber(state, 'eventCount'),
+				networkChunkCount: readSnapshotNumber(state, 'networkChunkCount'),
+				receivedBytes: readSnapshotNumber(state, 'receivedBytes'),
+				elapsed: readSnapshotNumber(state, 'elapsed'),
+				errCode: readSnapshotString(state, 'errCode', 'worker_error')
+			} as UTSJSONObject))
+			this.handleWorkerSnapshotError(
+				readSnapshotString(state, 'errCode', 'worker_error'),
+				readSnapshotString(state, 'errMsg', 'Worker 请求失败')
+			)
+			return
+		}
+		if (phase != 'snapshot' && phase != 'complete') return
+		this.msgBody = readSnapshotString(state, 'msgBody', this.msgBody)
+		this.thinkContent = readSnapshotString(state, 'thinkContent', this.thinkContent)
+		this.emitMsgBody(true)
+		this.callbacks?.onThinkContent(this.thinkContent)
+		if (phase != 'complete') return
+		console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
+			requestVersion: requestVersion,
+			snapshotVersion: snapshotVersion,
+			eventCount: readSnapshotNumber(state, 'eventCount'),
+			networkChunkCount: readSnapshotNumber(state, 'networkChunkCount'),
+			receivedBytes: readSnapshotNumber(state, 'receivedBytes'),
+			elapsed: readSnapshotNumber(state, 'elapsed')
+		} as UTSJSONObject))
+		this.stopWorkerRuntime(false)
+		this.currentChatState = 'completed'
+		this.callbacks?.onState('completed')
+		this.callbacks?.onRendered(true)
+		this.updateChatTitleAfterDone()
+	}
+	// #endif
 
 	private handleWorkerSnapshotError(errCode: string, errMsg: string) {
 		this.stopWorkerRuntime(false)
