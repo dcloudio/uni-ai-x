@@ -7,9 +7,22 @@
 				<text class="chat-input-edit-tip-cancel-text">取消</text>
 			</view>
 		</view>
-		<textarea class="chat-input-textarea" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
+		<view v-if="chatInputContent.length > 0 || isFullscreen" class="chat-input-fullscreen-btn" @click.stop="toggleFullscreen"
+			<!-- #ifdef WEB -->
+			:title="isFullscreen ? '退出全屏输入' : '全屏输入'"
+			<!-- #endif -->
+		>
+			<view class="chat-input-fullscreen-icon">
+				<view class="chat-input-fullscreen-corner chat-input-fullscreen-corner-top"
+					:class="isFullscreen ? 'chat-input-fullscreen-corner-top-collapse' : ''"></view>
+				<view class="chat-input-fullscreen-corner chat-input-fullscreen-corner-bottom"
+					:class="isFullscreen ? 'chat-input-fullscreen-corner-bottom-collapse' : ''"></view>
+			</view>
+		</view>
+		<textarea class="chat-input-textarea" :class="isFullscreen ? 'chat-input-textarea-expanded' : ''"
+			:style="{height: isFullscreen ? expandedTextareaHeight : 'auto'}" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
 			:adjust-position="false" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
-			@focus="scrollToLastMsg" :auto-height="true"
+			@focus="scrollToLastMsg" :auto-height="!isFullscreen"
 		></textarea>
 		<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
 		<view class="chat-input-keyboard-cover" :style="{height: keyboardHeight + 'px'}"></view>
@@ -26,6 +39,8 @@
 	}>()
 
 	const keyboardHeight = ref<number>(0)
+	const isFullscreen = ref<boolean>(false)
+	const expandedTextareaHeight = ref<string>('0px')
 	const chatInputContent = computed<string>({
 		get: (): string => {
 			return uniAi.currentChat?.inputContent ?? ''
@@ -55,12 +70,20 @@
 	function onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent) {
 		keyboardHeight.value = res.detail.height
 	}
+
+	function toggleFullscreen() {
+		isFullscreen.value = !isFullscreen.value
+		if (isFullscreen.value) {
+			expandedTextareaHeight.value = (uni.getWindowInfo().windowHeight * 0.8) + 'px'
+		}
+	}
 </script>
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 
 .chat-input {
+	position: relative;
 	flex-direction: column;
 	background-color: var(--bg-primary);
 	padding: 15px 15px 5px 15px;
@@ -72,6 +95,71 @@
 	min-height: 50px;
 	max-height: 200px;
 	width: 100%;
+	padding-right: 48px;
+	box-sizing: border-box;
+}
+
+.chat-input-textarea-expanded {
+	min-height: 0;
+	max-height: 2000px;
+}
+
+.chat-input-fullscreen-btn {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	width: 36px;
+	height: 36px;
+	justify-content: center;
+	align-items: center;
+	z-index: 2;
+}
+
+.chat-input-fullscreen-icon {
+	position: relative;
+	width: 16px;
+	height: 16px;
+}
+
+.chat-input-fullscreen-corner {
+	position: absolute;
+	width: 6px;
+	height: 6px;
+	border-color: #9b9b9b;
+	border-style: solid;
+	border-width: 0;
+}
+
+.chat-input-fullscreen-corner-top {
+	top: 1px;
+	right: 1px;
+	border-top-width: 2px;
+	border-right-width: 2px;
+}
+
+.chat-input-fullscreen-corner-bottom {
+	bottom: 1px;
+	left: 1px;
+	border-bottom-width: 2px;
+	border-left-width: 2px;
+}
+
+.chat-input-fullscreen-corner-top-collapse {
+	top: 1px;
+	right: 1px;
+	border-top-width: 0;
+	border-right-width: 0;
+	border-bottom-width: 2px;
+	border-left-width: 2px;
+}
+
+.chat-input-fullscreen-corner-bottom-collapse {
+	bottom: 1px;
+	left: 1px;
+	border-bottom-width: 0;
+	border-left-width: 0;
+	border-top-width: 2px;
+	border-right-width: 2px;
 }
 
 .chat-input-edit-tip {
