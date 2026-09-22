@@ -58,6 +58,7 @@ import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 
 type UniAiMsgCodeProps = {
 	codeText?: string
+	blockKey?: string
 	codeTokens?: IToken[][]
 	language?: string
 	href?: string
@@ -70,6 +71,7 @@ type UniAiMsgCodeProps = {
 
 const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	codeText: '',
+	blockKey: '',
 	codeTokens: () => [] as IToken[][],
 	language: 'text',
 	href: '',
@@ -710,16 +712,45 @@ watch((): string => {
 	syncMermaidImageTheme()
 }, { immediate: true })
 
-// 从消息正文中提取 mermaid 围栏内容（未闭合则取到末尾）
-function extractMermaidText(body: string): string {
-	const marker = '```mermaid'
-	const start = body.indexOf(marker)
-	if (start < 0) return ''
-	const contentStart = body.indexOf('\n', start)
-	if (contentStart < 0) return ''
-	const closeIndex = body.indexOf('\n```', contentStart)
-	if (closeIndex < 0) return body.slice(contentStart + 1)
-	return body.slice(contentStart + 1, closeIndex)
+// 从消息正文中提取当前代码块，不能固定取第一个 Mermaid 块。
+function extractMermaidText(body: string, blockKey: string): string {
+	let targetBlockIndex = -1
+	const keyPrefix = 'code-'
+	if (blockKey.indexOf(keyPrefix) == 0) {
+		targetBlockIndex = Number.parseInt(blockKey.slice(keyPrefix.length), 10)
+	}
+	let blockIndex = 0
+	let cursor = 0
+	let insideFence = false
+	let currentIsMermaid = false
+	let currentContentStart = 0
+	let currentBlockIndex = -1
+	while (cursor <= body.length) {
+		const lineEnd = body.indexOf('\n', cursor)
+		const hasLineEnd = lineEnd >= 0
+		const line = hasLineEnd ? body.slice(cursor, lineEnd) : body.slice(cursor)
+		const trimmedLine = line.trim()
+		if (!insideFence && trimmedLine.indexOf('```') == 0) {
+			const info = trimmedLine.length > 3 ? trimmedLine.slice(3).trim().split(' ')[0].toLowerCase() : ''
+			currentIsMermaid = info == 'mermaid' || info == 'mermaid-pending'
+			currentBlockIndex = blockIndex
+			blockIndex += 1
+			currentContentStart = hasLineEnd ? lineEnd + 1 : body.length
+			insideFence = true
+		} else if (insideFence && trimmedLine == '```') {
+			if (currentIsMermaid && (targetBlockIndex < 0 || targetBlockIndex == currentBlockIndex)) {
+				return body.slice(currentContentStart, cursor)
+			}
+			insideFence = false
+			currentIsMermaid = false
+		}
+		if (!hasLineEnd) break
+		cursor = lineEnd + 1
+	}
+	if (insideFence && currentIsMermaid && (targetBlockIndex < 0 || targetBlockIndex == currentBlockIndex)) {
+		return body.slice(currentContentStart)
+	}
+	return ''
 }
 
 // 直连兜底：list-view 复用 item 的子组件 props 更新在长流式（多帧思考/滚动）后可能丢失，
@@ -735,13 +766,13 @@ watch((): string => {
 	if (msgItem == null) return
 	const body = msgItem.body
 	if (body.length == 0) return
-	const mermaidText = extractMermaidText(body)
+	const mermaidText = extractMermaidText(body, props.blockKey)
 	if (mermaidText.length == 0) return
-	const fenceClosed = body.indexOf('\n```', body.indexOf('```mermaid')) >= 0
+	const fenceClosed = props.isClose == 1 || msgItem.rendered
 	if (mermaidText != displayCodeText.value) {
 		displayCodeText.value = mermaidText
 	}
-	if (fenceClosed || msgItem.rendered) {
+	if (fenceClosed) {
 		syncMermaidImageTheme(mermaidText)
 	}
 })
@@ -939,7 +970,9 @@ const copyCode = () => {
 	line-height: 22px;
 	font-family: monospace;
 	color: #d1fae5;
+	/* #ifdef WEB */
 	white-space: pre;
+	/* #endif */
 	align-self: flex-start;
 }
 
