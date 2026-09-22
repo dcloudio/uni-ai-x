@@ -517,8 +517,10 @@ class UniAi {
 			return
 		}
 		this.setting.llm = this.buildDefaultLlm()
-		const previousModel = model.length > 0 ? model : '未知'
-		this.pushSettingNotice('原选择的模型「' + previousModel + '」已不可用，已切换到「' + getLlmDisplayName(this.setting.llm) + '」')
+		// 空模型表示首次初始化或旧版本未保存过模型，不需要打扰用户。
+		if (model.length > 0) {
+			this.pushSettingNotice('原选择的模型「' + model + '」已不可用，已切换到「' + getLlmDisplayName(this.setting.llm) + '」')
+		}
 	}
 	private watchSetting() {
 		watch((): Theme => this.setting.theme, (theme: Theme) => {
