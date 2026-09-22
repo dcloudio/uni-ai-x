@@ -19,7 +19,7 @@ import {
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
-// #ifdef APP-HARMONY
+// #ifdef APP-HARMONY || APP-ANDROID
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
@@ -29,7 +29,7 @@ import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.
 export type RequestAiRunnerCallbacks = {
 	onMarkdownHtml: (html: string) => void,
 	onMarkdownAst?: (ast: string) => void,
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	onMarkdownAstDelta?: (ops: AiWorkerOp[]) => void,
 	// #endif
 	onThinkContent: (thinkContent: string) => void,
@@ -425,7 +425,7 @@ class RequestAiRunner {
 	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private pollWorkerSnapshot(requestVersion: number) {
 		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		const ops = takeAiWorkerOps()
 		for (let i = 0; i < ops.length; i++) {
 			const op = ops[i]
@@ -438,6 +438,7 @@ class RequestAiRunner {
 		return
 		// #endif
 		// #ifndef APP-HARMONY
+		// #ifndef APP-ANDROID
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -507,9 +508,10 @@ class RequestAiRunner {
 			this.updateChatTitleAfterDone()
 		}
 		// #endif
+		// #endif
 	}
 
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	private pollLibmarkState(requestVersion: number): void {
 		const state = readAiWorkerState()
 		if (state == null) return

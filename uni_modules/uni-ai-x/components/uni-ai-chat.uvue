@@ -44,7 +44,7 @@
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 	import { buildMarkdownAstBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	import {
 		libmarkStreamGetBlocks,
 		libmarkStreamLoadFromAst
@@ -153,11 +153,13 @@
 	const RENDER_ITEM_TYPE_AI_SVG = 22
 
 	function hasLibmarkRenderData(msg: MsgItem): boolean {
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		return (msg.libmarkRevision ?? 0) > 0
 		// #endif
 		// #ifndef APP-HARMONY
+		// #ifndef APP-ANDROID
 		return false
+		// #endif
 		// #endif
 	}
 
@@ -181,7 +183,7 @@
 			return cached.blocks
 		}
 		let blocks = [] as MarkdownTextRenderBlock[]
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		blocks = libmarkStreamGetBlocks(msg._id)
 		if (blocks.length == 0 && isLibmarkAst(ast)) {
 			libmarkStreamLoadFromAst(msg._id, ast)
