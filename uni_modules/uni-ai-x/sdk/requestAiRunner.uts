@@ -15,6 +15,7 @@ import {
 	completeAiWorkerMarkdown,
 	destroyAiWorkerRuntime,
 	readAiWorkerSnapshot,
+	setAiWorkerDataListener,
 	startAiWorkerMarkdown,
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
@@ -413,9 +414,9 @@ class RequestAiRunner {
 				renderInterval: MARKDOWN_RENDER_INTERVAL,
 				timeout: 90000
 			})
-			this.workerPollTimer = setInterval(() => {
+			setAiWorkerDataListener(() => {
 				this.pollWorkerSnapshot(requestVersion)
-			}, 50)
+			})
 		} catch (_error) {
 			// getProviderConfig/requestProviderToken 已通过 requestOptions.onError 上报。
 		}
@@ -570,6 +571,9 @@ class RequestAiRunner {
 	private stopWorkerRuntime(cancelRequest: boolean) {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
+		// #ifndef MP-WEIXIN
+		setAiWorkerDataListener(null)
+		// #endif
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
 		destroyAiWorkerRuntime()
@@ -590,9 +594,16 @@ class RequestAiRunner {
 			requestVersion: requestVersion,
 			renderInterval: MARKDOWN_RENDER_INTERVAL
 		})
+		// #ifdef MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {
 			this.pollWorkerSnapshot(requestVersion)
 		}, 50)
+		// #endif
+		// #ifndef MP-WEIXIN
+		setAiWorkerDataListener(() => {
+			this.pollWorkerSnapshot(requestVersion)
+		})
+		// #endif
 	}
 	// #endif
 
