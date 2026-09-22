@@ -1,4 +1,5 @@
 import {
+	AiWorkerDataListener,
 	AiWorkerMarkdownStartOptions,
 	AiWorkerOp,
 	AiWorkerStartOptions,
@@ -9,6 +10,7 @@ import {
 	DestroyAiWorkerRuntime,
 	ReadAiWorkerSnapshot,
 	ReadAiWorkerState,
+	SetAiWorkerDataListener,
 	StartAiWorkerMarkdown,
 	StartAiWorkerRequest
 } from './interface.uts'
@@ -66,6 +68,7 @@ let pendingMarkdownComplete = false
 let latestSnapshotJson = ''
 let currentRequestVersion = 0
 let runtimeGeneration = 0
+let dataListener: AiWorkerDataListener | null = null
 
 function readMessageString(message: UTSJSONObject, key: string, defaultValue: string = ''): string {
 	const value = message[key] as string | null
@@ -80,6 +83,15 @@ function readMessageNumber(message: UTSJSONObject, key: string, defaultValue: nu
 function readMessageBoolean(message: UTSJSONObject, key: string, defaultValue: boolean = false): boolean {
 	const value = message[key] as boolean | null
 	return value == null ? defaultValue : value as boolean
+}
+
+function notifyDataListener(): void {
+	const listener = dataListener
+	if (listener == null) return
+	try {
+		listener()
+	} catch (_error) {
+	}
 }
 
 function postStart(options: AiWorkerStartOptions): void {
@@ -196,10 +208,12 @@ function createWorkerNow(generation: number): void {
 			// #ifdef APP-ANDROID
 			receiveLibmarkOpBatchObject(result)
 			// #endif
+			notifyDataListener()
 			return
 		}
 		if (readMessageString(result, 'tag') == 'ai-worker-state') {
 			latestLibmarkState = result
+			notifyDataListener()
 			return
 		}
 		// #endif
@@ -230,10 +244,14 @@ function createWorkerNow(generation: number): void {
 				errCode: 'markdown_html_unavailable',
 				errMsg: readMessageString(result, 'errMsg', 'Markdown HTML Worker 初始化失败')
 			} as UTSJSONObject) ?? ''
+			notifyDataListener()
 			return
 		}
 		const snapshotJson = readMessageString(result, 'snapshotJson')
-		if (snapshotJson.length > 0) latestSnapshotJson = snapshotJson
+		if (snapshotJson.length > 0) {
+			latestSnapshotJson = snapshotJson
+			notifyDataListener()
+		}
 	})
 	worker!.onError((_error: any) => {
 		if (generation != runtimeGeneration) return
@@ -252,6 +270,7 @@ function createWorkerNow(generation: number): void {
 			errCode: 'worker_error',
 			errMsg: 'Worker 运行失败'
 		} as UTSJSONObject
+		notifyDataListener()
 		return
 		// #endif
 		latestSnapshotJson = JSON.stringify({
@@ -261,6 +280,7 @@ function createWorkerNow(generation: number): void {
 			errCode: 'worker_error',
 			errMsg: 'Worker 运行失败'
 		} as UTSJSONObject) ?? ''
+		notifyDataListener()
 	})
 }
 
@@ -660,6 +680,13 @@ export const readAiWorkerState: ReadAiWorkerState = function (): UTSJSONObject |
 	// #ifndef APP-ANDROID
 	return null
 	// #endif
+	// #endif
+}
+
+@UTSJS.keepAlive
+export function setAiWorkerDataListener(listener: AiWorkerDataListener | null): void {
+	// #ifndef MP-WEIXIN
+	dataListener = listener
 	// #endif
 }
 

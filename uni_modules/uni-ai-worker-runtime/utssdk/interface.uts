@@ -36,3 +36,5 @@ export type TakeAiWorkerOps = () => AiWorkerOp[]
 export type IsLibmarkOpsSupported = () => boolean
 export type CancelAiWorkerRequest = (requestVersion: number) => void
 export type DestroyAiWorkerRuntime = () => void
+export type AiWorkerDataListener = () => void
+export type SetAiWorkerDataListener = (listener: AiWorkerDataListener | null) => void
