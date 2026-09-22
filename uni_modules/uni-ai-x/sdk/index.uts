@@ -6,7 +6,7 @@ import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
-// #ifdef APP-HARMONY
+// #ifdef APP-HARMONY || APP-ANDROID
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import {
 	libmarkStreamApply,
@@ -415,7 +415,7 @@ class UniAi {
 		this.clearPendingMsgSave()
 		const deletingChat = this.chat.datas.find((item) => item.id == chatId)
 		if (this.chat.activeId == chatId && deletingChat?.state == 'processing') this.abortRequest()
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		if (deletingChat != null) {
 			for (let i = 0; i < deletingChat.msgList.length; i++) libmarkStreamRelease(deletingChat.msgList[i]._id)
 		}
@@ -442,7 +442,7 @@ class UniAi {
 		this.clearPendingMsgSave()
 		if (this.currentChat?.state == 'processing') this.abortRequest()
 		const chatIds = this.chat.datas.map((item: ChatItem): string => item.id)
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		for (let chatIndex = 0; chatIndex < this.chat.datas.length; chatIndex++) {
 			const msgList = this.chat.datas[chatIndex].msgList
 			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) libmarkStreamRelease(msgList[msgIndex]._id)
@@ -699,7 +699,7 @@ class UniAi {
 		const msgList = this.currentChat!.msgList
 		const index = msgList.findIndex((item) => item._id == msgId)
 		if (index != -1) {
-			// #ifdef APP-HARMONY
+			// #ifdef APP-HARMONY || APP-ANDROID
 			libmarkStreamRelease(msgId)
 			// #endif
 			msgList.splice(index, 1)
@@ -743,7 +743,7 @@ class UniAi {
 		}
 		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
 		this.clearPendingMsgSave()
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		for (let i = index; i < msgList.length; i++) libmarkStreamRelease(msgList[i]._id)
 		// #endif
 		msgList.splice(index, msgList.length - index)
@@ -803,7 +803,7 @@ class UniAi {
 	}
 	resetMsg(msg: MsgItem) {
 		this.answerGeneration += 1
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		libmarkStreamReset(msg._id)
 		// #endif
 		msg.body = ''
@@ -828,7 +828,7 @@ class UniAi {
 			return this.answerGeneration == answerGeneration && chat != null && chat.id == aiMsgItem.chat_id && chat.msgList.find((item) => item._id == aiMsgItem._id) != null
 		}
 		const runnerCallbacks: RequestAiRunnerCallbacks = {
-			// #ifdef APP-HARMONY
+			// #ifdef APP-HARMONY || APP-ANDROID
 			onMarkdownAstDelta: (ops: AiWorkerOp[]) => {
 				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
 				if (libmarkStreamApply(aiMsgItem._id, ops)) {
@@ -846,7 +846,7 @@ class UniAi {
 				// 调试日志：排查 ast 是否透传到消息时启用
 				// console.log('[uni-ai-x][runner] ast=' + ast.length.toString())
 				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
-				// #ifdef APP-HARMONY
+				// #ifdef APP-HARMONY || APP-ANDROID
 				if (ast.length == 0 && (aiMsgItem.markdownAst ?? '').indexOf('libmark.ast/1') >= 0) return
 				// #endif
 				aiMsgItem.markdownAst = ast
@@ -865,7 +865,7 @@ class UniAi {
 			onState: (state: string) => {
 				if (!isActiveAiMsg()) return
 				this.currentChat!.state = state
-				// #ifdef APP-HARMONY
+				// #ifdef APP-HARMONY || APP-ANDROID
 				if (state == 'completed') {
 					const markdownAst = libmarkStreamComplete(aiMsgItem._id)
 					if (markdownAst.length > 0) {

@@ -1,0 +1,52 @@
+import type { LibmarkEvent } from '../interface.uts'
+
+/**
+ * libmark UTS 插件 Android 实现。
+ *
+ * 事件语义与 app-harmony 一致：桥接库内部完成 runtime 创建、render/math 注册、seal 和
+ * session 创建，每次 feed/finish 返回一组块级操作；没有事件时返回 null。
+ * 原生实现见 native/android/libmark_bridge_jni.cpp，Kotlin 包装类与本文件同包。
+ */
+
+/**
+ * 创建一个 progressive session。
+ * mode 为 "ast" 时只交付 AST（无 HTML、无 DATA），省略或 "html" 时交付 HTML 与 DATA。
+ * 返回的句柄是携带会话 id 的对象，id 对应的裸指针留在 Kotlin 包装类里。
+ */
+export function createSession(mode?: string): object {
+	return { id: LibmarkBridge.createSession(mode) } as object
+}
+
+/** 提交一段 Markdown chunk，返回本次产生的块级操作集合；没有事件时返回 null。 */
+export function feedChunk(handle: object, chunk: string): LibmarkEvent | null {
+	const payload = LibmarkBridge.feedChunk(readSessionId(handle), chunk)
+	return toEvent(payload)
+}
+
+/** 结束 session，返回收尾的块级操作集合；没有事件时返回 null。 */
+export function finishSession(handle: object): LibmarkEvent | null {
+	const payload = LibmarkBridge.finishSession(readSessionId(handle))
+	return toEvent(payload)
+}
+
+/** 销毁 session 及其 runtime。 */
+export function destroySession(handle: object): void {
+	LibmarkBridge.destroySession(readSessionId(handle))
+}
+
+/** 从会话句柄对象里取出会话 id（Kotlin 侧按 Int 接收）。 */
+function readSessionId(handle: object): Int {
+	const id = (handle as UTSJSONObject).getNumber('id')
+	if (id == null) {
+		throw new Error('invalid libmark session handle')
+	}
+	return id.toInt()
+}
+
+/** 桥接库返回块级操作的 JSON 快照，空载荷表示本次没有事件。 */
+function toEvent(payload: string | null): LibmarkEvent | null {
+	if (payload == null || payload.length == 0) return null
+	const event = JSON.parse<LibmarkEvent>(payload)
+	if (event == null || event.ops.length == 0) return null
+	return event
+}

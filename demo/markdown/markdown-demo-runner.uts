@@ -18,7 +18,7 @@ import {
 	startAiWorkerMarkdown
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
-// #ifdef APP-HARMONY
+// #ifdef APP-HARMONY || APP-ANDROID
 import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
 import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
@@ -143,7 +143,7 @@ export default class MarkdownDemoRunner {
 
 	private pollWorkerSnapshot() {
 		if (!this.workerActive || this.stopped) return
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		const ops = takeAiWorkerOps()
 		for (let i = 0; i < ops.length; i++) {
 			const op = ops[i]
@@ -156,6 +156,7 @@ export default class MarkdownDemoRunner {
 		return
 		// #endif
 		// #ifndef APP-HARMONY
+		// #ifndef APP-ANDROID
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -203,9 +204,10 @@ export default class MarkdownDemoRunner {
 		this.callbacks?.onState('completed')
 		this.callbacks?.onRendered(true)
 		// #endif
+		// #endif
 	}
 
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	private pollLibmarkState() {
 		const state = readAiWorkerState()
 		if (state == null) return

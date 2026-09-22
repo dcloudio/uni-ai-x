@@ -37,7 +37,9 @@ type SendablePostMessageOptions = {
 	harmonySendable?: boolean
 	transfer?: any[]
 }
+// #endif
 
+// #ifdef APP-HARMONY || APP-ANDROID
 let pendingLibmarkOps = [] as AiWorkerOp[]
 let latestLibmarkState: UTSJSONObject | null = null
 // #endif
@@ -98,7 +100,7 @@ function postStart(options: AiWorkerStartOptions): void {
 
 function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	if (worker == null || !workerReady) return
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	pendingLibmarkOps = [] as AiWorkerOp[]
 	latestLibmarkState = null
 	// #endif
@@ -160,6 +162,24 @@ function receiveLibmarkOpBatch(batch: LibmarkOpBatch): void {
 }
 // #endif
 
+// #ifdef APP-ANDROID
+function receiveLibmarkOpBatchObject(message: UTSJSONObject): void {
+	if (readMessageNumber(message, 'requestVersion') != currentRequestVersion) return
+	const ops = message['ops'] as UTSJSONObject[] | null
+	if (ops == null) return
+	for (let i = 0; i < ops.length; i++) {
+		const entry = ops[i]
+		pendingLibmarkOps.push({
+			op: readMessageNumber(entry, 'op'),
+			kind: readMessageString(entry, 'kind'),
+			content: readMessageString(entry, 'content'),
+			index: readMessageNumber(entry, 'index'),
+			unchanged: readMessageBoolean(entry, 'unchanged')
+		} as AiWorkerOp)
+	}
+}
+// #endif
+
 function createWorkerNow(generation: number): void {
 	if (generation != runtimeGeneration || worker != null) return
 	workerReady = false
@@ -168,9 +188,14 @@ function createWorkerNow(generation: number): void {
 	worker!.onMessage((message: any) => {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		if (readMessageString(result, 'tag') == 'libmark-op-batch') {
+			// #ifdef APP-HARMONY
 			receiveLibmarkOpBatch(message as LibmarkOpBatch)
+			// #endif
+			// #ifdef APP-ANDROID
+			receiveLibmarkOpBatchObject(result)
+			// #endif
 			return
 		}
 		if (readMessageString(result, 'tag') == 'ai-worker-state') {
@@ -212,7 +237,7 @@ function createWorkerNow(generation: number): void {
 	})
 	worker!.onError((_error: any) => {
 		if (generation != runtimeGeneration) return
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		latestLibmarkState = {
 			tag: 'ai-worker-state',
 			requestVersion: currentRequestVersion,
@@ -306,7 +331,7 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	pendingMarkdownContent = ''
 	pendingMarkdownReasoning = ''
 	pendingMarkdownComplete = false
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	pendingLibmarkOps = [] as AiWorkerOp[]
 	latestLibmarkState = null
 	currentRequestVersion = 0
@@ -330,7 +355,7 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	pendingMarkdownComplete = false
 	latestSnapshotJson = ''
 	currentRequestVersion = 0
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	pendingLibmarkOps = [] as AiWorkerOp[]
 	latestLibmarkState = null
 	// #endif
@@ -628,31 +653,37 @@ export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 }
 
 export const readAiWorkerState: ReadAiWorkerState = function (): UTSJSONObject | null {
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	return latestLibmarkState
 	// #endif
 	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
 	return null
+	// #endif
 	// #endif
 }
 
 export const takeAiWorkerOps: () => AiWorkerOp[] = function (): AiWorkerOp[] {
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	const result = pendingLibmarkOps
 	pendingLibmarkOps = [] as AiWorkerOp[]
 	return result
 	// #endif
 	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
 	return [] as AiWorkerOp[]
+	// #endif
 	// #endif
 }
 
 export const isLibmarkOpsSupported: () => boolean = function (): boolean {
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	return true
 	// #endif
 	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
 	return false
+	// #endif
 	// #endif
 }
 

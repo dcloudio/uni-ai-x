@@ -1,5 +1,7 @@
 // #ifdef APP-ANDROID
 import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-android/index.uts'
+import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
 // #endif
 // #ifdef APP-IOS
 import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
@@ -37,6 +39,11 @@ type WorkerAiChunk = {
 	choices?: WorkerAiChoice[]
 }
 
+// #ifdef APP-ANDROID
+// Android Worker 内 SSE 收流节流周期：活跃期内按该周期合并增量，窗口无数据则退出活跃
+const MARKDOWN_THROTTLE_INTERVAL = 100
+// #endif
+
 function readMessageString(message: UTSJSONObject, key: string, defaultValue: string = ''): string {
 	const value = message[key] as string | null
 	return value == null ? defaultValue : value as string
@@ -72,7 +79,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private terminalSource: string = ''
 	private finished: boolean = false
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	private libmarkSession: object | null = null
 	private libmarkPendingOps: LibmarkOp[] = []
 	private libmarkPendingOpOffset: number = 0
@@ -80,17 +87,21 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private libmarkCompletionPending: boolean = false
 	private libmarkFinishCalled: boolean = false
 	// #endif
+	// #ifdef APP-ANDROID
+	private libmarkThrottleTimer: number = 0
+	private libmarkThrottleContent: string = ''
+	// #endif
 
 	constructor() {
 		super()
 	}
 
 	override entry() {
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		this.postMessage({ phase: 'ready' } as UTSJSONObject)
 		return
 		// #endif
-		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN
+		// #ifdef APP-IOS || WEB || MP-WEIXIN
 		initMd2html().then(() => {
 			this.postMessage({ phase: 'ready' } as UTSJSONObject)
 		}).catch((error) => {
@@ -105,11 +116,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.postMessage({ phase: 'ready' } as UTSJSONObject)
 	}
 
-	override onMessage(message: ESObject) {
+	override onMessage(message: any) {
 		// #ifdef APP-HARMONY
-		const messageTag = readEsString(message, 'tag')
+		const messageTag = readEsString(message as ESObject, 'tag')
 		if (messageTag == 'libmark-chunk') {
-			this.handleLibmarkChunk(message)
+			this.handleLibmarkChunk(message as ESObject)
 			return
 		}
 		// #endif
@@ -141,7 +152,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (action == 'start-markdown') this.startMarkdown(payload)
 	}
 
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID
 	private ensureLibmarkSession(): boolean {
 		if (this.libmarkSession != null) return true
 		try {
@@ -153,9 +164,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		return false
 	}
 
-	private appendLibmarkOps(event: LibmarkEvent | undefined): void {
+	private appendLibmarkOps(event: LibmarkEvent | null | undefined): void {
 		if (event == null) return
-		const ops = event!.ops
+		const ops = (event as LibmarkEvent).ops
 		for (let i = 0; i < ops.length; i++) {
 			this.libmarkPendingOps.push(ops[i])
 		}
@@ -163,6 +174,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private flushLibmarkOps(): void {
 		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return
+		// #ifdef APP-HARMONY
 		const batch = createOpBatch(this.requestVersion)
 		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
 			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
@@ -170,6 +182,26 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			this.libmarkPendingOpOffset += 1
 		}
 		this.postMessage(batch, { harmonySendable: true } as WorkerPostMessageOptions)
+		// #endif
+		// #ifdef APP-ANDROID
+		const ops = [] as UTSJSONObject[]
+		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
+			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
+			ops.push({
+				op: op.op,
+				kind: op.kind,
+				content: op.content,
+				index: op.index,
+				unchanged: op.unchanged
+			} as UTSJSONObject)
+			this.libmarkPendingOpOffset += 1
+		}
+		this.postMessage({
+			tag: 'libmark-op-batch',
+			requestVersion: this.requestVersion,
+			ops: ops
+		} as UTSJSONObject)
+		// #endif
 		this.libmarkPendingOps = [] as LibmarkOp[]
 		this.libmarkPendingOpOffset = 0
 	}
@@ -219,6 +251,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.publishSnapshot(true)
 	}
 
+	// #ifdef APP-HARMONY
 	private handleLibmarkChunk(message: ESObject) {
 		if (this.finished || this.libmarkCompletionPending) return
 		const chunk = message as LibmarkChunk
@@ -239,6 +272,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.pumpLibmark()
 		this.scheduleHtmlSnapshot()
 	}
+	// #endif
 
 	private failLibmark(code: string, message: string) {
 		this.finished = true
@@ -273,6 +307,51 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.libmarkCompletionPending = false
 		this.libmarkFinishCalled = false
 	}
+
+	// #ifdef APP-ANDROID
+	// Worker 内 SSE 收流节流：空闲首条立即 feed，活跃期内按 100ms 窗口合并，整窗口无数据则退出活跃
+	private queueLibmarkContent(contentDelta: string): void {
+		if (contentDelta.length == 0) return
+		if (this.libmarkThrottleTimer == 0) {
+			this.feedLibmarkContent(contentDelta)
+			this.libmarkThrottleTimer = setTimeout(() => {
+				this.onLibmarkThrottleWindow()
+			}, MARKDOWN_THROTTLE_INTERVAL)
+			return
+		}
+		this.libmarkThrottleContent += contentDelta
+	}
+
+	private onLibmarkThrottleWindow(): void {
+		this.libmarkThrottleTimer = 0
+		const content = this.libmarkThrottleContent
+		this.libmarkThrottleContent = ''
+		if (content.length == 0) return
+		this.feedLibmarkContent(content)
+		this.libmarkThrottleTimer = setTimeout(() => {
+			this.onLibmarkThrottleWindow()
+		}, MARKDOWN_THROTTLE_INTERVAL)
+	}
+
+	private feedLibmarkContent(contentDelta: string): void {
+		if (this.finished) return
+		if (this.processLibmarkContent(contentDelta)) this.flushLibmarkOps()
+	}
+
+	private flushLibmarkThrottle(): void {
+		if (this.libmarkThrottleTimer != 0) clearTimeout(this.libmarkThrottleTimer)
+		this.libmarkThrottleTimer = 0
+		const content = this.libmarkThrottleContent
+		this.libmarkThrottleContent = ''
+		if (content.length > 0) this.processLibmarkContent(content)
+	}
+
+	private clearLibmarkThrottle(): void {
+		if (this.libmarkThrottleTimer != 0) clearTimeout(this.libmarkThrottleTimer)
+		this.libmarkThrottleTimer = 0
+		this.libmarkThrottleContent = ''
+	}
+	// #endif
 	// #endif
 
 	private resetState(requestVersion: number, renderInterval: number) {
@@ -290,8 +369,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.terminalSource = ''
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		this.resetLibmarkProtocol()
+		// #endif
+		// #ifdef APP-ANDROID
+		this.clearLibmarkThrottle()
 		// #endif
 	}
 
@@ -339,6 +421,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.eventCount += 1
 		this.networkChunkCount += 1
 		this.receivedBytes += contentDelta.length + reasoningDelta.length
+		// #ifdef APP-ANDROID
+		this.queueLibmarkContent(contentDelta)
+		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
@@ -377,6 +462,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
+		// #ifdef APP-ANDROID
+		this.queueLibmarkContent(contentDelta)
+		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 	// #endif
@@ -393,7 +481,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.finished) return
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-ANDROID
+		this.flushLibmarkThrottle()
+		// #endif
 		this.libmarkCompletionPending = true
 		this.pumpLibmark()
 		return
@@ -406,10 +497,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
-	// #ifdef APP-HARMONY
-	// 鸿蒙不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 libmark ops 驱动
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// 鸿蒙/Android 不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 libmark ops 驱动
 	private publishLibmarkState(phase: string, errCode: string = '', errMsg: string = ''): void {
 		this.snapshotVersion += 1
+		// #ifdef APP-HARMONY
 		const state = new AiWorkerState()
 		state.requestVersion = this.requestVersion
 		state.snapshotVersion = this.snapshotVersion
@@ -423,13 +515,30 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		state.errCode = errCode
 		state.errMsg = errMsg
 		this.postMessage(state, { harmonySendable: true } as WorkerPostMessageOptions)
+		// #endif
+		// #ifdef APP-ANDROID
+		this.postMessage({
+			tag: 'ai-worker-state',
+			requestVersion: this.requestVersion,
+			snapshotVersion: this.snapshotVersion,
+			phase: phase,
+			msgBody: this.content,
+			thinkContent: this.reasoningContent.trim(),
+			eventCount: this.eventCount,
+			networkChunkCount: this.networkChunkCount,
+			receivedBytes: this.receivedBytes,
+			elapsed: Date.now() - this.startedAt,
+			errCode: errCode,
+			errMsg: errMsg
+		} as UTSJSONObject)
+		// #endif
 	}
 	// #endif
 
 	private publishSnapshot(isDone: boolean) {
 		// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
 		if (this.content.length == 0 && this.reasoningContent.length == 0 && !isDone) return
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		this.publishLibmarkState(isDone ? 'complete' : 'snapshot')
 		return
 		// #endif
@@ -521,11 +630,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		this.destroyLibmarkSession()
 		this.resetLibmarkProtocol()
 		// #endif
 		// #ifdef APP-ANDROID
+		this.clearLibmarkThrottle()
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		// #endif
@@ -533,7 +643,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private publishErrorSnapshot(code: string, message: string) {
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		this.publishLibmarkState('error', code, message)
 		return
 		// #endif
@@ -568,11 +678,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		this.finished = true
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
 		this.destroyLibmarkSession()
 		this.resetLibmarkProtocol()
 		// #endif
 		// #ifdef APP-ANDROID
+		this.clearLibmarkThrottle()
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		// #endif

@@ -2,10 +2,11 @@
   "id": "libmark",
   "displayName": "libmark",
   "version": "1.0.0",
-  "description": "libmark 的 uni-app x UTS 封装，提供 Markdown 流式解析的块级事件接口",
+  "description": "libmark 的 uni-app x UTS 封装（Android / HarmonyOS），提供 Markdown 流式解析的块级事件接口",
   "keywords": [
     "libmark",
     "markdown",
+    "android",
     "harmony"
   ],
   "engines": {
