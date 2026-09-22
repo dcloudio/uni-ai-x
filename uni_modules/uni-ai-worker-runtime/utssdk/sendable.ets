@@ -37,6 +37,22 @@ export class LibmarkChunk {
 	reasoningContent: string = '';
 }
 
+@Sendable
+export class AiWorkerState {
+	tag: string = 'ai-worker-state';
+	requestVersion: number = 0;
+	snapshotVersion: number = 0;
+	phase: string = '';
+	msgBody: string = '';
+	thinkContent: string = '';
+	eventCount: number = 0;
+	networkChunkCount: number = 0;
+	receivedBytes: number = 0;
+	elapsed: number = 0;
+	errCode: string = '';
+	errMsg: string = '';
+}
+
 export function createOpBatch(requestVersion: number): LibmarkOpBatch {
 	const batch = new LibmarkOpBatch();
 	batch.requestVersion = requestVersion;

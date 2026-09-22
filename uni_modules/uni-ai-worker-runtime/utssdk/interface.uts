@@ -24,6 +24,7 @@ export type AppendAiWorkerMarkdown = (
 ) => void
 export type CompleteAiWorkerMarkdown = (requestVersion: number) => void
 export type ReadAiWorkerSnapshot = () => string
+export type ReadAiWorkerState = () => UTSJSONObject | null
 export type AiWorkerOp = {
 	op: number,
 	kind: string,
