@@ -15,12 +15,19 @@ import {
 // #ifdef APP-HARMONY
 import {
 	LibmarkChunk,
-	LibmarkOpEntry
+	LibmarkOpBatch,
+	LibmarkOpEntry,
+	batchCount,
+	batchOp,
+	batchRequestVersion,
+	createOpBatch
 } from './sendable.ets'
 
 export {
 	LibmarkChunk,
-	LibmarkOpEntry
+	LibmarkOpBatch,
+	LibmarkOpEntry,
+	createOpBatch
 }
 
 type SendablePostMessageOptions = {
@@ -132,15 +139,19 @@ function postMarkdownComplete(requestVersion: number): void {
 }
 
 // #ifdef APP-HARMONY
-function receiveLibmarkOp(message: UTSJSONObject): void {
-	if (readMessageNumber(message, 'requestVersion') != currentRequestVersion) return
-	pendingLibmarkOps.push({
-		op: readMessageNumber(message, 'op'),
-		kind: readMessageString(message, 'kind'),
-		content: readMessageString(message, 'content'),
-		index: readMessageNumber(message, 'index'),
-		unchanged: readMessageBoolean(message, 'unchanged')
-	} as AiWorkerOp)
+function receiveLibmarkOpBatch(batch: LibmarkOpBatch): void {
+	if (batchRequestVersion(batch) != currentRequestVersion) return
+	const count = batchCount(batch)
+	for (let i = 0; i < count; i++) {
+		const entry = batchOp(batch, i)
+		pendingLibmarkOps.push({
+			op: entry.op,
+			kind: entry.kind,
+			content: entry.content,
+			index: entry.index,
+			unchanged: entry.unchanged
+		} as AiWorkerOp)
+	}
 }
 // #endif
 
@@ -153,8 +164,8 @@ function createWorkerNow(generation: number): void {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
 		// #ifdef APP-HARMONY
-		if (readMessageString(result, 'tag') == 'libmark-op') {
-			receiveLibmarkOp(result)
+		if (readMessageString(result, 'tag') == 'libmark-op-batch') {
+			receiveLibmarkOpBatch(message as LibmarkOpBatch)
 			return
 		}
 		// #endif

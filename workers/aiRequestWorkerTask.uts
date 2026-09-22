@@ -14,7 +14,7 @@ import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_module
 import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
 import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-harmony/index.uts'
 import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
-import { LibmarkChunk, LibmarkOpEntry } from '@uni_modules/uni-ai-worker-runtime'
+import { LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
 // #endif
 import {
 	MarkdownPreprocessor,
@@ -164,18 +164,13 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private flushLibmarkOps(): void {
 		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return
+		const batch = createOpBatch(this.requestVersion)
 		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
 			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
-			const entry = new LibmarkOpEntry()
-			entry.requestVersion = this.requestVersion
-			entry.op = op.op
-			entry.kind = op.kind
-			entry.content = op.content
-			entry.index = op.index
-			entry.unchanged = op.unchanged
-			this.postMessage(entry, { harmonySendable: true } as WorkerPostMessageOptions)
+			batch.pushOp(op.op, op.kind, op.content, op.index, op.unchanged)
 			this.libmarkPendingOpOffset += 1
 		}
+		this.postMessage(batch, { harmonySendable: true } as WorkerPostMessageOptions)
 		this.libmarkPendingOps = [] as LibmarkOp[]
 		this.libmarkPendingOpOffset = 0
 	}

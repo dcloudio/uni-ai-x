@@ -67,6 +67,11 @@ type RequestAiServerOptions = {
 
 const MARKDOWN_RENDER_INTERVAL = 300
 
+// #ifdef APP-HARMONY
+// 鸿蒙 SSE 收流节流周期：活跃期内按该周期合并增量，窗口无数据则退出活跃
+const MARKDOWN_THROTTLE_INTERVAL = 100
+// #endif
+
 // 当前模型配置是否声明支持深度思考
 function supportsThinking(llm: Llm): boolean {
 	const providerConfig = llmModelMap.get(llm.provider)
@@ -110,6 +115,11 @@ class RequestAiRunner {
 	private lastBodyEmitTime: number = 0
 	private workerPollTimer: number = 0
 	private workerRequestVersion: number = 0
+	// #ifdef APP-HARMONY
+	private markdownThrottleTimer: number = 0
+	private throttledMarkdownContent: string = ''
+	private throttledMarkdownReasoning: string = ''
+	// #endif
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
 	private finishRequested: boolean = false
@@ -160,7 +170,12 @@ class RequestAiRunner {
 		reasoningContent = reasoningContent ?? chunkObj.choices?.[0]?.delta?.reasoning_content
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
+			// #ifdef APP-HARMONY
+			this.queueWorkerMarkdown(content ?? '', reasoningContent ?? '')
+			// #endif
+			// #ifndef APP-HARMONY
 			appendAiWorkerMarkdown(this.workerRequestVersion, content ?? '', reasoningContent ?? '')
+			// #endif
 			return
 		}
 		// #endif
@@ -173,6 +188,53 @@ class RequestAiRunner {
 		}
 
 	};
+
+	// #ifdef APP-HARMONY
+	// SSE 收流节流：空闲时首条立即发送，活跃期内按 100ms 窗口合并发送，整窗口无数据则退出活跃
+	private queueWorkerMarkdown(content: string, reasoningContent: string): void {
+		if (this.markdownThrottleTimer == 0) {
+			appendAiWorkerMarkdown(this.workerRequestVersion, content, reasoningContent)
+			this.markdownThrottleTimer = setTimeout(() => {
+				this.onMarkdownThrottleWindow()
+			}, MARKDOWN_THROTTLE_INTERVAL)
+			return
+		}
+		this.throttledMarkdownContent += content
+		this.throttledMarkdownReasoning += reasoningContent
+	}
+
+	private onMarkdownThrottleWindow(): void {
+		this.markdownThrottleTimer = 0
+		const content = this.throttledMarkdownContent
+		const reasoning = this.throttledMarkdownReasoning
+		this.throttledMarkdownContent = ''
+		this.throttledMarkdownReasoning = ''
+		if (content.length == 0 && reasoning.length == 0) return
+		appendAiWorkerMarkdown(this.workerRequestVersion, content, reasoning)
+		this.markdownThrottleTimer = setTimeout(() => {
+			this.onMarkdownThrottleWindow()
+		}, MARKDOWN_THROTTLE_INTERVAL)
+	}
+
+	private flushThrottledMarkdown(): void {
+		if (this.markdownThrottleTimer != 0) clearTimeout(this.markdownThrottleTimer)
+		this.markdownThrottleTimer = 0
+		const content = this.throttledMarkdownContent
+		const reasoning = this.throttledMarkdownReasoning
+		this.throttledMarkdownContent = ''
+		this.throttledMarkdownReasoning = ''
+		if (content.length == 0 && reasoning.length == 0) return
+		appendAiWorkerMarkdown(this.workerRequestVersion, content, reasoning)
+	}
+
+	private clearThrottledMarkdown(): void {
+		if (this.markdownThrottleTimer != 0) clearTimeout(this.markdownThrottleTimer)
+		this.markdownThrottleTimer = 0
+		this.throttledMarkdownContent = ''
+		this.throttledMarkdownReasoning = ''
+	}
+	// #endif
+
 	resetRequestState() {
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
@@ -210,6 +272,9 @@ class RequestAiRunner {
 		this.finishRequested = true
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (this.workerActive) {
+			// #ifdef APP-HARMONY
+			this.flushThrottledMarkdown()
+			// #endif
 			completeAiWorkerMarkdown(this.workerRequestVersion)
 			return
 		}
@@ -455,6 +520,9 @@ class RequestAiRunner {
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
 		destroyAiWorkerRuntime()
+		// #endif
+		// #ifdef APP-HARMONY
+		this.clearThrottledMarkdown()
 		// #endif
 		this.workerActive = false
 	}
