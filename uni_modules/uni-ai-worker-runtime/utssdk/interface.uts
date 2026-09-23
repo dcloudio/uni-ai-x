@@ -38,3 +38,16 @@ export type CancelAiWorkerRequest = (requestVersion: number) => void
 export type DestroyAiWorkerRuntime = () => void
 export type AiWorkerDataListener = () => void
 export type SetAiWorkerDataListener = (listener: AiWorkerDataListener | null) => void
+
+// 页面冷启动恢复历史消息：请求 Worker 用 libmark 从原文重建渲染 ops
+export type AiWorkerRebuildRequest = {
+	msgId: string,
+	content: string
+}
+export type AiWorkerRebuildResult = {
+	msgId: string,
+	ops: AiWorkerOp[]
+}
+export type AiWorkerRebuildListener = (result: AiWorkerRebuildResult) => void
+export type RequestAiWorkerMarkdownRebuild = (msgId: string, content: string) => void
+export type SetAiWorkerRebuildListener = (listener: AiWorkerRebuildListener | null) => void

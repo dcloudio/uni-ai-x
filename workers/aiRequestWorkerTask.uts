@@ -141,6 +141,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) this.complete()
 			return
 		}
+		// #ifdef APP-HARMONY || APP-ANDROID
+		if (action == 'rebuild-markdown') {
+			this.rebuildMarkdown(payload)
+			return
+		}
+		// #endif
 		// #ifdef APP-ANDROID
 		if (action == 'start') {
 			this.startRequest(payload)
@@ -305,6 +311,58 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.libmarkCompletionPending = false
 		this.libmarkFinishCalled = false
 	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// 页面冷启动恢复历史消息：用独立 session 解析完整原文并回传 ops，
+	// 不复用流式协议状态，与 AI 请求可并发执行
+	private rebuildMarkdown(payload: UTSJSONObject) {
+		const msgId = readMessageString(payload, 'msgId')
+		const content = readMessageString(payload, 'content')
+		const ops = [] as UTSJSONObject[]
+		if (msgId.length == 0 || content.length == 0) {
+			this.postRebuildOps(msgId, ops)
+			return
+		}
+		let session: object | null = null
+		try {
+			session = createSession('ast')
+			this.appendRebuildOps(ops, feedChunk(session!, content))
+			this.appendRebuildOps(ops, finishSession(session!))
+		} catch (_error) {
+			// 解析失败回传空 ops，页面回退为原文显示
+		}
+		if (session != null) {
+			try {
+				destroySession(session!)
+			} catch (_error) {
+			}
+		}
+		this.postRebuildOps(msgId, ops)
+	}
+
+	private appendRebuildOps(target: UTSJSONObject[], event: LibmarkEvent | null | undefined) {
+		if (event == null) return
+		const eventOps = (event as LibmarkEvent).ops
+		for (let i = 0; i < eventOps.length; i++) {
+			const op = eventOps[i]
+			target.push({
+				op: op.op,
+				kind: op.kind,
+				content: op.content,
+				index: op.index,
+				unchanged: op.unchanged
+			} as UTSJSONObject)
+		}
+	}
+
+	private postRebuildOps(msgId: string, ops: UTSJSONObject[]) {
+		this.postMessage({
+			tag: 'libmark-rebuild-ops',
+			msgId: msgId,
+			ops: ops
+		} as UTSJSONObject)
+	}
+	// #endif
 
 	// #ifdef APP-ANDROID
 	// Worker 内 SSE 收流节流：空闲首条立即 feed，活跃期内按 100ms 窗口合并，整窗口无数据则退出活跃

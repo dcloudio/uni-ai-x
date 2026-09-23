@@ -46,10 +46,13 @@
 	import { buildMarkdownAstBlocks } from '@/uni_modules/uni-ai-worker/utssdk/markdown-ast.uts'
 	// #ifdef APP-HARMONY || APP-ANDROID
 	import {
+		libmarkStreamApplyRebuild,
 		libmarkStreamGetBlocks,
 		libmarkStreamLoadFromAst,
-		libmarkStreamRebuildFromText
+		libmarkStreamRequestRebuild
 	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-worker-runtime'
+	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-worker-runtime'
 	// #endif
 	import {
 		markdownHtmlBlocksToTextBlocks,
@@ -130,14 +133,8 @@
 		blocks: MarkdownTextRenderBlock[]
 	}
 
-	// 重建节奏：单帧预算控制首帧同步重建条数，其余消息排队分批重建
-	const REBUILD_BUDGET_PER_FRAME = 3
-	const REBUILD_BATCH_SIZE = 3
-	const REBUILD_BATCH_DELAY = 16
+	// Worker 重建完成后递增版本号，驱动渲染缓存失效与列表重算
 	const rebuildVersion = ref<number>(0)
-	const rebuildQueue = [] as string[]
-	let rebuildBudget = 0
-	let rebuildQueueScheduled = false
 	// 重建导致列表内容高度突变，首帧原生视图可能未重绘：重建完成后主动触发一次滚底刷新
 	let rebuildScrollPending = false
 
@@ -150,6 +147,16 @@
 			scrollToLastMsg(false)
 		}, 60)
 	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// Worker 重建完成回调：应用 ops 后驱动重算（页面环境无法调用 libmark，重建统一在 Worker 执行）
+	const onRebuildResult = (result: AiWorkerRebuildResult) => {
+		if (libmarkStreamApplyRebuild(result.msgId, result.ops)) {
+			rebuildVersion.value += 1
+			scheduleRebuildScroll()
+		}
+	}
+	// #endif
 
 	type ChatRenderItem = {
 		key: string
@@ -186,6 +193,19 @@
 		// #endif
 	}
 
+	function canRebuildMarkdownFromBody(msg: MsgItem): boolean {
+		// #ifdef APP-HARMONY || APP-ANDROID
+		// 历史消息迁移后 markdownAst/markdownHtml 被清空、也没有 libmarkRevision，
+		// body 非空时仍需进入渲染流程，由 body 重建 blocks，避免以源码文本显示
+		return msg.body.length > 0
+		// #endif
+		// #ifndef APP-HARMONY
+		// #ifndef APP-ANDROID
+		return false
+		// #endif
+		// #endif
+	}
+
 	function isLibmarkAst(ast: string): boolean {
 		if (ast.length == 0) return false
 		try {
@@ -195,31 +215,6 @@
 			return false
 		}
 	}
-
-	// #ifdef APP-HARMONY || APP-ANDROID
-	// 渲染数据未命中时的重建排队：预算外的消息先入队，后台分批重建并驱动重算
-	function scheduleRebuild(msgId: string): void {
-		if (msgId.length > 0 && rebuildQueue.indexOf(msgId) < 0) rebuildQueue.push(msgId)
-		if (rebuildQueueScheduled) return
-		rebuildQueueScheduled = true
-		setTimeout(() => {
-			rebuildQueueScheduled = false
-			let processed = 0
-			while (rebuildQueue.length > 0 && processed < REBUILD_BATCH_SIZE) {
-				const nextId = rebuildQueue.shift()
-				if (nextId == null) break
-				const target = msgList.value.find((item) => item._id == nextId)
-				if (target != null && target!.body.length > 0) {
-					libmarkStreamRebuildFromText(nextId!, target!.body)
-				}
-				processed += 1
-			}
-			rebuildVersion.value += 1
-			scheduleRebuildScroll()
-			if (rebuildQueue.length > 0) scheduleRebuild('')
-		}, REBUILD_BATCH_DELAY)
-	}
-	// #endif
 
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
 		const html = msg.markdownHtml ?? ''
@@ -239,15 +234,8 @@
 			blocks = libmarkStreamGetBlocks(msg._id)
 		}
 		if (blocks.length == 0 && msg.body.length > 0) {
-			if (rebuildBudget > 0) {
-				rebuildBudget -= 1
-				if (libmarkStreamRebuildFromText(msg._id, msg.body)) {
-					blocks = libmarkStreamGetBlocks(msg._id)
-					scheduleRebuildScroll()
-				}
-			} else {
-				scheduleRebuild(msg._id)
-			}
+			// 页面环境无法调用 libmark，重建请求转发 Worker 异步执行，结果经 onRebuildResult 应用
+			libmarkStreamRequestRebuild(msg._id, msg.body)
 		}
 		// #endif
 		if (blocks.length > 0) {
@@ -315,8 +303,6 @@
 	}
 
 	const renderItemList = computed<ChatRenderItem[]>(() => {
-		// 每次重算重置单帧重建预算，避免首帧同步重建过多消息
-		rebuildBudget = REBUILD_BUDGET_PER_FRAME
 		const items = [] as ChatRenderItem[]
 		for (let messageIndex = 0; messageIndex < msgList.value.length; messageIndex++) {
 			const msg = msgList.value[messageIndex]
@@ -371,7 +357,7 @@
 				}
 				const markdownHtml = msg.markdownHtml ?? ''
 				const markdownAst = msg.markdownAst ?? ''
-				if (markdownAst.length > 0 || markdownHtml.length > 0 || hasLibmarkRenderData(msg)) {
+				if (markdownAst.length > 0 || markdownHtml.length > 0 || hasLibmarkRenderData(msg) || canRebuildMarkdownFromBody(msg)) {
 					const blocks = getMarkdownBlocks(msg)
 					if (blocks.length > 0) {
 						for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
@@ -650,6 +636,9 @@
 	
 	onMounted(() => {
 		uniAi.onBeforeRequestAi(beforeRequestAi)
+		// #ifdef APP-HARMONY || APP-ANDROID
+		setAiWorkerRebuildListener(onRebuildResult)
+		// #endif
 		// #ifdef H5
 		window.addEventListener('wheel', () => {
 			mouseScroll = true
@@ -673,6 +662,9 @@
 	onBeforeUnmount(() => {
 		if (state.value == 'processing') uniAi.abortRequest()
 		uniAi.offBeforeRequestAi(beforeRequestAi)
+		// #ifdef APP-HARMONY || APP-ANDROID
+		setAiWorkerRebuildListener(null)
+		// #endif
 		scrollingT = clearTimer(scrollingT)
 		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
 		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)

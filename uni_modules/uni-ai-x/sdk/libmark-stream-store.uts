@@ -1,15 +1,8 @@
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-worker-runtime'
 import { LibmarkStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/libmark-ast.uts'
 import { libmarkRenderBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import type { MarkdownTextRenderBlock, MarkdownTextSpan } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
-// #ifdef APP-HARMONY
-import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/libmark/utssdk/app-harmony/index.uts'
-import type { LibmarkEvent, LibmarkOp } from '@/uni_modules/libmark/utssdk/interface.uts'
-// #endif
-// #ifdef APP-ANDROID
-import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/libmark/utssdk/app-android/index.uts'
-import type { LibmarkEvent, LibmarkOp } from '@/uni_modules/libmark/utssdk/interface.uts'
-// #endif
 
 // 内存中保留的渲染条目上限：超出后按最近访问顺序淘汰最久未访问的条目
 const STREAM_ENTRY_LIMIT = 200
@@ -143,51 +136,51 @@ export function libmarkStreamMarkComplete(msgId: string): void {
 	refreshEntry(entry!, true)
 }
 
-function toWorkerOps(ops: LibmarkOp[]): AiWorkerOp[] {
-	const result = [] as AiWorkerOp[]
-	for (let index = 0; index < ops.length; index++) {
-		const op = ops[index]
-		result.push({
-			op: op.op,
-			kind: op.kind,
-			content: op.content,
-			index: op.index,
-			unchanged: op.unchanged
-		} as AiWorkerOp)
-	}
-	return result
+// #ifdef APP-HARMONY || APP-ANDROID
+// 正在等待 Worker 重建结果的消息（去重）
+const rebuildingMsgIds = [] as string[]
+// 本次会话重建失败的消息（避免反复请求）
+const rebuildFailedMsgIds = [] as string[]
+// #endif
+
+/**
+ * 请求 Worker 用 libmark 从消息原文（body）重建渲染 ops（重启/中断后的恢复路径）。
+ * 页面运行环境无法调用 libmark 原生插件，统一由 Worker 解析，
+ * 解析结果通过 setAiWorkerRebuildListener 的监听器回调，再调用 libmarkStreamApplyRebuild 应用。
+ */
+export function libmarkStreamRequestRebuild(msgId: string, text: string): boolean {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	if (text.length == 0) return false
+	if (rebuildFailedMsgIds.indexOf(msgId) >= 0) return false
+	if (rebuildingMsgIds.indexOf(msgId) >= 0) return false
+	const existing = streamEntries.get(msgId)
+	if (existing != null && existing!.textBlocks.length > 0) return false
+	rebuildingMsgIds.push(msgId)
+	requestAiWorkerMarkdownRebuild(msgId, text)
+	return true
+	// #endif
+	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
+	return false
+	// #endif
+	// #endif
 }
 
 /**
- * 用消息原文（body）在主线程重新解析生成渲染 blocks（重启/中断后的恢复路径）。
- * 已有内容的条目直接复用，不做覆盖。
+ * 应用 Worker 回传的重建 ops；ops 为空或应用后无 blocks 均视为重建失败，本次会话不再重试。
  */
-export function libmarkStreamRebuildFromText(msgId: string, text: string): boolean {
-	if (text.length == 0) return false
+export function libmarkStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boolean {
 	// #ifdef APP-HARMONY || APP-ANDROID
-	const existing = streamEntries.get(msgId)
-	if (existing != null && existing!.textBlocks.length > 0) return true
-	const entry = entryFor(msgId)
-	entry.adapter.reset()
-	let session: object | null = null
-	try {
-		session = createSession('ast')
-		if (session == null) return false
-		const feedEvent = feedChunk(session!, text)
-		if (feedEvent != null) entry.adapter.applyOps(toWorkerOps((feedEvent as LibmarkEvent).ops))
-		const finishEvent = finishSession(session!)
-		if (finishEvent != null) entry.adapter.applyOps(toWorkerOps((finishEvent as LibmarkEvent).ops))
-	} catch (_error) {
+	const index = rebuildingMsgIds.indexOf(msgId)
+	if (index >= 0) rebuildingMsgIds.splice(index, 1)
+	const markFailed = (): boolean => {
+		if (rebuildFailedMsgIds.indexOf(msgId) < 0) rebuildFailedMsgIds.push(msgId)
 		return false
 	}
-	if (session != null) {
-		try {
-			destroySession(session!)
-		} catch (_error) {
-		}
-	}
-	refreshEntry(entry, true)
-	return entry.textBlocks.length > 0
+	if (ops.length == 0) return markFailed()
+	const applied = libmarkStreamApply(msgId, ops)
+	if (libmarkStreamGetBlocks(msgId).length == 0) return markFailed()
+	return applied
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
