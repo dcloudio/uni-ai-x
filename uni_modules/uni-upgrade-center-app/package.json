@@ -8,7 +8,7 @@
     "update",
     "升级",
     "wgt"
-],
+  ],
   "repository": "https://gitee.com/dcloud/uni-upgrade-center/tree/master/uni_modules/uni-upgrade-center-app",
   "engines": {
     "HBuilderX": "^4.31",
@@ -53,24 +53,15 @@
       "client": {
         "uni-app": {
           "vue": {
-            "vue2": {
-                "extVersion": "0.9.11",
-                "minVersion": ""
-            },
-            "vue3": {
-                "extVersion": "0.9.11",
-                "minVersion": ""
-            }
+            "vue2": "√",
+            "vue3": "√"
           },
           "web": {
             "safari": "-",
             "chrome": "-"
           },
           "app": {
-            "vue": {
-                "extVersion": "0.9.11",
-                "minVersion": ""
-            },
+            "vue": "√",
             "nvue": {
                 "extVersion": "0.8.3",
                 "minVersion": ""
@@ -119,10 +110,7 @@
                 "extVersion": "0.9.0",
                 "minVersion": "12"
             },
-            "harmony": {
-                "extVersion": "0.9.11",
-                "minVersion": ""
-            }
+            "harmony": "√"
           },
           "mp": {
             "weixin": "x"

@@ -45,11 +45,10 @@
           "vue3": "y"
         },
         "App": {
-            "app-android": {
-                "minVersion": "19"
-            },
-            "app-ios": "n",
-            "app-harmony": "u"
+          "app-android": {
+            "minVersion": "19"
+        },
+          "app-ios": "n"
         },
         "H5-mobile": {
           "Safari": "n",
