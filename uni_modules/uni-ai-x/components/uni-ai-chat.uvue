@@ -47,7 +47,8 @@
 	// #ifdef APP-HARMONY || APP-ANDROID
 	import {
 		libmarkStreamGetBlocks,
-		libmarkStreamLoadFromAst
+		libmarkStreamLoadFromAst,
+		libmarkStreamRebuildFromText
 	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
 	// #endif
 	import {
@@ -125,7 +126,29 @@
 		ast: string
 		libmarkRevision: number
 		complete: boolean
+		rebuildVersion: number
 		blocks: MarkdownTextRenderBlock[]
+	}
+
+	// 重建节奏：单帧预算控制首帧同步重建条数，其余消息排队分批重建
+	const REBUILD_BUDGET_PER_FRAME = 3
+	const REBUILD_BATCH_SIZE = 3
+	const REBUILD_BATCH_DELAY = 16
+	const rebuildVersion = ref<number>(0)
+	const rebuildQueue = [] as string[]
+	let rebuildBudget = 0
+	let rebuildQueueScheduled = false
+	// 重建导致列表内容高度突变，首帧原生视图可能未重绘：重建完成后主动触发一次滚底刷新
+	let rebuildScrollPending = false
+
+	function scheduleRebuildScroll() {
+		if (rebuildScrollPending) return
+		rebuildScrollPending = true
+		setTimeout(() => {
+			rebuildScrollPending = false
+			if (!scrollInBottom.value || scrollTouch.value) return
+			scrollToLastMsg(false)
+		}, 60)
 	}
 
 	type ChatRenderItem = {
@@ -173,13 +196,39 @@
 		}
 	}
 
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// 渲染数据未命中时的重建排队：预算外的消息先入队，后台分批重建并驱动重算
+	function scheduleRebuild(msgId: string): void {
+		if (msgId.length > 0 && rebuildQueue.indexOf(msgId) < 0) rebuildQueue.push(msgId)
+		if (rebuildQueueScheduled) return
+		rebuildQueueScheduled = true
+		setTimeout(() => {
+			rebuildQueueScheduled = false
+			let processed = 0
+			while (rebuildQueue.length > 0 && processed < REBUILD_BATCH_SIZE) {
+				const nextId = rebuildQueue.shift()
+				if (nextId == null) break
+				const target = msgList.value.find((item) => item._id == nextId)
+				if (target != null && target!.body.length > 0) {
+					libmarkStreamRebuildFromText(nextId!, target!.body)
+				}
+				processed += 1
+			}
+			rebuildVersion.value += 1
+			scheduleRebuildScroll()
+			if (rebuildQueue.length > 0) scheduleRebuild('')
+		}, REBUILD_BATCH_DELAY)
+	}
+	// #endif
+
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
 		const html = msg.markdownHtml ?? ''
 		const ast = msg.markdownAst ?? ''
 		const libmarkRevision = msg.libmarkRevision ?? 0
 		const complete = msg.rendered
+		const currentRebuildVersion = rebuildVersion.value
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.html == html && cached.ast == ast && cached.libmarkRevision == libmarkRevision && cached.complete == complete) {
+		if (cached != null && cached.html == html && cached.ast == ast && cached.libmarkRevision == libmarkRevision && cached.complete == complete && cached.rebuildVersion == currentRebuildVersion) {
 			return cached.blocks
 		}
 		let blocks = [] as MarkdownTextRenderBlock[]
@@ -189,6 +238,17 @@
 			libmarkStreamLoadFromAst(msg._id, ast)
 			blocks = libmarkStreamGetBlocks(msg._id)
 		}
+		if (blocks.length == 0 && msg.body.length > 0) {
+			if (rebuildBudget > 0) {
+				rebuildBudget -= 1
+				if (libmarkStreamRebuildFromText(msg._id, msg.body)) {
+					blocks = libmarkStreamGetBlocks(msg._id)
+					scheduleRebuildScroll()
+				}
+			} else {
+				scheduleRebuild(msg._id)
+			}
+		}
 		// #endif
 		if (blocks.length > 0) {
 			markdownBlockCache.set(msg._id, {
@@ -196,6 +256,7 @@
 				ast: ast,
 				libmarkRevision: libmarkRevision,
 				complete: complete,
+				rebuildVersion: currentRebuildVersion,
 				blocks: blocks
 			} as MarkdownBlockCache)
 			return blocks
@@ -211,6 +272,7 @@
 			ast: ast,
 			libmarkRevision: libmarkRevision,
 			complete: complete,
+			rebuildVersion: currentRebuildVersion,
 			blocks: blocks
 		} as MarkdownBlockCache)
 		return blocks
@@ -253,6 +315,8 @@
 	}
 
 	const renderItemList = computed<ChatRenderItem[]>(() => {
+		// 每次重算重置单帧重建预算，避免首帧同步重建过多消息
+		rebuildBudget = REBUILD_BUDGET_PER_FRAME
 		const items = [] as ChatRenderItem[]
 		for (let messageIndex = 0; messageIndex < msgList.value.length; messageIndex++) {
 			const msg = msgList.value[messageIndex]
