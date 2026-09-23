@@ -12,7 +12,7 @@
 					</view>
 				</view>
 				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
-					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
+					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="onMsgListTouchEnd"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
 						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
@@ -107,7 +107,7 @@
 	})
 
 	const bottomAnchorStyle = computed<string>(() => {
-		return 'height:140px;background-color:' + chatThemeBackground.value + ';'
+		return 'height:35px;background-color:' + chatThemeBackground.value + ';'
 	})
 	
 	const msgList = computed<MsgItem[]>(() => {
@@ -370,13 +370,11 @@
 	}
 
 	function setIsInScrollBottom() {
-		if (scrollBottomCheckTimer != 0) {
-			return
-		}
+		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
 		scrollBottomCheckTimer = setTimeout(() => {
 			scrollBottomCheckTimer = 0
 			updateScrollInBottom()
-		}, 120)
+		}, 180)
 	}
 	
 	watch(chatActiveId, () => {
@@ -492,14 +490,23 @@
 	}
 	
 	const onScroll = () => {
-		setIsInScrollBottom()
-		scrolling.value = true
-		syncScrollToBottomBtn()
+		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
+		if (!scrolling.value) {
+			scrolling.value = true
+			showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
+			showScrollToBottom.value = false
+		}
 		scrollingT = clearTimer(scrollingT)
 		scrollingT = setTimeout(() => {
+			scrollingT = 0
 			scrolling.value = false
-			syncScrollToBottomBtn()
-		}, 500)
+			updateScrollInBottom()
+		}, 180)
+	}
+
+	function onMsgListTouchEnd() {
+		setTouchState(false)
+		setIsInScrollBottom()
 	}
 
 	let touchClearTimer: number = 0
@@ -595,6 +602,7 @@
 
 .chat-box-msg-list {
 	flex: 1;
+	margin-bottom: 140px;
 }
 
 .chat-box-add-chat {
