@@ -12,7 +12,7 @@
 					</view>
 				</view>
 				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
-					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="setTouchState(false)"
+					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="onMsgListTouchStart" @touchend="setTouchState(false)"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
 						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
@@ -502,6 +502,11 @@
 		}, 500)
 	}
 
+	function onMsgListTouchStart() {
+		setTouchState(true)
+		uni.hideKeyboard()
+	}
+
 	let touchClearTimer: number = 0
 	function setTouchState(state: boolean) {
 		touchClearTimer = clearTimer(touchClearTimer)
@@ -584,6 +589,7 @@
 
 .chat-box-chat {
 	flex: 1;
+	position: relative;
 	background-color: var(--bg-primary);
 }
 
