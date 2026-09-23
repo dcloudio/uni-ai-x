@@ -2,6 +2,9 @@ import {
 	AiWorkerDataListener,
 	AiWorkerMarkdownStartOptions,
 	AiWorkerOp,
+	AiWorkerRebuildListener,
+	AiWorkerRebuildRequest,
+	AiWorkerRebuildResult,
 	AiWorkerStartOptions,
 	AppendAiWorkerMarkdown,
 	CancelAiWorkerRequest,
@@ -10,7 +13,9 @@ import {
 	DestroyAiWorkerRuntime,
 	ReadAiWorkerSnapshot,
 	ReadAiWorkerState,
+	RequestAiWorkerMarkdownRebuild,
 	SetAiWorkerDataListener,
+	SetAiWorkerRebuildListener,
 	StartAiWorkerMarkdown,
 	StartAiWorkerRequest
 } from './interface.uts'
@@ -44,6 +49,10 @@ type SendablePostMessageOptions = {
 // #ifdef APP-HARMONY || APP-ANDROID
 let pendingLibmarkOps = [] as AiWorkerOp[]
 let latestLibmarkState: UTSJSONObject | null = null
+// Worker 未就绪时排队的重建请求、待监听器消费的重建结果
+let pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
+let pendingRebuildResults = [] as AiWorkerRebuildResult[]
+let rebuildListener: AiWorkerRebuildListener | null = null
 // #endif
 
 // #ifdef MP-WEIXIN
@@ -192,6 +201,67 @@ function receiveLibmarkOpBatchObject(message: UTSJSONObject): void {
 }
 // #endif
 
+// #ifdef APP-HARMONY || APP-ANDROID
+function toAiWorkerOps(rawOps: UTSJSONObject[] | null): AiWorkerOp[] {
+	const ops = [] as AiWorkerOp[]
+	if (rawOps == null) return ops
+	for (let i = 0; i < rawOps.length; i++) {
+		const entry = rawOps[i]
+		ops.push({
+			op: readMessageNumber(entry, 'op'),
+			kind: readMessageString(entry, 'kind'),
+			content: readMessageString(entry, 'content'),
+			index: readMessageNumber(entry, 'index'),
+			unchanged: readMessageBoolean(entry, 'unchanged')
+		} as AiWorkerOp)
+	}
+	return ops
+}
+
+function receiveRebuildResult(message: UTSJSONObject): void {
+	const result = {
+		msgId: readMessageString(message, 'msgId'),
+		ops: toAiWorkerOps(message['ops'] as UTSJSONObject[] | null)
+	} as AiWorkerRebuildResult
+	const listener = rebuildListener
+	if (listener == null) {
+		pendingRebuildResults.push(result)
+		return
+	}
+	try {
+		listener(result)
+	} catch (_error) {
+	}
+}
+
+function postRebuildRequest(request: AiWorkerRebuildRequest): void {
+	if (worker == null || !workerReady) return
+	worker!.postMessage({
+		action: 'rebuild-markdown',
+		msgId: request.msgId,
+		content: request.content
+	} as UTSJSONObject, null)
+}
+
+function flushPendingRebuildRequests(): void {
+	if (pendingRebuildRequests.length == 0) return
+	const requests = pendingRebuildRequests
+	pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
+	for (let i = 0; i < requests.length; i++) postRebuildRequest(requests[i])
+}
+
+const requestWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string): void {
+	if (msgId.length == 0 || content.length == 0) return
+	createWorkerRuntime()
+	const request = { msgId: msgId, content: content } as AiWorkerRebuildRequest
+	if (!workerReady) {
+		pendingRebuildRequests.push(request)
+		return
+	}
+	postRebuildRequest(request)
+}
+// #endif
+
 function createWorkerNow(generation: number): void {
 	if (generation != runtimeGeneration || worker != null) return
 	workerReady = false
@@ -216,10 +286,17 @@ function createWorkerNow(generation: number): void {
 			notifyDataListener()
 			return
 		}
+		if (readMessageString(result, 'tag') == 'libmark-rebuild-ops') {
+			receiveRebuildResult(result)
+			return
+		}
 		// #endif
 		const phase = readMessageString(result, 'phase')
 		if (phase == 'ready') {
 			workerReady = true
+			// #ifdef APP-HARMONY || APP-ANDROID
+			flushPendingRebuildRequests()
+			// #endif
 			if (pendingMarkdownStart != null) {
 				const options = pendingMarkdownStart!
 				pendingMarkdownStart = null
@@ -378,6 +455,8 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	// #ifdef APP-HARMONY || APP-ANDROID
 	pendingLibmarkOps = [] as AiWorkerOp[]
 	latestLibmarkState = null
+	pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
+	pendingRebuildResults = [] as AiWorkerRebuildResult[]
 	// #endif
 	if (previousWorker != null) {
 		setTimeout(() => {
@@ -711,6 +790,30 @@ export const isLibmarkOpsSupported: () => boolean = function (): boolean {
 	// #ifndef APP-ANDROID
 	return false
 	// #endif
+	// #endif
+}
+
+export const requestAiWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string): void {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	requestWorkerMarkdownRebuild(msgId, content)
+	// #endif
+}
+
+@UTSJS.keepAlive
+export function setAiWorkerRebuildListener(listener: AiWorkerRebuildListener | null): void {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	rebuildListener = listener
+	const target = listener
+	if (target == null) return
+	if (pendingRebuildResults.length == 0) return
+	const results = pendingRebuildResults
+	pendingRebuildResults = [] as AiWorkerRebuildResult[]
+	for (let i = 0; i < results.length; i++) {
+		try {
+			target(results[i])
+		} catch (_error) {
+		}
+	}
 	// #endif
 }
 
