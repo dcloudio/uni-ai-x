@@ -21,6 +21,8 @@ logs
 platformConfig.json
 package.json
 !/uni_modules/uni-ai-x/uniCloud/cloudfunctions/uni-ai-openclaw/package.json
+!/uni_modules/uts-progressNotification/package.json
+!/uni_modules/uni-upgrade-center-app/package.json
 
 # uni-agent 调试产物目录：截图、临时验证素材等统一放这里，不要散落到项目根目录
 /uni-agent-artifacts/*
