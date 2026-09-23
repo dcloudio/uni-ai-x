@@ -9,6 +9,8 @@
 					<text class="uni-ai-md-text-image-error-title">图片资源加载失败</text>
 					<text class="uni-ai-md-text-image-error-url">无法访问以下链接，点击复制：{{span.imageSrc}}</text>
 				</view>
+				<image v-else-if="span.svgSource.length > 0" class="uni-ai-md-text-inline-math"
+					:src="span.svgSource" mode="scaleToFill" :style="spanSvgStyle(span)" />
 				<image v-else-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
 					mode="widthFix" @error="onImageError(span.imageSrc)" @click="previewImage(span.imageSrc)" />
 				<text v-else :class="spanClass(span)" :style="spanStyle(span)" @click="openLink(span)">{{span.text}}</text>
@@ -56,6 +58,14 @@
 		if (level == 4) return 'font-size:16px;line-height:22px;font-weight:700;'
 		if (level == 5) return 'font-size:15px;line-height:21px;font-weight:700;'
 		return 'font-size:14px;line-height:20px;font-weight:700;color:var(--text-tertiary);'
+	}
+
+	// 行内公式 SVG：按 payload 尺寸显示，并在 20px 行高内做垂直居中（App 端不支持 baseline 对齐）
+	function spanSvgStyle(span: MarkdownTextSpan): string {
+		const width = Math.max(1, Math.ceil(span.svgWidth))
+		const height = Math.max(1, Math.ceil(span.svgHeight))
+		const marginTop = Math.max(0, Math.round((20 - height) / 2))
+		return 'width:' + width.toString() + 'px;height:' + height.toString() + 'px;margin-top:' + marginTop.toString() + 'px;'
 	}
 
 	function openLink(span: MarkdownTextSpan) {
@@ -185,6 +195,11 @@
 		width: 240px;
 		max-width: 540rpx;
 		border-radius: 6px;
+	}
+
+	.uni-ai-md-text-inline-math {
+		flex-shrink: 0;
+		align-self: flex-start;
 	}
 
 	.uni-ai-md-text-image-error {
