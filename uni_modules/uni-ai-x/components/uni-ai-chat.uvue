@@ -107,7 +107,7 @@
 	})
 
 	const bottomAnchorStyle = computed<string>(() => {
-		return 'height:35px;background-color:' + chatThemeBackground.value + ';'
+		return 'height:140px;background-color:' + chatThemeBackground.value + ';'
 	})
 	
 	const msgList = computed<MsgItem[]>(() => {

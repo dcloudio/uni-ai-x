@@ -152,7 +152,7 @@
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 
 .chat-input {
-	position: fixed;
+	position: absolute;
 	left: 0;
 	right: 0;
 	bottom: 0;
@@ -168,6 +168,7 @@
 }
 
 .chat-input-fullscreen {
+	position: fixed;
 	right: 0;
 	bottom: 0;
 	left: 0;
