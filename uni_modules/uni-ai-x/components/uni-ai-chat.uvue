@@ -653,7 +653,7 @@
 
 .chat-box-scroll-to-bottom {
 	position: absolute;
-	bottom: 10px;
+	bottom: 150px;
 	right: 10px;
 	width: 35px;
 	height: 35px;
