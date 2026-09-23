@@ -25,7 +25,7 @@ import {
 	batchOp,
 	batchRequestVersion,
 	createOpBatch
-} from './sendable.ets'
+} from './app-harmony/sendable.ets'
 
 export {
 	AiWorkerState,

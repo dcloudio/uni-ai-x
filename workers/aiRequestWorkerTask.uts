@@ -1,5 +1,4 @@
 // #ifdef APP-ANDROID
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-android/index.uts'
 import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
 // #endif
@@ -13,7 +12,6 @@ import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_module
 import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
 // #endif
 // #ifdef APP-HARMONY
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
 import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-harmony/index.uts'
 import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
 import { AiWorkerState, LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
@@ -545,7 +543,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdownValue == null) return
 		const processedMarkdown = processedMarkdownValue!
-		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-IOS || WEB || MP-WEIXIN
 		if (isMd2htmlAvailable() == false) {
 			this.fail('markdown_html_unavailable', 'cmark-gfm Markdown HTML 转换器不可用')
 			return
@@ -565,13 +563,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				return
 			}
 		} catch (error) {
-			// #ifdef APP-HARMONY
-			this.fail('markdown_html_failed', 'Markdown HTML 转换失败')
-			// #endif
-			// #ifndef APP-HARMONY
 			this.fail('markdown_html_failed',
 				error instanceof Error ? error.message : 'Markdown HTML 转换失败')
-			// #endif
 			return
 		}
 		// The JSON AST augments the HTML pipeline; when the native converter is not

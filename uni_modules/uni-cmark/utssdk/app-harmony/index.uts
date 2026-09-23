@@ -1,17 +1,16 @@
-import cmark from 'libcmark.so'
-
+// uni-cmark 已不再支持鸿蒙平台，此文件为鸿蒙工程依赖占位：保留接口签名，不提供 cmark 能力
 export function initMd2html(): Promise<void> {
 	return Promise.resolve()
 }
 
+export function isMd2htmlAvailable(): boolean {
+	return false
+}
+
 export function md2html(markdown: string): string {
-	return cmark.md2html(markdown)
+	return ''
 }
 
 export function md2json(markdown: string): string {
-	return cmark.md2json(markdown)
-}
-
-export function isMd2htmlAvailable(): boolean {
-	return true
+	return ''
 }

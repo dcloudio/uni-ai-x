@@ -131,9 +131,6 @@ target_include_directories(cmarkhtml PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/extensions"
 )
 target_link_libraries(cmarkhtml PRIVATE ${UNI_CMARK_HTML_LIBRARIES})
-if(ANDROID)
-  target_link_options(cmarkhtml PRIVATE "-Wl,--exclude-libs,ALL")
-endif()
 
 if(NOT ANDROID)
   enable_testing()
