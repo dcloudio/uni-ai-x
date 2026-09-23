@@ -607,7 +607,7 @@
 
 .chat-box-add-chat {
 	position: absolute;
-	bottom: 5px;
+	bottom: 150px;
 	left: 0;
 	width: 100%;
 	flex-direction: row;
