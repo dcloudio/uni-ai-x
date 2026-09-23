@@ -1,5 +1,6 @@
 <template>
-	<view class="chat-input" :class="isFullscreen ? 'chat-input-fullscreen' : ''">
+	<view id="chat-input-container" class="chat-input" :class="isFullscreenLayout ? 'chat-input-fullscreen' : ''"
+		:style="{height: chatInputHeight}">
 		<uni-ai-draft-images />
 		<view v-if="isEditingMsg" class="chat-input-edit-tip">
 			<text class="chat-input-edit-tip-text" flatten>正在编辑消息，发送后将替换该消息及之后的对话</text>
@@ -28,8 +29,8 @@
 			:adjust-position="false" :hold-keyboard="isFullscreen || keepKeyboardForToggle" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 			:focus="inputFocused" @focus="onInputFocus" @blur="onInputBlur" :auto-height="false"
 		></textarea>
-		<view class="chat-input-toolbar" :class="isFullscreen ? 'chat-input-toolbar-fullscreen' : ''"
-			:style="{bottom: isFullscreen ? (keyboardHeight > 0 ? (keyboardHeight + 5) + 'px' : 'env(safe-area-inset-bottom)') : 'auto'}">
+		<view class="chat-input-toolbar" :class="isFullscreenLayout ? 'chat-input-toolbar-fullscreen' : ''"
+			:style="{bottom: isFullscreenLayout ? (keyboardHeight > 0 ? (keyboardHeight + 5) + 'px' : 'env(safe-area-inset-bottom)') : 'auto'}">
 			<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
 		</view>
 		<view class="chat-input-keyboard-cover"
@@ -49,10 +50,15 @@
 
 	const keyboardHeight = ref<number>(0)
 	const isFullscreen = ref<boolean>(false)
+	const isFullscreenLayout = ref<boolean>(false)
 	const inputFocused = ref<boolean>(false)
 	const keepKeyboardForToggle = ref<boolean>(false)
 	const restoreFocusAfterToggle = ref<boolean>(false)
+	const layoutTransitioning = ref<boolean>(false)
 	const expandedTextareaHeight = ref<string>('0px')
+	const chatInputHeight = ref<string>('auto')
+	let normalChatInputHeight: string = 'auto'
+	let layoutTransitionTimer: number = 0
 	const chatInputContent = computed<string>({
 		get: (): string => {
 			return uniAi.currentChat?.inputContent ?? ''
@@ -80,6 +86,9 @@
 	}
 
 	function onKeyboardheightchange(res: UniInputKeyboardHeightChangeEvent) {
+		if (layoutTransitioning.value) {
+			return
+		}
 		keyboardHeight.value = res.detail.height
 	}
 
@@ -101,13 +110,33 @@
 	}
 
 	function toggleFullscreen() {
+		if (layoutTransitionTimer != 0) {
+			clearTimeout(layoutTransitionTimer)
+			layoutTransitionTimer = 0
+			layoutTransitioning.value = false
+		}
 		isFullscreen.value = !isFullscreen.value
 		if (isFullscreen.value) {
+			const chatInput = uni.getElementById('chat-input-container')
+			const currentHeight = chatInput?.getBoundingClientRect().height ?? 0
+			normalChatInputHeight = currentHeight > 0 ? currentHeight + 'px' : 'auto'
+			chatInputHeight.value = normalChatInputHeight
+			isFullscreenLayout.value = true
 			expandedTextareaHeight.value = uni.getWindowInfo().windowHeight + 'px'
-		} else {
 			nextTick(() => {
-				keepKeyboardForToggle.value = false
+				const windowInfo = uni.getWindowInfo()
+				chatInputHeight.value = (windowInfo.windowHeight - windowInfo.statusBarHeight) + 'px'
 			})
+		} else {
+			layoutTransitioning.value = true
+			chatInputHeight.value = normalChatInputHeight
+			layoutTransitionTimer = setTimeout(() => {
+				isFullscreenLayout.value = false
+				keepKeyboardForToggle.value = false
+				layoutTransitioning.value = false
+				chatInputHeight.value = 'auto'
+				layoutTransitionTimer = 0
+			}, 140)
 		}
 		if (restoreFocusAfterToggle.value) {
 			nextTick(() => {
@@ -123,7 +152,7 @@
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 
 .chat-input {
-	position: absolute;
+	position: fixed;
 	left: 0;
 	right: 0;
 	bottom: 0;
@@ -133,11 +162,12 @@
 	border-radius: 15px 15px 0 0;
 	border: 1px solid var(--border-secondary);
 	z-index: 30;
+	transition-property: height;
+	transition-duration: 140ms;
+	transition-timing-function: ease-out;
 }
 
 .chat-input-fullscreen {
-	position: fixed;
-	top: var(--status-bar-height);
 	right: 0;
 	bottom: 0;
 	left: 0;
