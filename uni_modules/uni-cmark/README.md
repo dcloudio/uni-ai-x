@@ -60,3 +60,13 @@ if (isMd2htmlAvailable()) {
 Worker 加载不依赖部署路径或仅限 Web 的 `uni` API。由于
 `WXWebAssembly.instantiate` 需要加载小程序资源路径，微信小程序产物保留为独立的
 WASM 文件。
+
+## 本地调整记录（2026-09-23）
+
+本项目 Android/鸿蒙平台的 Markdown 解析已切换为 libmark 流式解析，因此移除本插件对
+Android/鸿蒙的 cmark 支持：
+
+- 删除 Android 运行时实现 `utssdk/app-android/`（含 `libcmarkhtml.so` 与 Kotlin 桥）及构建脚本 `native/build-android.sh`
+- 删除鸿蒙运行时实现中的 `cmark.har` 与 N-API 桥（`native/harmony/`、`native/build-harmony.sh`）；`utssdk/app-harmony/index.uts` 保留为最小工程占位（不加载 cmark，接口标记不可用）
+- `native/CMakeLists.txt` 移除 Android 专属链接配置
+- iOS、Web、微信小程序的支持与构建脚本保持不变
