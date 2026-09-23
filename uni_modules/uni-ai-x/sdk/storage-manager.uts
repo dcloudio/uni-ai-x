@@ -5,13 +5,18 @@ type T_STORAGE_KEYS = {
 	CHAT_LIST: string
 	CHAT_MSG_IDS_PREFIX: string
 	MSG_CONTENT_PREFIX: string
+	STORAGE_VERSION: string
 }
 
 const STORAGE_KEYS: T_STORAGE_KEYS = {
 	CHAT_LIST: 'uni-ai-chatList',
 	CHAT_MSG_IDS_PREFIX: 'uni-ai-chat-',
-	MSG_CONTENT_PREFIX: 'uni-ai-msg-'
+	MSG_CONTENT_PREFIX: 'uni-ai-msg-',
+	STORAGE_VERSION: 'uni-ai-storage-version'
 }
+
+// 当前数据版本：2 起鸿蒙/Android 不再持久化 markdownAst/markdownHtml（渲染数据由 body 重建）
+const CURRENT_STORAGE_VERSION = '2'
 
 function migrateLegacyMessage(message: MsgItem): MsgItem {
 	if (message.markdownHtml == null) message.markdownHtml = ''
@@ -39,6 +44,9 @@ export type ChatMessageBatch = {
 
 // 存储管理类
 export class StorageManager {
+	// 旧版消息渲染字段的惰性重写队列（鸿蒙/Android）
+	private pendingMigrateMsgIds = [] as string[]
+	private migrateTimer = 0
 	
 	/**
 	 * 获取会话列表
@@ -250,6 +258,15 @@ export class StorageManager {
 			const msgId = msgIds[i]
 			const msg = this.getMessage(msgId)
 			if (msg != null) {
+				// #ifdef APP-HARMONY || APP-ANDROID
+				// 版本 2 起渲染数据不落 storage：清掉历史遗留的 AST/HTML 字段（内存立即生效），
+				// 保留 body 即可在渲染时重建
+				if (msg.body.length > 0 && (msg.markdownAst.length > 0 || msg.markdownHtml.length > 0)) {
+					msg.markdownAst = ''
+					msg.markdownHtml = ''
+					this.queueLegacyRewrite(msgId)
+				}
+				// #endif
 				messages.push(msg)
 			}
 		}
@@ -257,6 +274,57 @@ export class StorageManager {
 		// 按创建时间排序
 		return messages.sort((a, b) => a.create_time - b.create_time)
 	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	/**
+	 * 把需要重写的消息加入后台队列：分批重写，全部完成后写入当前数据版本号。
+	 * 清掉旧字段可降低 preferences 整文件刷盘成本。
+	 */
+	private queueLegacyRewrite(msgId: string): void {
+		if (this.pendingMigrateMsgIds.indexOf(msgId) < 0) this.pendingMigrateMsgIds.push(msgId)
+		if (this.migrateTimer != 0) return
+		this.migrateTimer = setTimeout(() => {
+			this.migrateTimer = 0
+			this.runLegacyRewrite()
+		}, 200)
+	}
+
+	private runLegacyRewrite(): void {
+		const msgId = this.pendingMigrateMsgIds.shift()
+		if (msgId != null) {
+			const msg = this.getMessage(msgId)
+			if (msg != null && msg.body.length > 0 && (msg.markdownAst.length > 0 || msg.markdownHtml.length > 0)) {
+				msg.markdownAst = ''
+				msg.markdownHtml = ''
+				this.saveMessage(msgId, msg)
+			}
+		}
+		if (this.pendingMigrateMsgIds.length > 0) {
+			this.migrateTimer = setTimeout(() => {
+				this.migrateTimer = 0
+				this.runLegacyRewrite()
+			}, 200)
+			return
+		}
+		this.setStorageVersion(CURRENT_STORAGE_VERSION)
+	}
+
+	getStorageVersion(): string {
+		try {
+			const value = uni.getStorageSync(STORAGE_KEYS.STORAGE_VERSION) as string
+			return value == null ? '' : value as string
+		} catch (_error) {
+			return ''
+		}
+	}
+
+	setStorageVersion(version: string): void {
+		try {
+			uni.setStorageSync(STORAGE_KEYS.STORAGE_VERSION, version)
+		} catch (_error) {
+		}
+	}
+	// #endif
 		
 	/**
 	 * 删除整个会话及其所有消息

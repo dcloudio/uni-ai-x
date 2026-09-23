@@ -10,13 +10,15 @@ import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import {
 	libmarkStreamApply,
-	libmarkStreamComplete,
+	libmarkStreamMarkComplete,
 	libmarkStreamReset,
 	libmarkStreamRelease
 } from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
 // #endif
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
+// 消息持久化节流间隔（毫秒）：流式期间按固定节奏落盘，避免杀进程丢失最新内容
+const MSG_SAVE_THROTTLE_INTERVAL = 2000
 type BeforeRequestAiFn = () => void
 type OpenSettingFn = () => void
 type StressCopyProgress = (completed: number) => void
@@ -572,21 +574,35 @@ class UniAi {
 		}
 	}
 	/**
-	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
+	 * 收到 msg 被更新的通知后，按固定节奏节流保存消息：
+	 * 窗口内不重置定时器，保证流式期间也能周期性落盘
 	 */
 	sM2STimer: number = 0
+	private pendingMsgSave: MsgItem | null = null
+	// 正在流式生成的 AI 消息：中断时需要落一次最终状态
+	private streamingAiMsg: MsgItem | null = null
 	private clearPendingMsgSave() {
 		if (this.sM2STimer != 0) {
 			clearTimeout(this.sM2STimer)
 			this.sM2STimer = 0
 		}
+		this.pendingMsgSave = null
 	}
 	updateMsg2Storage(msg: MsgItem) {
-		this.clearPendingMsgSave()
+		this.pendingMsgSave = msg
+		if (this.sM2STimer != 0) return
 		this.sM2STimer = setTimeout(() => {
 			this.sM2STimer = 0
-			this.storageManager.updateMessage(msg)
-		}, 1000)
+			const pending = this.pendingMsgSave
+			this.pendingMsgSave = null
+			if (pending != null) this.storageManager.updateMessage(pending!)
+		}, MSG_SAVE_THROTTLE_INTERVAL)
+	}
+	// 立即落盘：完成/停止/中断等最终状态不等待节流窗口
+	flushMsg2Storage(msg: MsgItem | null = null) {
+		const pending = msg != null ? msg! : this.pendingMsgSave
+		this.clearPendingMsgSave()
+		if (pending != null) this.storageManager.updateMessage(pending!)
 	}
 	saveChatList2Storage() {
 		const chatList: ChatItem[] = this.chat.datas
@@ -752,6 +768,13 @@ class UniAi {
 	}
 	
 	abortRequest() {
+		// 中断前把流式中的消息状态落盘，避免停止后重启显示源码/状态缺失
+		const streamingMsg = this.streamingAiMsg
+		this.streamingAiMsg = null
+		if (streamingMsg != null && streamingMsg.rendered != true) {
+			streamingMsg.rendered = true
+			this.flushMsg2Storage(streamingMsg)
+		}
 		this.answerGeneration += 1
 		requestAiRunner?.abortRequest()
 	}
@@ -812,12 +835,13 @@ class UniAi {
 		msg.thinkContent = null
 		msg.markdownHtml = ''
 		msg.markdownAst = ''
-		this.updateMsg2Storage(msg)
+		this.flushMsg2Storage(msg)
 	}
 	
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
 		this.abortRequest()
+		this.streamingAiMsg = aiMsgItem
 		const answerGeneration = this.answerGeneration
 		this.emitBeforeRequestAi()
 		this.updateChatUpdateTime(this.currentChat!.id)
@@ -867,17 +891,18 @@ class UniAi {
 				this.currentChat!.state = state
 				// #ifdef APP-HARMONY || APP-ANDROID
 				if (state == 'completed') {
-					const markdownAst = libmarkStreamComplete(aiMsgItem._id)
-					if (markdownAst.length > 0) {
-						aiMsgItem.markdownAst = markdownAst
-						aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
-					}
+					// 渲染数据不落 storage：只刷新完成态，重启后由 body 重建
+					libmarkStreamMarkComplete(aiMsgItem._id)
+					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
 				}
 				// #endif
 				if (state == 'stop') {
 					aiMsgItem.rendered = true
 				}
-				this.updateMsg2Storage(aiMsgItem)
+				if (state == 'completed' || state == 'stop') {
+					this.streamingAiMsg = null
+				}
+				this.flushMsg2Storage(aiMsgItem)
 			},
 			onErrorMsg: (errorMsg: string) => {
 				if (!isActiveAiMsg()) return
@@ -887,7 +912,7 @@ class UniAi {
 			onRendered: (rendered: boolean) => {
 				if (!isActiveAiMsg()) return
 				aiMsgItem.rendered = rendered
-				this.updateMsg2Storage(aiMsgItem)
+				this.flushMsg2Storage(aiMsgItem)
 			},
 			onChatTitle: (title: string) => {
 				if (!isActiveAiMsg()) return
