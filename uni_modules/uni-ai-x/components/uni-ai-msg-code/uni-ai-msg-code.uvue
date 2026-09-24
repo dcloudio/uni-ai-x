@@ -49,11 +49,10 @@ import {uiTheme, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
+import { parseCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
+import { streamingCodeTokens } from '@/uni_modules/uni-ai-x/sdk/streaming-code-tokens.uts'
 // #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
-// #endif
-// #ifdef APP || WEB
-import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 // #endif
 
 type UniAiMsgCodeProps = {
@@ -106,11 +105,13 @@ let mermaidRenderRequestKey = ''
 let mermaidSourceKey = ''
 let mermaidWasClosed = false
 let codeHighlightRequestVersion = 0
-// 已高亮完成行的缓存：与代码行按索引前缀对齐（流式中已完成的行内容不再变化）
-let highlightedCacheLanguage = ''
-let cacheLineTexts = [] as string[]
-let cacheLineTokens = [] as IToken[][]
 const highlightedCodeTokens = ref<IToken[][]>([] as IToken[][])
+const highlightedCodeText = ref<string>('')
+let highlightedCodeLanguage = ''
+let requestedCodeText = ''
+let requestedCodeLanguage = ''
+let pendingCodeText = ''
+let pendingCodeLanguage = ''
 const codeLineHeight = 22
 const codeVerticalPadding = 16
 const codeFontSize = 14
@@ -280,280 +281,123 @@ function buildRenderedCodeText(codeTokens: IToken[][]): string {
 	}).join('\n')
 }
 
-type MiniProgramCodeLine = {
-	tokens: IToken[]
-	blockCommentEnd: string
-}
-
-function isMiniProgramWordStart(charCode: number): boolean {
-	return (charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122)
-		|| charCode == 36 || charCode == 95
-}
-
-function isMiniProgramWordPart(charCode: number): boolean {
-	return isMiniProgramWordStart(charCode) || (charCode >= 48 && charCode <= 57)
-}
-
-function miniProgramUsesHashComments(language: string): boolean {
-	return language == 'python' || language == 'py' || language == 'shell' || language == 'bash'
-		|| language == 'sh' || language == 'yaml' || language == 'yml' || language == 'ruby'
-}
-
-function miniProgramKeywordClass(word: string): string {
-	const normalizedWord = word.toLowerCase()
-	const keywords = '|as|async|await|break|case|catch|class|const|continue|def|default|delete|do|else|elif|end|ensure|except|export|extends|finally|for|from|function|fun|if|implements|import|in|interface|lambda|let|module|namespace|new|of|package|pass|private|protected|public|return|static|switch|then|throw|throws|try|typeof|var|when|while|with|yield|'
-	const constants = '|false|inf|infinity|nan|nil|none|null|true|undefined|'
-	const supports = '|any|array|boolean|byte|char|date|double|float|int|integer|list|long|map|number|object|promise|set|string|void|'
-	if (keywords.indexOf('|' + normalizedWord + '|') >= 0) return 'keyword'
-	if (constants.indexOf('|' + normalizedWord + '|') >= 0) return 'constant'
-	if (supports.indexOf('|' + normalizedWord + '|') >= 0) return 'support'
-	return ''
-}
-
-function miniProgramCodeLineTokens(line: string, language: string, blockCommentEnd: string): MiniProgramCodeLine {
-	const tokens = [] as IToken[]
-	let index = 0
-	let plainText = ''
-	const normalizedLanguage = language.toLowerCase()
-	const hashComments = miniProgramUsesHashComments(normalizedLanguage)
-	const htmlLike = normalizedLanguage == 'html' || normalizedLanguage == 'xml' || normalizedLanguage == 'vue'
-	const pushToken = (text: string, className: string = '') => {
-		if (text.length == 0) return
-		const token: IToken = { text }
-		if (className.length > 0) token.className = className
-		tokens.push(token)
+function preserveStableCodeLines(codeText: string, nextTokens: IToken[][], language: string): IToken[][] {
+	if (highlightedCodeLanguage != language) return nextTokens
+	const previousText = normalizeCodeText(highlightedCodeText.value)
+	const nextText = normalizeCodeText(codeText)
+	if (previousText.length == 0 || !nextText.startsWith(previousText)) return nextTokens
+	const previousLines = previousText.split('\n')
+	const nextLines = nextText.split('\n')
+	const previousTokens = highlightedCodeTokens.value
+	const result = [] as IToken[][]
+	for (let lineIndex = 0; lineIndex < nextTokens.length; lineIndex++) {
+		if (lineIndex < previousLines.length && lineIndex < previousTokens.length
+			&& previousLines[lineIndex] == nextLines[lineIndex]) {
+			result.push(previousTokens[lineIndex])
+		} else {
+			result.push(nextTokens[lineIndex])
+		}
 	}
-	const flushPlainText = () => {
-		pushToken(plainText)
-		plainText = ''
-	}
-	while (index < line.length) {
-		if (blockCommentEnd.length > 0) {
-			const closeIndex = line.indexOf(blockCommentEnd, index)
-			if (closeIndex < 0) {
-				pushToken(line.slice(index), 'comment')
-				return { tokens, blockCommentEnd }
-			}
-			pushToken(line.slice(index, closeIndex + blockCommentEnd.length), 'comment')
-			index = closeIndex + blockCommentEnd.length
-			blockCommentEnd = ''
-			continue
-		}
-
-		const current = line.charAt(index)
-		const next = line.charAt(index + 1)
-		if (htmlLike && line.slice(index, index + 4) == '<!--') {
-			flushPlainText()
-			const closeIndex = line.indexOf('-->', index + 4)
-			if (closeIndex < 0) {
-				pushToken(line.slice(index), 'comment')
-				return { tokens, blockCommentEnd: '-->' }
-			}
-			pushToken(line.slice(index, closeIndex + 3), 'comment')
-			index = closeIndex + 3
-			continue
-		}
-		if (current == '/' && next == '*') {
-			flushPlainText()
-			const closeIndex = line.indexOf('*/', index + 2)
-			if (closeIndex < 0) {
-				pushToken(line.slice(index), 'comment')
-				return { tokens, blockCommentEnd: '*/' }
-			}
-			pushToken(line.slice(index, closeIndex + 2), 'comment')
-			index = closeIndex + 2
-			continue
-		}
-		if ((current == '/' && next == '/') || (normalizedLanguage == 'sql' && current == '-' && next == '-')
-			|| (hashComments && current == '#')) {
-			flushPlainText()
-			pushToken(line.slice(index), 'comment')
-			break
-		}
-		if (current == '"' || current == "'" || current == '`') {
-			flushPlainText()
-			const quote = current
-			let end = index + 1
-			while (end < line.length) {
-				if (line.charAt(end) == '\\') {
-					end += 2
-					continue
-				}
-				if (line.charAt(end) == quote) {
-					end += 1
-					break
-				}
-				end += 1
-			}
-			pushToken(line.slice(index, end), 'string')
-			index = end
-			continue
-		}
-		if (htmlLike && current == '<') {
-			const closeIndex = line.indexOf('>', index + 1)
-			if (closeIndex >= 0) {
-				flushPlainText()
-				pushToken(line.slice(index, closeIndex + 1), 'entity')
-				index = closeIndex + 1
-				continue
-			}
-		}
-		const charCode = line.charCodeAt(index)
-		if (isMiniProgramWordStart(charCode)) {
-			flushPlainText()
-			let end = index + 1
-			while (end < line.length && isMiniProgramWordPart(line.charCodeAt(end))) end += 1
-			const word = line.slice(index, end)
-			let className = miniProgramKeywordClass(word)
-			let nextIndex = end
-			while (nextIndex < line.length && (line.charAt(nextIndex) == ' ' || line.charAt(nextIndex) == '\t')) nextIndex += 1
-			if (className.length == 0 && line.charAt(nextIndex) == '(') className = 'function'
-			pushToken(word, className)
-			index = end
-			continue
-		}
-		if (charCode >= 48 && charCode <= 57) {
-			flushPlainText()
-			let end = index + 1
-			while (end < line.length) {
-				const numberChar = line.charAt(end)
-				const numberCharCode = line.charCodeAt(end)
-				if ((numberCharCode >= 48 && numberCharCode <= 57) || (numberCharCode >= 65 && numberCharCode <= 70)
-					|| (numberCharCode >= 97 && numberCharCode <= 102) || numberChar == '.' || numberChar == 'x' || numberChar == 'X') {
-					end += 1
-					continue
-				}
-				break
-			}
-			pushToken(line.slice(index, end), 'constant')
-			index = end
-			continue
-		}
-		plainText += current
-		index += 1
-	}
-	flushPlainText()
-	return { tokens, blockCommentEnd }
+	return result
 }
 
 const safeCodeTokens = computed<IToken[][]>(() => {
 	const propTokens = normalizeCodeTokens(props.codeTokens)
-	return propTokens.length > 0 ? propTokens : highlightedCodeTokens.value
+	const highlightedTokens = highlightedCodeTokens.value
+	if (propTokens.length > 0) return propTokens
+	return highlightedCodeLanguage == props.language ? highlightedTokens : [] as IToken[][]
 })
 
-function resetHighlightCache() {
-	cacheLineTexts = [] as string[]
-	cacheLineTokens = [] as IToken[][]
-}
-
-function placeholderLineTokens(line: string): IToken[] {
-	const token: IToken = { text: line }
-	return [token] as IToken[]
-}
-
-function truncateHighlightCache(length: number) {
-	if (cacheLineTexts.length <= length) return
-	const texts = [] as string[]
-	const tokens = [] as IToken[][]
-	for (let index = 0; index < length; index++) {
-		texts.push(cacheLineTexts[index])
-		tokens.push(cacheLineTokens[index])
-	}
-	cacheLineTexts = texts
-	cacheLineTokens = tokens
-}
-
-// 构建渲染 tokens：已高亮的行取缓存，未高亮与未完成的行用纯色占位 token，
-// 保证行数与行文本和源码完全一致（showOriginCode 完整性校验依赖这一点）
-function buildRenderedCodeTokens(lines: string[], completedCount: number): IToken[][] {
-	let matchPrefix = 0
-	while (matchPrefix < completedCount
-		&& matchPrefix < cacheLineTexts.length
-		&& matchPrefix < lines.length
-		&& cacheLineTexts[matchPrefix] == lines[matchPrefix]) {
-		matchPrefix += 1
-	}
-	truncateHighlightCache(matchPrefix)
-	const nextTokens = [] as IToken[][]
-	for (let index = 0; index < lines.length; index++) {
-		if (index < matchPrefix) nextTokens.push(cacheLineTokens[index])
-		else nextTokens.push(placeholderLineTokens(lines[index]))
-	}
-	return nextTokens
-}
-
 function highlightCode() {
-	codeHighlightRequestVersion += 1
-	const requestVersion = codeHighlightRequestVersion
 	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') {
-		highlightedCacheLanguage = ''
-		resetHighlightCache()
+		codeHighlightRequestVersion += 1
+		highlightedCodeText.value = ''
+		highlightedCodeLanguage = ''
+		requestedCodeText = ''
+		requestedCodeLanguage = ''
+		pendingCodeText = ''
+		pendingCodeLanguage = ''
 		highlightedCodeTokens.value = [] as IToken[][]
 		return
 	}
-	if (props.language != highlightedCacheLanguage) {
-		highlightedCacheLanguage = props.language
-		resetHighlightCache()
+	const language = props.language
+	if (requestedCodeText.length > 0 && requestedCodeLanguage != language) {
+		codeHighlightRequestVersion += 1
+		requestedCodeText = ''
+		requestedCodeLanguage = ''
+		pendingCodeText = ''
+		pendingCodeLanguage = ''
 	}
 	const lines = normalizeCodeText(displayCodeText.value).split('\n')
 	if (lines.length == 0) return
-	// 流式期间最后一行视为未完成行，不高亮；其余已完成行按行高亮
 	const completedCount = props.isClose == 1 ? lines.length : lines.length - 1
-	// #ifdef APP || WEB
-	highlightedCodeTokens.value = buildRenderedCodeTokens(lines, completedCount)
-	const requestLines = [] as string[]
-	for (let index = cacheLineTexts.length; index < completedCount; index++) {
-		requestLines.push(lines[index])
+	if (completedCount == 0) {
+		pendingCodeText = ''
+		pendingCodeLanguage = ''
+		return
 	}
-	if (requestLines.length > 0) {
-		proxyWeb.callMethod({
-			action: 'highlightCodeLines',
-			language: props.language,
-			codeLines: requestLines
-		} as UTSJSONObject, (param: UTSJSONObject) => {
-			if (requestVersion != codeHighlightRequestVersion) return
-			const linesTokensJson = (param['linesTokensJson'] as string | null) ?? '[]'
-			const errorMsg = (param['errorMsg'] as string | null) ?? ''
-			if (errorMsg.length > 0) return
-			const lineJsonList = JSON.parseArray<string>(linesTokensJson) ?? ([] as string[])
-			for (let index = 0; index < requestLines.length && index < lineJsonList.length; index++) {
-				const lineJson = lineJsonList[index] ?? '[]'
-				cacheLineTexts.push(requestLines[index])
-				cacheLineTokens.push(JSON.parseArray<IToken>(lineJson) as IToken[])
-			}
-			const currentLines = normalizeCodeText(displayCodeText.value).split('\n')
-			const currentCompleted = props.isClose == 1 ? currentLines.length : currentLines.length - 1
-			highlightedCodeTokens.value = buildRenderedCodeTokens(currentLines, currentCompleted)
-		})
+	const completedText = lines.slice(0, completedCount).join('\n')
+	if (highlightedCodeLanguage == language && highlightedCodeText.value == completedText) {
+		pendingCodeText = ''
+		pendingCodeLanguage = ''
+		return
 	}
-	// #endif
-	// #ifdef MP-WEIXIN
-	const nextTokens = [] as IToken[][]
-	let blockCommentEnd = ''
-	for (let index = 0; index < lines.length; index++) {
-		if (index < completedCount) {
-			const result = miniProgramCodeLineTokens(lines[index], props.language, blockCommentEnd)
-			nextTokens.push(result.tokens)
-			blockCommentEnd = result.blockCommentEnd
-		} else {
-			nextTokens.push(placeholderLineTokens(lines[index]))
-		}
+	if (requestedCodeLanguage == language && requestedCodeText == completedText) return
+	if (requestedCodeText.length > 0) {
+		pendingCodeText = completedText
+		pendingCodeLanguage = language
+		return
 	}
-	if (requestVersion == codeHighlightRequestVersion) {
-		highlightedCodeTokens.value = nextTokens
-	}
-	// #endif
+	startCodeHighlightRequest(completedText, language)
 }
 
-const showOriginCode = computed<boolean>(() => {
-	if (safeCodeTokens.value.length == 0) return true
-	const rawCode = normalizeCodeText(displayCodeText.value)
-	const renderedCode = normalizeCodeText(buildRenderedCodeText(safeCodeTokens.value))
-	return rawCode != renderedCode
+function startCodeHighlightRequest(codeText: string, language: string) {
+	requestedCodeText = codeText
+	requestedCodeLanguage = language
+	const requestVersion = codeHighlightRequestVersion
+	parseCodeText((result: ParseCodeTextRes) => {
+		if (requestVersion != codeHighlightRequestVersion) return
+		const currentText = normalizeCodeText(displayCodeText.value)
+		if (language == props.language && currentText.startsWith(codeText) && result.error == null) {
+			const hasNewerCachedText = highlightedCodeLanguage == language
+				&& highlightedCodeText.value.length > codeText.length
+				&& currentText.startsWith(highlightedCodeText.value)
+			if (!hasNewerCachedText) {
+				const stableTokens = preserveStableCodeLines(codeText, result.lines, language)
+				highlightedCodeText.value = codeText
+				highlightedCodeLanguage = language
+				highlightedCodeTokens.value = stableTokens
+			}
+		}
+		requestedCodeText = ''
+		requestedCodeLanguage = ''
+		const nextCodeText = pendingCodeText
+		const nextLanguage = pendingCodeLanguage
+		pendingCodeText = ''
+		pendingCodeLanguage = ''
+		if (nextCodeText.length > 0 && nextLanguage == props.language) {
+			const liveText = normalizeCodeText(displayCodeText.value)
+			if (liveText.startsWith(nextCodeText)
+				&& !(highlightedCodeLanguage == nextLanguage && highlightedCodeText.value == nextCodeText)) {
+				startCodeHighlightRequest(nextCodeText, nextLanguage)
+			}
+		}
+	}, codeText, language)
+}
+
+const safeHighlightedText = computed<string>(() => {
+	const propTokens = normalizeCodeTokens(props.codeTokens)
+	if (propTokens.length > 0) return buildRenderedCodeText(propTokens)
+	const highlightedText = highlightedCodeText.value
+	return highlightedCodeLanguage == props.language ? highlightedText : ''
+})
+
+const renderedCodeTokens = computed<IToken[][]>(() => {
+	return streamingCodeTokens(displayCodeText.value, safeHighlightedText.value, safeCodeTokens.value)
 })
 
 const shouldUseOriginCode = computed<boolean>(() => {
-	return showOriginCode.value
+	return renderedCodeTokens.value.length == 0
 })
 
 function escapeCodeHtml(text: string): string {
@@ -579,7 +423,7 @@ function codeNodeHtml(node: UTSJSONObject): string {
 }
 
 const codeRichNodes = computed<UTSJSONObject[]>(() => {
-	const token: IToken = { type: 'code_block', lang: props.language, text: displayCodeText.value, codeTokens: shouldUseOriginCode.value ? [] as IToken[][] : safeCodeTokens.value }
+	const token: IToken = { type: 'code_block', lang: props.language, text: displayCodeText.value, codeTokens: renderedCodeTokens.value }
 	return markdownCodeTokenToRichTextNodes(token)
 })
 
@@ -800,7 +644,7 @@ onMounted(() => {
 const scrollViewHeight = computed<string>(() => {
 	if (props.language == 'mermaid') return mermaidContentHeight.value
 	const rawLineCount = rawCodeLineCount.value
-	const renderedLineCount = safeCodeTokens.value.length
+	const renderedLineCount = renderedCodeTokens.value.length
 	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
 	return `${lineCount * codeLineHeight + codeVerticalPadding}px`
 })

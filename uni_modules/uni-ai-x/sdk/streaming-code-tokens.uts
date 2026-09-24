@@ -1,0 +1,19 @@
+import type { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+
+export function streamingCodeTokens(codeText: string, highlightedText: string, tokens: MarkdownToken[][]): MarkdownToken[][] {
+	const source = codeText.replace(/\r\n/g, '\n')
+	const highlighted = highlightedText.replace(/\r\n/g, '\n')
+	if (tokens.length == 0 || highlighted.length == 0 || !source.startsWith(highlighted)) return [] as MarkdownToken[][]
+	if (source == highlighted) return tokens
+
+	const result = tokens.slice()
+	const lastIndex = result.length - 1
+	const lastLine = result[lastIndex].slice()
+	const suffixLines = source.slice(highlighted.length).split('\n')
+	if (suffixLines[0].length > 0) lastLine.push({ text: suffixLines[0] } as MarkdownToken)
+	result[lastIndex] = lastLine
+	for (let index = 1; index < suffixLines.length; index++) {
+		result.push([{ text: suffixLines[index] } as MarkdownToken] as MarkdownToken[])
+	}
+	return result
+}
