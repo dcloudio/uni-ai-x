@@ -1,6 +1,8 @@
 import bridge from 'libmark_bridge.so'
 import type { LibmarkEvent } from '../interface.uts'
 
+export type { LibmarkEvent, LibmarkOp } from '../interface.uts'
+
 export function createSession(mode?: string): object {
 	return bridge.createSession(mode)
 }
