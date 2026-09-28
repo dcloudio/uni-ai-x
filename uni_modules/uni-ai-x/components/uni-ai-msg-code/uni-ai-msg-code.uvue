@@ -650,12 +650,9 @@ const scrollViewHeight = computed<string>(() => {
 })
 
 const mermaidContentHeight = computed<string>(() => {
-	const intrinsicWidth = activeMermaidBuffer.value == 0 ? buffer0MermaidWidth.value : buffer1MermaidWidth.value
-	const intrinsicHeight = activeMermaidBuffer.value == 0 ? buffer0MermaidHeight.value : buffer1MermaidHeight.value
-	if (intrinsicWidth > 0 && intrinsicHeight > 0) {
-		return Math.max(1, Math.round(visibleCodeWidth() * intrinsicHeight / intrinsicWidth)).toString() + 'px'
-	}
-	return Math.round(visibleCodeWidth() * 4 / 5).toString() + 'px'
+	// Mermaid 展示区固定为正方形。图片使用 aspectFit，因此无论图表比例如何，
+	// 都会完整显示长边，同时不会因 SVG 尺寸变化导致消息列表跳动。
+	return Math.round(visibleCodeWidth()).toString() + 'px'
 })
 
 const codeRootStyle = computed<string>(() => {
