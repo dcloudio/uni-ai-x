@@ -11,7 +11,7 @@
 						<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
 					</view>
 				</view>
-				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :class="hasInputExtension ? 'chat-box-msg-list-extension' : ''" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="onMsgListTouchEnd"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
@@ -706,6 +706,10 @@
 .chat-box-msg-list {
 	flex: 1;
 	margin-bottom: 140px;
+}
+
+.chat-box-msg-list-extension {
+	margin-bottom: 0;
 }
 
 .chat-box-add-chat {
