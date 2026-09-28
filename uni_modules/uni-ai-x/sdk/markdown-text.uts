@@ -512,6 +512,7 @@ function legacyHtmlBlockToText(block: MarkdownHtmlBlock): MarkdownTextRenderBloc
 		kind == 'math' ? ['math'] as string[] : [] as string[])] as MarkdownTextSpan[],
 		level, 0, '', quoteDepth)
 	renderBlock.text = block.text
+	if (block.html.length > 0) renderBlock.html = source
 	renderBlock.language = block.language
 	renderBlock.isComplete = block.isComplete
 	return renderBlock

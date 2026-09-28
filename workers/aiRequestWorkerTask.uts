@@ -1,21 +1,22 @@
 // #ifdef APP-ANDROID
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
 // #endif
 // #ifdef APP-IOS
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
 // #endif
 // #ifdef WEB
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/web/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/web/index.uts'
 // #endif
 // #ifdef MP-WEIXIN
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
 // #endif
 // #ifdef APP-HARMONY
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
 // #endif
 import {
 	MarkdownPreprocessor,
-	prepareMarkdownHtml
+	prepareMarkdownHtml,
+	buildMarkdownHtmlBlocks
 } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 // #ifdef APP-ANDROID
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
@@ -264,17 +265,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				error instanceof Error ? error.message : 'Markdown HTML 转换失败')
 			return
 		}
-		// The JSON AST augments the HTML pipeline; when the native converter is not
-		// available yet, keep rendering through the HTML path instead of failing.
-		let ast = ''
-		try {
-			const rawAstValue = md2json(processedMarkdown) as string | null
-			ast = rawAstValue ?? ''
-		} catch (_error) {
-			ast = ''
-		}
-		// 调试日志：排查 Worker 是否产出 html/ast 时启用
-		// console.log('[uni-ai-x][worker] html=' + html.length.toString() + ' ast=' + ast.length.toString())
+		const htmlBlocks = buildMarkdownHtmlBlocks(html, isDone)
 		this.snapshotVersion += 1
 		const snapshot = {
 			requestVersion: this.requestVersion,
@@ -285,8 +276,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			renderMode: 'html',
 			html: html,
 			htmlLength: html.length,
-			ast: ast,
-			astLength: ast.length,
+			blocks: JSON.stringify(htmlBlocks) ?? '[]',
 			isDone: isDone,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -334,8 +324,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			renderMode: '',
 			html: '',
 			htmlLength: 0,
-			ast: '',
-			astLength: 0,
+			blocks: '[]',
 			isDone: false,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,

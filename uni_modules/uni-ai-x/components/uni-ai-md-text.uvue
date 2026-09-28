@@ -1,24 +1,12 @@
 <template>
 	<view v-if="block.kind == 'hr'" class="uni-ai-md-text-hr"></view>
-	<view v-else class="uni-ai-md-text-block" :class="blockClass" :style="blockStyle">
-		<text v-if="block.marker.length > 0" class="uni-ai-md-text-marker">{{block.marker}}</text>
-		<view class="uni-ai-md-text-content">
-			<template v-for="(span, index) in block.spans" :key="block.key + '-span-' + index.toString()">
-				<view v-if="span.isImage && isImageFailed(span.imageSrc)" class="uni-ai-md-text-image-error"
-					@click="copyFailedImageLink(span.imageSrc)">
-					<text class="uni-ai-md-text-image-error-title">图片资源加载失败</text>
-					<text class="uni-ai-md-text-image-error-url">无法访问以下链接，点击复制：{{span.imageSrc}}</text>
-				</view>
-				<image v-else-if="span.isImage" class="uni-ai-md-text-image" :src="span.imageSrc"
-					mode="widthFix" @error="onImageError(span.imageSrc)" @click="previewImage(span.imageSrc)" />
-				<text v-else :class="spanClass(span)" :style="spanStyle(span)" @click="openLink(span)">{{span.text}}</text>
-			</template>
-		</view>
+	<view v-else class="uni-ai-md-text-block" :class="blockClass">
+		<rich-text class="uni-ai-md-rich-text" :nodes="block.html" mode="native" @itemclick="onItemClick"></rich-text>
 	</view>
 </template>
 
 <script lang="uts" setup>
-	import { MarkdownTextRenderBlock, MarkdownTextSpan } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
 	const props = defineProps<{
@@ -28,44 +16,17 @@
 	const block = computed<MarkdownTextRenderBlock>(() => props.block)
 
 	const blockClass = computed<string>(() => {
-		let className = 'uni-ai-md-text-' + block.value.kind
-		if (block.value.kind == 'heading') {
-			className += ' uni-ai-md-text-heading-' + block.value.level.toString()
-		}
-		if (block.value.quoteDepth > 0) className += ' uni-ai-md-text-quote'
-		if (block.value.indent > 0) className += ' uni-ai-md-text-indented'
-		return className
+		return block.value.quoteDepth > 0 ? 'uni-ai-md-text-quote' : ''
 	})
 
-	const blockStyle = computed<string>(() => {
-		if (block.value.indent <= 0) return ''
-		return 'margin-left:' + (block.value.indent * 18).toString() + 'px;'
-	})
-
-	function spanClass(span: MarkdownTextSpan): string {
-		if (block.value.kind != 'heading') return span.className
-		return span.className + ' uni-ai-md-text-span-heading-' + block.value.level.toString()
-	}
-
-	function spanStyle(span: MarkdownTextSpan): string {
-		if (block.value.kind != 'heading') return ''
-		const level = Math.max(1, Math.min(block.value.level, 6))
-		if (level == 1) return 'font-size:22px;line-height:28px;font-weight:700;'
-		if (level == 2) return 'font-size:20px;line-height:26px;font-weight:700;'
-		if (level == 3) return 'font-size:18px;line-height:24px;font-weight:700;'
-		if (level == 4) return 'font-size:16px;line-height:22px;font-weight:700;'
-		if (level == 5) return 'font-size:15px;line-height:21px;font-weight:700;'
-		return 'font-size:14px;line-height:20px;font-weight:700;color:var(--text-tertiary);'
-	}
-
-	function openLink(span: MarkdownTextSpan) {
-		if (span.href.length == 0) return
+	function openLink(href: string) {
+		if (href.length == 0) return
 		// #ifdef WEB
-		window.open(span.href, '_blank')
+			window.open(href, '_blank')
 		// #endif
 		// #ifdef APP
 		uni.navigateTo({
-			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + encodeURIComponent(span.href),
+			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + encodeURIComponent(href),
 			fail: (error) => {
 				console.error(error)
 			}
@@ -73,7 +34,7 @@
 		// #endif
 		// #ifdef MP
 		uni.setClipboardData({
-			data: span.href,
+			data: href,
 			showToast: false,
 			success: () => {
 				utils.showCopySuccessToast()
@@ -85,35 +46,16 @@
 		// #endif
 	}
 
+	function onItemClick(e: UniRichTextItemClickEvent) {
+		if (e.detail.href != null && e.detail.href!.length > 0) openLink(e.detail.href!)
+		else if (e.detail.src != null && e.detail.src!.length > 0) previewImage(e.detail.src!)
+	}
+
 	function previewImage(src: string) {
 		if (src.length == 0) return
 		uni.previewImage({ urls: [src] as string[] })
 	}
 
-	const failedImageSrcs = ref([] as string[])
-
-	function isImageFailed(src: string): boolean {
-		return src.length > 0 && failedImageSrcs.value.indexOf(src) >= 0
-	}
-
-	function onImageError(src: string) {
-		if (src.length == 0 || isImageFailed(src)) return
-		failedImageSrcs.value.push(src)
-	}
-
-	function copyFailedImageLink(src: string) {
-		if (src.length == 0) return
-		uni.setClipboardData({
-			data: src,
-			showToast: false,
-			success: () => {
-				utils.showCopySuccessToast()
-			},
-			fail: () => {
-				utils.showCopyFailureToast()
-			}
-		})
-	}
 </script>
 
 <style lang="scss">
@@ -121,133 +63,21 @@
 
 	.uni-ai-md-text-block {
 		width: 100%;
+		min-width: 0;
+		/* #ifdef WEB */
+		max-width: 100%;
+		/* #endif */
 		flex-direction: row;
 		align-items: flex-start;
 		margin: 2px 0;
 	}
 
-	.uni-ai-md-text-content {
+	.uni-ai-md-rich-text {
+		width: 100%;
 		min-width: 0;
-		flex: 1;
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: flex-start;
-	}
-
-	.uni-ai-md-text-marker {
-		width: 20px;
-		flex-shrink: 0;
-		font-size: 14px;
-		line-height: 20px;
-		color: var(--text-secondary);
-	}
-
-	.uni-ai-md-text-span {
-		font-size: 14px;
-		line-height: 20px;
-		color: var(--text-primary);
-		white-space: pre-wrap;
 		/* #ifdef WEB */
-		min-width: 0;
 		max-width: 100%;
-		word-break: break-word;
 		/* #endif */
-	}
-
-	.uni-ai-md-text-span-strong {
-		font-weight: 700;
-	}
-
-	.uni-ai-md-text-span-em {
-		font-style: italic;
-	}
-
-	.uni-ai-md-text-span-del {
-		text-decoration-line: line-through;
-	}
-
-	.uni-ai-md-text-span-code {
-		font-size: 13px;
-		padding: 1px 4px;
-		border-radius: 4px;
-		background-color: var(--bg-tertiary);
-	}
-
-	.uni-ai-md-text-span-link {
-		color: #2979ff;
-		text-decoration-line: underline;
-		/* #ifdef WEB */
-		cursor: pointer;
-		/* #endif */
-	}
-
-	.uni-ai-md-text-image {
-		width: 240px;
-		max-width: 540rpx;
-		border-radius: 6px;
-	}
-
-	.uni-ai-md-text-image-error {
-		width: 240px;
-		max-width: 540rpx;
-		padding: 8px 10px;
-		border-width: 1px;
-		border-style: dashed;
-		border-color: var(--border-primary, #dddddd);
-		border-radius: 6px;
-		background-color: var(--bg-secondary, #f5f5f5);
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.uni-ai-md-text-image-error-title {
-		font-size: 13px;
-		line-height: 18px;
-		color: var(--text-secondary);
-	}
-
-	.uni-ai-md-text-image-error-url {
-		margin-top: 4px;
-		font-size: 12px;
-		line-height: 16px;
-		color: var(--text-tertiary);
-	}
-
-	.uni-ai-md-text-heading {
-		font-weight: 700;
-		margin-top: 4px;
-		margin-bottom: 2px;
-	}
-
-	.uni-ai-md-text-span-heading-1 {
-		font-size: 22px;
-		line-height: 28px;
-	}
-
-	.uni-ai-md-text-span-heading-2 {
-		font-size: 20px;
-		line-height: 26px;
-	}
-
-	.uni-ai-md-text-span-heading-3 {
-		font-size: 18px;
-		line-height: 24px;
-	}
-
-	.uni-ai-md-text-span-heading-4 {
-		font-size: 16px;
-		line-height: 22px;
-	}
-
-	.uni-ai-md-text-span-heading-5 {
-		font-size: 15px;
-		line-height: 21px;
-	}
-
-	.uni-ai-md-text-span-heading-6 {
-		font-size: 14px;
-		line-height: 20px;
-		color: var(--text-tertiary);
 	}
 
 	.uni-ai-md-text-quote {
@@ -256,11 +86,6 @@
 		background-color: var(--bg-secondary, #f5f5f5);
 		margin-top: 6px;
 		margin-bottom: 6px;
-	}
-
-	.uni-ai-md-text-math {
-		background-color: var(--bg-secondary);
-		padding: 4px 8px;
 	}
 
 	.uni-ai-md-text-hr {

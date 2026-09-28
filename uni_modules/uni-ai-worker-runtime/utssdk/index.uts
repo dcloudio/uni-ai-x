@@ -12,10 +12,11 @@ import {
 } from './interface.uts'
 
 // #ifdef MP-WEIXIN
-import { initMd2html, isMd2htmlAvailable, md2html, md2json } from '../../uni-cmark/utssdk/mp-weixin/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk/mp-weixin/index.uts'
 import {
 	MarkdownPreprocessor,
-	prepareMarkdownHtml
+	prepareMarkdownHtml,
+	buildMarkdownHtmlBlocks
 } from '../../uni-ai-worker/utssdk/index.uts'
 // #endif
 
@@ -308,14 +309,7 @@ function mpPublishSnapshot(isDone: boolean): void {
 			mpSetError('markdown_html_failed', 'Markdown HTML 后处理失败')
 			return
 		}
-		let ast = ''
-		try {
-			const rawAstValue = md2json(processedMarkdownValue!) as string | null
-			ast = rawAstValue ?? ''
-		} catch (_error) {
-			// Keep the HTML fallback available if the AST conversion fails.
-			ast = ''
-		}
+		const htmlBlocks = buildMarkdownHtmlBlocks(html, isDone)
 		mpSnapshotVersion += 1
 		mpLatestSnapshotJson = JSON.stringify({
 			requestVersion: mpCurrentRequestVersion,
@@ -326,8 +320,7 @@ function mpPublishSnapshot(isDone: boolean): void {
 			renderMode: 'html',
 			html: html,
 			htmlLength: html.length,
-			ast: ast,
-			astLength: ast.length,
+			blocks: JSON.stringify(htmlBlocks) ?? '[]',
 			isDone: isDone,
 			eventCount: mpEventCount,
 			networkChunkCount: mpNetworkChunkCount,

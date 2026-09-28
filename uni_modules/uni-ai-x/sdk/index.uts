@@ -6,6 +6,7 @@ import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
+import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
@@ -305,6 +306,7 @@ class UniAi {
 			copied[0].body = selectedTypes.length == 1 && selectedTypes[0] == 'SVG'
 				? '' : 'Stress message ' + (index + 1).toString()
 			copied[0].markdownHtml = this.buildStressHtml(index + 1, run, selectedTypes)
+			copied[0].markdownBlocks = JSON.stringify(buildMarkdownHtmlBlocks(copied[0].markdownHtml ?? '', true)) ?? '[]'
 			if (selectedTypes.indexOf('SVG') >= 0) {
 				copied[0].stressSvgSource = this.buildStressSvg(index + 1, run)
 				copied[0].stressSvgWidth = 300
@@ -643,7 +645,7 @@ class UniAi {
 			create_time: Date.now(),
 			state: 0,
 				markdownHtml: '',
-				markdownAst: '',
+				markdownBlocks: '',
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)
@@ -767,7 +769,7 @@ class UniAi {
 		msg.error_msg = null
 		msg.thinkContent = null
 		msg.markdownHtml = ''
-		msg.markdownAst = ''
+		msg.markdownBlocks = ''
 		this.updateMsg2Storage(msg)
 	}
 	
@@ -784,11 +786,9 @@ class UniAi {
 				aiMsgItem.markdownHtml = html
 				this.updateMsg2Storage(aiMsgItem)
 			},
-			onMarkdownAst: (ast: string) => {
-				// 调试日志：排查 ast 是否透传到消息时启用
-				// console.log('[uni-ai-x][runner] ast=' + ast.length.toString())
+			onMarkdownBlocks: (blocks: string) => {
 				if (this.currentChat!.state == 'stop') return
-				aiMsgItem.markdownAst = ast
+				aiMsgItem.markdownBlocks = blocks
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {
