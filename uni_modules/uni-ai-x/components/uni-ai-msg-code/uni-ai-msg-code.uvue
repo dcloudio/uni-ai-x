@@ -467,7 +467,7 @@ const codeContentWidth = computed<string>(() => {
 })
 
 const codeLinesStyle = computed<string>(() => {
-	return 'width:' + codeContentWidth.value + ';height:' + scrollViewHeight.value
+	return 'height:' + scrollViewHeight.value
 		+ ';font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;'
 })
 
@@ -770,6 +770,11 @@ const copyCode = () => {
 	padding-right: 14px;
 	box-sizing: border-box;
 	background-color: #111827;
+}
+
+.uni-code-msg-rich-text {
+	align-self: flex-start;
+	flex-shrink: 0;
 }
 
 .uni-code-msg-mermaid-image-box {

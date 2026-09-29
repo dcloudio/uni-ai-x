@@ -378,11 +378,11 @@ function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
 }
 
 function codeBlockNode(token: MarkdownToken | null): UTSJSONObject {
-	return richNode('span', codeChildren(token))
+	return richNode('pre', codeChildren(token), styleAttrs('white-space:pre;'))
 }
 
 function codeContentNode(token: MarkdownToken | null): UTSJSONObject {
-	return richNode('span', codeChildren(token))
+	return richNode('pre', codeChildren(token), styleAttrs('white-space:pre;'))
 }
 
 function tokenToNodes(token: MarkdownToken | null): UTSJSONObject[] {
