@@ -556,8 +556,49 @@ watch((): string => {
 	syncMermaidImageTheme()
 }, { immediate: true })
 
+// 按正文中 mermaid 围栏的出现序号（从 0 开始）提取内容；未闭合围栏取到正文末尾
+function extractMermaidFenceByIndex(body: string, targetMermaidIndex: number): string {
+	let mermaidIndex = 0
+	let cursor = 0
+	let insideFence = false
+	let currentIsMermaid = false
+	let currentContentStart = 0
+	while (cursor <= body.length) {
+		const lineEnd = body.indexOf('\n', cursor)
+		const hasLineEnd = lineEnd >= 0
+		const line = hasLineEnd ? body.slice(cursor, lineEnd) : body.slice(cursor)
+		const trimmedLine = line.trim()
+		if (!insideFence && trimmedLine.indexOf('```') == 0) {
+			const info = trimmedLine.length > 3 ? trimmedLine.slice(3).trim().split(' ')[0].toLowerCase() : ''
+			currentIsMermaid = info == 'mermaid' || info == 'mermaid-pending'
+			currentContentStart = hasLineEnd ? lineEnd + 1 : body.length
+			insideFence = true
+		} else if (insideFence && trimmedLine == '```') {
+			if (currentIsMermaid) {
+				if (mermaidIndex == targetMermaidIndex) return body.slice(currentContentStart, cursor)
+				mermaidIndex += 1
+			}
+			insideFence = false
+			currentIsMermaid = false
+		}
+		if (!hasLineEnd) break
+		cursor = lineEnd + 1
+	}
+	if (insideFence && currentIsMermaid && mermaidIndex == targetMermaidIndex) {
+		return body.slice(currentContentStart)
+	}
+	return ''
+}
+
 // 从消息正文中提取当前代码块，不能固定取第一个 Mermaid 块。
+// blockKey 支持两种格式：
+// - mermaid-K：正文中第 K 个 mermaid 围栏（K 从 0 开始，uni-ai-chat 统一生成）
+// - code-N：正文中第 N 个代码块（旧 HTML 渲染路径的 key 格式）
 function extractMermaidText(body: string, blockKey: string): string {
+	const mermaidPrefix = 'mermaid-'
+	if (blockKey.indexOf(mermaidPrefix) == 0) {
+		return extractMermaidFenceByIndex(body, Number.parseInt(blockKey.slice(mermaidPrefix.length), 10))
+	}
 	let targetBlockIndex = -1
 	const keyPrefix = 'code-'
 	if (blockKey.indexOf(keyPrefix) == 0) {
