@@ -342,11 +342,36 @@ function codeChildren(token: MarkdownToken | null): UTSJSONObject[] {
 	}
 	for (let lineIndex = 0; lineIndex < codeTokens.length; lineIndex++) {
 		const line = codeTokens[lineIndex] != null ? codeTokens[lineIndex] : emptyTokens()
+		let mergedText = ''
+		let mergedClassName = ''
+		let hasMergedToken = false
+		const flushMergedToken = () => {
+			if (!hasMergedToken || mergedText.length == 0) return
+			children.push(richNode('span', [codeTextNode(mergedText)] as UTSJSONObject[],
+				styleAttrs('color:' + codeColor(mergedClassName) + ';')))
+			mergedText = ''
+			mergedClassName = ''
+			hasMergedToken = false
+		}
 		for (let tokenIndex = 0; tokenIndex < line.length; tokenIndex++) {
 			const item = line[tokenIndex]
 			if (item == null) continue
-			children.push(richNode('span', [codeTextNode(item.text ?? '')] as UTSJSONObject[], styleAttrs('color:' + codeColor(item.className ?? '') + ';')))
+			const itemText = item.text ?? ''
+			const itemClassName = item.className ?? ''
+			if (!hasMergedToken) {
+				mergedText = itemText
+				mergedClassName = itemClassName
+				hasMergedToken = true
+			} else if (mergedClassName == itemClassName) {
+				mergedText += itemText
+			} else {
+				flushMergedToken()
+				mergedText = itemText
+				mergedClassName = itemClassName
+				hasMergedToken = true
+			}
 		}
+		flushMergedToken()
 		if (lineIndex < codeTokens.length - 1) children.push(richNode('br'))
 	}
 	return children
