@@ -160,7 +160,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private ensureLibmarkSession(): boolean {
 		if (this.libmarkSession != null) return true
 		try {
-			this.libmarkSession = createSession('ast')
+			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派
+			this.libmarkSession = createSession('html')
 			if (this.libmarkSession != null) return true
 		} catch {
 		}
@@ -325,7 +326,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		let session: object | null = null
 		try {
-			session = createSession('ast')
+			session = createSession('html')
 			this.appendRebuildOps(ops, feedChunk(session!, content))
 			this.appendRebuildOps(ops, finishSession(session!))
 		} catch (_error) {

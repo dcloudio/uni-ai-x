@@ -97,7 +97,7 @@ function replaceAllText(source: string, needle: string, replacement: string): st
 	return source.split(needle).join(replacement)
 }
 
-function findOpenTag(source: string, tag: string, fromIndex: number): number {
+export function findOpenTag(source: string, tag: string, fromIndex: number): number {
 	const marker = '<' + tag
 	let cursor = fromIndex
 	while (cursor < source.length) {
@@ -565,6 +565,21 @@ export function prepareMarkdownHtml(html: string, isDone: boolean = false): stri
 	return result
 }
 
+// libmark 输出流专用预处理：在富文本基础样式上补充段落 / 引用 / 表格 / 链接 / 图片的
+// 中性色样式。表格不参与列宽占位符处理：未闭合表格由 rich-text 自然布局，
+// 闭合后由表格组件按 prepareMarkdownTable 独立处理。
+export function prepareLibmarkHtml(html: string, isDone: boolean = false): string {
+	let result = prepareRichMarkdownHtml(html, isDone)
+	result = styleOpenTags(result, 'p', 'margin:4px 0;')
+	result = styleOpenTags(result, 'blockquote', 'margin:6px 0;padding-left:10px;border-left:3px solid rgba(127,127,127,0.38);')
+	result = styleOpenTags(result, 'a', 'color:#2979ff;')
+	result = styleOpenTags(result, 'table', 'border-collapse:collapse;margin:4px 0;')
+	result = styleOpenTags(result, 'th', 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;')
+	result = styleOpenTags(result, 'td', 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;')
+	result = styleOpenTags(result, 'img', 'max-width:100%;')
+	return result
+}
+
 function tagAttribute(openTag: string, name: string): string {
 	const marker = name + '="'
 	const start = openTag.indexOf(marker)
@@ -686,7 +701,7 @@ function emptyHtmlBlock(kind: string, key: string): MarkdownHtmlBlock {
 	} as MarkdownHtmlBlock
 }
 
-function decodeHtmlText(html: string): string {
+export function decodeHtmlText(html: string): string {
 	return html
 		.replace(/<br\s*\/?\s*>/gi, '\n')
 		.replace(/<[^>]+>/g, '')
@@ -698,7 +713,7 @@ function decodeHtmlText(html: string): string {
 		.replace(/&#39;/g, "'")
 }
 
-function codeLanguage(codeOpenTag: string): string {
+export function codeLanguage(codeOpenTag: string): string {
 	const className = tagAttribute(codeOpenTag, 'class')
 	const marker = 'language-'
 	const markerIndex = className.indexOf(marker)

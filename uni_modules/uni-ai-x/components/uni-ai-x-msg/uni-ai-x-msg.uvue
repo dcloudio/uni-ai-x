@@ -22,6 +22,11 @@
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
+		<uni-ai-libmark-html v-else-if="part.block != null && part.block.kind == 'html'"
+			:html="part.block.html" :is-complete="part.block.isComplete" />
+		<image v-else-if="part.block != null && part.block.kind == 'image'" class="msg-libmark-image"
+			:src="part.block.svgSource" mode="widthFix" flatten @click="previewLibmarkImage(part.block!)" />
+		<text v-else-if="part.block != null && part.block.kind == 'data-text'" class="msg-root-plain-text" flatten>{{part.block.text}}</text>
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 		<template v-else-if="part.kind == 'empty'">
@@ -41,6 +46,7 @@
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
+	import uniAiLibmarkHtml from '@/uni_modules/uni-ai-x/components/uni-ai-libmark-html/uni-ai-libmark-html.uvue'
 	import uniAiMdText from '@/uni_modules/uni-ai-x/components/uni-ai-md-text.uvue'
 
 	type UniAiXMsgProps = {
@@ -87,6 +93,12 @@
 		hideThinkContent.value = !hideThinkContent.value
 		emit('changeThinkContent', hideThinkContent.value)
 	}
+
+	function previewLibmarkImage(block: MarkdownTextRenderBlock) {
+		const src = block.svgSource
+		if (src.length == 0) return
+		uni.previewImage({ urls: [src] as string[] })
+	}
 </script>
 
 <style lang="scss">
@@ -120,6 +132,11 @@
 	width: 300px;
 	height: 120px;
 	margin-bottom: 8px;
+}
+
+.msg-libmark-image {
+	width: 100%;
+	margin: 4px 0;
 }
 
 .msg-segment-think-content {

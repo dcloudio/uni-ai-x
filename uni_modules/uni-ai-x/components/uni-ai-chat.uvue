@@ -48,7 +48,6 @@
 	import {
 		libmarkStreamApplyRebuild,
 		libmarkStreamGetBlocks,
-		libmarkStreamLoadFromAst,
 		libmarkStreamRequestRebuild
 	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
 	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-worker-runtime'
@@ -206,16 +205,6 @@
 		// #endif
 	}
 
-	function isLibmarkAst(ast: string): boolean {
-		if (ast.length == 0) return false
-		try {
-			const parsed = JSON.parse<UTSJSONObject>(ast) as UTSJSONObject
-			return (parsed['schema'] as string | null) == 'libmark.ast/1'
-		} catch (_error) {
-			return false
-		}
-	}
-
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
 		const html = msg.markdownHtml ?? ''
 		const ast = msg.markdownAst ?? ''
@@ -229,10 +218,6 @@
 		let blocks = [] as MarkdownTextRenderBlock[]
 		// #ifdef APP-HARMONY || APP-ANDROID
 		blocks = libmarkStreamGetBlocks(msg._id)
-		if (blocks.length == 0 && isLibmarkAst(ast)) {
-			libmarkStreamLoadFromAst(msg._id, ast)
-			blocks = libmarkStreamGetBlocks(msg._id)
-		}
 		if (blocks.length == 0 && msg.body.length > 0) {
 			// 页面环境无法调用 libmark，重建请求转发 Worker 异步执行，结果经 onRebuildResult 应用
 			libmarkStreamRequestRebuild(msg._id, msg.body)
@@ -299,7 +284,8 @@
 
 	function isRichTextListBlock(block: MarkdownTextRenderBlock): boolean {
 		// Only table and code components own native rich-text nodes.
-		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid'
+		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid' ||
+			block.kind == 'html' || block.kind == 'image'
 	}
 
 	const renderItemList = computed<ChatRenderItem[]>(() => {

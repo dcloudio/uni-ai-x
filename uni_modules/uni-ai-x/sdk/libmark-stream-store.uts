@@ -1,14 +1,14 @@
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-worker-runtime'
-import { LibmarkStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/libmark-ast.uts'
-import { libmarkRenderBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+import { LibmarkHtmlStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
+import { libmarkHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import type { MarkdownTextRenderBlock, MarkdownTextSpan } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 
 // 内存中保留的渲染条目上限：超出后按最近访问顺序淘汰最久未访问的条目
 const STREAM_ENTRY_LIMIT = 200
 
 type LibmarkStreamEntry = {
-	adapter: LibmarkStreamAdapter
+	adapter: LibmarkHtmlStreamAdapter
 	textBlocks: MarkdownTextRenderBlock[]
 }
 
@@ -41,7 +41,7 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 		return existing!
 	}
 	const entry = {
-		adapter: new LibmarkStreamAdapter(),
+		adapter: new LibmarkHtmlStreamAdapter(),
 		textBlocks: emptyBlocks()
 	} as LibmarkStreamEntry
 	streamEntries.set(msgId, entry)
@@ -51,7 +51,7 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 }
 
 function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void {
-	entry.textBlocks = libmarkRenderBlocksToTextBlocks(entry.adapter.getBlocks(), isDone)
+	entry.textBlocks = libmarkHtmlBlocksToTextBlocks(entry.adapter.getBlocks(), isDone)
 }
 
 function cloneSpan(span: MarkdownTextSpan): MarkdownTextSpan {
@@ -122,17 +122,11 @@ export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[]
 	return cloneBlocks(entry!.textBlocks)
 }
 
-export function libmarkStreamComplete(msgId: string): string {
-	const entry = entryFor(msgId)
-	refreshEntry(entry, true)
-	if (!entry.adapter.hasContent()) return ''
-	return entry.adapter.getCompleteAstJson()
-}
-
 // 仅刷新完成态（不序列化 AST），用于流式结束后的 UI 收尾
 export function libmarkStreamMarkComplete(msgId: string): void {
 	const entry = streamEntries.get(msgId)
 	if (entry == null) return
+	entry!.adapter.markComplete()
 	refreshEntry(entry!, true)
 }
 
@@ -193,13 +187,6 @@ export function libmarkStreamReset(msgId: string): void {
 	const entry = entryFor(msgId)
 	entry.adapter.reset()
 	entry.textBlocks = emptyBlocks()
-}
-
-export function libmarkStreamLoadFromAst(msgId: string, astJson: string): boolean {
-	const entry = entryFor(msgId)
-	entry.adapter.loadDocument(astJson)
-	refreshEntry(entry, true)
-	return entry.textBlocks.length > 0
 }
 
 export function libmarkStreamRelease(msgId: string): void {

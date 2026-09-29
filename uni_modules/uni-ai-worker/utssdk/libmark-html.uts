@@ -1,0 +1,479 @@
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import {
+	codeLanguage,
+	decodeHtmlText,
+	findOpenTag,
+	prepareMarkdownTable
+} from './markdown-html.uts'
+
+/**
+ * libmark HTML/DATA 流渲染条目。
+ *
+ * 适配器按块级操作维护渲染条目：连续普通 HTML 合并为一条（kind = 'html'），
+ * 闭合后的代码块 / 表格 / mermaid 内联 SVG 以及 DATA 信封分别产出专用条目；
+ * 当前未闭合块单独成条（HTML 预览或代码预览），闭合后按内容类型归位。
+ */
+export type LibmarkHtmlRenderBlock = {
+	kind: string
+	key: string
+	html: string
+	text: string
+	language: string
+	isComplete: boolean
+	columnWidths: number[]
+	rowTextWidths: number[][]
+	svgSource: string
+	svgWidth: number
+	svgHeight: number
+	blockIndex: number
+}
+
+type HtmlSpecialBlock = {
+	kind: string
+	start: number
+	end: number
+}
+
+type CodeParts = {
+	language: string
+	text: string
+}
+
+type SvgSize = {
+	width: number
+	height: number
+}
+
+type LibmarkDataEnvelope = {
+	type?: string
+	status?: string
+	source?: string
+	format?: string
+	svg?: string
+}
+
+const SVG_DATA_URI_PREFIX = 'data:image/svg+xml;base64,'
+
+function emptyNumbers(): number[] {
+	return [] as number[]
+}
+
+function emptyNumberRows(): number[][] {
+	return [] as number[][]
+}
+
+function emptySvgSize(): SvgSize {
+	return { width: 0, height: 0 } as SvgSize
+}
+
+function isOpenTagPrefix(source: string, tag: string): boolean {
+	if (!source.startsWith('<' + tag)) return false
+	const next = source.length > tag.length + 1 ? source.charAt(tag.length + 1) : ''
+	return next.length == 0 || next == '>' || next == ' ' || next == '/' ||
+		next == '\t' || next == '\n' || next == '\r'
+}
+
+function topLevelTag(html: string): string {
+	const text = html.trim()
+	if (isOpenTagPrefix(text, 'pre')) return 'pre'
+	if (isOpenTagPrefix(text, 'table')) return 'table'
+	if (isOpenTagPrefix(text, 'svg')) return 'svg'
+	return ''
+}
+
+// 未闭合尾块以 <pre 开头即可判定为代码块：围栏必须在块首开始，身份在闭合前不会变化
+function isCodeTail(html: string): boolean {
+	return isOpenTagPrefix(html.trim(), 'pre')
+}
+
+function findClosedSpecial(source: string, tag: string, kind: string, fromIndex: number): HtmlSpecialBlock | null {
+	const start = findOpenTag(source, tag, fromIndex)
+	if (start < 0) return null
+	const openEnd = source.indexOf('>', start)
+	if (openEnd < 0) return null
+	const closeTag = '</' + tag + '>'
+	const closeStart = source.indexOf(closeTag, openEnd + 1)
+	if (closeStart < 0) return null
+	return { kind: kind, start: start, end: closeStart + closeTag.length } as HtmlSpecialBlock
+}
+
+function earlierSpecial(current: HtmlSpecialBlock | null, candidate: HtmlSpecialBlock | null): HtmlSpecialBlock | null {
+	if (candidate == null) return current
+	if (current == null) return candidate
+	return candidate.start < current.start ? candidate : current
+}
+
+function findNextSpecial(source: string, fromIndex: number): HtmlSpecialBlock | null {
+	let block = null as HtmlSpecialBlock | null
+	block = earlierSpecial(block, findClosedSpecial(source, 'table', 'table', fromIndex))
+	block = earlierSpecial(block, findClosedSpecial(source, 'pre', 'code', fromIndex))
+	block = earlierSpecial(block, findClosedSpecial(source, 'svg', 'svg', fromIndex))
+	return block
+}
+
+function extractCodeParts(html: string): CodeParts {
+	const preStart = findOpenTag(html, 'pre', 0)
+	let language = 'text'
+	let contentStart = -1
+	if (preStart >= 0) {
+		const preOpenEnd = html.indexOf('>', preStart)
+		if (preOpenEnd >= 0) {
+			contentStart = preOpenEnd + 1
+			const codeStart = findOpenTag(html, 'code', preOpenEnd + 1)
+			if (codeStart >= 0) {
+				const codeOpenEnd = html.indexOf('>', codeStart)
+				if (codeOpenEnd >= 0) {
+					language = codeLanguage(html.slice(codeStart, codeOpenEnd + 1))
+					contentStart = codeOpenEnd + 1
+				}
+			}
+		}
+	}
+	if (contentStart < 0) return { language: language, text: '' } as CodeParts
+	let body = html.slice(contentStart)
+	const codeEnd = body.indexOf('</code>')
+	if (codeEnd >= 0) body = body.slice(0, codeEnd)
+	const preEnd = body.indexOf('</pre>')
+	if (preEnd >= 0) body = body.slice(0, preEnd)
+	return { language: language, text: decodeHtmlText(body).replace(/\n$/, '') } as CodeParts
+}
+
+function readSvgAttribute(tag: string, name: string): number {
+	const key = name + '="'
+	const start = tag.indexOf(key)
+	if (start < 0) return 0
+	const valueStart = start + key.length
+	const end = tag.indexOf('"', valueStart)
+	if (end < 0) return 0
+	let raw = tag.slice(valueStart, end)
+	const pxIndex = raw.indexOf('px')
+	if (pxIndex >= 0) raw = raw.slice(0, pxIndex)
+	const value = parseFloat(raw)
+	return isNaN(value) ? 0 : value
+}
+
+function readSvgSize(svg: string): SvgSize {
+	const gt = svg.indexOf('>')
+	const tag = gt >= 0 ? svg.slice(0, gt) : svg
+	return {
+		width: readSvgAttribute(tag, 'width'),
+		height: readSvgAttribute(tag, 'height')
+	} as SvgSize
+}
+
+// DATA 信封里的 svg 是 base64 data URI，尺寸需要解码根标签后读取（信封本身不带尺寸）
+function readSvgDataUriSize(uri: string): SvgSize {
+	if (!uri.startsWith(SVG_DATA_URI_PREFIX)) return emptySvgSize()
+	try {
+		const buffer = uni.base64ToArrayBuffer(uri.slice(SVG_DATA_URI_PREFIX.length))
+		return readSvgSize(new TextDecoder().decode(buffer))
+	} catch (_error) {
+		return emptySvgSize()
+	}
+}
+
+// 把 libmark 输出的明文 SVG 原样转成图片源，内容不做改写；
+// 解码器兼容性由 libmark 生成阶段保证（Mobile SVG Profile）
+function svgToImageSource(svg: string): string {
+	const bytes = new TextEncoder().encode(svg)
+	const base64 = uni.arrayBufferToBase64(bytes.buffer as ArrayBuffer)
+	return SVG_DATA_URI_PREFIX + base64
+}
+
+function parseEnvelope(payload: string): LibmarkDataEnvelope | null {
+	try {
+		return JSON.parse<LibmarkDataEnvelope>(payload) as LibmarkDataEnvelope
+	} catch (_error) {
+		return null
+	}
+}
+
+export class LibmarkHtmlStreamAdapter {
+	private entries: LibmarkHtmlRenderBlock[] = []
+	private tailKind: string = ''
+	private tailContent: string = ''
+	private tailIndex: number = -1
+	private blocks: LibmarkHtmlRenderBlock[] = []
+	private dirty: boolean = true
+
+	applyOps(ops: AiWorkerOp[]): boolean {
+		let applied = false
+		for (let index = 0; index < ops.length; index++) {
+			const op = ops[index]
+			if (op.op == 4) {
+				this.reset()
+				applied = true
+				continue
+			}
+			if (op.op == 1) {
+				// 追加完整块：先把可能残留的未闭合尾块按闭合处理
+				this.finalizeTail()
+				if (op.kind == 'data') {
+					this.appendData(op.content, op.index)
+				} else {
+					this.appendHtml(op.content)
+				}
+				applied = true
+				continue
+			}
+			if (op.kind == 'data') {
+				if (op.op == 3) {
+					this.appendData(op.content, op.index)
+				} else {
+					this.tailKind = 'data'
+					this.tailContent = op.content
+					this.tailIndex = op.index
+				}
+			} else if (op.op == 3) {
+				this.commitHtml(op.content, op.index)
+			} else {
+				this.tailKind = 'html'
+				this.tailContent = op.content
+				this.tailIndex = op.index
+			}
+			applied = true
+		}
+		if (applied) this.dirty = true
+		return applied
+	}
+
+	// 消息完成兜底：正常流式下 finish 已提交全部尾块，此处仅防御未闭合残块
+	markComplete(): void {
+		this.finalizeTail()
+		this.dirty = true
+	}
+
+	getBlocks(): LibmarkHtmlRenderBlock[] {
+		if (this.dirty) {
+			const result = this.entries.slice()
+			if (this.tailContent.length > 0) {
+				const key = 'libmark-e' + result.length.toString()
+				if (this.tailKind == 'data') {
+					result.push(this.buildDataEntry(parseEnvelope(this.tailContent), this.tailContent, this.tailIndex, key))
+				} else if (isCodeTail(this.tailContent)) {
+					const parts = extractCodeParts(this.tailContent)
+					const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code', key)
+					entry.text = parts.text
+					entry.language = parts.language
+					entry.isComplete = false
+					entry.blockIndex = this.tailIndex
+					result.push(entry)
+				} else if (isOpenTagPrefix(this.tailContent.trim(), 'svg')) {
+					const entry = this.newEntry('image', key)
+					entry.svgSource = svgToImageSource(this.tailContent)
+					const size = readSvgSize(this.tailContent)
+					entry.svgWidth = size.width
+					entry.svgHeight = size.height
+					entry.isComplete = false
+					entry.blockIndex = this.tailIndex
+					result.push(entry)
+				} else {
+					const entry = this.newEntry('html', key)
+					entry.html = this.tailContent
+					entry.isComplete = false
+					entry.blockIndex = this.tailIndex
+					result.push(entry)
+				}
+			}
+			this.blocks = result
+			this.dirty = false
+		}
+		return this.blocks.slice()
+	}
+
+	reset(): void {
+		this.entries = [] as LibmarkHtmlRenderBlock[]
+		this.clearTail()
+		this.blocks = [] as LibmarkHtmlRenderBlock[]
+		this.dirty = true
+	}
+
+	hasContent(): boolean {
+		return this.entries.length > 0 || this.tailContent.length > 0
+	}
+
+	private clearTail(): void {
+		this.tailKind = ''
+		this.tailContent = ''
+		this.tailIndex = -1
+	}
+
+	private finalizeTail(): void {
+		if (this.tailContent.length > 0) {
+			if (this.tailKind == 'data') {
+				this.appendData(this.tailContent, this.tailIndex)
+			} else {
+				this.commitHtml(this.tailContent, this.tailIndex)
+			}
+		}
+		this.clearTail()
+	}
+
+	private newEntry(kind: string, key: string = ''): LibmarkHtmlRenderBlock {
+		return {
+			kind: kind,
+			key: key.length > 0 ? key : 'libmark-e' + this.entries.length.toString(),
+			html: '',
+			text: '',
+			language: '',
+			isComplete: true,
+			columnWidths: emptyNumbers(),
+			rowTextWidths: emptyNumberRows(),
+			svgSource: '',
+			svgWidth: 0,
+			svgHeight: 0,
+			blockIndex: -1
+		} as LibmarkHtmlRenderBlock
+	}
+
+	private appendHtml(content: string): void {
+		let cursor = 0
+		while (cursor < content.length) {
+			const special = findNextSpecial(content, cursor)
+			if (special == null) {
+				this.appendHtmlSegment(content.slice(cursor), -1)
+				break
+			}
+			if (special.start > cursor) this.appendHtmlSegment(content.slice(cursor, special.start), -1)
+			this.pushSpecialBlock(special.kind, content.slice(special.start, special.end), -1)
+			cursor = special.end
+		}
+	}
+
+	private appendHtmlSegment(html: string, index: number): void {
+		if (html.length == 0) return
+		const last = this.entries.length > 0 ? this.entries[this.entries.length - 1] : null
+		if (last != null && last!.kind == 'html') {
+			last!.html += html
+			return
+		}
+		const entry = this.newEntry('html')
+		entry.html = html
+		entry.blockIndex = index
+		this.entries.push(entry)
+	}
+
+	private pushSpecialBlock(kind: string, html: string, index: number): void {
+		if (kind == 'code') {
+			const parts = extractCodeParts(html)
+			const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code')
+			entry.text = parts.text
+			entry.language = parts.language
+			entry.blockIndex = index
+			this.entries.push(entry)
+			return
+		}
+		if (kind == 'table') {
+			const prepared = prepareMarkdownTable(html, this.entries.length)
+			const entry = this.newEntry('table')
+			entry.html = prepared.html
+			entry.columnWidths = prepared.columnWidths
+			entry.rowTextWidths = prepared.rowTextWidths
+			entry.blockIndex = index
+			this.entries.push(entry)
+			return
+		}
+		if (kind == 'svg') {
+			this.pushSvgBlock(html, index)
+		}
+	}
+
+	private pushSvgBlock(html: string, index: number): void {
+		const size = readSvgSize(html)
+		const entry = this.newEntry('image')
+		entry.svgSource = svgToImageSource(html)
+		entry.svgWidth = size.width
+		entry.svgHeight = size.height
+		entry.blockIndex = index
+		this.entries.push(entry)
+	}
+
+	private commitHtml(content: string, index: number): void {
+		const tag = topLevelTag(content)
+		if (tag == 'pre') {
+			const parts = extractCodeParts(content)
+			const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code')
+			entry.text = parts.text
+			entry.language = parts.language
+			entry.blockIndex = index
+			this.entries.push(entry)
+		} else if (tag == 'table') {
+			const prepared = prepareMarkdownTable(content, this.entries.length)
+			const entry = this.newEntry('table')
+			entry.html = prepared.html
+			entry.columnWidths = prepared.columnWidths
+			entry.rowTextWidths = prepared.rowTextWidths
+			entry.blockIndex = index
+			this.entries.push(entry)
+		} else if (tag == 'svg') {
+			this.pushSvgBlock(content, index)
+		} else {
+			this.appendHtmlSegment(content, index)
+		}
+		this.clearTail()
+	}
+
+	private appendData(content: string, index: number): void {
+		const envelope = parseEnvelope(content)
+		if (envelope != null && envelope.type == 'mermaid') {
+			const svgEntryIndex = this.findSvgEntryIndex(index)
+			if (svgEntryIndex >= 0) {
+				const previousKey = this.entries[svgEntryIndex].key
+				this.entries[svgEntryIndex] = this.buildDataEntry(envelope, content, index, previousKey)
+				this.clearTail()
+				return
+			}
+		}
+		this.entries.push(this.buildDataEntry(envelope, content, index, ''))
+		this.clearTail()
+	}
+
+	// mermaid 主载荷与伴随 DATA 同块：优先按块序号匹配 svg 条目；
+	// 合并组交付时序号不可知，退化为最近一个未被认领的 svg 条目
+	private findSvgEntryIndex(index: number): number {
+		let fallback = -1
+		for (let i = this.entries.length - 1; i >= 0; i--) {
+			const entry = this.entries[i]
+			if (entry.kind != 'image') continue
+			if (entry.blockIndex == index) return i
+			if (fallback < 0) fallback = i
+		}
+		return fallback
+	}
+
+	private buildDataEntry(envelope: LibmarkDataEnvelope | null, content: string,
+		index: number, key: string): LibmarkHtmlRenderBlock {
+		if (envelope != null && envelope.type == 'math') {
+			const entry = this.newEntry('math', key)
+			entry.text = envelope.source ?? ''
+			const svg = envelope.svg ?? ''
+			if (svg.length > 0) {
+				entry.svgSource = svg
+				const size = readSvgDataUriSize(svg)
+				entry.svgWidth = size.width
+				entry.svgHeight = size.height
+			}
+			entry.isComplete = envelope.status == 'complete' && svg.length > 0
+			entry.blockIndex = index
+			return entry
+		}
+		if (envelope != null && envelope.type == 'mermaid') {
+			const entry = this.newEntry('mermaid', key)
+			entry.text = envelope.source ?? ''
+			entry.language = 'mermaid'
+			const svg = envelope.svg ?? ''
+			if (svg.length > 0) {
+				entry.svgSource = svg
+				const size = readSvgDataUriSize(svg)
+				entry.svgWidth = size.width
+				entry.svgHeight = size.height
+			}
+			entry.blockIndex = index
+			return entry
+		}
+		const entry = this.newEntry('data-text', key)
+		entry.text = envelope != null && envelope.source != null ? envelope.source! : content
+		entry.blockIndex = index
+		return entry
+	}
+}

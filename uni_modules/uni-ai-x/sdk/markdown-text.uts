@@ -6,7 +6,7 @@ import {
 	MarkdownHtmlBlock,
 	prepareMarkdownTable
 } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
-import type { LibmarkRenderBlock, LibmarkTextSpan } from '@/uni_modules/uni-ai-worker/utssdk/libmark-ast.uts'
+import type { LibmarkHtmlRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
 
 export type MarkdownTextSpan = {
 	text: string
@@ -537,56 +537,17 @@ function legacyHtmlBlockToText(block: MarkdownHtmlBlock): MarkdownTextRenderBloc
 	return renderBlock
 }
 
-function libmarkSpanToTextSpan(span: LibmarkTextSpan): MarkdownTextSpan {
-	return makeSpan(span.text, span.styles, span.href, span.isImage, span.imageSrc,
-		span.svgSource, span.svgWidth, span.svgHeight, span.svgBaseline)
-}
-
-function libmarkBlockComplete(block: LibmarkRenderBlock, isDone: boolean): boolean {
-	return isDone ? true : block.isComplete
-}
-
-function libmarkTextBlock(block: LibmarkRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
-	const spans = [] as MarkdownTextSpan[]
-	if (block.kind != 'math') {
-		for (let spanIndex = 0; spanIndex < block.spans.length; spanIndex++) {
-			spans.push(libmarkSpanToTextSpan(block.spans[spanIndex]))
-		}
-	}
-	const result = createTextBlock(block.kind, block.key, spans, block.level, block.indent,
-		block.marker, block.quoteDepth)
-	result.text = block.text
-	result.language = block.language
-	result.isComplete = libmarkBlockComplete(block, isDone)
-	result.svgSource = block.svgSource
-	result.svgWidth = block.svgWidth
-	result.svgHeight = block.svgHeight
-	return result
-}
-
-function libmarkSpecialBlock(block: LibmarkRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
-	const result = createSpecialBlock(block.kind, block.key, block.html, block.text, block.language,
-		libmarkBlockComplete(block, isDone), block.columnWidths, block.rowTextWidths)
-	result.indent = block.indent
-	result.marker = block.marker
-	result.quoteDepth = block.quoteDepth
-	result.level = block.level
-	result.svgSource = block.svgSource
-	result.svgWidth = block.svgWidth
-	result.svgHeight = block.svgHeight
-	return result
-}
-
-export function libmarkRenderBlocksToTextBlocks(blocks: LibmarkRenderBlock[],
+export function libmarkHtmlBlocksToTextBlocks(blocks: LibmarkHtmlRenderBlock[],
 	isDone: boolean = false): MarkdownTextRenderBlock[] {
 	const result = [] as MarkdownTextRenderBlock[]
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
-		if (block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid') {
-			result.push(libmarkSpecialBlock(block, isDone))
-		} else {
-			result.push(libmarkTextBlock(block, isDone))
-		}
+		const target = createSpecialBlock(block.kind, block.key, block.html, block.text,
+			block.language, isDone ? true : block.isComplete, block.columnWidths, block.rowTextWidths)
+		target.svgSource = block.svgSource
+		target.svgWidth = block.svgWidth
+		target.svgHeight = block.svgHeight
+		result.push(target)
 	}
 	return result
 }
