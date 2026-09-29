@@ -54,6 +54,7 @@
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+	import { parseCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
 	
 	type UniAiChatProps = {
@@ -142,6 +143,27 @@
 	const RENDER_ITEM_TYPE_AI_MERMAID_DONE = 23
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
 	const RENDER_ITEM_TYPE_AI_SVG = 22
+	const pendingCodeHydration = new Set<string>()
+
+	function hydrateClosedCodeTokens(msg: MsgItem, workerBlocks: MarkdownHtmlBlock[], blocks: MarkdownTextRenderBlock[]) {
+		for (let index = 0; index < blocks.length; index++) {
+			const block = blocks[index]
+			const source = workerBlocks[index]
+			if (source == null || block.kind != 'code' || !block.isComplete || block.codeTokens.length > 0
+				|| source.codeTokens != null || block.text.length == 0) continue
+			const requestKey = msg._id + '\u001f' + block.key + '\u001f' + block.language + '\u001f' + block.text
+			if (pendingCodeHydration.has(requestKey)) continue
+			pendingCodeHydration.add(requestKey)
+			parseCodeText((result: ParseCodeTextRes) => {
+				pendingCodeHydration.delete(requestKey)
+				if (result.error != null || result.lines.length == 0) return
+				source.codeTokens = result.lines
+				block.codeTokens = result.lines
+				msg.markdownBlocks = JSON.stringify(workerBlocks) ?? msg.markdownBlocks
+				uniAi.updateMsg2Storage(msg)
+			}, block.text, block.language)
+		}
+	}
 
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
 		const html = msg.markdownHtml ?? ''
@@ -156,6 +178,7 @@
 			try {
 				const workerBlocks = JSON.parse<MarkdownHtmlBlock[]>(blocksJson) as MarkdownHtmlBlock[]
 				blocks = markdownHtmlBlocksToTextBlocks(workerBlocks)
+				hydrateClosedCodeTokens(msg, workerBlocks, blocks)
 			} catch (_error) {
 				console.error('[uni-ai-x] Worker markdown blocks parse failed.')
 			}

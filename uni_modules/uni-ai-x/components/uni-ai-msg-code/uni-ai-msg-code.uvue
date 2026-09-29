@@ -309,6 +309,8 @@ const safeCodeTokens = computed<IToken[][]>(() => {
 })
 
 function highlightCode() {
+	// 闭合代码块的 token 已经随渲染数据传入，避免回收重用时再次异步解析。
+	if (normalizeCodeTokens(props.codeTokens).length > 0 && props.isClose == 1) return
 	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') {
 		codeHighlightRequestVersion += 1
 		highlightedCodeText.value = ''

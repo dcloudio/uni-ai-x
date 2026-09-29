@@ -6,6 +6,7 @@ import {
 	MarkdownHtmlBlock,
 	prepareMarkdownTable
 } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 
 export type MarkdownTextSpan = {
 	text: string
@@ -24,6 +25,7 @@ export type MarkdownTextRenderBlock = {
 	isComplete: boolean
 	columnWidths: number[]
 	rowTextWidths: number[][]
+	codeTokens: MarkdownToken[][]
 	spans: MarkdownTextSpan[]
 	level: number
 	indent: number
@@ -45,6 +47,10 @@ function emptyNumbers(): number[] {
 
 function emptyNumberRows(): number[][] {
 	return [] as number[][]
+}
+
+function emptyCodeTokens(): MarkdownToken[][] {
+	return [] as MarkdownToken[][]
 }
 
 function nodeChildren(node: MarkdownAstNode | null): MarkdownAstNode[] {
@@ -288,7 +294,8 @@ function createTextBlock(kind: string, key: string, spans: MarkdownTextSpan[],
 
 function createSpecialBlock(kind: string, key: string, html: string = '',
 	text: string = '', language: string = '', isComplete: boolean = true,
-	columnWidths: number[] = [] as number[], rowTextWidths: number[][] = [] as number[][]): MarkdownTextRenderBlock {
+	columnWidths: number[] = [] as number[], rowTextWidths: number[][] = [] as number[][],
+	codeTokens: MarkdownToken[][] = emptyCodeTokens()): MarkdownTextRenderBlock {
 	return {
 		kind: kind,
 		key: key,
@@ -298,6 +305,7 @@ function createSpecialBlock(kind: string, key: string, html: string = '',
 		isComplete: isComplete,
 		columnWidths: columnWidths,
 		rowTextWidths: rowTextWidths,
+		codeTokens: codeTokens,
 		spans: emptySpans(),
 		level: 0,
 		indent: 0,
@@ -555,7 +563,7 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[]): Mar
 		const block = blocks[index]
 		if (block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid') {
 			result.push(createSpecialBlock(block.kind, block.key, block.html, block.text,
-				block.language, block.isComplete, block.columnWidths, block.rowTextWidths))
+				block.language, block.isComplete, block.columnWidths, block.rowTextWidths, block.codeTokens ?? emptyCodeTokens()))
 			continue
 		}
 		result.push(legacyHtmlBlockToText(block))
