@@ -4,28 +4,24 @@ data class ktToken(val start: Int, val end: Int, val token: String)
 data class ConvertedToken(val start: Int, val end: Int, val token: String)
 
 fun mapByteOffsetsToCharOffsets(text: String, tokens: Array<ktToken>): Array<ktToken> {
+  
 
     val byteToChar = mutableMapOf<Int, Int>()
     var byteIndex = 0
     var charIndex = 0
 
-    while (charIndex < text.length) {
-        val codePoint = text.codePointAt(charIndex)
-        val byteLength = codePointToUtf8Bytes(codePoint)
-        val charLength = if (codePoint > 0xFFFF) 2 else 1
-
-        for (offset in 0 until byteLength) {
-            byteToChar[byteIndex + offset] = charIndex
+    for (ch in text) {
+        val encoded = ch.toString().encodeToByteArray()
+        repeat(encoded.size) {
+            byteToChar[byteIndex] = charIndex
+            byteIndex++
         }
-
-        byteIndex += byteLength
-        charIndex += charLength
-        byteToChar[byteIndex] = charIndex
+        charIndex++
     }
 
     return tokens.map {
         val startChar = byteToChar[it.start] ?: 0
-        val endChar = byteToChar[it.end] ?: charIndex
+        val endChar = byteToChar[it.end - 1]?.plus(1) ?: charIndex
         ktToken(startChar, endChar, it.token)
     }.toTypedArray()
 }

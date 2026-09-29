@@ -1,5 +1,12 @@
 import { addGrammar, resetStackHandle, destroyStackHandle, tokenizeLine } from 'scopeparser'
-import { HighLighterOptions, HighLighter, CreateHighLighterRes, ILineTokens, IToken } from '../interface.uts'
+import { HighLighterOptions, CreateHighLighter, CreateHighLighterRes, ILineTokens, IToken } from '../interface.uts'
+
+export {
+	HighLighterOptions,
+	CreateHighLighterRes,
+	ILineTokens,
+	IToken
+}
 
 
 
@@ -34,24 +41,22 @@ function mapByteOffsetsToCharOffsets(text : string, tokens : KtToken[]) : KtToke
 		}
 
 		const utf8Length = codePointToUtf8Bytes(codePoint);
-		byteToChar.set(byteIndex, charIndex);
 		for (let j = 0; j < utf8Length; j++) {
-			byteToChar.set(byteIndex + j, charIndex);
+			byteToChar.set(byteIndex, charIndex);
+			byteIndex++;
 		}
 
-		const charWidth = codePoint > 0xFFFF ? 2 : 1
-		if (charWidth == 2) {
+		// 如果是代理对（surrogate pair），需要跳过两个 code units
+		if (codePoint > 0xFFFF) {
 			i++; // 跳过低位 surrogate
 		}
 
-		byteIndex += utf8Length;
-		charIndex += charWidth;
-		byteToChar.set(byteIndex, charIndex);
+		charIndex++;
 	}
 
 	return tokens.map((tok) : KtToken => {
 		const startChar = byteToChar.get(tok.start) ?? 0;
-		const endChar = byteToChar.get(tok.end) ?? charIndex;
+		const endChar = (byteToChar.get(tok.end - 1) ?? (charIndex - 1)) + 1;
 
 		return {
 			start: startChar,
@@ -66,6 +71,7 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 	const langMap : Map<string, string> = new Map();
 	// const grammar = await new MainActivity()
 	UTSJSONObject.keys(languages).forEach(key => {
+		// console.log(key)
 		try {
 			let jsonStr = JSON.stringify(languages[key])
 			langMap.set(key, jsonStr)
@@ -85,12 +91,7 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 			for (let i = 0; i < text.length; i++) {
 				const line = text[i] + "\n";
 				const lineTokens : string = await tokenizeLine(handle, langId, line);
-				
-				if (lineTokens === null) {
-					resetStackHandle(handle)
-					destroyStackHandle(handle)
-					return []
-				}
+				if (lineTokens === null) return []
 				const tokens : IToken[] = []
 				// console.log(line, '----', lineTokens)
 
@@ -108,7 +109,6 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 			}
 
 			resetStackHandle(handle)
-			destroyStackHandle(handle)
 			return res
 		},
 		async tokenizeLine(langId : string, lineText : string, state : any) : Promise<ILineTokens | null> {
@@ -144,18 +144,4 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 
 	return fns
 
-}
-
-
-export class CreateHighLighter {
-	uniCodeHighlighter: Promise<CreateHighLighterRes>
-	constructor(options : HighLighterOptions) {
-		this.uniCodeHighlighter = createHighLighter(options)
-	}
-	async tokenizeFullText(langId : string, fullCodeText : string) : Promise<ILineTokens[]>{
-		return (await this.uniCodeHighlighter).tokenizeFullText(langId, fullCodeText)
-	}
-	async tokenizeLine(langId : string, lineText : string, state : any) : Promise<ILineTokens | null> {
-		return (await this.uniCodeHighlighter).tokenizeLine(langId, lineText, state)
-	}
 }
