@@ -19,12 +19,8 @@ const STORAGE_KEYS: T_STORAGE_KEYS = {
 const CURRENT_STORAGE_VERSION = '2'
 
 function migrateLegacyMessage(message: MsgItem): MsgItem {
-	const hasMarkdownBlocks = message.markdownBlocks != null && message.markdownBlocks!.length > 0
-	if (!hasMarkdownBlocks && message.rendered == true && message.markdownHtml != null && message.markdownHtml!.length > 0) {
-		message.markdownHtml = ''
-	}
 	if (message.markdownHtml == null) message.markdownHtml = ''
-	if (message.markdownBlocks == null) message.markdownBlocks = ''
+	if (message.markdownAst == null) message.markdownAst = ''
 	return message
 }
 

@@ -203,9 +203,10 @@ export default class MarkdownDemoRunner {
 			return
 		}
 		const isDone = phase == 'complete' || readSnapshotBoolean(snapshot, 'isDone')
-		this.callbacks?.onMarkdownBlocks(readSnapshotString(snapshot, 'blocks', '[]'))
 		this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
+		this.callbacks?.onMarkdownAst?.(readSnapshotString(snapshot, 'ast'))
 		if (!isDone) return
+
 		this.stopWorkerRuntime(false)
 		finishDemoMarkdownRun()
 		this.callbacks?.onState('completed')
