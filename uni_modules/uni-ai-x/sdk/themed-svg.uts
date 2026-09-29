@@ -13,6 +13,40 @@ type ThemedSvgCallback = (result: ThemedSvgResult) => void
 
 const mathCache = new Map<string, ThemedSvgResult>()
 const mermaidCache = new Map<string, ThemedSvgResult>()
+type PendingMermaidRender = {
+	callbacks: ThemedSvgCallback[]
+	timer: number
+}
+const pendingMermaidRenders = new Map<string, PendingMermaidRender>()
+const MERMAID_CACHE_STORAGE_PREFIX = 'uni-ai-mermaid-cache-'
+const MERMAID_RENDER_TIMEOUT = 15000
+
+function persistentCacheKey(key: string): string {
+	let hash = 7
+	for (let index = 0; index < key.length; index++) {
+		hash = (hash * 31 + key.charCodeAt(index)) % 2147483647
+	}
+	return MERMAID_CACHE_STORAGE_PREFIX + hash.toString(16) + '-' + key.length.toString()
+}
+
+function readPersistentMermaidCache(key: string): ThemedSvgResult | null {
+	try {
+		const value = uni.getStorageSync(persistentCacheKey(key)) as string
+		if (value.length == 0) return null
+		const result = JSON.parse<ThemedSvgResult>(value) as ThemedSvgResult
+		return result.imageSource.length > 0 ? result : null
+	} catch (_error) {
+		return null
+	}
+}
+
+function writePersistentMermaidCache(key: string, result: ThemedSvgResult) {
+	try {
+		uni.setStorageSync(persistentCacheKey(key), JSON.stringify(result))
+	} catch (error) {
+		console.warn('[SvgCache] persist Mermaid cache failed: ' + error)
+	}
+}
 
 function normalizedTheme(theme: string): string {
 	return theme == 'dark' ? 'dark' : 'light'
@@ -130,6 +164,38 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		deliverResult(callback, cached)
 		return
 	}
+	const persisted = readPersistentMermaidCache(key)
+	if (persisted != null) {
+		mermaidCache.set(key, persisted)
+		deliverResult(callback, persisted)
+		return
+	}
+	const pending = pendingMermaidRenders.get(key)
+	if (pending != null) {
+		pending.callbacks.push(callback)
+		return
+	}
+	const request: PendingMermaidRender = {
+		callbacks: [callback],
+		timer: 0
+	}
+	pendingMermaidRenders.set(key, request)
+	const finish = (result: ThemedSvgResult, cacheable: boolean) => {
+		const active = pendingMermaidRenders.get(key)
+		if (active == null) return
+		clearTimeout(active.timer)
+		pendingMermaidRenders.delete(key)
+		if (cacheable && result.imageSource.length > 0) {
+			mermaidCache.set(key, result)
+			writePersistentMermaidCache(key, result)
+		}
+		for (let index = 0; index < active.callbacks.length; index++) {
+			deliverResult(active.callbacks[index], result)
+		}
+	}
+	request.timer = setTimeout(() => {
+		finish({ imageSource: '', width: 0, height: 0, theme: renderTheme } as ThemedSvgResult, false)
+	}, MERMAID_RENDER_TIMEOUT)
 	proxyWeb.callMethod({
 		action: 'renderMermaid',
 		mermaidText,
@@ -152,8 +218,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 					height: (param['height'] as number | null) ?? 0,
 					theme: (param['theme'] as string | null) ?? renderTheme
 				}
-				if (cacheable && result.imageSource.length > 0) mermaidCache.set(key, result)
-				deliverResult(callback, result)
+				finish(result, cacheable)
 			})
 	})
 }
