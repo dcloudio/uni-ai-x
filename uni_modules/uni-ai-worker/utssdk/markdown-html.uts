@@ -498,7 +498,6 @@ function styleTableRow(row: HtmlTableRow, rowIndex: number): string {
 		if (cellIndex == 0) cellStyle += 'border-left-width:0;'
 		if (cellIndex == cellCount - 1) cellStyle += 'border-right-width:0;'
 		if (cellPosition.tag == 'th') cellStyle += 'font-weight:700;background-color:' + TABLE_HEADER_BACKGROUND + ';'
-		cellStyle += 'width:' + TABLE_COLUMN_PLACEHOLDER_PREFIX + cellIndex.toString() + TABLE_COLUMN_PLACEHOLDER_SUFFIX + 'px;'
 		let openTag = appendTagStyle(sourceOpenTag, cellStyle)
 		openTag = appendTagAttributes(openTag, ' data-uni-ai-column="' + cellIndex.toString() + '"')
 		result += openTag
@@ -537,7 +536,7 @@ function prepareTableHtml(tableHtml: string, tableIndex: number): string {
 	const tableStart = findOpenTag(styledRows, 'table', 0)
 	const tableOpenEnd = tableStart >= 0 ? styledRows.indexOf('>', tableStart) : -1
 	if (tableStart < 0 || tableOpenEnd < 0) return styledRows
-	const tableStyle = 'border-collapse:collapse;width:' + TABLE_WIDTH_PLACEHOLDER + 'px;margin:0;'
+	const tableStyle = 'display:table;width:100%;min-width:max-content;border-collapse:collapse;white-space:nowrap;margin:0;'
 	let tableOpenTag = appendTagStyle(styledRows.slice(tableStart, tableOpenEnd + 1), tableStyle)
 	tableOpenTag = appendTagAttributes(tableOpenTag,
 		' data-uni-ai-table-key="table-' + tableIndex.toString() + '"' +
@@ -843,11 +842,10 @@ export function markdownTableContentHeight(rowTextWidths: number[][], columnWidt
 }
 
 export function applyMarkdownTableColumnWidths(html: string, columnWidths: number[]): string {
-	let result = replaceAllText(html, TABLE_WIDTH_PLACEHOLDER, markdownTableContentWidth(columnWidths).toString())
+	let result = replaceAllText(html, 'width:' + TABLE_WIDTH_PLACEHOLDER + 'px;', '')
 	for (let columnIndex = 0; columnIndex < columnWidths.length; columnIndex++) {
 		result = replaceAllText(result,
-			TABLE_COLUMN_PLACEHOLDER_PREFIX + columnIndex.toString() + TABLE_COLUMN_PLACEHOLDER_SUFFIX,
-			columnWidths[columnIndex].toString())
+			'width:' + TABLE_COLUMN_PLACEHOLDER_PREFIX + columnIndex.toString() + TABLE_COLUMN_PLACEHOLDER_SUFFIX + 'px;', '')
 	}
 	return result
 }

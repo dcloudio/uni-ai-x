@@ -1,6 +1,6 @@
 <template>
 	<view class="uni-ai-msg-html-table uni-theme-root" :style="tableContainerStyle">
-		<scroll-view ref="tableScroll" class="uni-ai-msg-html-table-scroll"
+		<scroll-view class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="false" :style="tableScrollStyle"
 			>
 			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
@@ -15,10 +15,8 @@
 		applyMarkdownTableTheme,
 		applyMarkdownTableColumnWidths,
 		markdownTableContentHeight,
-		markdownTableContentWidth,
 		markdownTableThemeColors,
-		MarkdownTableColors,
-		resolveMarkdownTableColumnWidths
+		MarkdownTableColors
 	} from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
 	type UniAiMsgHtmlTableProps = {
@@ -28,19 +26,8 @@
 	}
 
 	const props = defineProps<UniAiMsgHtmlTableProps>()
-	const tableScroll = ref<UniScrollViewElement | null>(null)
-	const windowInfo = uni.getWindowInfo()
-	const initialWindowWidth = windowInfo.windowWidth > 0 ? windowInfo.windowWidth : windowInfo.screenWidth
-	const tableViewportContentWidth = ref(Math.max(1, Math.floor(initialWindowWidth - 92)))
-
-	const renderColumnWidths = computed<number[]>(() => {
-		return resolveMarkdownTableColumnWidths(props.columnWidths, tableViewportContentWidth.value)
-	})
-	const tableContentWidth = computed<number>(() => {
-		return markdownTableContentWidth(renderColumnWidths.value)
-	})
 	const tableContentHeight = computed<number>(() => {
-		return markdownTableContentHeight(props.rowTextWidths, renderColumnWidths.value)
+		return markdownTableContentHeight(props.rowTextWidths, props.columnWidths)
 	})
 	const tableViewportHeight = computed<string>(() => {
 		return tableContentHeight.value.toString() + 'px'
@@ -49,11 +36,8 @@
 		return markdownTableThemeColors(uiTheme.value)
 	})
 	const tableHtml = computed<string>(() => {
-		const sizedHtml = applyMarkdownTableColumnWidths(props.html, renderColumnWidths.value)
+		const sizedHtml = applyMarkdownTableColumnWidths(props.html, props.columnWidths)
 		return applyMarkdownTableTheme(sizedHtml, uiTheme.value)
-	})
-	const tableRenderWidth = computed<number>(() => {
-		return Math.max(tableContentWidth.value, tableViewportContentWidth.value)
 	})
 	const tableContainerStyle = computed<string>(() => {
 		const colors = tablePalette.value
@@ -67,24 +51,8 @@
 	})
 	const tableRichTextStyle = computed<string>(() => {
 		const colors = tablePalette.value
-		return 'width:' + tableRenderWidth.value.toString() + 'px;height:' + tableContentHeight.value.toString() + 'px;font-size:14px;line-height:22px;color:'
+		return 'height:' + tableContentHeight.value.toString() + 'px;align-self:flex-start;flex-shrink:0;font-size:14px;line-height:22px;color:'
 			+ colors.text + ';background-color:' + colors.background + ';'
-	})
-
-	function refreshTableViewportWidth() {
-		nextTick(() => {
-			tableScroll.value?.getBoundingClientRectAsync()?.then((rect: DOMRect) => {
-				tableViewportContentWidth.value = Math.max(1, Math.floor(rect.width))
-			})
-		})
-	}
-
-	onMounted(() => {
-		refreshTableViewportWidth()
-	})
-
-	onResize(() => {
-		refreshTableViewportWidth()
 	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
