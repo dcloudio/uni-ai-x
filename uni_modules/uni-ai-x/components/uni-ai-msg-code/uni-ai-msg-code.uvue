@@ -38,7 +38,7 @@
 		</view>
 		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
 			>
-			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
+			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
 		</scroll-view>
 	</view>
 </template>

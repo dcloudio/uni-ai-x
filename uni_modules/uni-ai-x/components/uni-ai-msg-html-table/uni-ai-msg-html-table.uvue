@@ -3,7 +3,7 @@
 		<scroll-view class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="false" :style="tableScrollStyle"
 			>
-			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :style="tableRichTextStyle"
+			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :user-select="true" :style="tableRichTextStyle"
 				:nodes="tableHtml" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
 	</view>

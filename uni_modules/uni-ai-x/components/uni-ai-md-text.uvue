@@ -1,7 +1,7 @@
 <template>
 	<view v-if="block.kind == 'hr'" class="uni-ai-md-text-hr"></view>
 	<view v-else class="uni-ai-md-text-block" :class="blockClass">
-		<rich-text class="uni-ai-md-rich-text" :nodes="block.html" mode="native" @itemclick="onItemClick"></rich-text>
+		<rich-text class="uni-ai-md-rich-text" :user-select="true" :nodes="block.html" mode="native" @itemclick="onItemClick"></rich-text>
 	</view>
 </template>
 

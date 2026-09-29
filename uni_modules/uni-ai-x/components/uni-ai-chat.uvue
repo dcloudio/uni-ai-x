@@ -468,6 +468,11 @@
 		if (scrolling.value) {
 			return
 		}
+		// AI rich-text handles copy/select through its native user-select menu.
+		// Do not open the message action sheet for the same long-press gesture.
+		if (item.from_uid == 'uni-ai') {
+			return
+		}
 		const itemList = ['复制'] as string[]
 		const isAiMsg = item.from_uid == 'uni-ai'
 		itemList.push(isAiMsg ? '选择' : '修改')
