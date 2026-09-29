@@ -1,0 +1,36 @@
+// 性能埋点默认关闭。打开后只输出聚合计数，避免在滚动帧中打印完整代码或 token。
+type CodePerfStat = {
+	count: number
+	totalMs: number
+	maxMs: number
+}
+
+let enabled = false
+const stats = new Map<string, CodePerfStat>()
+
+export function setCodePerformanceLogging(value: boolean) {
+	enabled = value
+}
+
+export function measureCodePerformance(name: string, startedAt: number, identity: string = '') {
+	if (!enabled) return
+	const elapsed = Math.max(0, Date.now() - startedAt)
+	const key = name + (identity.length > 0 ? ':' + identity : '')
+	const current = stats.get(key)
+	if (current == null) {
+		stats.set(key, { count: 1, totalMs: elapsed, maxMs: elapsed } as CodePerfStat)
+	} else {
+		current.count += 1
+		current.totalMs += elapsed
+		if (elapsed > current.maxMs) current.maxMs = elapsed
+	}
+	// 每 20 次输出一次聚合值，滚动期间不会产生逐 token/逐帧日志。
+	if (current != null && current.count % 20 == 0) {
+		console.info('[uni-ai-x][code-perf]', key, 'count=' + current.count.toString(),
+			'totalMs=' + current.totalMs.toString(), 'maxMs=' + current.maxMs.toString())
+	}
+}
+
+export function clearCodePerformanceStats() {
+	stats.clear()
+}

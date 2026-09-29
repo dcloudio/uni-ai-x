@@ -28,6 +28,7 @@ import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
 import { CreateHighLighter, HighLighterOptions, ILineTokens } from "@/uni_modules/uni-highlight"
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 export { MarkdownToken }
 export type ParseCodeTextRes = {
 	lines: MarkdownToken[][],
@@ -40,6 +41,60 @@ type TmlFile = {
 	path : string
 }
 let uniCodeHighlighter = null as CreateHighLighter | null
+const completedCodeCache = new Map<string, MarkdownToken[][]>()
+const pendingCodeCache = new Map<string, ParseCodeTextCallBack[]>()
+const codeCacheOrder = [] as string[]
+const maxCodeCacheEntries = 256
+
+function cloneCodeTokens(lines: MarkdownToken[][]): MarkdownToken[][] {
+	return lines.map((line: MarkdownToken[]): MarkdownToken[] => line.map((token: MarkdownToken): MarkdownToken => {
+		return { type: token.type, text: token.text, className: token.className } as MarkdownToken
+	}))
+}
+
+export function makeCodeHighlightCacheKey(messageId: string, blockKey: string, language: string, codeText: string): string {
+	return messageId + '\u001f' + blockKey + '\u001f' + language + '\u001f' + codeText
+}
+
+function putCodeCache(key: string, lines: MarkdownToken[][]) {
+	if (!completedCodeCache.has(key)) codeCacheOrder.push(key)
+	completedCodeCache.set(key, cloneCodeTokens(lines))
+	while (codeCacheOrder.length > maxCodeCacheEntries) {
+		const oldest = codeCacheOrder.shift()
+		if (oldest != null) completedCodeCache.delete(oldest)
+	}
+}
+
+export function clearCodeHighlightCache() {
+	completedCodeCache.clear()
+	codeCacheOrder.length = 0
+	// pending 请求不主动取消，只让回调在完成后正常收敛，避免留下悬挂 Promise。
+}
+
+export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId: string, blockKey: string, codeText: string, language: string): boolean {
+	const normalizedLanguage = language == 'js' ? 'javascript' : language
+	const key = makeCodeHighlightCacheKey(messageId, blockKey, normalizedLanguage, codeText)
+	const cached = completedCodeCache.get(key)
+	if (cached != null) {
+		callback({ lines: cloneCodeTokens(cached), language: normalizedLanguage, error: null } as ParseCodeTextRes)
+		return true
+	}
+	const pending = pendingCodeCache.get(key)
+	if (pending != null) {
+		pending.push(callback)
+		return true
+	}
+	pendingCodeCache.set(key, [callback] as ParseCodeTextCallBack[])
+	parseCodeText((result: ParseCodeTextRes) => {
+		if (result.error == null) putCodeCache(key, result.lines)
+		const callbacks = pendingCodeCache.get(key) ?? [] as ParseCodeTextCallBack[]
+		pendingCodeCache.delete(key)
+		callbacks.forEach((item: ParseCodeTextCallBack) => item({
+			lines: cloneCodeTokens(result.lines), language: result.language, error: result.error
+		} as ParseCodeTextRes))
+	}, codeText, normalizedLanguage)
+	return false
+}
 
 function scopeClassName(scopes: string[] | null): string {
 	if (scopes == null) return ''
@@ -117,6 +172,7 @@ function initUniCodeHighlighter(callBack: () => void){
 }
 
 export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, codeSource: string, language: string) {
+	const startedAt = Date.now()
 	if (language == 'js') language = "javascript"
 	try {
 		// 判断这个language是否在支持的列表中
@@ -127,6 +183,7 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 				language: language,
 				error: '不支持解析的语言类型'
 			}
+			measureCodePerformance('parseCodeText', startedAt, language)
 			parseCodeTextCallBack(res)
 			return
 		}
@@ -157,12 +214,14 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 					}
 					utils.runOnDispatcher('main', () => {
 						parseCodeTextCallBack(res)
+						measureCodePerformance('parseCodeText', startedAt, language)
 					})
 				});
 			}).catch((error: any) => {
 				const res = { lines: [], language: language, error: error.message } as ParseCodeTextRes
 				utils.runOnDispatcher('main', () => {
 					parseCodeTextCallBack(res)
+					measureCodePerformance('parseCodeText', startedAt, language)
 				})
 			})
 		})
@@ -178,5 +237,6 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 			// #endif
 		}
 		parseCodeTextCallBack(res)
+		measureCodePerformance('parseCodeText', startedAt, language)
 	}
 }

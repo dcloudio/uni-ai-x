@@ -49,7 +49,8 @@ import {uiTheme, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
-import { parseCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
+import { requestCachedCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
+import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 import { streamingCodeTokens } from '@/uni_modules/uni-ai-x/sdk/streaming-code-tokens.uts'
 // #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
@@ -105,6 +106,7 @@ let mermaidRenderRequestKey = ''
 let mermaidSourceKey = ''
 let mermaidWasClosed = false
 let codeHighlightRequestVersion = 0
+let codeIdentityVersion = ''
 const highlightedCodeTokens = ref<IToken[][]>([] as IToken[][])
 const highlightedCodeText = ref<string>('')
 let highlightedCodeLanguage = ''
@@ -357,8 +359,10 @@ function startCodeHighlightRequest(codeText: string, language: string) {
 	requestedCodeText = codeText
 	requestedCodeLanguage = language
 	const requestVersion = codeHighlightRequestVersion
-	parseCodeText((result: ParseCodeTextRes) => {
+	const identity = codeIdentity.value
+	requestCachedCodeText((result: ParseCodeTextRes) => {
 		if (requestVersion != codeHighlightRequestVersion) return
+		if (identity != codeIdentity.value) return
 		const currentText = normalizeCodeText(displayCodeText.value)
 		if (language == props.language && currentText.startsWith(codeText) && result.error == null) {
 			const hasNewerCachedText = highlightedCodeLanguage == language
@@ -384,7 +388,7 @@ function startCodeHighlightRequest(codeText: string, language: string) {
 				startCodeHighlightRequest(nextCodeText, nextLanguage)
 			}
 		}
-	}, codeText, language)
+	}, props.msg?._id ?? '', stableBlockKey.value, codeText, language)
 }
 
 const safeHighlightedText = computed<string>(() => {
@@ -425,14 +429,19 @@ function codeNodeHtml(node: UTSJSONObject): string {
 }
 
 const codeRichNodes = computed<UTSJSONObject[]>(() => {
+	const startedAt = Date.now()
 	const token: IToken = { type: 'code_block', lang: props.language, text: displayCodeText.value, codeTokens: renderedCodeTokens.value }
-	return markdownCodeTokenToRichTextNodes(token)
+	const nodes = markdownCodeTokenToRichTextNodes(token)
+	measureCodePerformance('codeRichNodes', startedAt, codeIdentity.value)
+	return nodes
 })
 
 const codeRichHtml = computed<string>(() => {
+	const startedAt = Date.now()
 	const nodes = codeRichNodes.value
 	let html = ''
 	for (let i = 0; i < nodes.length; i++) html += codeNodeHtml(nodes[i])
+	measureCodePerformance('codeRichHtml', startedAt, codeIdentity.value)
 	return html
 })
 
@@ -444,9 +453,27 @@ const rawCodeLineCount = computed<number>(() => {
 	return normalizeCodeText(displayCodeText.value).split('\n').length
 })
 
+const codeWidthCache = new Map<string, number>()
+const codeWidthCacheOrder = [] as string[]
+const maxCodeWidthCacheEntries = 128
+
 function getCodeTextWidth(text: string): number {
+	const startedAt = Date.now()
+	const cached = codeWidthCache.get(text)
+	if (cached != null) {
+		measureCodePerformance('getCodeTextWidth', startedAt, codeIdentity.value)
+		return cached
+	}
 	const lines = normalizeCodeText(text).split('\n')
-	return estimateMaxLineTextWidth(lines, codeFontSize, 'mono')
+	const width = estimateMaxLineTextWidth(lines, codeFontSize, 'mono')
+	codeWidthCache.set(text, width)
+	codeWidthCacheOrder.push(text)
+	if (codeWidthCacheOrder.length > maxCodeWidthCacheEntries) {
+		const oldest = codeWidthCacheOrder.shift()
+		if (oldest != null) codeWidthCache.delete(oldest)
+	}
+	measureCodePerformance('getCodeTextWidth', startedAt, codeIdentity.value)
+	return width
 }
 
 function visibleCodeWidth(): number {
@@ -623,16 +650,52 @@ watch((): string => {
 	}
 })
 
-// 渲染用文本：滞后一帧追上 props.codeText。
-// 宽度（codeContentWidth）依赖 props.codeText 在本次渲染立即生效，
-// 内容文本下一帧才更新，使 rich-text 布局新内容时容器宽度已就位，
-// 避免"内容先按旧宽度折行、宽度生效后弹回"的抖动（宽度变化帧与内容变化帧分离）
+const codeIdentity = computed<string>(() => {
+	return (props.msg?._id ?? '') + ':' + stableBlockKey.value
+})
+
+const stableBlockKey = computed<string>(() => {
+	const value = props.blockKey
+	return value.endsWith('-c') ? value.slice(0, value.length - 2) : value
+})
+
+function resetCodeIdentityState() {
+	codeHighlightRequestVersion += 1
+	highlightedCodeText.value = ''
+	highlightedCodeLanguage = ''
+	highlightedCodeTokens.value = [] as IToken[][]
+	requestedCodeText = ''
+	requestedCodeLanguage = ''
+	pendingCodeText = ''
+	pendingCodeLanguage = ''
+	mermaidRenderRequestKey = ''
+	mermaidSourceKey = ''
+	mermaidWasClosed = false
+	mermaidRenderPending.value = false
+	mermaidImageLoadFailed.value = false
+	mermaidViewSelectedByUser.value = false
+	resetMermaidImages()
+}
+
+// Android ListView 复用同一个组件实例时，必须把代码块身份作为状态边界。
 const displayCodeText = ref<string>(props.codeText)
 
+watch(codeIdentity, (nextIdentity: string) => {
+	if (codeIdentityVersion == nextIdentity) return
+	const shouldReset = codeIdentityVersion.length > 0
+	codeIdentityVersion = nextIdentity
+	if (shouldReset) {
+		resetCodeIdentityState()
+		if (props.language == 'mermaid') syncMermaidImageTheme()
+	}
+	displayCodeText.value = props.codeText
+	// 身份切换后立即尝试同步命中已完成代码的高亮缓存，避免复用首帧显示无色文本。
+	if (props.language != 'mermaid') highlightCode()
+}, { immediate: true })
+
+// ListView 复用时同步接收最新代码文本，避免旧的半截内容在下一帧覆盖新代码。
 watch((): string => props.language + '\n' + props.codeText + '\n' + props.isClose.toString(), () => {
-	nextTick(() => {
-		displayCodeText.value = props.codeText
-	})
+	displayCodeText.value = props.codeText
 }, { immediate: true })
 
 watch((): string => props.language + '\n' + displayCodeText.value + '\n' + props.isClose.toString(), () => {
@@ -646,9 +709,7 @@ onMounted(() => {
 const scrollViewHeight = computed<string>(() => {
 	if (props.language == 'mermaid') return mermaidContentHeight.value
 	const rawLineCount = rawCodeLineCount.value
-	const renderedLineCount = renderedCodeTokens.value.length
-	const lineCount = shouldUseOriginCode.value ? rawLineCount : (renderedLineCount > 0 ? renderedLineCount : rawLineCount)
-	return `${lineCount * codeLineHeight + codeVerticalPadding}px`
+	return `${Math.max(1, rawLineCount) * codeLineHeight + codeVerticalPadding}px`
 })
 
 const mermaidContentHeight = computed<string>(() => {
