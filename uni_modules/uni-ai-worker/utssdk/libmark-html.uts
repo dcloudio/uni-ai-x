@@ -62,10 +62,6 @@ function emptyNumberRows(): number[][] {
 	return [] as number[][]
 }
 
-function emptySvgSize(): SvgSize {
-	return { width: 0, height: 0 } as SvgSize
-}
-
 function isOpenTagPrefix(source: string, tag: string): boolean {
 	if (!source.startsWith('<' + tag)) return false
 	const next = source.length > tag.length + 1 ? source.charAt(tag.length + 1) : ''
@@ -161,17 +157,6 @@ function readSvgSize(svg: string): SvgSize {
 	} as SvgSize
 }
 
-// DATA 信封里的 svg 是 base64 data URI，尺寸需要解码根标签后读取（信封本身不带尺寸）
-function readSvgDataUriSize(uri: string): SvgSize {
-	if (!uri.startsWith(SVG_DATA_URI_PREFIX)) return emptySvgSize()
-	try {
-		const buffer = uni.base64ToArrayBuffer(uri.slice(SVG_DATA_URI_PREFIX.length))
-		return readSvgSize(new TextDecoder().decode(buffer))
-	} catch (_error) {
-		return emptySvgSize()
-	}
-}
-
 // 把 libmark 输出的明文 SVG 原样转成图片源，内容不做改写；
 // 解码器兼容性由 libmark 生成阶段保证（Mobile SVG Profile）
 function svgToImageSource(svg: string): string {
@@ -206,8 +191,8 @@ export class LibmarkHtmlStreamAdapter {
 				continue
 			}
 			if (op.op == 1) {
-				// 追加完整块：先把可能残留的未闭合尾块按闭合处理
-				this.finalizeTail()
+				// 稳定块交付会替换/接续当前未闭合尾块：残留尾块按被替换处理，直接丢弃
+				this.clearTail()
 				if (op.kind == 'data') {
 					this.appendData(op.content, op.index)
 				} else {
@@ -424,8 +409,25 @@ export class LibmarkHtmlStreamAdapter {
 				return
 			}
 		}
+		// 同一块可能分两次提交（先 partial 后 complete）：更新既有条目而不是追加
+		const existingIndex = this.findDataEntryIndex(index)
+		if (existingIndex >= 0) {
+			const previousKey = this.entries[existingIndex].key
+			this.entries[existingIndex] = this.buildDataEntry(envelope, content, index, previousKey)
+			this.clearTail()
+			return
+		}
 		this.entries.push(this.buildDataEntry(envelope, content, index, ''))
 		this.clearTail()
+	}
+
+	private findDataEntryIndex(index: number): number {
+		for (let i = this.entries.length - 1; i >= 0; i--) {
+			const entry = this.entries[i]
+			if (entry.blockIndex != index) continue
+			if (entry.kind == 'math' || entry.kind == 'mermaid' || entry.kind == 'data-text') return i
+		}
+		return -1
 	}
 
 	// mermaid 主载荷与伴随 DATA 同块：优先按块序号匹配 svg 条目；
@@ -448,8 +450,9 @@ export class LibmarkHtmlStreamAdapter {
 			entry.text = envelope.source ?? ''
 			const svg = envelope.svg ?? ''
 			if (svg.length > 0) {
-				entry.svgSource = svg
-				const size = readSvgDataUriSize(svg)
+				// 信封的 svg 是明文 SVG（与 HTML 通道内联 svg 同源），转 data URI 并解析根尺寸
+				entry.svgSource = svgToImageSource(svg)
+				const size = readSvgSize(svg)
 				entry.svgWidth = size.width
 				entry.svgHeight = size.height
 			}
@@ -463,8 +466,8 @@ export class LibmarkHtmlStreamAdapter {
 			entry.language = 'mermaid'
 			const svg = envelope.svg ?? ''
 			if (svg.length > 0) {
-				entry.svgSource = svg
-				const size = readSvgDataUriSize(svg)
+				entry.svgSource = svgToImageSource(svg)
+				const size = readSvgSize(svg)
 				entry.svgWidth = size.width
 				entry.svgHeight = size.height
 			}

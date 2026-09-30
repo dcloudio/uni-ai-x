@@ -86,3 +86,31 @@ DATA 信封字段：`type` / `status` / `source` / `format` / `svg`；svg 为 ba
 4. display 公式：partial 显示源码 → complete 显示 SVG。
 5. 表格：流式期间 rich-text 渲染 → 闭合后切换表格组件（列宽/横向滚动）。
 6. 暗色主题切换、会话取消/错误、消息删除、重启后历史消息重建。
+
+## 六、问题修复记录
+
+### 块公式未能正常渲染（2026-09-30）
+
+- 现象：display 公式流式结束后仍显示源码，或仅显示 1px 大小。
+- 根因：`libmark-html.uts` 的 `buildDataEntry` 把 DATA 信封的 `svg` 字段当作 base64 data URI
+  处理。实际 libmark 信封的 `svg` 是 `render_svg_buffer` 返回的明文 SVG 字节
+  （`data:image/svg+xml;base64,` 前缀只用于 HTML 通道的行内公式与 AST 节点 payload）。
+  明文直接作为 image `src` 无法加载，`readSvgDataUriSize` 前缀不匹配返回 0 尺寸。
+- 修复：math / mermaid 分支改为 `svgToImageSource(svg)`（明文转 data URI）+
+  `readSvgSize(svg)`（解析根标签尺寸），与 libmark 官方 demo 的 `setSvgImage` 一致；
+  删除不再使用的 `readSvgDataUriSize` / `emptySvgSize`。
+- 验证：app-android、app-harmony 编译通过；真机显示效果待复验。
+
+### 化学公式源码与渲染结果同时显示（2026-09-30）
+
+- 现象：完整示例中的块公式在流式结束后同时显示源代码与渲染后的公式。
+- 分析：适配器两处处理与 libmark 的尾块语义不符，均可导致重复条目或源码残留：
+  1. 稳定块（BLOCK/append）到达时，原实现把残留的未闭合尾块按「闭合」提交为正文内容；
+     libmark 中尾块被插件输出替换时旧内容应作废（桥接层对 kind 切换的尾块同样丢弃）。
+  2. DATA 信封的同一顶层块可能分两次提交（先 partial 后 complete）；原实现每次都追加新条目，
+     形成「源码条目 + 公式条目」并存的重复渲染。
+- 修复：
+  1. append 到达时改为丢弃残留尾块（clearTail），不再提交；
+  2. appendData 增加同块序号去重：已存在同块 data 条目时更新既有条目（保留原 key），
+     不再追加，覆盖 partial→complete 升级与重复提交场景。
+- 验证：app-android、app-harmony 编译通过；真机显示效果待复验。
