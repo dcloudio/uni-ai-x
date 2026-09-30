@@ -31,6 +31,9 @@ export type MarkdownTextRenderBlock = {
 	indent: number
 	marker: string
 	quoteDepth: number
+	codeRichHtml?: string
+	mermaidImageSource?: string
+	mermaidRenderTheme?: string
 }
 
 function emptyAstNodes(): MarkdownAstNode[] {
@@ -295,7 +298,8 @@ function createTextBlock(kind: string, key: string, spans: MarkdownTextSpan[],
 function createSpecialBlock(kind: string, key: string, html: string = '',
 	text: string = '', language: string = '', isComplete: boolean = true,
 	columnWidths: number[] = [] as number[], rowTextWidths: number[][] = [] as number[][],
-	codeTokens: MarkdownToken[][] = emptyCodeTokens()): MarkdownTextRenderBlock {
+	codeTokens: MarkdownToken[][] = emptyCodeTokens(), codeRichHtml: string | null = null,
+	mermaidImageSource: string | null = null, mermaidRenderTheme: string | null = null): MarkdownTextRenderBlock {
 	return {
 		kind: kind,
 		key: key,
@@ -310,7 +314,10 @@ function createSpecialBlock(kind: string, key: string, html: string = '',
 		level: 0,
 		indent: 0,
 		marker: '',
-		quoteDepth: 0
+		quoteDepth: 0,
+		codeRichHtml: codeRichHtml ?? '',
+		mermaidImageSource: mermaidImageSource ?? '',
+		mermaidRenderTheme: mermaidRenderTheme ?? ''
 	}
 }
 
@@ -563,7 +570,8 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[]): Mar
 		const block = blocks[index]
 		if (block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid') {
 			result.push(createSpecialBlock(block.kind, block.key, block.html, block.text,
-				block.language, block.isComplete, block.columnWidths, block.rowTextWidths, block.codeTokens ?? emptyCodeTokens()))
+				block.language, block.isComplete, block.columnWidths, block.rowTextWidths, block.codeTokens ?? emptyCodeTokens(),
+				block.codeRichHtml ?? null, block.mermaidImageSource ?? null, block.mermaidRenderTheme ?? null))
 			continue
 		}
 		result.push(legacyHtmlBlockToText(block))

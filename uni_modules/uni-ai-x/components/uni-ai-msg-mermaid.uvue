@@ -25,7 +25,7 @@
 </template>
 
 <script lang="uts" setup>
-import {uiTheme, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
+import {uiTheme, uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
 import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 // #ifndef MP-WEIXIN
@@ -33,6 +33,7 @@ import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-
 // #endif
 
 type UniAiMsgMermaidProps = {
+	codeText?: string
 	blockKey?: string
 	href?: string
 	renderTheme?: string
@@ -43,12 +44,20 @@ type UniAiMsgMermaidProps = {
 }
 
 const props = withDefaults(defineProps<UniAiMsgMermaidProps>(), {
+	codeText: '',
 	blockKey: '',
 	href: '',
 	renderTheme: '',
 	isClose: 0,
 	msg: null
 })
+
+function mermaidDebug(event: string, detail: string = '') {
+	console.info('[uni-ai-x][list-reuse][mermaid] ' + event
+		+ ' msg=' + (props.msg?._id ?? '')
+		+ ' block=' + props.blockKey
+		+ (detail.length > 0 ? ' ' + detail : ''))
+}
 
 const mermaidImageModeLatched = ref<boolean>(props.isClose == 1)
 const showMermaidImage = ref<boolean>(mermaidImageModeLatched.value)
@@ -59,31 +68,43 @@ const mermaidViewSelectedByUser = ref<boolean>(false)
 const mermaidHref = ref<string>('')
 let mermaidRenderRequestKey = ''
 let mermaidIdentityVersion = ''
+let mermaidRenderedTheme = ''
+let mermaidRenderedIdentity = ''
 const windowWidth = ref<number>(0)
 
 const themePageBackgroundColor = computed<string>(() => {
-	return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+	const result = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+	mermaidDebug('computed-themePageBackgroundColor', result)
+	return result
 })
 
 const mermaidCodeBackgroundColor = computed<string>(() => {
-	return uiTheme.value == 'dark' ? '#111827' : '#f8fafc'
+	const result = uiTheme.value == 'dark' ? '#111827' : '#f8fafc'
+	mermaidDebug('computed-mermaidCodeBackgroundColor', result)
+	return result
 })
 
 const mermaidCopyColor = computed<string>(() => {
-	return uiTheme.value == 'dark' ? '#f4f4f4' : '#334155'
+	const result = uiTheme.value == 'dark' ? '#f4f4f4' : '#334155'
+	mermaidDebug('computed-mermaidCopyColor', result)
+	return result
 })
 
 const mermaidImageStyle = computed<string>(() => {
-	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
+	const result = 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
 		+ ';background-color:' + themePageBackgroundColor.value + ';'
+	mermaidDebug('computed-mermaidImageStyle')
+	return result
 })
 
 function setMermaidView(showImage: boolean) {
+	mermaidDebug('view-click', showImage ? 'chart' : 'source')
 	mermaidViewSelectedByUser.value = true
 	showMermaidImage.value = showImage && mermaidHref.value.length > 0
 }
 
 function isWebPc(): boolean {
+	mermaidDebug('function-isWebPc')
 	let isPc = false
 	// #ifdef WEB
 	const userAgent = window.navigator.userAgent
@@ -93,36 +114,63 @@ function isWebPc(): boolean {
 }
 
 const previewMermaidImage = () => {
+	mermaidDebug('function-previewMermaidImage')
 	if (isWebPc()) return
 	if (!showMermaidImage.value || mermaidHref.value.length == 0) return
 	uni.previewImage({ urls: [mermaidHref.value] as string[] })
 }
 
 function resetMermaidImages() {
+	mermaidDebug('image-reset')
 	mermaidHref.value = ''
 }
 
 function queueMermaidImage(href: string) {
+	mermaidDebug('function-queueMermaidImage', 'length=' + href.length.toString())
 	if (href.length == 0) return
+	mermaidDebug('image-set', 'length=' + href.length.toString())
 	mermaidHref.value = href
 	mermaidImageModeLatched.value = true
 	if (!mermaidViewSelectedByUser.value) showMermaidImage.value = true
 }
 
+function persistMermaidImage(href: string, theme: string) {
+	mermaidDebug('function-persistMermaidImage', 'length=' + href.length.toString() + ' theme=' + theme)
+	if (props.isClose != 1 || props.msg == null || href.length == 0) return
+	const blocksJson = props.msg!.markdownBlocks ?? ''
+	if (blocksJson.length == 0) return
+	try {
+		const blocks = JSON.parse<MarkdownHtmlBlock[]>(blocksJson) as MarkdownHtmlBlock[]
+		for (let index = 0; index < blocks.length; index++) {
+			if (blocks[index].key != props.blockKey || blocks[index].kind != 'mermaid') continue
+			if ((blocks[index].mermaidImageSource ?? '') == href && (blocks[index].mermaidRenderTheme ?? '') == theme) return
+			blocks[index].mermaidImageSource = href
+			blocks[index].mermaidRenderTheme = theme
+			props.msg!.markdownBlocks = JSON.stringify(blocks) ?? blocksJson
+			uniAi.updateMsg2Storage(props.msg!)
+			return
+		}
+	} catch (_error) {
+		mermaidDebug('cache-write-error')
+	}
+}
+
 function updateWindowWidth() {
+	mermaidDebug('function-updateWindowWidth')
 	windowWidth.value = uni.getWindowInfo().windowWidth
 }
 function visibleMermaidWidth(): number {
+	mermaidDebug('function-visibleMermaidWidth')
 	const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
 	return Math.max(160, Math.min(currentWindowWidth, 800) - 48)
 }
 
 function syncMermaidImageTheme(textOverride: string | null = null) {
+	mermaidDebug('sync', 'override=' + (textOverride != null ? '1' : '0') + ' close=' + props.isClose.toString())
 	// 源码始终从消息正文提取，避免依赖被 ListView 复用的组件 props。
-	const messageBody = props.msg?.body ?? ''
-	const effectiveText = textOverride ?? extractMermaidText(props.msg, props.blockKey)
 	const isClosed = props.isClose == 1 || textOverride != null
 	if (!isClosed) {
+		mermaidDebug('sync-open')
 		resetMermaidImages()
 		mermaidImageModeLatched.value = false
 		mermaidViewSelectedByUser.value = false
@@ -141,25 +189,48 @@ return
 mermaidImageModeLatched.value = true
 if (!mermaidViewSelectedByUser.value) showMermaidImage.value = mermaidHref.value.length > 0
 const theme = uiTheme.value
+const currentIdentity = (props.msg?._id ?? '') + ':' + (props.blockKey.endsWith('-c') ? props.blockKey.slice(0, props.blockKey.length - 2) : props.blockKey)
 const sourceHref = props.href ?? ''
-if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
 if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
+	mermaidDebug('cache-hit-image', 'theme=' + theme + ' length=' + sourceHref.length.toString())
 	mermaidRenderRequestKey = ''
+	mermaidRenderedTheme = theme
+	mermaidRenderedIdentity = currentIdentity
 	queueMermaidImage(sourceHref)
 	return
 }
+
+// The message write-back and ListView prop update can arrive in different frames.
+// Reuse the image rendered by this component while the cached href prop catches up.
+if (sourceHref.length == 0 && mermaidHref.value.length > 0
+	&& mermaidRenderedTheme == theme && mermaidRenderedIdentity == currentIdentity
+	&& mermaidRenderRequestKey.length == 0) {
+	mermaidDebug('cache-hit-local-image', 'theme=' + theme + ' length=' + mermaidHref.value.length.toString())
+	queueMermaidImage(mermaidHref.value)
+	return
+}
+	const effectiveText = textOverride ?? (props.codeText.length > 0 ? props.codeText : extractMermaidText(props.msg, props.blockKey))
+mermaidDebug('render-start', 'theme=' + theme + ' text=' + effectiveText.length.toString())
+if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
 const mermaidText = effectiveText
 if (mermaidText.trim().length == 0) return
 const requestKey = theme + '\n' + mermaidText
 mermaidRenderRequestKey = requestKey
 renderMermaidSvgForTheme(mermaidText, theme, (result: ThemedSvgResult) => {
-	if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme) return
+	if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme) {
+		mermaidDebug('render-callback-stale', 'theme=' + theme)
+		return
+	}
+	mermaidDebug('render-callback', result.imageSource.length > 0 ? 'ok' : 'empty')
 	mermaidRenderRequestKey = ''
+	mermaidRenderedTheme = theme
+	mermaidRenderedIdentity = currentIdentity
 	if (result.imageSource.length == 0) {
 		showMermaidImage.value = false
 		return
 	}
 	queueMermaidImage(result.imageSource)
+	persistMermaidImage(result.imageSource, theme)
 })
 // #endif
 }
@@ -169,11 +240,13 @@ watch((): string => {
 		+ '\n' + (props.msg?.body ?? '') + '\n' + props.isClose.toString()
 		+ '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
 }, () => {
+	mermaidDebug('theme-or-message-watch', 'body=' + (props.msg?.body ?? '').length.toString())
 	syncMermaidImageTheme()
 }, { immediate: true })
 
 // 优先从 Message 已解析的 markdownBlocks 取当前块，避免长消息中多个代码块定位漂移。
 function extractMermaidText(msgItem: MsgItem | null, blockKey: string): string {
+	mermaidDebug('function-extractMermaidText', 'block=' + blockKey)
 	if (msgItem == null) return ''
 	const blocksJson = msgItem.markdownBlocks ?? ''
 	if (blocksJson.length > 0) {
@@ -192,6 +265,7 @@ function extractMermaidText(msgItem: MsgItem | null, blockKey: string): string {
 
 // 兼容 markdownBlocks 尚未写回 Message 的流式阶段。
 function extractMermaidTextFromBody(body: string, blockKey: string): string {
+	mermaidDebug('function-extractMermaidTextFromBody', 'body=' + body.length.toString() + ' block=' + blockKey)
 	let targetBlockIndex = -1
 	const keyPrefix = 'code-'
 	if (blockKey.indexOf(keyPrefix) == 0) {
@@ -239,6 +313,8 @@ watch((): string => {
 	if (msgItem == null) return ''
 	return msgItem.body + '\n' + msgItem.markdownBlocks + '\n' + (msgItem.rendered ? '1' : '0')
 }, () => {
+	mermaidDebug('msg-watch', 'body=' + (props.msg?.body ?? '').length.toString()
+		+ ' blocks=' + (props.msg?.markdownBlocks ?? '').length.toString())
 	const msgItem = props.msg
 	if (msgItem == null) return
 	if (msgItem.body.length == 0 && msgItem.markdownBlocks.length == 0) return
@@ -254,16 +330,23 @@ watch((): string => {
 })
 
 const mermaidIdentity = computed<string>(() => {
-	return (props.msg?._id ?? '') + ':' + stableBlockKey.value
+	const result = (props.msg?._id ?? '') + ':' + stableBlockKey.value
+	mermaidDebug('computed-mermaidIdentity', result)
+	return result
 })
 
 const stableBlockKey = computed<string>(() => {
 	const value = props.blockKey
-	return value.endsWith('-c') ? value.slice(0, value.length - 2) : value
+	const result = value.endsWith('-c') ? value.slice(0, value.length - 2) : value
+	mermaidDebug('computed-stableBlockKey', result)
+	return result
 })
 
 function resetMermaidIdentityState() {
+	mermaidDebug('function-resetMermaidIdentityState')
 	mermaidRenderRequestKey = ''
+	mermaidRenderedTheme = ''
+	mermaidRenderedIdentity = ''
 	mermaidViewSelectedByUser.value = false
 	resetMermaidImages()
 }
@@ -272,6 +355,7 @@ function resetMermaidIdentityState() {
 const displayMermaidText = ref<string>('')
 
 watch(mermaidIdentity, (nextIdentity: string) => {
+	mermaidDebug('identity-watch', 'next=' + nextIdentity)
 	if (mermaidIdentityVersion == nextIdentity) return
 	const shouldReset = mermaidIdentityVersion.length > 0
 	mermaidIdentityVersion = nextIdentity
@@ -279,30 +363,38 @@ watch(mermaidIdentity, (nextIdentity: string) => {
 		resetMermaidIdentityState()
 		syncMermaidImageTheme()
 	}
-	displayMermaidText.value = extractMermaidText(props.msg, props.blockKey)
+	displayMermaidText.value = props.codeText.length > 0 ? props.codeText : extractMermaidText(props.msg, props.blockKey)
 }, { immediate: true })
 
 onMounted(() => {
+	mermaidDebug('mounted')
 	updateWindowWidth()
 })
 
 const mermaidContentHeight = computed<string>(() => {
 	// Mermaid 展示区固定为正方形。图片使用 aspectFit，因此无论图表比例如何，
 	// 都会完整显示长边，同时不会因 SVG 尺寸变化导致消息列表跳动。
-	return Math.round(visibleMermaidWidth()).toString() + 'px'
+	const result = Math.round(visibleMermaidWidth()).toString() + 'px'
+	mermaidDebug('computed-mermaidContentHeight', result)
+	return result
 })
 
 const mermaidCodeScrollStyle = computed<string>(() => {
-	return 'height:' + mermaidContentHeight.value + ';position:absolute;left:0;top:0;background-color:' + mermaidCodeBackgroundColor.value + ';'
+	const result = 'height:' + mermaidContentHeight.value + ';position:absolute;left:0;top:0;background-color:' + mermaidCodeBackgroundColor.value + ';'
+	mermaidDebug('computed-mermaidCodeScrollStyle')
+	return result
 })
 
 const mermaidStageStyle = computed<string>(() => {
 	const backgroundColor = showMermaidImage.value ? themePageBackgroundColor.value : mermaidCodeBackgroundColor.value
-	return 'position:relative;width:100%;height:' + mermaidContentHeight.value
+	const result = 'position:relative;width:100%;height:' + mermaidContentHeight.value
 		+ ';overflow:hidden;background-color:' + backgroundColor + ';'
+	mermaidDebug('computed-mermaidStageStyle', showMermaidImage.value ? 'chart' : 'source')
+	return result
 })
 
 const copyCode = () => {
+	mermaidDebug('copy')
 	uni.setClipboardData({
 		data: displayMermaidText.value,
 		showToast: false,
