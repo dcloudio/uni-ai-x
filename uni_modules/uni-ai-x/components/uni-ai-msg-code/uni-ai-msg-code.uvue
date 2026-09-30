@@ -1,6 +1,6 @@
 <template>
-	<view class="uni-code-msg-root uni-theme-root" :style="codeRootStyle">
-		<view class="uni-code-msg-code-header" :style="codeHeaderStyle">
+	<view class="uni-code-msg-root uni-theme-root">
+		<view class="uni-code-msg-code-header">
 			<!-- #ifndef MP-WEIXIN -->
 			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'" flatten>
 				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">图表</text>
@@ -718,17 +718,8 @@ const mermaidContentHeight = computed<string>(() => {
 	return Math.round(visibleCodeWidth()).toString() + 'px'
 })
 
-const codeRootStyle = computed<string>(() => {
-	return 'width:100%;margin-top:6px;margin-bottom:6px;background-color:#111827;border-width:1px;border-style:solid;border-color:#374151;overflow:hidden;'
-})
-
-const codeHeaderStyle = computed<string>(() => {
-	return 'position:relative;z-index:2;width:100%;height:38px;flex-direction:row;justify-content:space-between;align-items:center;padding-top:4px;padding-bottom:4px;padding-left:10px;padding-right:10px;background-color:#0d0d0d;'
-})
-
 const codeScrollViewStyle = computed<string>(() => {
-	return 'width:100%;height:' + scrollViewHeight.value
-		+ ';flex-direction:row;align-items:flex-start;padding-left:14px;padding-right:14px;box-sizing:border-box;background-color:#111827;'
+	return 'height:' + scrollViewHeight.value + ';'
 })
 
 const mermaidCodeScrollStyle = computed<string>(() => {
@@ -829,8 +820,6 @@ const copyCode = () => {
 	height: auto;
 	flex-direction: row;
 	align-items: flex-start;
-	padding-left: 14px;
-	padding-right: 14px;
 	box-sizing: border-box;
 	background-color: #111827;
 }
@@ -878,6 +867,7 @@ const copyCode = () => {
 	font-size: 14px;
 	line-height: 22px;
 	font-family: monospace;
+	margin-left: 15px;
 	color: #d1fae5;
 	/* #ifdef WEB */
 	white-space: pre;
