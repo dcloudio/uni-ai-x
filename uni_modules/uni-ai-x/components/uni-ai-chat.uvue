@@ -226,7 +226,7 @@
 	}
 
 	function isRichTextListBlock(block: MarkdownTextRenderBlock): boolean {
-		// Only table and code components own native rich-text nodes.
+		// Keep table, code, and Mermaid blocks in dedicated list items.
 		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid'
 	}
 

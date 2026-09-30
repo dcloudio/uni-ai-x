@@ -1,42 +1,13 @@
 <template>
 	<view class="uni-code-msg-root uni-theme-root">
 		<view class="uni-code-msg-code-header">
-			<!-- #ifndef MP-WEIXIN -->
-			<view class="uni-code-msg-mermaid-switch" v-if="language == 'mermaid'" flatten>
-				<text class="uni-code-msg-mermaid-item" :class="showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(true)">图表</text>
-				<text class="uni-code-msg-mermaid-item" :class="!showMermaidImage ? 'uni-code-msg-mermaid-item-active' : ''" @click.stop="setMermaidView(false)">代码</text>
-			</view>
-			<!-- #endif -->
-			<template v-if="language != 'mermaid'">
-				<text class="uni-code-msg-language" flatten>{{language}}</text>
-				<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
-					<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
-					<text class="uni-code-msg-copy-text" flatten>复制代码</text>
-				</view>
-			</template>
-			<view v-else-if="!showMermaidImage" class="uni-code-msg-copy-btn" @click.stop="copyCode">
+			<text class="uni-code-msg-language" flatten>{{language}}</text>
+			<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
 				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
 				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
-		<view v-if="language == 'mermaid'" class="uni-code-msg-mermaid-stage" :style="mermaidStageStyle">
-			<image v-if="buffer0MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer0MermaidHref"
-				:style="buffer0MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer0Load"
-				@error="onMermaidBuffer0Error" @click.stop="previewMermaidImage" />
-			<image v-if="buffer1MermaidHref.length > 0" class="uni-code-msg-mermaid-image" :src="buffer1MermaidHref"
-				:style="buffer1MermaidImageStyle" mode="aspectFit" @load="onMermaidBuffer1Load"
-				@error="onMermaidBuffer1Error" @click.stop="previewMermaidImage" />
-			<view v-if="showMermaidImage && !mermaidImageReady" class="uni-code-msg-mermaid-image-box" :style="mermaidImageBoxStyle">
-				<uni-rotate-icon v-if="!mermaidGenerationFailed" class="uni-code-msg-mermaid-loading" />
-				<text class="uni-code-msg-mermaid-status-text" flatten>{{mermaidGenerationFailed ? '图表生成失败' : '图片正在生成中'}}</text>
-			</view>
-				<scroll-view v-if="!showMermaidImage" class="uni-code-msg-code-scroll-view uni-code-msg-mermaid-code-scroll" direction="horizontal"
-					:show-scrollbar="false" :style="mermaidCodeScrollStyle"
-					>
-					<text class="uni-code-msg-mermaid-code-text">{{displayCodeText}}</text>
-			</scroll-view>
-		</view>
-		<scroll-view v-else class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
+		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
 			>
 			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
 		</scroll-view>
@@ -45,24 +16,19 @@
 
 <script lang="uts" setup>
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import {uiTheme, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
+import {MsgItem} from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 import { requestCachedCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 import { streamingCodeTokens } from '@/uni_modules/uni-ai-x/sdk/streaming-code-tokens.uts'
-// #ifndef MP-WEIXIN
-import { renderMermaidSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
-// #endif
 
 type UniAiMsgCodeProps = {
 	codeText?: string
 	blockKey?: string
 	codeTokens?: IToken[][]
 	language?: string
-	href?: string
-	renderTheme?: string
 	isClose?: number
 	// 所属消息对象（reactive 引用）：list-view 复用 item 的子组件 props 更新在长流式过程中
 	// 可能丢失（vapor v-for/组件 props diff 缺陷），msg 对象属性为响应式直连不受影响，用于兜底
@@ -74,37 +40,10 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	blockKey: '',
 	codeTokens: () => [] as IToken[][],
 	language: 'text',
-	href: '',
-	renderTheme: '',
 	isClose: 0,
 	msg: null
 })
 
-function hasMermaidImage(href: string | null): boolean {
-	return href != null && href.length > 0
-}
-
-const mermaidImageModeLatched = ref<boolean>(props.language == 'mermaid' && props.isClose == 1)
-const showMermaidImage = ref<boolean>(mermaidImageModeLatched.value)
-//#ifdef uniVersion < 4.81 && APP-IOS || MP-WEIXIN
-showMermaidImage.value = false
-//#endif
-const mermaidViewSelectedByUser = ref<boolean>(false)
-const mermaidImageLoadFailed = ref<boolean>(false)
-const mermaidRenderPending = ref<boolean>(false)
-const buffer0MermaidHref = ref<string>('')
-const buffer0MermaidLoaded = ref<boolean>(false)
-const buffer0MermaidWidth = ref<number>(0)
-const buffer0MermaidHeight = ref<number>(0)
-const buffer1MermaidHref = ref<string>('')
-const buffer1MermaidLoaded = ref<boolean>(false)
-const buffer1MermaidWidth = ref<number>(0)
-const buffer1MermaidHeight = ref<number>(0)
-const activeMermaidBuffer = ref<number>(0)
-const pendingMermaidBuffer = ref<number>(-1)
-let mermaidRenderRequestKey = ''
-let mermaidSourceKey = ''
-let mermaidWasClosed = false
 let codeHighlightRequestVersion = 0
 let codeIdentityVersion = ''
 const highlightedCodeTokens = ref<IToken[][]>([] as IToken[][])
@@ -125,149 +64,6 @@ const codeTailPadding = 14
 // 吸收 chunk 到达时内容与容器更新的时间差，避免"先折行再弹回"的抖动；闭合后去掉，宽度单向收敛
 const codeLookaheadPadding = 84
 const windowWidth = ref<number>(0)
-
-const themePageBackgroundColor = computed<string>(() => {
-	return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-})
-
-const mermaidHref = computed<string>(() => {
-	return activeMermaidBuffer.value == 0 ? buffer0MermaidHref.value : buffer1MermaidHref.value
-})
-
-const mermaidImageReady = computed<boolean>(() => {
-	const loaded = activeMermaidBuffer.value == 0 ? buffer0MermaidLoaded.value : buffer1MermaidLoaded.value
-	return hasMermaidImage(mermaidHref.value) && loaded
-})
-
-const buffer0MermaidImageStyle = computed<string>(() => {
-	const visible = showMermaidImage.value && activeMermaidBuffer.value == 0 && buffer0MermaidLoaded.value
-	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
-		+ ';background-color:' + themePageBackgroundColor.value + ';opacity:' + (visible ? '1' : '0')
-		+ ';pointer-events:' + (visible ? 'auto' : 'none') + ';'
-})
-
-const buffer1MermaidImageStyle = computed<string>(() => {
-	const visible = showMermaidImage.value && activeMermaidBuffer.value == 1 && buffer1MermaidLoaded.value
-	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
-		+ ';background-color:' + themePageBackgroundColor.value + ';opacity:' + (visible ? '1' : '0')
-		+ ';pointer-events:' + (visible ? 'auto' : 'none') + ';'
-})
-
-function setMermaidView(showImage: boolean) {
-	mermaidViewSelectedByUser.value = true
-	showMermaidImage.value = showImage && !mermaidImageLoadFailed.value
-}
-
-function isWebPc(): boolean {
-	let isPc = false
-	// #ifdef WEB
-	const userAgent = window.navigator.userAgent
-	isPc = userAgent.match(/Android|iPhone|iPad|iPod|Mobile/i) == null
-	// #endif
-	return isPc
-}
-
-const previewMermaidImage = () => {
-	if (isWebPc()) return
-	if (!showMermaidImage.value || !mermaidImageReady.value) return
-	uni.previewImage({ urls: [mermaidHref.value] as string[] })
-}
-
-function hasQueuedMermaidImage(): boolean {
-	return buffer0MermaidHref.value.length > 0 || buffer1MermaidHref.value.length > 0
-}
-
-function resetMermaidImages() {
-	buffer0MermaidHref.value = ''
-	buffer0MermaidLoaded.value = false
-	buffer0MermaidWidth.value = 0
-	buffer0MermaidHeight.value = 0
-	buffer1MermaidHref.value = ''
-	buffer1MermaidLoaded.value = false
-	buffer1MermaidWidth.value = 0
-	buffer1MermaidHeight.value = 0
-	activeMermaidBuffer.value = 0
-	pendingMermaidBuffer.value = -1
-}
-
-function queueMermaidImage(href: string, width: number = 0, height: number = 0) {
-	if (href.length == 0) return
-	if (mermaidHref.value == href) {
-		if (width > 0 && height > 0) {
-			if (activeMermaidBuffer.value == 0) {
-				buffer0MermaidWidth.value = width
-				buffer0MermaidHeight.value = height
-			} else {
-				buffer1MermaidWidth.value = width
-				buffer1MermaidHeight.value = height
-			}
-		}
-		pendingMermaidBuffer.value = -1
-		return
-	}
-	const targetBuffer = activeMermaidBuffer.value == 0 ? 1 : 0
-	if (targetBuffer == 0) {
-		if (buffer0MermaidHref.value == href && buffer0MermaidLoaded.value) {
-			activeMermaidBuffer.value = 0
-			pendingMermaidBuffer.value = -1
-			return
-		}
-		if (buffer0MermaidHref.value != href) buffer0MermaidLoaded.value = false
-		buffer0MermaidHref.value = href
-		buffer0MermaidWidth.value = width
-		buffer0MermaidHeight.value = height
-	} else {
-		if (buffer1MermaidHref.value == href && buffer1MermaidLoaded.value) {
-			activeMermaidBuffer.value = 1
-			pendingMermaidBuffer.value = -1
-			return
-		}
-		if (buffer1MermaidHref.value != href) buffer1MermaidLoaded.value = false
-		buffer1MermaidHref.value = href
-		buffer1MermaidWidth.value = width
-		buffer1MermaidHeight.value = height
-	}
-	pendingMermaidBuffer.value = targetBuffer
-}
-
-function onMermaidBufferLoad(buffer: number) {
-	if (buffer == 0) buffer0MermaidLoaded.value = true
-	else buffer1MermaidLoaded.value = true
-	if (pendingMermaidBuffer.value != buffer) return
-	activeMermaidBuffer.value = buffer
-	pendingMermaidBuffer.value = -1
-	mermaidImageLoadFailed.value = false
-	mermaidImageModeLatched.value = true
-	if (!mermaidViewSelectedByUser.value) showMermaidImage.value = true
-}
-
-function onMermaidBufferError(buffer: number) {
-	if (buffer == 0) {
-		buffer0MermaidLoaded.value = false
-		if (activeMermaidBuffer.value != 0) {
-			buffer0MermaidHref.value = ''
-			buffer0MermaidWidth.value = 0
-			buffer0MermaidHeight.value = 0
-		}
-	} else {
-		buffer1MermaidLoaded.value = false
-		if (activeMermaidBuffer.value != 1) {
-			buffer1MermaidHref.value = ''
-			buffer1MermaidWidth.value = 0
-			buffer1MermaidHeight.value = 0
-		}
-	}
-	if (pendingMermaidBuffer.value == buffer) pendingMermaidBuffer.value = -1
-	if (!mermaidImageReady.value) {
-		mermaidImageLoadFailed.value = true
-		showMermaidImage.value = false
-	}
-}
-
-function onMermaidBuffer0Load(_event: ImageLoadEvent) { onMermaidBufferLoad(0) }
-function onMermaidBuffer1Load(_event: ImageLoadEvent) { onMermaidBufferLoad(1) }
-function onMermaidBuffer0Error(_event: ImageErrorEvent) { onMermaidBufferError(0) }
-function onMermaidBuffer1Error(_event: ImageErrorEvent) { onMermaidBufferError(1) }
 
 function normalizeCodeText(text: string): string {
 	return text.replace(/\r\n/g, '\n')
@@ -313,17 +109,6 @@ const safeCodeTokens = computed<IToken[][]>(() => {
 function highlightCode() {
 	// 闭合代码块的 token 已经随渲染数据传入，避免回收重用时再次异步解析。
 	if (normalizeCodeTokens(props.codeTokens).length > 0 && props.isClose == 1) return
-	if (props.language == 'mermaid' || props.language == 'math' || props.language == 'math-pending') {
-		codeHighlightRequestVersion += 1
-		highlightedCodeText.value = ''
-		highlightedCodeLanguage = ''
-		requestedCodeText = ''
-		requestedCodeLanguage = ''
-		pendingCodeText = ''
-		pendingCodeLanguage = ''
-		highlightedCodeTokens.value = [] as IToken[][]
-		return
-	}
 	const language = props.language
 	if (requestedCodeText.length > 0 && requestedCodeLanguage != language) {
 		codeHighlightRequestVersion += 1
@@ -504,152 +289,6 @@ const codeRichTextStyle = computed<string>(() => {
 	return codeLinesStyle.value + ';color:#d1fae5;'
 })
 
-const mermaidGenerationFailed = computed<boolean>(() => {
-	return props.language == 'mermaid'
-		&& (mermaidImageLoadFailed.value || (props.isClose == 1 && !mermaidRenderPending.value && !hasQueuedMermaidImage()))
-})
-
-function syncMermaidImageTheme(textOverride: string | null = null) {
-	if (props.language != 'mermaid') {
-		mermaidImageModeLatched.value = false
-		showMermaidImage.value = false
-		return
-	}
-	// 兜底路径（textOverride 非空）时以直连数据为准：props 更新链可能已失效
-	const effectiveText = textOverride ?? props.codeText
-	const nextSourceKey = props.language + '\n' + effectiveText
-	if (mermaidSourceKey != nextSourceKey) {
-		mermaidSourceKey = nextSourceKey
-		mermaidImageLoadFailed.value = false
-		mermaidViewSelectedByUser.value = false
-		resetMermaidImages()
-	}
-	const isClosed = props.isClose == 1 || textOverride != null
-	if (!isClosed) {
-		if (mermaidWasClosed) resetMermaidImages()
-		mermaidWasClosed = false
-		mermaidImageModeLatched.value = false
-		showMermaidImage.value = false
-		mermaidRenderRequestKey = ''
-		mermaidRenderPending.value = false
-		return
-	}
-	mermaidWasClosed = true
-// #ifdef MP-WEIXIN
-	// 微信小程序不支持隐藏 WebView，图表保留源码显示。
-mermaidImageModeLatched.value = false
-showMermaidImage.value = false
-mermaidRenderRequestKey = ''
-mermaidRenderPending.value = false
-return
-// #endif
-// #ifndef MP-WEIXIN
-mermaidImageModeLatched.value = true
-if (!mermaidViewSelectedByUser.value && mermaidImageModeLatched.value && !mermaidImageLoadFailed.value) showMermaidImage.value = true
-//#ifdef uniVersion < 4.81 && APP-IOS
-showMermaidImage.value = false
-//#endif
-const theme = uiTheme.value
-const sourceHref = props.href ?? ''
-if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
-if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
-	mermaidRenderRequestKey = ''
-	mermaidRenderPending.value = false
-	queueMermaidImage(sourceHref)
-	return
-}
-const mermaidText = effectiveText
-if (mermaidText.trim().length == 0) return
-const requestKey = theme + '\n' + mermaidText
-mermaidRenderRequestKey = requestKey
-mermaidRenderPending.value = true
-renderMermaidSvgForTheme(mermaidText, theme, (result: ThemedSvgResult) => {
-	if (mermaidRenderRequestKey != requestKey || uiTheme.value != theme) return
-	mermaidRenderRequestKey = ''
-	mermaidRenderPending.value = false
-	if (result.imageSource.length == 0) {
-		mermaidImageLoadFailed.value = true
-		showMermaidImage.value = false
-		return
-	}
-	queueMermaidImage(result.imageSource, result.width, result.height)
-})
-// #endif
-}
-
-watch((): string => {
-	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language
-		+ '\n' + props.codeText + '\n' + props.isClose.toString()
-		+ '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
-}, () => {
-	syncMermaidImageTheme()
-}, { immediate: true })
-
-// 从消息正文中提取当前代码块，不能固定取第一个 Mermaid 块。
-function extractMermaidText(body: string, blockKey: string): string {
-	let targetBlockIndex = -1
-	const keyPrefix = 'code-'
-	if (blockKey.indexOf(keyPrefix) == 0) {
-		targetBlockIndex = Number.parseInt(blockKey.slice(keyPrefix.length), 10)
-	}
-	let blockIndex = 0
-	let cursor = 0
-	let insideFence = false
-	let currentIsMermaid = false
-	let currentContentStart = 0
-	let currentBlockIndex = -1
-	while (cursor <= body.length) {
-		const lineEnd = body.indexOf('\n', cursor)
-		const hasLineEnd = lineEnd >= 0
-		const line = hasLineEnd ? body.slice(cursor, lineEnd) : body.slice(cursor)
-		const trimmedLine = line.trim()
-		if (!insideFence && trimmedLine.indexOf('```') == 0) {
-			const info = trimmedLine.length > 3 ? trimmedLine.slice(3).trim().split(' ')[0].toLowerCase() : ''
-			currentIsMermaid = info == 'mermaid' || info == 'mermaid-pending'
-			currentBlockIndex = blockIndex
-			blockIndex += 1
-			currentContentStart = hasLineEnd ? lineEnd + 1 : body.length
-			insideFence = true
-		} else if (insideFence && trimmedLine == '```') {
-			if (currentIsMermaid && (targetBlockIndex < 0 || targetBlockIndex == currentBlockIndex)) {
-				return body.slice(currentContentStart, cursor)
-			}
-			insideFence = false
-			currentIsMermaid = false
-		}
-		if (!hasLineEnd) break
-		cursor = lineEnd + 1
-	}
-	if (insideFence && currentIsMermaid && (targetBlockIndex < 0 || targetBlockIndex == currentBlockIndex)) {
-		return body.slice(currentContentStart)
-	}
-	return ''
-}
-
-// 直连兜底：list-view 复用 item 的子组件 props 更新在长流式（多帧思考/滚动）后可能丢失，
-// msg 为 reactive 对象引用，其 body/rendered 属性为响应式直连，不受 props 断链影响。
-// watch msg.body：流式期间直连更新源码显示；围栏闭合或消息完成时以直连数据强制同步图片渲染。
-watch((): string => {
-	const msgItem = props.msg
-	if (msgItem == null) return ''
-	return msgItem.body + '\n' + (msgItem.rendered ? '1' : '0')
-}, () => {
-	if (props.language != 'mermaid') return
-	const msgItem = props.msg
-	if (msgItem == null) return
-	const body = msgItem.body
-	if (body.length == 0) return
-	const mermaidText = extractMermaidText(body, props.blockKey)
-	if (mermaidText.length == 0) return
-	const fenceClosed = props.isClose == 1 || msgItem.rendered
-	if (mermaidText != displayCodeText.value) {
-		displayCodeText.value = mermaidText
-	}
-	if (fenceClosed) {
-		syncMermaidImageTheme(mermaidText)
-	}
-})
-
 const codeIdentity = computed<string>(() => {
 	return (props.msg?._id ?? '') + ':' + stableBlockKey.value
 })
@@ -668,13 +307,6 @@ function resetCodeIdentityState() {
 	requestedCodeLanguage = ''
 	pendingCodeText = ''
 	pendingCodeLanguage = ''
-	mermaidRenderRequestKey = ''
-	mermaidSourceKey = ''
-	mermaidWasClosed = false
-	mermaidRenderPending.value = false
-	mermaidImageLoadFailed.value = false
-	mermaidViewSelectedByUser.value = false
-	resetMermaidImages()
 }
 
 // Android ListView 复用同一个组件实例时，必须把代码块身份作为状态边界。
@@ -686,11 +318,10 @@ watch(codeIdentity, (nextIdentity: string) => {
 	codeIdentityVersion = nextIdentity
 	if (shouldReset) {
 		resetCodeIdentityState()
-		if (props.language == 'mermaid') syncMermaidImageTheme()
 	}
 	displayCodeText.value = props.codeText
 	// 身份切换后立即尝试同步命中已完成代码的高亮缓存，避免复用首帧显示无色文本。
-	if (props.language != 'mermaid') highlightCode()
+	highlightCode()
 }, { immediate: true })
 
 // ListView 复用时同步接收最新代码文本，避免旧的半截内容在下一帧覆盖新代码。
@@ -707,33 +338,12 @@ onMounted(() => {
 })
 
 const scrollViewHeight = computed<string>(() => {
-	if (props.language == 'mermaid') return mermaidContentHeight.value
 	const rawLineCount = rawCodeLineCount.value
 	return `${Math.max(1, rawLineCount) * codeLineHeight + codeVerticalPadding}px`
 })
 
-const mermaidContentHeight = computed<string>(() => {
-	// Mermaid 展示区固定为正方形。图片使用 aspectFit，因此无论图表比例如何，
-	// 都会完整显示长边，同时不会因 SVG 尺寸变化导致消息列表跳动。
-	return Math.round(visibleCodeWidth()).toString() + 'px'
-})
-
 const codeScrollViewStyle = computed<string>(() => {
-	return 'height:' + scrollViewHeight.value + ';'
-})
-
-const mermaidCodeScrollStyle = computed<string>(() => {
-	return codeScrollViewStyle.value + 'position:absolute;left:0;top:0;'
-})
-
-const mermaidStageStyle = computed<string>(() => {
-	return 'position:relative;width:100%;height:' + mermaidContentHeight.value
-		+ ';overflow:hidden;background-color:' + themePageBackgroundColor.value + ';'
-})
-
-const mermaidImageBoxStyle = computed<string>(() => {
-	return 'position:absolute;left:0;top:0;width:100%;height:' + mermaidContentHeight.value
-		+ ';overflow:hidden;background-color:' + themePageBackgroundColor.value + ';justify-content:center;align-items:center;'
+	return 'height:' + scrollViewHeight.value + ';background-color:#111827;'
 })
 
 const copyCode = () => {
@@ -774,28 +384,6 @@ const copyCode = () => {
 	background-color: #0d0d0d;
 }
 
-.uni-code-msg-mermaid-switch {
-	height: 30px;
-	flex-direction: row;
-	padding: 2px;
-	border-radius: 5px;
-	background-color: #262626;
-}
-
-.uni-code-msg-mermaid-item {
-	height: 26px;
-	line-height: 26px;
-	padding: 0 10px;
-	border-radius: 4px;
-	font-size: 12px;
-	color: #a3a3a3;
-}
-
-.uni-code-msg-mermaid-item-active {
-	background-color: #f5f5f5;
-	color: #171717;
-}
-
 .uni-code-msg-language {
 	font-size: 12px;
 	color: #b4b4b4;
@@ -829,60 +417,4 @@ const copyCode = () => {
 	flex-shrink: 0;
 }
 
-.uni-code-msg-mermaid-image-box {
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 100%;
-	overflow: hidden;
-	background-color: var(--bg-primary);
-	justify-content: center;
-	align-items: center;
-}
-
-.uni-code-msg-mermaid-image {
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 100%;
-	background-color: var(--bg-primary);
-}
-
-.uni-code-msg-mermaid-stage {
-	position: relative;
-	width: 100%;
-	overflow: hidden;
-	background-color: var(--bg-primary);
-}
-
-
-
-.uni-code-msg-mermaid-code-scroll {
-	position: absolute;
-	left: 0;
-	top: 0;
-}
-
-.uni-code-msg-mermaid-code-text {
-	font-size: 14px;
-	line-height: 22px;
-	font-family: monospace;
-	margin-left: 15px;
-	color: #d1fae5;
-	/* #ifdef WEB */
-	white-space: pre;
-	/* #endif */
-	align-self: flex-start;
-}
-
-.uni-code-msg-mermaid-loading {
-	width: 18px;
-	height: 18px;
-	margin-bottom: 10px;
-}
-
-.uni-code-msg-mermaid-status-text {
-	font-size: 13px;
-	color: var(--text-secondary);
-}
 </style>
