@@ -47,7 +47,11 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	msg: null
 })
 
+
+const codeDebugEnabled = false
+
 function codeDebug(event: string, detail: string = '') {
+	if (!codeDebugEnabled) return
 	console.info('[uni-ai-x][list-reuse][code] ' + event
 		+ ' msg=' + (props.msg?._id ?? '')
 		+ ' block=' + props.blockKey
@@ -286,6 +290,7 @@ const codeRichHtml = computed<string>(() => {
 function persistCodeRichHtml(html: string) {
 	codeDebug('function-persistCodeRichHtml', 'length=' + html.length.toString())
 	if (props.isClose != 1 || props.msg == null || html.length == 0) return
+	if ((props.cachedRichHtml ?? '') == html) return
 	const blocksJson = props.msg!.markdownBlocks ?? ''
 	if (blocksJson.length == 0) return
 	try {
