@@ -22,10 +22,10 @@
 					<list-item :style="bottomAnchorStyle" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item :style="bottomAnchorStyle" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
 				</list-view>
-				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
+				<view class="chat-box-add-chat" :class="hasInputExtension ? 'chat-box-add-chat-extension' : ''" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
 					<add-chat-btn />
 				</view>
-				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
+				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :class="hasInputExtension ? 'chat-box-scroll-to-bottom-extension' : ''" @click="scrollToLastMsg(true)">
 					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
 				</view>
 			</view>
@@ -716,6 +716,10 @@
 	z-index: 20;
 }
 
+.chat-box-add-chat-extension {
+	bottom: 10px;
+}
+
 .chat-box-welcome-msg-box {
 	flex: 1;
 	width: 100%;
@@ -775,6 +779,10 @@
 	padding: 5px;
 	box-shadow: 0 0 10px 0 var(--shadow);
 	z-index: 10;
+}
+
+.chat-box-scroll-to-bottom-extension {
+	bottom: 10px;
 }
 
 .chat-box-tip {
