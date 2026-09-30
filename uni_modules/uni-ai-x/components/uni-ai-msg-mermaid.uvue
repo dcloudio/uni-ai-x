@@ -209,7 +209,11 @@ if (sourceHref.length == 0 && mermaidHref.value.length > 0
 	queueMermaidImage(mermaidHref.value)
 	return
 }
-	const effectiveText = textOverride ?? (props.codeText.length > 0 ? props.codeText : extractMermaidText(props.msg, props.blockKey))
+	const effectiveText = textOverride ?? (props.codeText.length > 0
+		? props.codeText
+		: displayMermaidText.value.length > 0
+			? displayMermaidText.value
+			: extractMermaidText(props.msg, props.blockKey))
 mermaidDebug('render-start', 'theme=' + theme + ' text=' + effectiveText.length.toString())
 if (sourceHref.length > 0 && mermaidHref.value.length == 0) queueMermaidImage(sourceHref)
 const mermaidText = effectiveText
@@ -318,7 +322,14 @@ watch((): string => {
 	const msgItem = props.msg
 	if (msgItem == null) return
 	if (msgItem.body.length == 0 && msgItem.markdownBlocks.length == 0) return
-	const mermaidText = extractMermaidText(msgItem, props.blockKey)
+	let mermaidText = displayMermaidText.value
+	if (mermaidText.length == 0 || mermaidExtractedBody != msgItem.body || mermaidExtractedBlockKey != props.blockKey) {
+		mermaidText = extractMermaidText(msgItem, props.blockKey)
+		mermaidExtractedBody = msgItem.body
+		mermaidExtractedBlockKey = props.blockKey
+	} else {
+		mermaidDebug('extract-skip-unchanged-body', 'block=' + props.blockKey)
+	}
 	if (mermaidText.length == 0) return
 	const fenceClosed = props.isClose == 1 || msgItem.rendered
 	if (mermaidText != displayMermaidText.value) {
@@ -353,6 +364,8 @@ function resetMermaidIdentityState() {
 
 // Android ListView 复用同一个组件实例时，必须把流程图身份作为状态边界。
 const displayMermaidText = ref<string>('')
+let mermaidExtractedBody = ''
+let mermaidExtractedBlockKey = ''
 
 watch(mermaidIdentity, (nextIdentity: string) => {
 	mermaidDebug('identity-watch', 'next=' + nextIdentity)
@@ -363,7 +376,14 @@ watch(mermaidIdentity, (nextIdentity: string) => {
 		resetMermaidIdentityState()
 		syncMermaidImageTheme()
 	}
-	displayMermaidText.value = props.codeText.length > 0 ? props.codeText : extractMermaidText(props.msg, props.blockKey)
+	if (props.codeText.length > 0) {
+		displayMermaidText.value = props.codeText
+		mermaidExtractedBody = ''
+	} else {
+		displayMermaidText.value = extractMermaidText(props.msg, props.blockKey)
+		mermaidExtractedBody = props.msg?.body ?? ''
+	}
+	mermaidExtractedBlockKey = props.blockKey
 }, { immediate: true })
 
 onMounted(() => {
