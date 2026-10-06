@@ -61,6 +61,10 @@ type UniAiMsgCodeProps = {
 	codeTokens?: IToken[][]
 	language?: string
 	href?: string
+	// libmark 直接交付的 mermaid SVG（data URL）与尺寸：存在时优先使用，不再走 mermaid.js 重渲染
+	svgSource?: string
+	svgWidth?: number
+	svgHeight?: number
 	renderTheme?: string
 	isClose?: number
 	// 所属消息对象（reactive 引用）：list-view 复用 item 的子组件 props 更新在长流式过程中
@@ -74,6 +78,9 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	codeTokens: () => [] as IToken[][],
 	language: 'text',
 	href: '',
+	svgSource: '',
+	svgWidth: 0,
+	svgHeight: 0,
 	renderTheme: '',
 	isClose: 0,
 	msg: null
@@ -517,6 +524,15 @@ return
 // #ifndef MP-WEIXIN
 mermaidImageModeLatched.value = true
 if (!mermaidViewSelectedByUser.value && mermaidImageModeLatched.value && !mermaidImageLoadFailed.value) showMermaidImage.value = true
+// libmark 已交付 mermaid SVG：直接作为图片显示，避免再用 mermaid.js 重渲染
+const libmarkSvgSource = props.svgSource ?? ''
+if (libmarkSvgSource.length > 0) {
+	mermaidImageLoadFailed.value = false
+	mermaidRenderRequestKey = ''
+	mermaidRenderPending.value = false
+	queueMermaidImage(libmarkSvgSource, props.svgWidth ?? 1, props.svgHeight ?? 1)
+	return
+}
 //#ifdef uniVersion < 4.81 && APP-IOS
 showMermaidImage.value = false
 //#endif
@@ -552,6 +568,8 @@ watch((): string => {
 	return uiTheme.value + '\n' + props.renderTheme + '\n' + props.language
 		+ '\n' + props.codeText + '\n' + props.isClose.toString()
 		+ '\n' + ((props.href ?? '').length > 0 ? '1' : '0')
+		+ '\n' + (props.svgSource ?? '') + '\n' + (props.svgWidth ?? 0).toString()
+		+ '\n' + (props.svgHeight ?? 0).toString()
 }, () => {
 	syncMermaidImageTheme()
 }, { immediate: true })
