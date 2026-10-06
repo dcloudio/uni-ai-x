@@ -1,5 +1,6 @@
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 type OnMsgFn = (e : UTSJSONObject) => void
+type VoidFn = () => void
 type WebviewEvalTarget = {
 	evalJS: (code: string) => void
 }
@@ -7,6 +8,12 @@ class ProxyWeb {
 	isInit : boolean = false
 	private webviewContext : WebviewContext | WebviewEvalTarget | null = null
 	callbackMap : Map<string, OnMsgFn> = new Map()
+	// 会话代际：release() 自增，用于作废切换会话前的在途请求
+	private epoch : number = 0
+	// 宿主回调：未就绪且收到请求时通知页面按需挂载 web-view
+	private ensureHandler : VoidFn | null = null
+	// 宿主回调：每次发起请求时触发，用于取消待执行的释放
+	private requestListener : VoidFn | null = null
 	constructor() {
 		// #ifdef WEB
 		window.addEventListener('message', (event) => {
@@ -16,11 +23,25 @@ class ProxyWeb {
 		}, false)
 		// #endif
 	}
+	setEnsureHandler(handler : VoidFn) {
+		this.ensureHandler = handler
+	}
+	setRequestListener(listener : VoidFn) {
+		this.requestListener = listener
+	}
 	callMethod(param : UTSJSONObject, callback : OnMsgFn) {
+		// 让宿主知道本会话有渲染需求，取消可能已排队的释放
+		this.requestListener?.()
+		this.callMethodWithEpoch(param, callback, this.epoch)
+	}
+	private callMethodWithEpoch(param : UTSJSONObject, callback : OnMsgFn, epoch : number) {
+		// 会话已切换，丢弃旧会话的请求
+		if (epoch != this.epoch) return
 		// 先判断 isInit 是否为 true
 		if (this.isInit == false) {
+			this.requestEnsure()
 			setTimeout(() => {
-				this.callMethod(param, callback)
+				this.callMethodWithEpoch(param, callback, epoch)
 			}, 1000)
 			return
 		}
@@ -39,11 +60,25 @@ class ProxyWeb {
 			(this.webviewContext as any)?.contentWindow.eval(code)
 		// #endif
 	}
+	private requestEnsure() {
+		utils.runOnDispatcher('main', () => {
+			this.ensureHandler?.()
+		})
+	}
 	init(webviewContext : WebviewContext | WebviewEvalTarget) {
 		this.webviewContext = webviewContext
 	}
 	markReady() {
 		this.isInit = true
+		console.log('[proxy-web] ready: WebView 已就绪')
+	}
+	// 会话切换时释放：作废在途请求、清空回调与上下文，等待下次按需重建
+	release() {
+		this.epoch += 1
+		this.isInit = false
+		this.webviewContext = null
+		this.callbackMap = new Map<string, OnMsgFn>()
+		console.log('[proxy-web] release: 释放 WebView')
 	}
 	onWebMsg(e : UniWebViewMessageEvent) {
 		const event = e.detail.data[0] as UTSJSONObject

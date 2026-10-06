@@ -7,7 +7,7 @@
 			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
 			<fps v-if="showFps" />
 			<!-- #ifndef MP-WEIXIN -->
-			<web-view class="uni-ai-proxy-web" id="proxy-web"
+			<web-view v-if="showProxyWeb" class="uni-ai-proxy-web" id="proxy-web"
 				src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html"
 				@load="proxyWebLoad" @message="proxyWebMsg"></web-view>
 			<!-- #endif -->
@@ -87,20 +87,81 @@
 	})
 
 	// #ifndef MP-WEIXIN
+	// 按会话懒加载：只有当前会话出现公式/图表时才创建 web-view，切换会话后释放
+	const showProxyWeb = ref<boolean>(false)
+	let proxyWebMountToken = 0
+	let proxyWebReleasePending = false
+	let proxyWebReleaseTimer = -1
+
 	const proxyWebMsg = (e: UniWebViewMessageEvent) => {
 		proxyWeb.onWebMsg(e)
 	}
 
-	const proxyWebLoad = (_e: UniWebViewLoadEvent) => {
+	const tryInitProxyWebContext = (): boolean => {
 		// #ifdef WEB
 		const proxyWebContext = document.getElementById('proxy-web')
 		// #endif
 		// #ifdef APP
 		const proxyWebContext = uni.getElementById('proxy-web') as UniWebViewElement
 		// #endif
+		if (proxyWebContext == null) return false
 		proxyWeb.init(proxyWebContext!)
-		proxyWeb.markReady()
+		return true
 	}
+
+	const proxyWebLoad = (_e: UniWebViewLoadEvent) => {
+		if (tryInitProxyWebContext()) proxyWeb.markReady()
+	}
+
+	// web-view 由 v-if 挂载后，元素出现即回填上下文；就绪态由 @load / DOMContentLoaded 回调置位
+	const pollProxyWebContext = (token: number, attempt: number) => {
+		if (token != proxyWebMountToken) return
+		if (tryInitProxyWebContext()) return
+		if (attempt >= 50) return
+		setTimeout(() => {
+			pollProxyWebContext(token, attempt + 1)
+		}, 100)
+	}
+
+	const cancelProxyWebRelease = () => {
+		if (!proxyWebReleasePending) return
+		proxyWebReleasePending = false
+		if (proxyWebReleaseTimer >= 0) {
+			clearTimeout(proxyWebReleaseTimer)
+			proxyWebReleaseTimer = -1
+		}
+	}
+
+	const ensureProxyWeb = () => {
+		cancelProxyWebRelease()
+		if (showProxyWeb.value) return
+		proxyWebMountToken += 1
+		console.log('[proxy-web] load: 会话需要渲染公式/图表，创建 WebView')
+		showProxyWeb.value = true
+		pollProxyWebContext(proxyWebMountToken, 0)
+	}
+
+	// 延迟释放：若新会话在同一批次内也需要渲染，会被 ensure/请求取消，避免无谓的销毁重建
+	const scheduleProxyWebRelease = (oldId: string, newId: string) => {
+		if (proxyWebReleasePending) return
+		proxyWebReleasePending = true
+		proxyWebReleaseTimer = setTimeout(() => {
+			proxyWebReleaseTimer = -1
+			if (!proxyWebReleasePending) return
+			proxyWebReleasePending = false
+			proxyWebMountToken += 1
+			if (showProxyWeb.value) {
+				console.log('[proxy-web] release: 会话切换释放 WebView ' + oldId + ' -> ' + newId)
+			}
+			showProxyWeb.value = false
+			proxyWeb.release()
+		}, 0)
+	}
+
+	watch((): string => uniAi.chat.activeId, (newId: string, oldId: string) => {
+		if (oldId.length == 0) return
+		scheduleProxyWebRelease(oldId, newId)
+	}, { flush: 'sync' })
 	// #endif
 
 	onMounted(() => {
@@ -109,13 +170,14 @@
 			setMenu(window.innerWidth > 960)
 		})
 		setMenu(window.innerWidth > 960)
-		const proxyWebContext = document.getElementById('proxy-web')
-		// #endif
-		// #ifdef APP
-		const proxyWebContext = uni.getElementById('proxy-web')
 		// #endif
 		// #ifndef MP-WEIXIN
-		proxyWeb.init(proxyWebContext!)
+		proxyWeb.setEnsureHandler(() => {
+			ensureProxyWeb()
+		})
+		proxyWeb.setRequestListener(() => {
+			cancelProxyWebRelease()
+		})
 		// #endif
 	})
 </script>
