@@ -241,6 +241,15 @@ function opKindName(op: number): string {
 }
 
 /**
+ * 块事件日志总开关：默认关闭。
+ *
+ * 流式期间每个未闭合块的 tail 事件都携带整块全量载荷，主线程逐条格式化并
+ * `console.log` 会长时间占用 UI 线程，典型表现为「先渲染几行后长时间卡顿，
+ * 再一次性刷出大量内容」。仅在排查 libmark 块事件时临时置为 true。
+ */
+export const libmarkBlockLogEnabled: boolean = false
+
+/**
  * 每个收到的块事件都写进日志：先输出一行 block 包装信息
  * `BLOCK <事件类型> [<通道>] #<块序号>`，随后输出内容。AST 与 DATA 的 JSON 文档每行是
  * `<key>: <value>`，数组元素再多缩进一层并用 `--` 标出边界；HTML 标记与其它 DATA 载荷
@@ -249,6 +258,7 @@ function opKindName(op: number): string {
  */
 export function logBlockPayload(kind: string, payload: string, index: number,
 	op: number, unchanged: boolean): void {
+	if (!libmarkBlockLogEnabled) return
 	const compact = truncateDataUris(payload)
 	console.log(padLogLine(`[libmark]BLOCK ${opKindName(op)} [${kind}] #${index}` +
 		(unchanged ? ' (unchanged)' : '')))
