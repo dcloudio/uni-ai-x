@@ -76,6 +76,33 @@ function mermaidBlock(index: number): string {
 		+ '```\n\n'
 }
 
+function sequenceBlock(index: number): string {
+	return '```mermaid\n'
+		+ 'sequenceDiagram\n'
+		+ '  participant C as 客户端\n'
+		+ '  participant S as 服务器\n'
+		+ '  C->>S: 发送请求 ' + index.toString() + '\n'
+		+ '  S-->>C: 返回响应 ' + index.toString() + '\n'
+		+ '  C->>C: 处理数据\n'
+		+ '```\n\n'
+}
+
+function stateBlock(index: number): string {
+	return '```mermaid\n'
+		+ 'stateDiagram-v2\n'
+		+ '  state "待处理 ' + index.toString() + '" as pending\n'
+		+ '  state "处理中 ' + index.toString() + '" as active\n'
+		+ '  state "已完成 ' + index.toString() + '" as done\n'
+		+ '  state "失败 ' + index.toString() + '" as failed\n'
+		+ '  [*] --> pending\n'
+		+ '  pending --> active: 开始\n'
+		+ '  active --> done: 完成\n'
+		+ '  active --> failed: 出错\n'
+		+ '  failed --> pending: 重试\n'
+		+ '  done --> [*]\n'
+		+ '```\n\n'
+}
+
 function dividerBlock(index: number): string {
 	return '分割线前文本 ' + index.toString() + '\n\n---\n\n分割线后文本 ' + index.toString() + '\n\n'
 }
@@ -111,6 +138,8 @@ export function createDemoMarkdownBlock(scenarioId: string, index: number): stri
 	if (scenarioId == 'link') return linkBlock(index)
 	if (scenarioId == 'math') return mathBlock(index)
 	if (scenarioId == 'mermaid') return mermaidBlock(index)
+	if (scenarioId == 'sequence') return sequenceBlock(index)
+	if (scenarioId == 'state') return stateBlock(index)
 	if (scenarioId == 'divider') return dividerBlock(index)
 	if (scenarioId == 'paragraph') return paragraphBlock(index)
 	return mixedBlock(index)
