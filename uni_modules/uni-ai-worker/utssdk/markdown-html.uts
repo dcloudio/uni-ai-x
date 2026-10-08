@@ -221,6 +221,22 @@ function appendTagAttributes(openTag: string, attributes: string): string {
 	return openTag.slice(0, closeIndex) + attributes + openTag.slice(closeIndex)
 }
 
+function markdownTagStyle(tag: string): string {
+	switch (tag) {
+		case 'h1': return 'font-size:30px;line-height:36px;font-weight:700;margin:8px 0 6px;'
+		case 'h2': return 'font-size:26px;line-height:34px;font-weight:700;margin:8px 0 6px;'
+		case 'h3': return 'font-size:22px;line-height:32px;font-weight:700;margin:8px 0 6px;'
+		case 'h4': return 'font-size:20px;line-height:30px;font-weight:700;margin:8px 0 6px;'
+		case 'h5': return 'font-size:18px;line-height:28px;font-weight:700;margin:8px 0 6px;'
+		case 'h6': return 'font-size:16px;line-height:24px;font-weight:700;margin:8px 0 6px;'
+		case 'ul': return 'margin:4px 0;padding-left:24px;'
+		case 'ol': return 'margin:4px 0;padding-left:24px;'
+		case 'li': return 'margin:2px 0;line-height:26px;'
+		case 'code': return 'background-color:rgba(127,127,127,0.18);'
+		default: return ''
+	}
+}
+
 function styleOpenTags(source: string, tag: string, style: string): string {
 	let result = ''
 	let cursor = 0
@@ -240,6 +256,46 @@ function styleOpenTags(source: string, tag: string, style: string): string {
 		cursor = end + 1
 	}
 	return result
+}
+
+function styleMarkdownOpenTagsFallback(source: string): string {
+	let result = source
+	const tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'code']
+	for (let index = 0; index < tags.length; index++) {
+		const tag = tags[index]
+		result = styleOpenTags(result, tag, markdownTagStyle(tag))
+	}
+	return result
+}
+
+function styleMarkdownOpenTags(source: string): string {
+	let result = ''
+	let cursor = 0
+	let emitted = 0
+	while (cursor < source.length) {
+		const start = source.indexOf('<', cursor)
+		if (start < 0) break
+		const end = source.indexOf('>', start)
+		if (end < 0) break
+		// Keep the old behavior for an incomplete tag followed by another '<'.
+		const nestedStart = source.indexOf('<', start + 1)
+		if (nestedStart >= 0 && nestedStart < end) return styleMarkdownOpenTagsFallback(source)
+		let nameEnd = start + 1
+		while (nameEnd < end) {
+			const ch = source.charAt(nameEnd)
+			if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == '/') break
+			nameEnd++
+		}
+		const style = markdownTagStyle(source.slice(start + 1, nameEnd))
+		if (style.length > 0) {
+			result += source.slice(emitted, start)
+			result += appendTagStyle(source.slice(start, end + 1), style)
+			emitted = end + 1
+		}
+		cursor = end + 1
+	}
+	if (emitted == 0) return source
+	return result + source.slice(emitted)
 }
 
 function taskImageTag(checked: boolean): string {
@@ -454,16 +510,7 @@ function markCodeBlocks(source: string, isDone: boolean): string {
 function prepareRichMarkdownHtml(html: string, isDone: boolean): string {
 	let result = replaceTaskInputs(html)
 	result = styleTaskListItems(result)
-	result = styleOpenTags(result, 'h1', 'font-size:30px;line-height:36px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h2', 'font-size:26px;line-height:34px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h3', 'font-size:22px;line-height:32px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h4', 'font-size:20px;line-height:30px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h5', 'font-size:18px;line-height:28px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h6', 'font-size:16px;line-height:24px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'ul', 'margin:4px 0;padding-left:24px;')
-	result = styleOpenTags(result, 'ol', 'margin:4px 0;padding-left:24px;')
-	result = styleOpenTags(result, 'li', 'margin:2px 0;line-height:26px;')
-	result = styleOpenTags(result, 'code', 'background-color:rgba(127,127,127,0.18);')
+	result = styleMarkdownOpenTags(result)
 	return markCodeBlocks(result, isDone)
 }
 
