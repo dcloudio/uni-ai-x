@@ -1,18 +1,20 @@
 import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableContentHeight, markdownTableThemeColors } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
 export type TablePresentation = {
+	height: string
 	html: string
 	containerStyle: string
 	scrollStyle: string
 	richTextStyle: string
 }
 
-export const emptyTablePresentation: TablePresentation = { html: '', containerStyle: '', scrollStyle: '', richTextStyle: '' }
+export const emptyTablePresentation: TablePresentation = { height: '0px', html: '', containerStyle: '', scrollStyle: '', richTextStyle: '' }
 
 export function prepareTablePresentation(html: string, columnWidths: number[], rowTextWidths: number[][], theme: string): TablePresentation {
 	const height = markdownTableContentHeight(rowTextWidths, columnWidths).toString() + 'px'
 	const colors = markdownTableThemeColors(theme)
 	return {
+		height: height,
 		html: applyMarkdownTableTheme(applyMarkdownTableColumnWidths(html, columnWidths), theme),
 		containerStyle: 'width:100%;margin-top:6px;margin-bottom:6px;box-sizing:border-box;border-top-width:1px;border-right-width:1px;border-bottom-width:0;border-left-width:1px;border-style:solid;border-color:' + colors.border + ';background-color:' + colors.background + ';',
 		scrollStyle: 'width:100%;height:' + height + ';box-sizing:border-box;flex-direction:row;background-color:' + colors.background + ';',

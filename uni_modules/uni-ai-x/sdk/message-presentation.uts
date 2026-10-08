@@ -1,4 +1,4 @@
-import { shallowRef } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { MsgItem } from '../types.uts'
 import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 import { MarkdownTextRenderBlock, markdownHtmlBlocksToTextBlocks } from './markdown-text.uts'
@@ -11,6 +11,7 @@ class MessagePresentation {
 	sources = new Map<string, string>()
 	byKey = new Map<string, MarkdownTextRenderBlock>()
 	blocks = shallowRef<MarkdownTextRenderBlock[]>([] as MarkdownTextRenderBlock[])
+	layoutRevision = ref<number>(0)
 }
 
 const messages = new Map<string, MessagePresentation>()
@@ -30,6 +31,26 @@ export function readMessagePresentation(messageId: string): MarkdownTextRenderBl
 
 export function forgetMessagePresentation(messageId: string) {
 	messages.delete(messageId)
+}
+
+export function readMessageLayoutRevision(messageId: string): number {
+	return entry(messageId).layoutRevision.value
+}
+
+function sameBlockLayout(previous: MarkdownTextRenderBlock, next: MarkdownTextRenderBlock): boolean {
+	if (previous.kind != next.kind || previous.key != next.key) return false
+	if (next.kind == 'mermaid') return true
+	if (next.kind == 'code') return previous.codeHeight == next.codeHeight
+	if (next.kind == 'table') return previous.table?.height == next.table?.height
+	if (next.kind == 'math') {
+		const before = previous.math
+		const after = next.math
+		if (before == null || after == null) return before == after
+		if ((before.src.length > 0) != (after.src.length > 0)) return false
+		return after.src.length > 0 ? before.width == after.width && before.height == after.height
+			: before.sourceWidth == after.sourceWidth && before.sourceHeight == after.sourceHeight
+	}
+	return previous.html == next.html && previous.quoteDepth == next.quoteDepth
 }
 
 export function refreshMessagePresentation(msg: MsgItem, theme: string) {
@@ -57,6 +78,10 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 		byKey.set(key, prepared)
 	}
 	const previousBlocks = cache.blocks.value
+	let layoutChanged = previousBlocks.length != next.length
+	if (!layoutChanged) for (let i = 0; i < next.length; i++) {
+		if (!sameBlockLayout(previousBlocks[i], next[i])) { layoutChanged = true; break }
+	}
 	let changed = previousBlocks.length != next.length
 	if (!changed) for (let i = 0; i < next.length; i++) {
 		if (previousBlocks[i] != next[i]) { changed = true; break }
@@ -67,4 +92,5 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 	cache.sources = sources
 	cache.byKey = byKey
 	if (changed) cache.blocks.value = next
+	if (layoutChanged) cache.layoutRevision.value += 1
 }

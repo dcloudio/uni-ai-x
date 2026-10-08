@@ -43,7 +43,7 @@
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
-	import { readMessagePresentation } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
+	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -397,14 +397,26 @@
 		}
 	}
 	
-	watch(lastMsg, async () => {
+	watch(() => {
+		const msg = lastMsg.value
+		return {
+			id: msg?._id ?? '',
+			body: msg?.body ?? '',
+			html: msg?.markdownHtml ?? '',
+			think: msg?.thinkContent ?? '',
+			error: msg?.error_msg ?? '',
+			rendered: msg?.rendered ?? false,
+			state: state.value,
+			layout: msg != null ? readMessageLayoutRevision(msg._id) : 0
+		}
+	}, async () => {
 		setIsInScrollBottom()
 		lockAutoToLastMsg()
 		if (!scrollTouch.value && autoToLastMsg) {
 			await nextTick()
 			scrollToLastMsg(false)
 		}
-	}, { deep: true })
+	})
 	
 	const changeThinkContent = (_hideThinkContent: boolean) => {
 		setIsInScrollBottom()
