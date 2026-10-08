@@ -1,0 +1,64 @@
+import { ref } from 'vue'
+import { MsgItem } from '../types.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+// #ifndef MP-WEIXIN
+import { renderMermaidSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
+// #endif
+
+export const mermaidStageStyle = ref<string>('height:364px;')
+let layoutInitialized = false
+
+export function updateMermaidLayout(width: number) {
+	mermaidStageStyle.value = 'height:' + Math.round(Math.max(160, Math.min(width, 800) - 48)).toString() + 'px;'
+}
+
+export function initMermaidLayout() {
+	if (layoutInitialized) return
+	layoutInitialized = true
+	updateMermaidLayout(uni.getWindowInfo().windowWidth)
+}
+
+type SaveMessage = (msg: MsgItem) => void
+type CurrentTheme = () => string
+const pending = new Map<string, string>()
+
+// Called by message ingestion, history loading and theme changes, never by a view.
+export function prepareMermaidPresentation(msg: MsgItem, theme: string, currentTheme: CurrentTheme, save: SaveMessage) {
+	// #ifndef MP-WEIXIN
+	const json = msg.markdownBlocks ?? ''
+	if (json.length == 0) return
+	let blocks: MarkdownHtmlBlock[]
+	try {
+		blocks = JSON.parse<MarkdownHtmlBlock[]>(json) as MarkdownHtmlBlock[]
+	} catch (_) { return }
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		if (block.kind != 'mermaid' || !block.isComplete || block.text.trim().length == 0) continue
+		if ((block.mermaidImageSource ?? '').length > 0 && block.mermaidRenderTheme == theme) continue
+		const identity = msg._id + ':' + block.key
+		const request = theme + '\n' + block.text
+		if (pending.get(identity) == request) continue
+		pending.set(identity, request)
+		renderMermaidSvgForTheme(block.text, theme, (result: ThemedSvgResult) => {
+			if (pending.get(identity) != request) return
+			pending.delete(identity)
+			if (currentTheme() != theme || result.imageSource.length == 0) return
+			// Merge into the latest stream snapshot; never restore an older message.
+			const latestJson = msg.markdownBlocks ?? ''
+			try {
+				const latest = JSON.parse<MarkdownHtmlBlock[]>(latestJson) as MarkdownHtmlBlock[]
+				for (let i = 0; i < latest.length; i++) {
+					const target = latest[i]
+					if (target.key != block.key || target.kind != 'mermaid' || !target.isComplete || target.text != block.text) continue
+					if (target.mermaidImageSource == result.imageSource && target.mermaidRenderTheme == theme) return
+					target.mermaidImageSource = result.imageSource
+					target.mermaidRenderTheme = theme
+					msg.markdownBlocks = JSON.stringify(latest) ?? latestJson
+					save(msg)
+					return
+				}
+			} catch (_) { return }
+		})
+	}
+	// #endif
+}

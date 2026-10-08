@@ -6,6 +6,7 @@ import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
+import { prepareMermaidPresentation } from './mermaid-presentation.uts'
 import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
@@ -435,6 +436,15 @@ class UniAi {
 		this.cancelEditMsg()
 		this.loadChatMessages(chatId)
 		this.chat.activeId = chatId
+		this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
+	}
+
+	private prepareMessagePresentation(msg: MsgItem) {
+		if ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length > 0) {
+			msg.markdownBlocks = JSON.stringify(buildMarkdownHtmlBlocks(msg.markdownHtml ?? '', msg.rendered)) ?? '[]'
+		}
+		prepareMermaidPresentation(msg, uiTheme.value, (): string => uiTheme.value,
+			(item: MsgItem) => { this.updateMsg2Storage(item) })
 	}
 
 	private loadChatMessages(chatId: string) {
@@ -443,6 +453,7 @@ class UniAi {
 		if (chat == null) return
 		const messages = this.storageManager.getChatMessages(chatId)
 		chat.msgList.push(...messages)
+		chat.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 		this.loadedChatIds.push(chatId)
 	}
 		
@@ -461,6 +472,9 @@ class UniAi {
 		this.loadDataFromNewStorage()
 		this.loadSetting()
 		this.watchSetting()
+		watch(uiTheme, () => {
+			this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
+		})
 	}
 	private buildDefaultLlm(): Llm {
 		return {
@@ -789,6 +803,7 @@ class UniAi {
 			onMarkdownBlocks: (blocks: string) => {
 				if (this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownBlocks = blocks
+				this.prepareMessagePresentation(aiMsgItem)
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {

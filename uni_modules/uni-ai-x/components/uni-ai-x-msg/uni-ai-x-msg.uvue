@@ -20,7 +20,7 @@
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
 			:code-text="part.block.text" :code-tokens="part.block.codeTokens" :cached-rich-html="part.block.codeRichHtml" :block-key="part.block.key" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" :msg="msg" />
 		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
-			:code-text="part.block.text" :block-key="part.block.key" :href="part.block.mermaidImageSource" :render-theme="part.block.mermaidRenderTheme" :is-close="part.block.isComplete ? 1 : 0" :msg="msg" />
+			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.block.key" :code-text="part.block.text" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" />
