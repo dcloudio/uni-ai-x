@@ -2,7 +2,7 @@
 	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''" :style="msgSegmentStyle">
 		<image v-if="isFirst" class="msg-segment-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 		<!-- Single stateless blocks follow the recycled row; stateful and mixed blocks retain content identity. -->
-		<template v-for="part in parts" :key="parts.length == 1 && part.block != null && (part.block.kind == 'mermaid' || part.block.kind == 'rich') ? 'display:' + part.block.kind : part.key">
+		<template v-for="part in parts" :key="parts.length == 1 && part.block != null && part.block.kind != 'code' && part.block.kind != 'math' ? 'display:' + part.block.kind : part.key">
 		<image v-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" flatten />
 		<template v-else-if="part.kind == 'think'">
 			<view class="msg-segment-think-content">
