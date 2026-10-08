@@ -16,8 +16,7 @@
 
 <script lang="uts" setup>
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk';
-import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { MsgItem } from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
@@ -30,6 +29,7 @@ type UniAiMsgCodeProps = {
 	blockKey?: string
 	codeTokens?: IToken[][]
 	cachedRichHtml?: string
+	preparedHeight?: string
 	language?: string
 	isClose?: number
 	// 所属消息对象（reactive 引用）：list-view 复用 item 的子组件 props 更新在长流式过程中
@@ -42,6 +42,7 @@ const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
 	blockKey: '',
 	codeTokens: () => [] as IToken[][],
 	cachedRichHtml: '',
+	preparedHeight: '',
 	language: 'text',
 	isClose: 0,
 	msg: null
@@ -141,9 +142,10 @@ const safeCodeTokens = computed<IToken[][]>(() => {
 })
 
 function highlightCode() {
+	if (props.isClose == 1 && (props.cachedRichHtml ?? '').length > 0) return
 	codeDebug('highlightCode', 'close=' + props.isClose.toString() + ' text=' + displayCodeText.value.length.toString())
 	// 闭合代码块的 token 已经随渲染数据传入，避免回收重用时再次异步解析。
-	if (normalizeCodeTokens(props.codeTokens).length > 0 && props.isClose == 1) return
+	if (props.codeTokens.length > 0 && props.isClose == 1) return
 	const language = props.language
 	if (requestedCodeText.length > 0 && requestedCodeLanguage != language) {
 		codeHighlightRequestVersion += 1
@@ -287,31 +289,6 @@ const codeRichHtml = computed<string>(() => {
 	return html
 })
 
-function persistCodeRichHtml(html: string) {
-	codeDebug('function-persistCodeRichHtml', 'length=' + html.length.toString())
-	if (props.isClose != 1 || props.msg == null || html.length == 0) return
-	if ((props.cachedRichHtml ?? '') == html) return
-	const blocksJson = props.msg!.markdownBlocks ?? ''
-	if (blocksJson.length == 0) return
-	try {
-		const blocks = JSON.parse<MarkdownHtmlBlock[]>(blocksJson) as MarkdownHtmlBlock[]
-		for (let index = 0; index < blocks.length; index++) {
-			if (blocks[index].key != props.blockKey || blocks[index].kind != 'code') continue
-			if ((blocks[index].codeRichHtml ?? '') == html) return
-			blocks[index].codeRichHtml = html
-			props.msg!.markdownBlocks = JSON.stringify(blocks) ?? blocksJson
-			uniAi.updateMsg2Storage(props.msg!)
-			return
-		}
-	} catch (_error) {
-		codeDebug('cache-write-error')
-	}
-}
-
-watch(codeRichHtml, (nextHtml: string) => {
-	persistCodeRichHtml(nextHtml)
-}, { immediate: true })
-
 function updateWindowWidth() {
 	codeDebug('function-updateWindowWidth')
 	windowWidth.value = uni.getWindowInfo().windowWidth
@@ -398,27 +375,15 @@ function resetCodeIdentityState() {
 }
 
 // Android ListView 复用同一个组件实例时，必须把代码块身份作为状态边界。
-watch(codeIdentity, (nextIdentity: string) => {
+watch((): string => codeIdentity.value + '\u001f' + props.language + '\u001f' + props.isClose.toString() + '\u001f' + props.codeText, () => {
+	const nextIdentity = codeIdentity.value
 	codeDebug('identity-watch', 'next=' + nextIdentity)
-	if (codeIdentityVersion == nextIdentity) return
-	const shouldReset = codeIdentityVersion.length > 0
+	const shouldReset = codeIdentityVersion.length > 0 && codeIdentityVersion != nextIdentity
 	codeIdentityVersion = nextIdentity
 	if (shouldReset) {
 		resetCodeIdentityState()
 	}
 	displayCodeText.value = props.codeText
-	// 身份切换后立即尝试同步命中已完成代码的高亮缓存，避免复用首帧显示无色文本。
-	highlightCode()
-}, { immediate: true })
-
-// ListView 复用时同步接收最新代码文本，避免旧的半截内容在下一帧覆盖新代码。
-watch((): string => props.language + '\n' + props.codeText + '\n' + props.isClose.toString(), () => {
-	codeDebug('props-watch', 'text=' + props.codeText.length.toString() + ' close=' + props.isClose.toString())
-	displayCodeText.value = props.codeText
-}, { immediate: true })
-
-watch((): string => props.language + '\n' + displayCodeText.value + '\n' + props.isClose.toString(), () => {
-	codeDebug('display-watch', 'text=' + displayCodeText.value.length.toString())
 	highlightCode()
 }, { immediate: true })
 
@@ -428,6 +393,7 @@ onMounted(() => {
 })
 
 const scrollViewHeight = computed<string>(() => {
+	if (props.preparedHeight.length > 0) return props.preparedHeight
 	const rawLineCount = rawCodeLineCount.value
 	const result = `${Math.max(1, rawLineCount) * codeLineHeight + codeVerticalPadding}px`
 	codeDebug('computed-scrollViewHeight', result)

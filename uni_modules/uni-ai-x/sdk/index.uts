@@ -7,6 +7,7 @@ import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 import { prepareMermaidPresentation } from './mermaid-presentation.uts'
+import { prepareCodePresentation } from './code-presentation.uts'
 import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
@@ -443,6 +444,7 @@ class UniAi {
 		if ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length > 0) {
 			msg.markdownBlocks = JSON.stringify(buildMarkdownHtmlBlocks(msg.markdownHtml ?? '', msg.rendered)) ?? '[]'
 		}
+		prepareCodePresentation(msg, (item: MsgItem) => { this.updateMsg2Storage(item) })
 		prepareMermaidPresentation(msg, uiTheme.value, (): string => uiTheme.value,
 			(item: MsgItem) => { this.updateMsg2Storage(item) })
 	}

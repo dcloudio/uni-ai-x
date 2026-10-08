@@ -1,0 +1,95 @@
+import { MsgItem } from '../types.uts'
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { markdownCodeTokenToRichTextNodes } from './markdown-rich-text.uts'
+import { requestCachedCodeText, ParseCodeTextRes } from './parseCode.uts'
+
+function escapeCodeHtml(text: string): string {
+	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+function codeNodeHtml(node: UTSJSONObject): string {
+	if (node['type'] == 'text') return escapeCodeHtml((node['text'] as string | null) ?? '')
+	const name = node['name'] as string | null
+	if (name == 'br') return '<br/>'
+	if (name == null) return ''
+	let html = '<' + name
+	const attrs = node['attrs'] as UTSJSONObject | null
+	if (attrs != null) {
+		const style = attrs['style'] as string | null
+		if (style != null) html += ' style="' + escapeCodeHtml(style) + '"'
+	}
+	html += '>'
+	const children = node['children'] as UTSJSONObject[] | null
+	if (children != null) for (let i = 0; i < children.length; i++) html += codeNodeHtml(children[i])
+	return html + '</' + name + '>'
+}
+
+export function buildCodeRichHtml(text: string, language: string, tokens: MarkdownToken[][]): string {
+	const token: MarkdownToken = { type: 'code_block', lang: language, text: text, codeTokens: tokens }
+	const nodes = markdownCodeTokenToRichTextNodes(token)
+	let html = ''
+	for (let i = 0; i < nodes.length; i++) html += codeNodeHtml(nodes[i])
+	return html
+}
+
+const pending = new Set<string>()
+const completed = new Map<string, string>()
+const completedOrder = [] as string[]
+
+function remember(key: string, html: string) {
+	if (!completed.has(key)) completedOrder.push(key)
+	completed.set(key, html)
+	while (completedOrder.length > 256) {
+		const oldest = completedOrder.shift()
+		if (oldest != null) completed.delete(oldest)
+	}
+}
+
+// Preparation belongs to ingestion/history loading, not recycled view instances.
+export function prepareCodePresentation(msg: MsgItem, save: (msg: MsgItem) => void) {
+	const json = msg.markdownBlocks ?? ''
+	if (json.length == 0) return
+	let blocks: MarkdownHtmlBlock[]
+	try { blocks = JSON.parse<MarkdownHtmlBlock[]>(json) as MarkdownHtmlBlock[] } catch (_) { return }
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		if (block.kind != 'code' || !block.isComplete || (block.codeRichHtml ?? '').length > 0) continue
+		const key = msg._id + '\u001f' + block.key + '\u001f' + block.language + '\u001f' + block.text
+		const apply = (html: string) => {
+			// An asynchronous result must merge with the latest stream, never its old snapshot.
+			const latestJson = msg.markdownBlocks ?? ''
+			try {
+				const latest = JSON.parse<MarkdownHtmlBlock[]>(latestJson) as MarkdownHtmlBlock[]
+				for (let i = 0; i < latest.length; i++) {
+					const target = latest[i]
+					if (target.key != block.key || target.kind != 'code' || !target.isComplete
+						|| target.text != block.text || target.language != block.language) continue
+					if (target.codeRichHtml == html) return
+					target.codeRichHtml = html
+					msg.markdownBlocks = JSON.stringify(latest) ?? latestJson
+					save(msg)
+					return
+				}
+			} catch (_) { return }
+		}
+		const cached = completed.get(key)
+		if (cached != null) { apply(cached); continue }
+		if (pending.has(key)) continue
+		const tokens = block.codeTokens ?? [] as MarkdownToken[][]
+		if (tokens.length > 0 || block.text.length == 0) {
+			const html = buildCodeRichHtml(block.text, block.language, tokens)
+			remember(key, html)
+			apply(html)
+			continue
+		}
+		pending.add(key)
+		requestCachedCodeText((result: ParseCodeTextRes) => {
+			pending.delete(key)
+			if (result.error != null) return
+			const html = buildCodeRichHtml(block.text, block.language, result.lines)
+			remember(key, html)
+			apply(html)
+		}, msg._id, block.key, block.text, block.language)
+	}
+}
