@@ -18,7 +18,6 @@
 import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { MsgItem } from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
 import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
 import { requestCachedCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
@@ -71,15 +70,6 @@ let pendingCodeText = ''
 let pendingCodeLanguage = ''
 const codeLineHeight = 22
 const codeVerticalPadding = 16
-const codeFontSize = 14
-const codeHorizontalPadding = 14
-const estimatedCardHorizontalInset = 48
-// 行尾 1em 余量：覆盖各平台 monospace 回退字体的度量误差，防止估算宽度略小于实际渲染宽度导致折行
-const codeTailPadding = 14
-// 流式期间 6em 前瞻余量：未完成行仍在增长，提前占住宽度，
-// 吸收 chunk 到达时内容与容器更新的时间差，避免"先折行再弹回"的抖动；闭合后去掉，宽度单向收敛
-const codeLookaheadPadding = 84
-const windowWidth = ref<number>(0)
 const displayCodeText = ref<string>(props.codeText)
 
 const stableBlockKey = computed<string>(() => {
@@ -289,63 +279,9 @@ const codeRichHtml = computed<string>(() => {
 	return html
 })
 
-function updateWindowWidth() {
-	codeDebug('function-updateWindowWidth')
-	windowWidth.value = uni.getWindowInfo().windowWidth
-}
-
 const rawCodeLineCount = computed<number>(() => {
 	const result = normalizeCodeText(displayCodeText.value).split('\n').length
 	codeDebug('computed-rawCodeLineCount', 'lines=' + result.toString())
-	return result
-})
-
-const codeWidthCache = new Map<string, number>()
-const codeWidthCacheOrder = [] as string[]
-const maxCodeWidthCacheEntries = 128
-
-function getCodeTextWidth(text: string): number {
-	codeDebug('function-getCodeTextWidth', 'length=' + text.length.toString())
-	const startedAt = Date.now()
-	const cached = codeWidthCache.get(text)
-	if (cached != null) {
-		measureCodePerformance('getCodeTextWidth', startedAt, codeIdentity.value)
-		return cached
-	}
-	const lines = normalizeCodeText(text).split('\n')
-	const width = estimateMaxLineTextWidth(lines, codeFontSize, 'mono')
-	codeWidthCache.set(text, width)
-	codeWidthCacheOrder.push(text)
-	if (codeWidthCacheOrder.length > maxCodeWidthCacheEntries) {
-		const oldest = codeWidthCacheOrder.shift()
-		if (oldest != null) codeWidthCache.delete(oldest)
-	}
-	measureCodePerformance('getCodeTextWidth', startedAt, codeIdentity.value)
-	return width
-}
-
-function visibleCodeWidth(): number {
-	codeDebug('function-visibleCodeWidth')
-	const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
-	return Math.max(160, Math.min(currentWindowWidth, 800) - estimatedCardHorizontalInset)
-}
-
-function visibleCodeContentWidth(): number {
-	codeDebug('function-visibleCodeContentWidth')
-	return Math.max(1, visibleCodeWidth() - codeHorizontalPadding * 2)
-}
-
-const codeContentWidth = computed<string>(() => {
-	// 估算使用保守比率（text-width.uts mono 0.7/全角 1.05），保证估算宽度不小于实际渲染宽度
-	const estimatedWidth = getCodeTextWidth(props.codeText) + codeTailPadding
-	if (props.isClose != 1) {
-		const result = Math.max(visibleCodeContentWidth(), estimatedWidth + codeLookaheadPadding).toString() + 'px'
-		codeDebug('computed-codeContentWidth', result)
-		return result
-	}
-	// 代码块闭合：去掉流式前瞻余量，按最终内容重算一次，宽度单向收敛且不折行
-	const result = Math.max(visibleCodeContentWidth(), estimatedWidth).toString() + 'px'
-	codeDebug('computed-codeContentWidth', result)
 	return result
 })
 
@@ -386,11 +322,6 @@ watch((): string => codeIdentity.value + '\u001f' + props.language + '\u001f' + 
 	displayCodeText.value = props.codeText
 	highlightCode()
 }, { immediate: true })
-
-onMounted(() => {
-	codeDebug('mounted')
-	updateWindowWidth()
-})
 
 const scrollViewHeight = computed<string>(() => {
 	if (props.preparedHeight.length > 0) return props.preparedHeight
