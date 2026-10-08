@@ -141,9 +141,17 @@
 	const RENDER_ITEM_TYPE_AI_TABLE = 11
 	const RENDER_ITEM_TYPE_AI_CODE = 13
 	const RENDER_ITEM_TYPE_AI_MERMAID = 20
-	const RENDER_ITEM_TYPE_AI_MERMAID_DONE = 23
 	const RENDER_ITEM_TYPE_AI_NORMAL = 21
 	const RENDER_ITEM_TYPE_AI_SVG = 22
+	const RENDER_ITEM_TYPE_AI_TEXT = 24
+	const RENDER_ITEM_TYPE_AI_RULE = 25
+	const RENDER_ITEM_TYPE_AI_MATH = 26
+	const RENDER_ITEM_TYPE_AI_THINK = 27
+	const RENDER_ITEM_TYPE_AI_PLAIN = 28
+	const RENDER_ITEM_TYPE_AI_ERROR = 29
+	const RENDER_ITEM_TYPE_AI_EMPTY = 30
+	const RENDER_ITEM_TYPE_AI_TOOLBAR = 31
+	const RENDER_ITEM_FIRST_OFFSET = 100
 	const pendingCodeHydration = new Set<string>()
 
 	function hydrateClosedCodeTokens(msg: MsgItem, workerBlocks: MarkdownHtmlBlock[], blocks: MarkdownTextRenderBlock[]) {
@@ -209,7 +217,7 @@
 		items.push({
 			key: msg._id + '-' + suffix,
 			id: 'msg-item-' + msg._id + '-' + suffix,
-			itemType: itemType,
+			itemType: itemType + (isFirst ? RENDER_ITEM_FIRST_OFFSET : 0),
 			msg: msg,
 			parts: parts,
 			isAi: true,
@@ -228,6 +236,22 @@
 	function isRichTextListBlock(block: MarkdownTextRenderBlock): boolean {
 		// Keep table, code, and Mermaid blocks in dedicated list items.
 		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid'
+	}
+
+	function normalPartsItemType(parts: AiMsgRenderPart[]): number {
+		// Mixed paragraphs keep their grouping and spacing; do not create a pool per message.
+		if (parts.length != 1) return RENDER_ITEM_TYPE_AI_NORMAL
+		const part = parts[0]
+		if (part.block != null) {
+			if (part.block!.kind == 'hr') return RENDER_ITEM_TYPE_AI_RULE
+			if (part.block!.kind == 'math') return RENDER_ITEM_TYPE_AI_MATH
+			return RENDER_ITEM_TYPE_AI_TEXT
+		}
+		if (part.kind == 'think') return RENDER_ITEM_TYPE_AI_THINK
+		if (part.kind == 'plain') return RENDER_ITEM_TYPE_AI_PLAIN
+		if (part.kind == 'error') return RENDER_ITEM_TYPE_AI_ERROR
+		if (part.kind == 'empty') return RENDER_ITEM_TYPE_AI_EMPTY
+		return RENDER_ITEM_TYPE_AI_NORMAL
 	}
 
 	const renderItemList = computed<ChatRenderItem[]>(() => {
@@ -257,7 +281,7 @@
 			const flushNormalParts = () => {
 				if (normalParts.length == 0) return
 				const suffix = 'normal-' + normalSegmentIndex.toString()
-				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_NORMAL, !hasAiSegment, suffix, normalParts.slice())
+				appendAiRenderItem(items, msg, normalPartsItemType(normalParts), !hasAiSegment, suffix, normalParts.slice())
 				normalParts.length = 0
 				normalSegmentIndex += 1
 				hasAiSegment = true
@@ -306,7 +330,7 @@
 			if (normalParts.length > 0) flushNormalParts()
 			if (hasAiSegment) {
 				// 工具栏独立成消息后的列表项，避免被富文本块的原生布局挤到顶部。
-				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_NORMAL, false, 'toolbar',
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_TOOLBAR, false, 'toolbar',
 					[aiRenderPart('toolbar', 'toolbar')])
 			}
 		}
