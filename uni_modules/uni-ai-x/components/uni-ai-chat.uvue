@@ -56,6 +56,7 @@
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 	import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
+	import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -114,6 +115,7 @@
 	})
 
 	type MarkdownBlockCache = {
+		layoutWidth: number
 		theme: string
 		html: string
 		blocksJson: string
@@ -158,7 +160,7 @@
 		const blocksJson = msg.markdownBlocks ?? ''
 		const complete = msg.rendered
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.theme == uiTheme.value && cached.html == html && cached.blocksJson == blocksJson && cached.complete == complete) {
+		if (cached != null && cached.layoutWidth == mathWindowWidth.value && cached.theme == uiTheme.value && cached.html == html && cached.blocksJson == blocksJson && cached.complete == complete) {
 			return cached.blocks
 		}
 		let blocks = [] as MarkdownTextRenderBlock[]
@@ -173,6 +175,7 @@
 			console.error('[uni-ai-x] Worker did not return markdown blocks.')
 		}
 		markdownBlockCache.set(msg._id, {
+			layoutWidth: mathWindowWidth.value,
 			theme: uiTheme.value,
 			html: html,
 			blocksJson: blocksJson,

@@ -1,0 +1,85 @@
+import { ref } from 'vue'
+import { MsgItem } from '../types.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { estimateMaxLineTextWidth } from './text-width.uts'
+// #ifndef MP-WEIXIN
+import { renderMathSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
+// #endif
+
+export type MathPresentation = {
+	src: string
+	width: number
+	height: number
+	sourceWidth: string
+	sourceHeight: string
+}
+
+export const mathWindowWidth = ref<number>(0)
+export function updateMathLayout(width: number) {
+	if (width > 0 && mathWindowWidth.value != width) mathWindowWidth.value = width
+}
+
+export const emptyMathPresentation: MathPresentation = { src: '', width: 1, height: 44, sourceWidth: '160px', sourceHeight: '44px' }
+
+export function buildMathPresentation(block: MarkdownHtmlBlock): MathPresentation {
+	if (mathWindowWidth.value == 0) updateMathLayout(uni.getWindowInfo().windowWidth)
+	const lines = block.text.split('\n')
+	const visibleWidth = Math.max(160, Math.min(mathWindowWidth.value, 800) - 90)
+	const width = Math.max(1, Math.min(estimateMaxLineTextWidth(lines, 14, 'mono') + 28, visibleWidth))
+	let lineCount = 0
+	for (let i = 0; i < lines.length; i++) {
+		lineCount += Math.max(1, Math.ceil((estimateMaxLineTextWidth([lines[i]] as string[], 14, 'mono') + 28) / width))
+	}
+	let src = block.isComplete ? (block.mathImageSource ?? '') : ''
+	// #ifdef MP-WEIXIN
+	src = ''
+	// #endif
+	return {
+		src: src,
+		width: Math.max(1, Math.ceil(block.mathImageWidth ?? width)),
+		height: Math.max(1, Math.ceil(block.mathImageHeight ?? Math.max(44, lines.length * 22))),
+		sourceWidth: width.toString() + 'px',
+		sourceHeight: Math.max(44, lineCount * 22).toString() + 'px'
+	} as MathPresentation
+}
+
+const pending = new Map<string, string>()
+
+export function prepareMathPresentation(msg: MsgItem, theme: string, currentTheme: () => string, save: (msg: MsgItem) => void) {
+	// #ifndef MP-WEIXIN
+	const json = msg.markdownBlocks ?? ''
+	if (json.length == 0) return
+	let blocks: MarkdownHtmlBlock[]
+	try { blocks = JSON.parse<MarkdownHtmlBlock[]>(json) as MarkdownHtmlBlock[] } catch (_) { return }
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		if (block.kind != 'math' || !block.isComplete || block.text.trim().length == 0) continue
+		if ((block.mathImageSource ?? '').length > 0 && block.mathRenderTheme == theme) continue
+		const identity = msg._id + ':' + block.key
+		const request = theme + '\n' + block.text
+		if (pending.get(identity) == request) continue
+		pending.set(identity, request)
+		renderMathSvgForTheme(block.text.trim(), theme, (result: ThemedSvgResult) => {
+			if (pending.get(identity) != request) return
+			pending.delete(identity)
+			if (currentTheme() != theme || result.imageSource.length == 0) return
+			const latestJson = msg.markdownBlocks ?? ''
+			try {
+				const latest = JSON.parse<MarkdownHtmlBlock[]>(latestJson) as MarkdownHtmlBlock[]
+				for (let i = 0; i < latest.length; i++) {
+					const target = latest[i]
+					if (target.key != block.key || target.kind != 'math' || !target.isComplete || target.text != block.text) continue
+					if (target.mathImageSource == result.imageSource && target.mathRenderTheme == theme) return
+					target.mathImageSource = result.imageSource
+					target.mathImageWidth = result.width
+					target.mathImageHeight = result.height
+					target.mathRenderTheme = theme
+					msg.markdownBlocks = JSON.stringify(latest) ?? latestJson
+					save(msg)
+					return
+				}
+			} catch (_) { return }
+		})
+	}
+	// #endif
+}

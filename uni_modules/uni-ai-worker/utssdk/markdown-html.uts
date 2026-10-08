@@ -75,6 +75,10 @@ export type MarkdownHtmlBlock = {
 	codeRichHtml?: string
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
+	mathImageSource?: string
+	mathImageWidth?: number
+	mathImageHeight?: number
+	mathRenderTheme?: string
 }
 
 export type MarkdownTableColors = {

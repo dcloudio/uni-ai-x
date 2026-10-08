@@ -9,6 +9,7 @@ import {
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { buildCodeRichHtml } from './code-presentation.uts'
 import { TablePresentation, prepareTablePresentation } from './table-presentation.uts'
+import { MathPresentation, buildMathPresentation } from './math-presentation.uts'
 
 export type MarkdownTextSpan = {
 	text: string
@@ -38,6 +39,7 @@ export type MarkdownTextRenderBlock = {
 	mermaidRenderTheme?: string
 	codeHeight?: string
 	table?: TablePresentation
+	math?: MathPresentation
 }
 
 function emptyAstNodes(): MarkdownAstNode[] {
@@ -586,7 +588,9 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[], them
 			result.push(prepared)
 			continue
 		}
-		result.push(legacyHtmlBlockToText(block))
+		const prepared = legacyHtmlBlockToText(block)
+		if (block.kind == 'math') prepared.math = buildMathPresentation(block)
+		result.push(prepared)
 	}
 	return result
 }
