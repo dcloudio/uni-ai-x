@@ -114,6 +114,7 @@
 	})
 
 	type MarkdownBlockCache = {
+		theme: string
 		html: string
 		blocksJson: string
 		complete: boolean
@@ -157,14 +158,14 @@
 		const blocksJson = msg.markdownBlocks ?? ''
 		const complete = msg.rendered
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.html == html && cached.blocksJson == blocksJson && cached.complete == complete) {
+		if (cached != null && cached.theme == uiTheme.value && cached.html == html && cached.blocksJson == blocksJson && cached.complete == complete) {
 			return cached.blocks
 		}
 		let blocks = [] as MarkdownTextRenderBlock[]
 		if (blocksJson.length > 0) {
 			try {
 				const workerBlocks = JSON.parse<MarkdownHtmlBlock[]>(blocksJson) as MarkdownHtmlBlock[]
-				blocks = markdownHtmlBlocksToTextBlocks(workerBlocks)
+				blocks = markdownHtmlBlocksToTextBlocks(workerBlocks, uiTheme.value)
 			} catch (_error) {
 				console.error('[uni-ai-x] Worker markdown blocks parse failed.')
 			}
@@ -172,6 +173,7 @@
 			console.error('[uni-ai-x] Worker did not return markdown blocks.')
 		}
 		markdownBlockCache.set(msg._id, {
+			theme: uiTheme.value,
 			html: html,
 			blocksJson: blocksJson,
 			complete: complete,

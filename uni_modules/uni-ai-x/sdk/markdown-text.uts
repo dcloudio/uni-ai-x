@@ -8,6 +8,7 @@ import {
 } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { buildCodeRichHtml } from './code-presentation.uts'
+import { TablePresentation, prepareTablePresentation } from './table-presentation.uts'
 
 export type MarkdownTextSpan = {
 	text: string
@@ -36,6 +37,7 @@ export type MarkdownTextRenderBlock = {
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
 	codeHeight?: string
+	table?: TablePresentation
 }
 
 function emptyAstNodes(): MarkdownAstNode[] {
@@ -566,7 +568,7 @@ export function markdownRenderBlocksToTextBlocks(blocks: MarkdownRenderBlock[],
 	return result
 }
 
-export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[]): MarkdownTextRenderBlock[] {
+export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[], theme: string = 'light'): MarkdownTextRenderBlock[] {
 	const result = [] as MarkdownTextRenderBlock[]
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
@@ -574,6 +576,7 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[]): Mar
 			const prepared = createSpecialBlock(block.kind, block.key, block.html, block.text,
 				block.language, block.isComplete, block.columnWidths, block.rowTextWidths, block.codeTokens ?? emptyCodeTokens(),
 				block.codeRichHtml ?? null, block.mermaidImageSource ?? null, block.mermaidRenderTheme ?? null)
+			if (block.kind == 'table') prepared.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
 			if (block.kind == 'code') {
 				prepared.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'
 				if (block.isComplete && (prepared.codeRichHtml ?? '').length == 0) {
