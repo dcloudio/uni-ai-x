@@ -8,7 +8,8 @@ import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 import { prepareMermaidPresentation } from './mermaid-presentation.uts'
 import { prepareCodePresentation } from './code-presentation.uts'
-import { prepareMathPresentation } from './math-presentation.uts'
+import { prepareMathPresentation, mathWindowWidth } from './math-presentation.uts'
+import { refreshMessagePresentation, forgetMessagePresentation } from './message-presentation.uts'
 import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
@@ -287,6 +288,7 @@ class UniAi {
 		}
 		if (!this.storageManager.appendChatMessages(chat.id, appendedMessages)) return '写入 Storage 失败'
 		chat.msgList.push(...appendedMessages)
+		chat.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 		chat.update_time = Date.now()
 		this.saveChatList2Storage()
 		return ''
@@ -324,6 +326,7 @@ class UniAi {
 		}
 		if (!this.storageManager.appendChatMessages(chat.id, copiedMessages)) return '写入 Storage 失败'
 		chat.msgList.push(...copiedMessages)
+		chat.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 		chat.update_time = Date.now()
 		this.saveChatList2Storage()
 		return ''
@@ -418,6 +421,7 @@ class UniAi {
 		}
 			nextTick(() => {
 			const index = uniAi.chat.datas.findIndex((item) => item.id == chatId)
+			uniAi.chat.datas[index].msgList.forEach((msg: MsgItem) => { forgetMessagePresentation(msg._id) })
 			uniAi.chat.datas.splice(index, 1)
 			const loadedIndex = this.loadedChatIds.indexOf(chatId)
 			if (loadedIndex >= 0) this.loadedChatIds.splice(loadedIndex, 1)
@@ -426,6 +430,9 @@ class UniAi {
 	}
 
 	deleteAllChats(): void {
+		this.chat.datas.forEach((chat: ChatItem) => {
+			chat.msgList.forEach((msg: MsgItem) => { forgetMessagePresentation(msg._id) })
+		})
 		const chatIds = this.chat.datas.map((item: ChatItem): string => item.id)
 		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChat(chatIds[index])
 		this.chat.datas.splice(0, this.chat.datas.length)
@@ -450,6 +457,7 @@ class UniAi {
 			(item: MsgItem) => { this.updateMsg2Storage(item) })
 		prepareMermaidPresentation(msg, uiTheme.value, (): string => uiTheme.value,
 			(item: MsgItem) => { this.updateMsg2Storage(item) })
+		refreshMessagePresentation(msg, uiTheme.value)
 	}
 
 	private loadChatMessages(chatId: string) {
@@ -479,6 +487,9 @@ class UniAi {
 		this.watchSetting()
 		watch(uiTheme, () => {
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
+		})
+		watch(mathWindowWidth, () => {
+			this.currentChat?.msgList.forEach((msg: MsgItem) => { refreshMessagePresentation(msg, uiTheme.value) })
 		})
 	}
 	private buildDefaultLlm(): Llm {
@@ -570,6 +581,7 @@ class UniAi {
 		}
 	}
 	updateMsg2Storage(msg: MsgItem) {
+		refreshMessagePresentation(msg, uiTheme.value)
 		this.clearPendingMsgSave()
 		this.sM2STimer = setTimeout(() => {
 			this.sM2STimer = 0
@@ -668,6 +680,7 @@ class UniAi {
 			rendered: false
 		} as MsgItem
 		msgList.push(newMsg)
+		this.prepareMessagePresentation(msgList[msgList.length - 1])
 		this.storageManager.addMessage(newMsg)
 		if (msg.from_uid != 'uni-ai') {
 			// 仅首次提问时用问题前缀作为临时标题，避免后续消息覆盖已生成的总结标题
@@ -687,6 +700,7 @@ class UniAi {
 		const msgList = this.currentChat!.msgList
 		const index = msgList.findIndex((item) => item._id == msgId)
 		if (index != -1) {
+			forgetMessagePresentation(msgId)
 			msgList.splice(index, 1)
 			this.storageManager.removeMessages(this.currentChat!.id, [msgId] as string[])
 		} else {
@@ -725,6 +739,7 @@ class UniAi {
 		const removedIds = [] as string[]
 		for (let i = index; i < msgList.length; i++) {
 			removedIds.push(msgList[i]._id)
+			forgetMessagePresentation(msgList[i]._id)
 		}
 		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
 		this.clearPendingMsgSave()

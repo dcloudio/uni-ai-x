@@ -42,11 +42,8 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
-	import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
-	import {
-		markdownHtmlBlocksToTextBlocks,
-		MarkdownTextRenderBlock
-	} from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+	import { readMessagePresentation } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -56,7 +53,6 @@
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 	import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
-	import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -80,7 +76,6 @@
 	const scrollWithAnimation = ref<boolean>(false)
 	const scrollTouch = ref<boolean>(false)
 	const scrolling = ref<boolean>(false)
-	const markdownBlockCache = new Map<string, MarkdownBlockCache>()
 	let autoToLastMsg = false
 	let scrollingT = 0
 	let scrollBottomCheckTimer = 0
@@ -114,15 +109,6 @@
 		return uniAi.currentChat?.msgList ?? []
 	})
 
-	type MarkdownBlockCache = {
-		layoutWidth: number
-		theme: string
-		html: string
-		blocksJson: string
-		complete: boolean
-		blocks: MarkdownTextRenderBlock[]
-	}
-
 	type ChatRenderItem = {
 		key: string
 		id: string
@@ -154,36 +140,6 @@
 	const RENDER_ITEM_TYPE_AI_EMPTY = 30
 	const RENDER_ITEM_TYPE_AI_TOOLBAR = 31
 	const RENDER_ITEM_FIRST_OFFSET = 100
-
-	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
-		const html = msg.markdownHtml ?? ''
-		const blocksJson = msg.markdownBlocks ?? ''
-		const complete = msg.rendered
-		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.layoutWidth == mathWindowWidth.value && cached.theme == uiTheme.value && cached.html == html && cached.blocksJson == blocksJson && cached.complete == complete) {
-			return cached.blocks
-		}
-		let blocks = [] as MarkdownTextRenderBlock[]
-		if (blocksJson.length > 0) {
-			try {
-				const workerBlocks = JSON.parse<MarkdownHtmlBlock[]>(blocksJson) as MarkdownHtmlBlock[]
-				blocks = markdownHtmlBlocksToTextBlocks(workerBlocks, uiTheme.value)
-			} catch (_error) {
-				console.error('[uni-ai-x] Worker markdown blocks parse failed.')
-			}
-		} else if (html.length > 0) {
-			console.error('[uni-ai-x] Worker did not return markdown blocks.')
-		}
-		markdownBlockCache.set(msg._id, {
-			layoutWidth: mathWindowWidth.value,
-			theme: uiTheme.value,
-			html: html,
-			blocksJson: blocksJson,
-			complete: complete,
-			blocks: blocks
-		} as MarkdownBlockCache)
-		return blocks
-	}
 
 	function markdownBlockItemType(block: MarkdownTextRenderBlock): number {
 		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
@@ -290,7 +246,7 @@
 				const markdownHtml = msg.markdownHtml ?? ''
 				const markdownBlocks = msg.markdownBlocks ?? ''
 				if (markdownBlocks.length > 0 || markdownHtml.length > 0) {
-					const blocks = getMarkdownBlocks(msg)
+					const blocks = readMessagePresentation(msg._id)
 					if (blocks.length > 0) {
 						for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
 							const block = blocks[blockIndex]
@@ -408,7 +364,6 @@
 	}
 	
 	watch(chatActiveId, () => {
-		markdownBlockCache.clear()
 		autoToLastMsg = false
 		scrollWithAnimation.value = false
 		scrollTop.value = 0
@@ -421,18 +376,10 @@
 		})
 	}, { deep: true, immediate: true })
 
-	// 消息被删除（如编辑重发）后，清理对应消息的 Markdown 缓存
 	watch((): number => msgList.value.length, () => {
 		if (msgList.value.length == 0) {
 			resetScrollStateForEmptyChat()
 		}
-		const activeMsgIds = [] as string[]
-		for (let i = 0; i < msgList.value.length; i++) {
-			activeMsgIds.push(msgList.value[i]._id)
-		}
-		markdownBlockCache.forEach((_cache: MarkdownBlockCache, msgId: string) => {
-			if (activeMsgIds.indexOf(msgId) == -1) markdownBlockCache.delete(msgId)
-		})
 	})
 	
 	const lockAutoToLastMsg = () => {

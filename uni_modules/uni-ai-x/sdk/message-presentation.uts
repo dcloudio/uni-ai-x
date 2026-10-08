@@ -1,0 +1,70 @@
+import { shallowRef } from 'vue'
+import { MsgItem } from '../types.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { MarkdownTextRenderBlock, markdownHtmlBlocksToTextBlocks } from './markdown-text.uts'
+import { mathWindowWidth } from './math-presentation.uts'
+
+class MessagePresentation {
+	json = ''
+	theme = ''
+	width = 0
+	sources = new Map<string, string>()
+	byKey = new Map<string, MarkdownTextRenderBlock>()
+	blocks = shallowRef<MarkdownTextRenderBlock[]>([] as MarkdownTextRenderBlock[])
+}
+
+const messages = new Map<string, MessagePresentation>()
+
+function entry(messageId: string): MessagePresentation {
+	const cached = messages.get(messageId)
+	if (cached != null) return cached
+	const created = new MessagePresentation()
+	messages.set(messageId, created)
+	return created
+}
+
+// Views subscribe to a shallow snapshot. Reading it never parses or prepares content.
+export function readMessagePresentation(messageId: string): MarkdownTextRenderBlock[] {
+	return entry(messageId).blocks.value
+}
+
+export function forgetMessagePresentation(messageId: string) {
+	messages.delete(messageId)
+}
+
+export function refreshMessagePresentation(msg: MsgItem, theme: string) {
+	const cache = entry(msg._id)
+	const json = msg.markdownBlocks ?? ''
+	if (cache.json == json && cache.theme == theme && cache.width == mathWindowWidth.value) return
+	let source = [] as MarkdownHtmlBlock[]
+	try {
+		if (json.length > 0) source = JSON.parse<MarkdownHtmlBlock[]>(json) as MarkdownHtmlBlock[]
+	} catch (_) { return }
+	const next = [] as MarkdownTextRenderBlock[]
+	const sources = new Map<string, string>()
+	const byKey = new Map<string, MarkdownTextRenderBlock>()
+	for (let i = 0; i < source.length; i++) {
+		const block = source[i]
+		const key = block.kind + ':' + block.key
+		const signature = JSON.stringify(block) ?? ''
+		const previous = cache.byKey.get(key)
+		const sameLayout = block.kind != 'math' || cache.width == mathWindowWidth.value
+		const sameTheme = block.kind != 'table' || cache.theme == theme
+		const prepared = previous != null && signature == cache.sources.get(key) && sameLayout && sameTheme
+			? previous : markdownHtmlBlocksToTextBlocks([block] as MarkdownHtmlBlock[], theme)[0]
+		next.push(prepared)
+		sources.set(key, signature)
+		byKey.set(key, prepared)
+	}
+	const previousBlocks = cache.blocks.value
+	let changed = previousBlocks.length != next.length
+	if (!changed) for (let i = 0; i < next.length; i++) {
+		if (previousBlocks[i] != next[i]) { changed = true; break }
+	}
+	cache.json = json
+	cache.theme = theme
+	cache.width = mathWindowWidth.value
+	cache.sources = sources
+	cache.byKey = byKey
+	if (changed) cache.blocks.value = next
+}
