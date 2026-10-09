@@ -91,3 +91,16 @@ test('fence indentation is removed consistently with native code output', () => 
   assert.match(content(tail.feed('  value',null)), />value<\/code>/);
   assert.match(content(tail.feed('\n  next',event('value\n'))), />value\nnext<\/code>/);
 });
+
+test('indented code uses the generic preview when there is no confirmed fence', () => {
+  const tail = new LibmarkCodeTail();
+  tail.feed('    first\n', event('first\n', 2, ''));
+  assert.equal(content(tail.feed('    second', null)), '    second');
+  assert.equal(tail.feed('\n', event('first\nsecond\n', 2, '')).ops.at(-1).content, '');
+});
+
+test('the opposite fence character is literal code, not a pending closing fence', () => {
+  const tail = new LibmarkCodeTail();
+  tail.feed('```js\n', event());
+  assert.match(content(tail.feed('~', null)), />~<\/code>/);
+});

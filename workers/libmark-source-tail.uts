@@ -64,7 +64,7 @@ export class LibmarkSourceTail {
 			const op = ops[i]
 			this.tail = null
 			this.previewVisible = false
-			if (op.op == 2 && op.kind == 'html' && /^<pre><code(?:\s[^>]*)?>/.test(op.content)
+			if (this.fence.length > 0 && op.op == 2 && op.kind == 'html' && /^<pre><code(?:\s[^>]*)?>/.test(op.content)
 				&& op.content.indexOf('</code>') >= 0) {
 				this.tail = op
 			}
@@ -100,7 +100,7 @@ export class LibmarkSourceTail {
 			removed += 1
 		}
 		// A partial closing fence must not flash as source while its delimiter arrives.
-		const possibleFence = /^ {0,3}(`+|~+)\s*$/.test(line)
+		const possibleFence = line.trim().startsWith(this.fence.charAt(0)) && /^ {0,3}(`+|~+)\s*$/.test(line)
 		if (line.length == 0 || possibleFence) {
 			if (this.previewVisible) ops.push(tail)
 			this.previewVisible = false
