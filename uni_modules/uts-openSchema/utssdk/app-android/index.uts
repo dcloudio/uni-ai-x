@@ -3,7 +3,8 @@ import Uri from 'android.net.Uri'
 import { OpenSchema, CanOpenURL } from '../interface.uts'
 
 export const openSchema : OpenSchema = function (url : string) {
-  if (canOpenURL(url)) {
+  // HTTP links can be launched even when package visibility hides their handlers.
+  if (/^https?:\/\//i.test(url) || canOpenURL(url)) {
     const context = UTSAndroid.getUniActivity()!
     const uri = Uri.parse(url)
     const intent = new Intent(Intent.ACTION_VIEW, uri)
@@ -12,6 +13,7 @@ export const openSchema : OpenSchema = function (url : string) {
     context.startActivity(intent)
   } else {
     console.error('[uts-openSchema] url param Error：', JSON.stringify(url))
+    throw new Error('无法打开此链接')
   }
 }
 

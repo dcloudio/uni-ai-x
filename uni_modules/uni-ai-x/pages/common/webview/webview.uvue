@@ -23,12 +23,17 @@
 
 	const url = ref<string>("")
 	const title = ref<string>("")
+	function browserFallback() {
+		uni.showModal({ title: '未能切换到浏览器', content: '请检查系统是否允许打开外部应用，或复制链接到浏览器打开。', confirmText: '复制链接',
+			success: (res) => { if (res.confirm) uni.setClipboardData({ data: url.value }) } })
+	}
 	
 	onLoad((param) => {
 		const rawUrlParam = param["url"] as string;
-		const urlParam = decodeURIComponent(rawUrlParam) ?? rawUrlParam;
+		let urlParam = rawUrlParam ?? '';
+		try { urlParam = decodeURIComponent(urlParam) ?? urlParam } catch (_) { }
 		title.value = (param["title"] ?? urlParam) as string;
-		if (urlParam.substring(0, 4) != 'http') {
+		if (!/^https?:\/\/[^\s/]+/i.test(urlParam)) {
 			uni.showModal({
 				title: "错误",
 				content: '不是一个有效的网站链接,' + '"' + urlParam + '"',
@@ -60,13 +65,15 @@
 
 	const openInExternalBrowser = () => {
 		if (url.value.length == 0) return
-		console.log('[webview] open external browser:', url.value)
-		uni.showToast({ title: '正在打开浏览器', icon: 'none', duration: 800 })
 		// #ifdef APP
-		openSchema(url.value)
+		try {
+			openSchema(url.value)
+		} catch (_) {
+			browserFallback()
+		}
 		// #endif
 		// #ifdef WEB
-		window.open(url.value, '_blank')
+		if (window.open(url.value, '_blank') == null) browserFallback()
 		// #endif
 	}
 
