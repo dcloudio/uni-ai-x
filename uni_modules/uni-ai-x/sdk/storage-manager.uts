@@ -5,18 +5,13 @@ type T_STORAGE_KEYS = {
 	CHAT_LIST: string
 	CHAT_MSG_IDS_PREFIX: string
 	MSG_CONTENT_PREFIX: string
-	STORAGE_VERSION: string
 }
 
 const STORAGE_KEYS: T_STORAGE_KEYS = {
 	CHAT_LIST: 'uni-ai-chatList',
 	CHAT_MSG_IDS_PREFIX: 'uni-ai-chat-',
-	MSG_CONTENT_PREFIX: 'uni-ai-msg-',
-	STORAGE_VERSION: 'uni-ai-storage-version'
+	MSG_CONTENT_PREFIX: 'uni-ai-msg-'
 }
-
-// 当前数据版本：2 起鸿蒙/Android 不再持久化 markdownAst/markdownHtml（渲染数据由 body 重建）
-const CURRENT_STORAGE_VERSION = '2'
 
 function migrateLegacyMessage(message: MsgItem): MsgItem {
 	if (message.search?.status == 'searching') message.search!.status = 'cancelled'
@@ -274,7 +269,7 @@ export class StorageManager {
 			const msg = this.getMessage(msgId)
 			if (msg != null) {
 				// #ifdef APP-HARMONY || APP-ANDROID
-				// 版本 2 起渲染数据不落 storage：清掉历史遗留的 AST/HTML 字段（内存立即生效），
+				// 原生渲染数据不落 storage：清掉历史遗留的 AST/HTML 字段（内存立即生效），
 				// 保留 body 即可在渲染时重建
 				msg.libmarkRevision = 0
 				if (msg.from_uid == 'uni-ai' && msg.body.length > 0) msg.rendered = true
@@ -295,7 +290,7 @@ export class StorageManager {
 
 	// #ifdef APP-HARMONY || APP-ANDROID
 	/**
-	 * 把需要重写的消息加入后台队列：分批重写，全部完成后写入当前数据版本号。
+	 * 把需要清理旧渲染字段的消息加入后台队列，分批重写。
 	 * 清掉旧字段可降低 preferences 整文件刷盘成本。
 	 */
 	private queueLegacyRewrite(msgId: string): void {
@@ -324,23 +319,6 @@ export class StorageManager {
 				this.runLegacyRewrite()
 			}, 200)
 			return
-		}
-		this.setStorageVersion(CURRENT_STORAGE_VERSION)
-	}
-
-	getStorageVersion(): string {
-		try {
-			const value = uni.getStorageSync(STORAGE_KEYS.STORAGE_VERSION) as string
-			return value == null ? '' : value as string
-		} catch (_error) {
-			return ''
-		}
-	}
-
-	setStorageVersion(version: string): void {
-		try {
-			uni.setStorageSync(STORAGE_KEYS.STORAGE_VERSION, version)
-		} catch (_error) {
 		}
 	}
 	// #endif
