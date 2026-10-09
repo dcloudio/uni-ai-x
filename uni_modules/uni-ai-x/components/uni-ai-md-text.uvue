@@ -7,7 +7,9 @@
 
 <script lang="uts" setup>
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
-	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
+	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
+	const emit = defineEmits<{ 'citation': [id: number] }>()
 
 	const props = defineProps<{
 		block: MarkdownTextRenderBlock
@@ -20,30 +22,9 @@
 	})
 
 	function openLink(href: string) {
-		if (href.length == 0) return
-		// #ifdef WEB
-			window.open(href, '_blank')
-		// #endif
-		// #ifdef APP
-		uni.navigateTo({
-			url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + encodeURIComponent(href),
-			fail: (error) => {
-				console.error(error)
-			}
-		})
-		// #endif
-		// #ifdef MP
-		uni.setClipboardData({
-			data: href,
-			showToast: false,
-			success: () => {
-				utils.showCopySuccessToast()
-			},
-			fail: () => {
-				utils.showCopyFailureToast()
-			}
-		})
-		// #endif
+		const id = citationNumber(href)
+		if (id > 0) emit('citation', id)
+		else openWebLink(href)
 	}
 
 	function onItemClick(e: UniRichTextItemClickEvent) {

@@ -82,6 +82,22 @@ export type Chunk = {
 }
 
 // 消息
+export type SearchSource = {
+	id: number
+	title: string
+	url: string
+	content: string
+	source: string
+	date: string
+}
+
+export type MessageSearch = {
+	status: string
+	query: string
+	sources: SearchSource[]
+	error: string
+}
+
 export type MsgItem = {
 	_id: string
 	body: string
@@ -96,6 +112,7 @@ export type MsgItem = {
 	chat_id: string,
 	markdownHtml?: string
 	markdownBlocks?: string
+	search?: MessageSearch
 	stressSvgSource?: string
 	stressSvgWidth?: number
 	stressSvgHeight?: number

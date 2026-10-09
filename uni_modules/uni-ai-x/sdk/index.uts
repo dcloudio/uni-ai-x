@@ -798,6 +798,7 @@ class UniAi {
 		return this.answerQuestion(aiMsgItem)
 	}
 	resetMsg(msg: MsgItem) {
+		msg.search = null
 		msg.body = ''
 		msg.rendered = false
 		msg.error_msg = null
@@ -815,6 +816,11 @@ class UniAi {
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
 		const runnerCallbacks: RequestAiRunnerCallbacks = {
+			onSearch: (search) => {
+				aiMsgItem.search = search
+				this.prepareMessagePresentation(aiMsgItem)
+				this.updateMsg2Storage(aiMsgItem)
+			},
 			onMarkdownHtml: (html: string) => {
 				if (this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownHtml = html

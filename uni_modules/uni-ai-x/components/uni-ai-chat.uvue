@@ -16,7 +16,7 @@
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
 						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
-							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent"></uni-ai-x-msg>
+							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent" @source="openSource"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
 					<list-item :style="bottomAnchorStyle" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
@@ -53,6 +53,9 @@
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 	import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
+	function openSource(messageId: string, id: number) {
+		emit('source', messageId, id)
+	}
 	
 	type UniAiChatProps = {
 		showMenu?: boolean
@@ -67,6 +70,7 @@
 	const emit = defineEmits<{
 		'change-menu': []
 		'close-menu': []
+		'source': [messageId: string, id: number]
 	}>()
 	
 	const scrollTop = ref<number>(0)
@@ -150,6 +154,8 @@
 	const RENDER_ITEM_TYPE_AI_ERROR = 29
 	const RENDER_ITEM_TYPE_AI_EMPTY = 30
 	const RENDER_ITEM_TYPE_AI_TOOLBAR = 31
+	const RENDER_ITEM_TYPE_AI_SEARCH = 32
+	const RENDER_ITEM_TYPE_AI_SOURCES = 33
 	const RENDER_ITEM_FIRST_OFFSET = 100
 
 	function markdownBlockItemType(block: MarkdownTextRenderBlock): number {
@@ -230,6 +236,7 @@
 			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()
 				+ ':' + ((msg.thinkContent ?? '').length > 0).toString() + ':' + (msg.body.length > 0).toString()
 				+ ':' + ((msg.stressSvgSource ?? '').length > 0).toString() + ':' + hasMarkdown.toString()
+				+ ':' + (msg.search?.status ?? '') + ':' + (msg.search?.sources.length ?? 0).toString() + ':' + msg.rendered.toString()
 			const cached = messageRowCache.get(msg._id)
 			if (cached != null && cached.msg == msg && cached.blocks == blocks && cached.structure == structure) {
 				items.push(...cached.rows)
@@ -271,6 +278,10 @@
 					[aiRenderPart(block.kind, blockKey, block)] as AiMsgRenderPart[])
 				hasAiSegment = true
 			}
+			if (msg.search != null) {
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SEARCH, true, 'search', [aiRenderPart('search', 'search')])
+				hasAiSegment = true
+			}
 			const stressSvgSource = msg.stressSvgSource ?? ''
 			if (stressSvgSource.length > 0) {
 				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SVG, !hasAiSegment, 'stress-svg',
@@ -298,11 +309,14 @@
 					}
 				} else if (msg.body.length > 0) {
 					appendNormalPart(aiRenderPart('plain', 'plain'))
-				} else if (!hasAiSegment) {
+				} else if (stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && msg.search?.status != 'searching') {
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
 			}
 			if (normalParts.length > 0) flushNormalParts()
+			if (msg.rendered && (msg.search?.sources.length ?? 0) > 0) {
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SOURCES, false, 'sources', [aiRenderPart('sources', 'sources')])
+			}
 			if (hasAiSegment) {
 				// 工具栏独立成消息后的列表项，避免被富文本块的原生布局挤到顶部。
 				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_TOOLBAR, false, 'toolbar',

@@ -1,0 +1,52 @@
+<template>
+	<view class="source-overlay uni-theme-root">
+		<view class="source-mask" @click="emit('close')"></view>
+		<view class="source-sheet">
+			<view class="sheet-header">
+				<text class="sheet-title">{{selectedId > 0 ? '引用来源' : '搜索来源'}}</text>
+				<view class="sheet-close" @click="emit('close')"><uni-icons type="closeempty" size="23" color="#888" /></view>
+			</view>
+			<scroll-view class="sheet-scroll" direction="vertical">
+				<view v-for="source in visibleSources" :key="source.id" class="sheet-source">
+					<text class="sheet-source-title">[{{source.id}}] {{source.title}}</text>
+					<text class="sheet-url" :user-select="true">{{source.url}}</text>
+					<text v-if="source.source.length > 0 || source.date.length > 0" class="sheet-meta">{{source.source}} {{source.date}}</text>
+					<text class="sheet-summary" :user-select="true">{{source.content.length > 0 ? source.content : '暂无摘要'}}</text>
+					<view class="sheet-actions">
+						<view class="sheet-action" @click="openWebLink(source.url)"><uni-icons type="link" size="17" color="#6283a9" /><text class="sheet-action-label">打开原文</text></view>
+						<view class="sheet-action" @click="copyLink(source.url)"><uni-icons type="paperclip" size="17" color="#6283a9" /><text class="sheet-action-label">复制链接</text></view>
+					</view>
+				</view>
+			</scroll-view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
+	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
+	const props = defineProps<{ sources: SearchSource[], selectedId: number }>()
+	const emit = defineEmits<{ 'close': [] }>()
+	const visibleSources = computed<SearchSource[]>(() => props.selectedId > 0
+		? props.sources.filter((source: SearchSource): boolean => source.id == props.selectedId) : props.sources)
+	function copyLink(url: string) { uni.setClipboardData({ data: url }) }
+</script>
+
+<style lang="scss">
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+	.source-overlay { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 110; justify-content: flex-end; }
+	.source-mask { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.35); }
+	.source-sheet { height: 65%; width: 100%; max-width: 720px; align-self: center; background-color: var(--bg-primary); border-top-left-radius: 8px; border-top-right-radius: 8px; padding-bottom: env(safe-area-inset-bottom); }
+	.sheet-header { height: 52px; flex-direction: row; align-items: center; padding-left: 20px; padding-right: 8px; }
+	.sheet-title { flex: 1; font-size: 17px; font-weight: bold; color: var(--text-primary); }
+	.sheet-close { width: 44px; height: 44px; justify-content: center; align-items: center; }
+	.sheet-scroll { flex: 1; min-height: 0; }
+	.sheet-source { padding: 16px 20px; border-top: 1px solid var(--border-primary); }
+	.sheet-source-title { font-size: 16px; line-height: 24px; font-weight: bold; color: var(--text-primary); }
+	.sheet-url { font-size: 12px; line-height: 18px; color: #6283a9; margin-top: 6px; word-break: break-all; }
+	.sheet-meta { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; }
+	.sheet-summary { font-size: 14px; line-height: 23px; color: var(--text-secondary); margin-top: 12px; }
+	.sheet-actions { flex-direction: row; margin-top: 12px; }
+	.sheet-action { flex-direction: row; align-items: center; min-height: 44px; margin-right: 24px; }
+	.sheet-action-label { font-size: 14px; color: #6283a9; margin-left: 6px; }
+</style>

@@ -1,10 +1,11 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
-import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts';
+import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, MessageSearch, SearchSource } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 import {
 	lastUserQuestionText,
 	webSearch,
+	normalizeSearchSources,
 	buildWebSearchContext,
 	injectWebSearchContext
 } from '@/uni_modules/uni-ai-x/sdk/web-search.uts'
@@ -21,6 +22,7 @@ import {
 // #endif
 
 export type RequestAiRunnerCallbacks = {
+	onSearch?: (search: MessageSearch) => void,
 	onMarkdownHtml: (html: string) => void,
 	onMarkdownBlocks: (blocks: string) => void,
 	onThinkContent: (thinkContent: string) => void,
@@ -90,6 +92,9 @@ function readSnapshotBoolean(snapshot: UTSJSONObject, key: string, defaultValue:
 }
 
 class RequestAiRunner {
+	private searchTask: RequestTask | null = null
+	private searchVersion = 0
+	private activeSearch: MessageSearch | null = null
 	requestTask : RequestTask | null = null
 	msgBody : string = ''
 	thinkContent : string = ''
@@ -248,24 +253,36 @@ class RequestAiRunner {
 	// 开启联网搜索时：先请求全网搜索，把结果注入到最后一条用户消息，再发起 AI 请求；
 	// 搜索失败时降级为直接请求，不阻塞正常对话。
 	private async searchThenRequestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		const version = ++this.searchVersion
+		const startedAt = Date.now()
 		const providerConfig = llmModelMap.get(llm.provider)
 		const searchURL = providerConfig?.webSearchURL ?? ''
 		const query = lastUserQuestionText(messages)
 		let requestMessages = messages
+		this.activeSearch = { status: 'searching', query: query, sources: [] as SearchSource[], error: '' } as MessageSearch
+		this.callbacks?.onSearch?.(this.activeSearch!)
 		if (searchURL.length > 0 && query.length > 0) {
 			try {
 				const token = await providerConfig!.getToken?.()!
-				const results = await webSearch(query, token, searchURL)
+				if (this.userAbort || version != this.searchVersion) return
+				const rawResults = await webSearch(query, token, searchURL, 8, (task: RequestTask) => { this.searchTask = task })
+				if (this.userAbort || version != this.searchVersion) return
+				const results = normalizeSearchSources(rawResults)
+				this.activeSearch = { status: results.length > 0 ? 'complete' : 'empty', query: query, sources: results, error: '' } as MessageSearch
+				this.callbacks?.onSearch?.(this.activeSearch!)
 				requestMessages = injectWebSearchContext(messages, buildWebSearchContext(results))
 			} catch (error) {
-				console.error('[uni-ai-x][web-search] 联网搜索失败，将直接回答', error)
-				uni.showToast({
-					title: '联网搜索失败，将直接回答',
-					icon: 'none'
-				})
+				if (this.userAbort || version != this.searchVersion) return
+				this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '联网搜索失败，将直接回答' } as MessageSearch
+				this.callbacks?.onSearch?.(this.activeSearch!)
 			}
+		} else {
+			this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '当前模型未配置搜索，将直接回答' } as MessageSearch
+			this.callbacks?.onSearch?.(this.activeSearch!)
 		}
-		if (this.userAbort) return
+		this.searchTask = null
+		if (this.userAbort || version != this.searchVersion) return
+		console.log('[uni-ai-x][search-timing]', this.activeSearch?.status, Date.now() - startedAt)
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
@@ -685,6 +702,12 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
+		this.searchVersion += 1
+		this.searchTask?.abort()
+		this.searchTask = null
+		if (this.activeSearch?.status == 'searching') {
+			this.callbacks?.onSearch?.({ status: 'cancelled', query: this.activeSearch!.query, sources: [] as SearchSource[], error: '' } as MessageSearch)
+		}
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
 		this.clearPendingTitleUpdate()

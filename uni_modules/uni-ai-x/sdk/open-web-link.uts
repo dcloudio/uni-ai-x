@@ -1,0 +1,20 @@
+import utils from './utils.uts'
+
+export function openWebLink(href: string) {
+	if (!/^https?:\/\/[^\s/]+/i.test(href)) {
+		uni.showToast({ title: '不是有效的网页链接', icon: 'none' })
+		return
+	}
+	// #ifdef WEB
+	const opened = window.open(href, '_blank')
+	if (opened == null) uni.showToast({ title: '浏览器阻止了新窗口，请允许弹出窗口', icon: 'none' })
+	// #endif
+	// #ifdef APP
+	uni.navigateTo({ url: '/uni_modules/uni-ai-x/pages/common/webview/webview?url=' + encodeURIComponent(href),
+		fail: () => { uni.showToast({ title: '打开网页失败', icon: 'none' }) } })
+	// #endif
+	// #ifdef MP
+	uni.setClipboardData({ data: href, showToast: false,
+		success: () => { utils.showCopySuccessToast() }, fail: () => { utils.showCopyFailureToast() } })
+	// #endif
+}

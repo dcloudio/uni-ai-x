@@ -1,0 +1,33 @@
+<template>
+	<view v-if="msg.search != null" class="search-status" @click="openSources">
+		<loading v-if="msg.search!.status == 'searching'" class="search-spinner" />
+		<uni-icons v-else type="search" size="16" color="#6283a9" />
+		<text class="search-label">{{label}}</text>
+		<uni-icons v-if="msg.search!.sources.length > 0" type="right" size="14" color="#888" />
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
+	const props = defineProps<{ msg: MsgItem }>()
+	const emit = defineEmits<{ 'open': [id: number] }>()
+	const msg = computed<MsgItem>(() => props.msg)
+	const label = computed<string>(() => {
+		const search = props.msg.search
+		if (search == null) return ''
+		if (search.status == 'searching') return '正在搜索网页'
+		if (search.status == 'cancelled') return '搜索已停止'
+		if (search.status == 'failed') return search.error
+		if (search.status == 'empty') return '未找到相关网页'
+		return '已检索 ' + search.sources.length.toString() + ' 个网页'
+	})
+	function openSources() {
+		if ((props.msg.search?.sources.length ?? 0) > 0) emit('open', 0)
+	}
+</script>
+
+<style>
+	.search-status { flex-direction: row; align-items: center; min-height: 36px; padding: 6px 0; }
+	.search-label { flex: 1; font-size: 13px; line-height: 20px; margin-left: 7px; color: #6283a9; }
+	.search-spinner { width: 16px; height: 16px; }
+</style>

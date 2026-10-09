@@ -14,6 +14,7 @@ const STORAGE_KEYS: T_STORAGE_KEYS = {
 }
 
 function migrateLegacyMessage(message: MsgItem): MsgItem {
+	if (message.search?.status == 'searching') message.search!.status = 'cancelled'
 	const hasMarkdownBlocks = message.markdownBlocks != null && message.markdownBlocks!.length > 0
 	if (!hasMarkdownBlocks && message.rendered == true && message.markdownHtml != null && message.markdownHtml!.length > 0) {
 		message.markdownHtml = ''

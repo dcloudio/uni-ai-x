@@ -1,0 +1,26 @@
+<template>
+	<view v-if="msg.search != null && msg.search!.sources.length > 0" class="search-sources">
+		<text class="sources-title">搜索来源</text>
+		<view v-for="source in msg.search!.sources" :key="source.id" class="source-row" @click="emit('open', source.id)">
+			<text class="source-number">[{{source.id}}]</text>
+			<text class="source-title">{{source.title}}</text>
+			<uni-icons type="right" size="13" color="#888" />
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
+	const props = defineProps<{ msg: MsgItem }>()
+	const msg = computed<MsgItem>(() => props.msg)
+	const emit = defineEmits<{ 'open': [id: number] }>()
+</script>
+
+<style lang="scss">
+	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+	.search-sources { padding-top: 12px; padding-bottom: 8px; }
+	.sources-title { font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px; }
+	.source-row { flex-direction: row; align-items: center; min-height: 36px; padding: 5px 0; }
+	.source-number { width: 28px; font-size: 12px; color: #6283a9; }
+	.source-title { flex: 1; font-size: 13px; line-height: 19px; color: var(--text-secondary); margin-right: 8px; }
+</style>

@@ -4,7 +4,7 @@
 			:class="showMenu ? 'uni-ai-page-showMenu' : ''"
 			:style="{transform: `translateX(${translateX}px)`}">
 			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
-			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu"></uni-ai-chat>
+			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu" @source="openSource"></uni-ai-chat>
 			<fps v-if="showFps" />
 			<!-- #ifndef MP-WEIXIN -->
 			<web-view class="uni-ai-proxy-web" id="proxy-web"
@@ -13,6 +13,7 @@
 			<!-- #endif -->
 		</view>
 		<uni-ai-x-setting ref="uniAiXSettingRef"></uni-ai-x-setting>
+		<uni-ai-source-sheet v-if="sourceMessageId.length > 0" :sources="selectedSources" :selected-id="selectedSourceId" @close="closeSources" />
 	</view>
 </template>
 
@@ -23,6 +24,23 @@
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 	import { initMermaidLayout, updateMermaidLayout } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 	import { updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+	import { MsgItem, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
+	import uniAiSourceSheet from '@/uni_modules/uni-ai-x/components/uni-ai-source-sheet.uvue'
+	const sourceMessageId = ref('')
+	const selectedSourceId = ref(0)
+	const selectedSources = computed<SearchSource[]>(() => {
+		const message = uniAi.currentChat?.msgList.find((item: MsgItem): boolean => item._id == sourceMessageId.value)
+		return message?.search?.sources ?? [] as SearchSource[]
+	})
+	function openSource(messageId: string, id: number) {
+		const message = uniAi.currentChat?.msgList.find((item: MsgItem): boolean => item._id == messageId)
+		if (message?.search == null || message.search!.sources.length == 0) return
+		if (id > 0 && !message.search!.sources.some((source: SearchSource): boolean => source.id == id)) return
+		sourceMessageId.value = messageId
+		selectedSourceId.value = id
+	}
+	function closeSources() { sourceMessageId.value = '' }
+	watch(() => uniAi.currentChat?.id, () => { closeSources() })
 	onResize((event: OnResizeOptions) => {
 		updateMermaidLayout(event.size.windowWidth)
 		updateMathLayout(event.size.windowWidth)
@@ -39,6 +57,13 @@
 	const showMenu = ref<boolean>(false)
 	const showFps: boolean = false
 	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null)
+	onBackPress((): boolean => {
+		if (sourceMessageId.value.length > 0) {
+			closeSources()
+			return true
+		}
+		return false
+	})
 
 	const setMenu = (show: boolean) => {
 		showMenu.value = show
