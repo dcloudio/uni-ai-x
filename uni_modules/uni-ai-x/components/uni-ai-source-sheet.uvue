@@ -3,19 +3,23 @@
 		<view class="source-mask" @click="emit('close')"></view>
 		<view class="source-sheet">
 			<view class="sheet-header">
-				<text class="sheet-title">{{selectedId > 0 ? '引用来源' : '搜索来源'}}</text>
+				<text class="sheet-title">搜索结果</text>
 				<view class="sheet-close" @click="emit('close')"><uni-icons type="closeempty" size="23" color="#888" /></view>
 			</view>
-			<scroll-view class="sheet-scroll" direction="vertical">
-				<view v-for="source in visibleSources" :key="source.id" class="sheet-source">
-					<text class="sheet-source-title">[{{source.id}}] {{source.title}}</text>
-					<text class="sheet-url" :user-select="true" @click="openWebLink(source.url)">{{source.url}}</text>
-					<text v-if="source.source.length > 0 || source.date.length > 0" class="sheet-meta">{{source.source}} {{source.date}}</text>
-					<text class="sheet-summary" :user-select="true">{{source.content.length > 0 ? source.content : '暂无摘要'}}</text>
-					<view class="sheet-actions">
-						<view class="sheet-action" @click="openWebLink(source.url)"><uni-icons type="link" size="17" color="#6283a9" /><text class="sheet-action-label">打开原文</text></view>
-						<view class="sheet-action" @click="copyLink(source.url)"><uni-icons type="paperclip" size="17" color="#6283a9" /><text class="sheet-action-label">复制链接</text></view>
+			<scroll-view class="sheet-scroll" direction="vertical" :scroll-into-view="scrollTarget">
+				<view v-for="source in sources" :key="source.id" :id="'search-result-' + source.id" class="sheet-source" hover-class="sheet-source-pressed" @click="openWebLink(source.url)">
+					<view class="source-meta">
+						<view class="site-icon">
+							<uni-icons type="link" size="18" color="#999" />
+							<image v-if="!failedIcons.includes(source.id)" class="site-image" :src="siteOrigin(source.url) + '/favicon.ico'" mode="aspectFit" @error="iconFailed(source.id)" />
+						</view>
+						<text class="site-name" :max-lines="1">{{source.source.length > 0 ? source.source : siteName(source.url)}}</text>
+						<text v-if="source.date.length > 0" class="source-date" :max-lines="1">{{source.date}}</text>
+						<view class="meta-spacer"></view>
+						<text class="source-number">{{source.id}}</text>
 					</view>
+					<text class="sheet-source-title" :max-lines="2">{{source.title}}</text>
+					<text v-if="source.content.length > 0" class="sheet-summary" :max-lines="2">{{source.content}}</text>
 				</view>
 			</scroll-view>
 		</view>
@@ -27,26 +31,45 @@
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	const props = defineProps<{ sources: SearchSource[], selectedId: number }>()
 	const emit = defineEmits<{ 'close': [] }>()
-	const visibleSources = computed<SearchSource[]>(() => props.selectedId > 0
-		? props.sources.filter((source: SearchSource): boolean => source.id == props.selectedId) : props.sources)
-	function copyLink(url: string) { uni.setClipboardData({ data: url }) }
+	const failedIcons = ref<number[]>([])
+	const scrollTarget = ref('')
+	function siteOrigin(url: string): string {
+		const match = /^https?:\/\/[^/?#]+/i.exec(url)
+		return match == null ? '' : match[0]
+	}
+	function siteName(url: string): string { return siteOrigin(url).replace(/^https?:\/\//i, '') }
+	function iconFailed(id: number) {
+		if (!failedIcons.value.includes(id)) failedIcons.value.push(id)
+	}
+	watch(() => props.selectedId, () => {
+		scrollTarget.value = ''
+		nextTick(() => { scrollTarget.value = props.selectedId > 0 ? 'search-result-' + props.selectedId : '' })
+	}, { immediate: true })
 </script>
 
 <style lang="scss">
 	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 	.source-overlay { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 110; justify-content: flex-end; }
 	.source-mask { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.35); }
-	.source-sheet { height: 65%; width: 100%; max-width: 720px; align-self: center; background-color: var(--bg-primary); border-top-left-radius: 8px; border-top-right-radius: 8px; padding-bottom: env(safe-area-inset-bottom); }
-	.sheet-header { height: 52px; flex-direction: row; align-items: center; padding-left: 20px; padding-right: 8px; }
-	.sheet-title { flex: 1; font-size: 17px; font-weight: bold; color: var(--text-primary); }
-	.sheet-close { width: 44px; height: 44px; justify-content: center; align-items: center; }
+	.source-sheet { height: 90%; width: 100%; max-width: 720px; align-self: center; background-color: var(--bg-primary); border-top-left-radius: 8px; border-top-right-radius: 8px; padding-bottom: env(safe-area-inset-bottom); }
+	.sheet-header { height: 64px; flex-shrink: 0; justify-content: center; align-items: center; padding: 0 60px; }
+	.sheet-title { font-size: 18px; font-weight: bold; color: var(--text-primary); }
+	.sheet-close { position: absolute; right: 12px; top: 10px; width: 44px; height: 44px; border-radius: 22px; background-color: var(--bg-secondary); justify-content: center; align-items: center; }
 	.sheet-scroll { flex: 1; min-height: 0; }
-	.sheet-source { padding: 16px 20px; border-top: 1px solid var(--border-primary); }
-	.sheet-source-title { font-size: 16px; line-height: 24px; font-weight: bold; color: var(--text-primary); }
-	.sheet-url { font-size: 12px; line-height: 18px; color: #6283a9; margin-top: 6px; word-break: break-all; }
-	.sheet-meta { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; }
-	.sheet-summary { font-size: 14px; line-height: 23px; color: var(--text-secondary); margin-top: 12px; }
-	.sheet-actions { flex-direction: row; margin-top: 12px; }
-	.sheet-action { flex-direction: row; align-items: center; min-height: 44px; margin-right: 24px; }
-	.sheet-action-label { font-size: 14px; color: #6283a9; margin-left: 6px; }
+	.sheet-source { padding: 16px 16px 22px; }
+	.sheet-source-pressed { background-color: var(--bg-secondary); }
+	.source-meta { flex-direction: row; align-items: center; height: 24px; margin-bottom: 10px; }
+	.site-icon { width: 20px; height: 20px; margin-right: 9px; justify-content: center; align-items: center; flex-shrink: 0; }
+	.site-image { position: absolute; left: 0; top: 0; width: 20px; height: 20px; }
+	.site-name { font-size: 14px; color: var(--text-primary); flex-shrink: 1; text-overflow: ellipsis; }
+	.source-date { font-size: 13px; color: var(--text-tertiary); margin-left: 10px; max-width: 100px; text-overflow: ellipsis; flex-shrink: 1; }
+	.meta-spacer { flex: 1; min-width: 8px; }
+	.source-number { font-size: 11px; line-height: 20px; text-align: center; width: 22px; height: 20px; border-radius: 10px; background-color: var(--bg-secondary); color: var(--text-tertiary); flex-shrink: 0; }
+	.sheet-source-title { font-size: 16px; line-height: 24px; color: var(--text-primary); text-overflow: ellipsis; }
+	.sheet-summary { font-size: 14px; line-height: 23px; color: var(--text-tertiary); margin-top: 10px; text-overflow: ellipsis; }
+	/* #ifdef WEB */
+	.sheet-source { cursor: pointer; }
+	.site-name, .source-date { display: block; min-width: 0; white-space: nowrap; overflow: hidden; }
+	.sheet-source-title, .sheet-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+	/* #endif */
 </style>
