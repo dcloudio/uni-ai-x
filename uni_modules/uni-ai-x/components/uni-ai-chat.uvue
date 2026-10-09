@@ -11,7 +11,7 @@
 						<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
 					</view>
 				</view>
-				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="true" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :style="chatListStyle" :initial-scroll-bottom="initialScrollBottom" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="onMsgListTouchEnd"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" :style="chatListItemStyle" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
@@ -70,6 +70,7 @@
 	}>()
 	
 	const scrollTop = ref<number>(0)
+	const initialScrollBottom = ref<boolean>(false)
 	const bottomAnchorId = ref<string>('last-msg-a')
 	const scrollInBottom = ref<boolean>(true)
 	const showScrollToBottom = ref<boolean>(false)
@@ -407,6 +408,9 @@
 	}
 	
 	watch(chatActiveId, () => {
+		// Only existing history needs initial bottom positioning. Enabling it on an
+		// empty Android Vapor list can prevent later streamed rows from mounting.
+		initialScrollBottom.value = msgList.value.length > 0
 		messageRowCache.clear()
 		rowCache.clear()
 		autoToLastMsg = false
