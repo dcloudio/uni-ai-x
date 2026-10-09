@@ -2,7 +2,7 @@
 	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''" :style="msgSegmentStyle">
 		<image v-if="isFirst" class="msg-segment-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 		<!-- Single stateless blocks follow the recycled row; stateful and mixed blocks retain content identity. -->
-		<template v-for="part in parts" :key="parts.length == 1 && part.block != null && part.block.kind != 'math' ? 'display:' + part.block.kind : part.key">
+		<template v-for="part in parts" :key="parts.length == 1 && part.block != null && (part.block.kind == 'rich' || part.block.kind == 'html' || (part.block.kind == 'mermaid' && !isLibmarkPlatform)) ? 'display:' + part.block.kind : part.key">
 		<uni-ai-search-status v-if="part.kind == 'search'" :msg="msg" @open="openSource" />
 		<uni-ai-search-sources v-else-if="part.kind == 'sources'" :msg="msg" @open="openSource" />
 		<image v-else-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" flatten />
@@ -21,11 +21,17 @@
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
-			:code-text="part.block.text" :code-tokens="part.block.codeTokens" :cached-rich-html="part.block.codeRichHtml" :prepared-height="part.block.codeHeight" :block-key="part.block.key" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" :msg="msg" />
+			:code-text="part.block.text" :cached-rich-html="part.block.codeRichHtml ?? ''" :prepared-height="part.block.codeHeight ?? '38px'" :language="part.block.language" />
 		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
 			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.block.key" :code-text="part.block.text" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
-			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" :presentation="part.block.math ?? emptyMathPresentation" />
+			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
+			:href="part.block.math?.src ?? ''" :width="part.block.math?.width ?? 0" :height="part.block.math?.height ?? 0" :render-theme="uiTheme"
+			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
+		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="widthFix" style="width:100%;" />
+		<text v-else-if="part.block != null && part.block.kind == 'data-text'">{{part.block.text}}</text>
+		<uni-ai-libmark-html v-else-if="part.block != null && part.block.kind == 'html'"
+			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 		<template v-else-if="part.kind == 'empty'">
@@ -44,14 +50,20 @@
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
 	import { emptyTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
-	import { emptyMathPresentation } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgMermaid from '@/uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
+	import uniAiLibmarkHtml from '@/uni_modules/uni-ai-x/components/uni-ai-libmark-html/uni-ai-libmark-html.uvue'
 	import uniAiMdText from '@/uni_modules/uni-ai-x/components/uni-ai-md-text.uvue'
 	import { footnoteLabel, markdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
 	import uniAiSearchStatus from '@/uni_modules/uni-ai-x/components/uni-ai-search-status.uvue'
 	import uniAiSearchSources from '@/uni_modules/uni-ai-x/components/uni-ai-search-sources.uvue'
+	// #ifdef APP-ANDROID || APP-HARMONY
+	const isLibmarkPlatform = true
+	// #endif
+	// #ifndef APP-ANDROID || APP-HARMONY
+	const isLibmarkPlatform = false
+	// #endif
 
 	type UniAiXMsgProps = {
 		msg: MsgItem
@@ -105,6 +117,7 @@
 		hideThinkContent.value = !hideThinkContent.value
 		emit('changeThinkContent', hideThinkContent.value)
 	}
+
 </script>
 
 <style lang="scss">

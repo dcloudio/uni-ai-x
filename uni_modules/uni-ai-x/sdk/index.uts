@@ -7,10 +7,19 @@ import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 import { prepareMermaidPresentation } from './mermaid-presentation.uts'
-import { prepareCodePresentation } from './code-presentation.uts'
 import { prepareMathPresentation, mathWindowWidth } from './math-presentation.uts'
 import { refreshMessagePresentation, forgetMessagePresentation } from './message-presentation.uts'
 import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
+// #ifdef APP-HARMONY || APP-ANDROID
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import {
+	libmarkStreamApply,
+	libmarkStreamSetTheme,
+	libmarkStreamMarkComplete,
+	libmarkStreamReset,
+	libmarkStreamRelease
+} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+// #endif
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
 type BeforeRequestAiFn = () => void
@@ -90,6 +99,7 @@ export function getLlmDisplayName(llm: Llm): string {
 class UniAi {
 	// 存储管理器
 	private storageManager: StorageManager = new StorageManager()
+	private answerGeneration: number = 0
 	private stressDataSequence: number = 0
 	private stressMessageRunSequence: number = 0
 	private loadedChatIds: string[] = [] as string[]
@@ -249,7 +259,7 @@ class UniAi {
 	}
 
 	private cloneMessagesForStress(sourceMessages: MsgItem[], chatId: string, prefix: string): MsgItem[] {
-		const idMap = {} as UTSJSONObject
+		const idMap: UTSJSONObject = {}
 		const clonedMessages = [] as MsgItem[]
 		const createTime = Date.now()
 		for (let index = 0; index < sourceMessages.length; index++) {
@@ -257,7 +267,7 @@ class UniAi {
 			// 消息 ID 同时是 Storage key；副本可被重新回答/删除，不能与源会话共享。
 			const messageId = this.getStressDataId(prefix + '_msg')
 			idMap[source._id] = messageId
-			const cloned = { ...source } as MsgItem
+			const cloned: MsgItem = { ...source }
 			cloned._id = messageId
 			cloned.chat_id = chatId
 			cloned.create_time = createTime + index
@@ -299,7 +309,7 @@ class UniAi {
 		const message = this.lastAiMsg ?? {
 			_id: 'stress-template', body: '', from_uid: 'uni-ai', state: 0,
 			create_time: Date.now(), chat_id: chat?.id ?? '', rendered: true
-		} as MsgItem
+		}
 		if (chat == null) return '当前没有可生成消息的会话'
 		if (chat.state == 'processing') return '请等待当前流式输出完成'
 		if (count <= 0) return '复制数量必须大于 0'
@@ -311,7 +321,6 @@ class UniAi {
 			copied[0].body = selectedTypes.length == 1 && selectedTypes[0] == 'SVG'
 				? '' : 'Stress message ' + (index + 1).toString()
 			copied[0].markdownHtml = this.buildStressHtml(index + 1, run, selectedTypes)
-			copied[0].markdownBlocks = JSON.stringify(buildMarkdownHtmlBlocks(copied[0].markdownHtml ?? '', true)) ?? '[]'
 			if (selectedTypes.indexOf('SVG') >= 0) {
 				copied[0].stressSvgSource = this.buildStressSvg(index + 1, run)
 				copied[0].stressSvgWidth = 300
@@ -363,7 +372,7 @@ class UniAi {
 					// 副本已写入 Storage，保持空列表，选中时再按需加载消息。
 					msgList: reactive<MsgItem[]>([]),
 					update_time: baseUpdateTime + copyIndex
-				} as ChatItem)
+				})
 				messageBatches.push({ chatId: chatId, messages: copiedMessages })
 			}
 			if (!await this.storageManager.saveChatMessagesBatchAsync(messageBatches)) {
@@ -410,6 +419,14 @@ class UniAi {
 	
 	deleteChat(chatId: string): void {
 		this.cancelEditMsg()
+		this.clearPendingMsgSave()
+		const deletingChat = this.chat.datas.find((item) => item.id == chatId)
+		if (this.chat.activeId == chatId && deletingChat?.state == 'processing') this.abortRequest()
+		// #ifdef APP-HARMONY || APP-ANDROID
+		if (deletingChat != null) {
+			for (let i = 0; i < deletingChat.msgList.length; i++) libmarkStreamRelease(deletingChat.msgList[i]._id)
+		}
+		// #endif
 		// 如果只有一个，删之前需要先创建一个并设置为选中，否则会照成无选中会话导致崩溃
 		if (uniAi.chat.datas.length == 1) {
 			uniAi.addChat(false)
@@ -433,7 +450,15 @@ class UniAi {
 		this.chat.datas.forEach((chat: ChatItem) => {
 			chat.msgList.forEach((msg: MsgItem) => { forgetMessagePresentation(msg._id) })
 		})
+		this.clearPendingMsgSave()
+		if (this.currentChat?.state == 'processing') this.abortRequest()
 		const chatIds = this.chat.datas.map((item: ChatItem): string => item.id)
+		// #ifdef APP-HARMONY || APP-ANDROID
+		for (let chatIndex = 0; chatIndex < this.chat.datas.length; chatIndex++) {
+			const msgList = this.chat.datas[chatIndex].msgList
+			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) libmarkStreamRelease(msgList[msgIndex]._id)
+		}
+		// #endif
 		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChat(chatIds[index])
 		this.chat.datas.splice(0, this.chat.datas.length)
 		this.loadedChatIds.splice(0, this.loadedChatIds.length)
@@ -443,21 +468,33 @@ class UniAi {
 
 	selectChat(chatId: string) {
 		this.cancelEditMsg()
+		if (this.chat.activeId != chatId) {
+			if (this.currentChat?.state == 'processing') {
+				this.abortRequest()
+			} else {
+				this.answerGeneration += 1
+			}
+		}
 		this.loadChatMessages(chatId)
 		this.chat.activeId = chatId
 		this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 	}
 
 	private prepareMessagePresentation(msg: MsgItem) {
+		// #ifdef APP-ANDROID || APP-HARMONY
+		libmarkStreamSetTheme(uiTheme.value)
+		return
+		// #endif
+		// #ifndef APP-ANDROID || APP-HARMONY
 		if ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length > 0) {
 			msg.markdownBlocks = JSON.stringify(buildMarkdownHtmlBlocks(msg.markdownHtml ?? '', msg.rendered)) ?? '[]'
 		}
-		prepareCodePresentation(msg, (item: MsgItem) => { this.updateMsg2Storage(item) })
 		prepareMathPresentation(msg, uiTheme.value, (): string => uiTheme.value,
 			(item: MsgItem) => { this.updateMsg2Storage(item) })
 		prepareMermaidPresentation(msg, uiTheme.value, (): string => uiTheme.value,
 			(item: MsgItem) => { this.updateMsg2Storage(item) })
 		refreshMessagePresentation(msg, uiTheme.value)
+		// #endif
 	}
 
 	private loadChatMessages(chatId: string) {
@@ -498,7 +535,7 @@ class UniAi {
 			model: defaultLLM.model,
 			webSearch: false,
 			thinking: true
-		} as Llm
+		}
 	}
 	// 同步读取设置，避免与 watchSetting 的立即保存在时序上互相覆盖
 	private loadSetting() {
@@ -545,7 +582,7 @@ class UniAi {
 				model: model,
 				webSearch: webSearchValue ?? false,
 				thinking: thinkingValue ?? true
-			} as Llm
+			}
 			return
 		}
 		this.setting.llm = this.buildDefaultLlm()
@@ -574,19 +611,39 @@ class UniAi {
 	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
 	 */
 	sM2STimer: number = 0
+	private pendingMsgSave: MsgItem | null = null
+	// 正在流式生成的 AI 消息：中断时需要落一次最终状态
+	private streamingAiMsg: MsgItem | null = null
 	private clearPendingMsgSave() {
 		if (this.sM2STimer != 0) {
 			clearTimeout(this.sM2STimer)
 			this.sM2STimer = 0
 		}
+		this.pendingMsgSave = null
 	}
 	updateMsg2Storage(msg: MsgItem) {
+		// #ifndef APP-ANDROID || APP-HARMONY
 		refreshMessagePresentation(msg, uiTheme.value)
+		// #endif
 		this.clearPendingMsgSave()
+		this.pendingMsgSave = msg
 		this.sM2STimer = setTimeout(() => {
 			this.sM2STimer = 0
-			this.storageManager.updateMessage(msg)
+			const pending = this.pendingMsgSave
+			this.pendingMsgSave = null
+			if (pending != null) this.storageManager.updateMessage(pending!)
 		}, 1000)
+	}
+	// 源码用于重建原生渲染数据，完成或中断时立即保存。
+	flushMsg2Storage(msg: MsgItem | null = null) {
+		const pending = msg != null ? msg! : this.pendingMsgSave
+		this.clearPendingMsgSave()
+		if (pending != null) {
+			// #ifndef APP-ANDROID || APP-HARMONY
+			refreshMessagePresentation(pending!, uiTheme.value)
+			// #endif
+			this.storageManager.updateMessage(pending!)
+		}
 	}
 	saveChatList2Storage() {
 		const chatList: ChatItem[] = this.chat.datas
@@ -676,9 +733,9 @@ class UniAi {
 			create_time: Date.now(),
 			state: 0,
 				markdownHtml: '',
-				markdownBlocks: '',
+				markdownAst: '',
 			rendered: false
-		} as MsgItem
+		}
 		msgList.push(newMsg)
 		this.prepareMessagePresentation(msgList[msgList.length - 1])
 		this.storageManager.addMessage(newMsg)
@@ -701,6 +758,9 @@ class UniAi {
 		const index = msgList.findIndex((item) => item._id == msgId)
 		if (index != -1) {
 			forgetMessagePresentation(msgId)
+			// #ifdef APP-HARMONY || APP-ANDROID
+			libmarkStreamRelease(msgId)
+			// #endif
 			msgList.splice(index, 1)
 			this.storageManager.removeMessages(this.currentChat!.id, [msgId] as string[])
 		} else {
@@ -743,12 +803,25 @@ class UniAi {
 		}
 		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
 		this.clearPendingMsgSave()
+		// #ifdef APP-HARMONY || APP-ANDROID
+		for (let i = index; i < msgList.length; i++) libmarkStreamRelease(msgList[i]._id)
+		// #endif
 		msgList.splice(index, msgList.length - index)
 		this.storageManager.removeMessages(chat.id, removedIds)
 		this.updateChatUpdateTime(chat.id)
 	}
 	
 	abortRequest() {
+		// 中断前把流式中的消息状态落盘，避免停止后重启显示源码/状态缺失
+		const streamingMsg = this.streamingAiMsg
+		this.streamingAiMsg = null
+		if (this.currentChat?.state == 'processing') this.currentChat!.state = 'stop'
+		if (streamingMsg?.search?.status == 'searching') streamingMsg!.search!.status = 'cancelled'
+		if (streamingMsg != null && streamingMsg.rendered != true) {
+			streamingMsg.rendered = true
+			this.flushMsg2Storage(streamingMsg)
+		}
+		this.answerGeneration += 1
 		requestAiRunner?.abortRequest()
 	}
 	
@@ -799,63 +872,101 @@ class UniAi {
 	}
 	resetMsg(msg: MsgItem) {
 		msg.search = null
+		this.answerGeneration += 1
+		// #ifdef APP-HARMONY || APP-ANDROID
+		libmarkStreamReset(msg._id)
+		// #endif
 		msg.body = ''
 		msg.rendered = false
 		msg.error_msg = null
 		msg.thinkContent = null
 		msg.markdownHtml = ''
+		msg.markdownAst = ''
 		msg.markdownBlocks = ''
-		this.updateMsg2Storage(msg)
+		msg.libmarkRevision = 0
+		this.flushMsg2Storage(msg)
 	}
 	
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
-		requestAiRunner?.abortRequest()
+		this.abortRequest()
+		this.streamingAiMsg = aiMsgItem
+		const answerGeneration = this.answerGeneration
 		this.emitBeforeRequestAi()
 		this.updateChatUpdateTime(this.currentChat!.id)
 		this.currentChat!.state = 'processing';	
 		const messages = this.getMsgToAi(this.currentChat!)
+		const isActiveAiMsg = (): boolean => {
+			const chat = this.currentChat
+			return this.answerGeneration == answerGeneration && chat != null && chat.id == aiMsgItem.chat_id && chat.msgList.find((item) => item._id == aiMsgItem._id) != null
+		}
 		const runnerCallbacks: RequestAiRunnerCallbacks = {
 			onSearch: (search) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.search = search
 				this.prepareMessagePresentation(aiMsgItem)
 				this.updateMsg2Storage(aiMsgItem)
 			},
+			// #ifdef APP-HARMONY || APP-ANDROID
+			onMarkdownAstDelta: (ops: AiWorkerOp[]) => {
+				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
+				if (libmarkStreamApply(aiMsgItem._id, ops)) {
+					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
+					this.updateMsg2Storage(aiMsgItem)
+				}
+			},
+			// #endif
 			onMarkdownHtml: (html: string) => {
-				if (this.currentChat!.state == 'stop') return
+				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownHtml = html
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onMarkdownBlocks: (blocks: string) => {
-				if (this.currentChat!.state == 'stop') return
+				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
 				aiMsgItem.markdownBlocks = blocks
 				this.prepareMessagePresentation(aiMsgItem)
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onThinkContent: (thinkContent: string) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.thinkContent = thinkContent
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onMsgBody: (msgBody: string) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.body = msgBody
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onState: (state: string) => {
+				if (!isActiveAiMsg()) return
 				this.currentChat!.state = state
+				// #ifdef APP-HARMONY || APP-ANDROID
+				if (state == 'completed') {
+					// 渲染数据不落 storage：只刷新完成态，重启后由 body 重建
+					libmarkStreamMarkComplete(aiMsgItem._id)
+					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
+				}
+				// #endif
 				if (state == 'stop') {
 					aiMsgItem.rendered = true
 				}
-				this.updateMsg2Storage(aiMsgItem)
+				if (state == 'completed' || state == 'stop') {
+					this.streamingAiMsg = null
+				}
+				this.flushMsg2Storage(aiMsgItem)
 			},
 			onErrorMsg: (errorMsg: string) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.error_msg = errorMsg
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onRendered: (rendered: boolean) => {
+				if (!isActiveAiMsg()) return
 				aiMsgItem.rendered = rendered
-				this.updateMsg2Storage(aiMsgItem)
+				this.flushMsg2Storage(aiMsgItem)
 			},
 			onChatTitle: (title: string) => {
+				if (!isActiveAiMsg()) return
 				this.updateChatTitle(aiMsgItem.chat_id, title)
 			}
 		}

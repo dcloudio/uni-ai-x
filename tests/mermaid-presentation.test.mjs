@@ -12,6 +12,7 @@ function setup() {
     .replace(/^import .*$/gm, '').replace(/^export /gm, '');
   const context = vm.createContext({
     ref: value => ({ value }),
+    proxyWeb: { getGeneration: () => 0 },
     uni: { getWindowInfo: () => ({ windowWidth: 412 }) },
     renderMermaidSvgForTheme: (text, theme, callback) => calls.push({ text, theme, callback }),
   });

@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { MsgItem } from '../types.uts'
+import proxyWeb from './proxy-web.uts'
 import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import type { MarkdownTextRenderBlock } from './markdown-text.uts'
 // #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
 // #endif
@@ -22,6 +24,26 @@ type SaveMessage = (msg: MsgItem) => void
 type CurrentTheme = () => string
 const pending = new Map<string, string>()
 
+// Native SVG is ready to display; unsupported diagrams use the existing WebView renderer.
+export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void) {
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		if (block.kind != 'mermaid' || !block.isComplete) continue
+		if (block.svgSource.length > 0) {
+			block.mermaidImageSource = block.svgSource
+			continue
+		}
+		// #ifndef MP-WEIXIN
+		if (block.text.trim().length == 0) continue
+		renderMermaidSvgForTheme(block.text, theme, (result: ThemedSvgResult) => {
+			if (result.imageSource.length == 0) return
+			block.mermaidImageSource = result.imageSource
+			changed()
+		})
+		// #endif
+	}
+}
+
 // Called by message ingestion, history loading and theme changes, never by a view.
 export function prepareMermaidPresentation(msg: MsgItem, theme: string, currentTheme: CurrentTheme, save: SaveMessage) {
 	// #ifndef MP-WEIXIN
@@ -36,7 +58,7 @@ export function prepareMermaidPresentation(msg: MsgItem, theme: string, currentT
 		if (block.kind != 'mermaid' || !block.isComplete || block.text.trim().length == 0) continue
 		if ((block.mermaidImageSource ?? '').length > 0 && block.mermaidRenderTheme == theme) continue
 		const identity = msg._id + ':' + block.key
-		const request = theme + '\n' + block.text
+		const request = proxyWeb.getGeneration().toString() + '\n' + theme + '\n' + block.text
 		if (pending.get(identity) == request) continue
 		pending.set(identity, request)
 		renderMermaidSvgForTheme(block.text, theme, (result: ThemedSvgResult) => {

@@ -1,5 +1,6 @@
 // #ifdef APP-ANDROID
-import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-android/index.uts'
+import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-android/index.uts'
+import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
 // #endif
 // #ifdef APP-IOS
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
@@ -11,7 +12,9 @@ import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cma
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
 // #endif
 // #ifdef APP-HARMONY
-import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-harmony/index.uts'
+import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-harmony/index.uts'
+import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
+import { AiWorkerState, LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
 // #endif
 import {
 	MarkdownPreprocessor,
@@ -45,6 +48,13 @@ function readMessageNumber(message: UTSJSONObject, key: string, defaultValue: nu
 	return value == null ? defaultValue : value as number
 }
 
+// #ifdef APP-HARMONY
+function readEsString(message: ESObject, key: string): string {
+	const value = message[key] as string | null
+	return value == null ? '' : value as string
+}
+// #endif
+
 export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// #ifdef APP-ANDROID
 	private streamRequest: WorkerStreamRequest | null = null
@@ -63,19 +73,32 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private terminalSource: string = ''
 	private finished: boolean = false
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
+	// #ifdef APP-HARMONY || APP-ANDROID
+	private libmarkSession: object | null = null
+	private libmarkPendingOps: LibmarkOp[] = []
+	private libmarkPendingOpOffset: number = 0
+	private libmarkPendingContent: string = ''
+	private libmarkCompletionPending: boolean = false
+	private libmarkFinishCalled: boolean = false
+	// #endif
 
 	constructor() {
 		super()
 	}
 
 	override entry() {
-		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.postMessage({ phase: 'ready' } as UTSJSONObject)
+		return
+		// #endif
+		// #ifdef APP-IOS || WEB || MP-WEIXIN
 		initMd2html().then(() => {
 			this.postMessage({ phase: 'ready' } as UTSJSONObject)
-		}).catch((error: any | null) => {
+		}).catch((error) => {
+			const errMsg = error instanceof Error ? error.message : 'cmark-gfm WebAssembly 初始化失败'
 			this.postMessage({
 				phase: 'init-error',
-				errMsg: error instanceof Error ? error.message : 'cmark-gfm WebAssembly 初始化失败'
+				errMsg: errMsg
 			} as UTSJSONObject)
 		})
 		return
@@ -84,6 +107,13 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	override onMessage(message: any) {
+		// #ifdef APP-HARMONY
+		const messageTag = readEsString(message as ESObject, 'tag')
+		if (messageTag == 'libmark-chunk') {
+			this.handleLibmarkChunk(message as ESObject)
+			return
+		}
+		// #endif
 		const payload = message as UTSJSONObject
 		const action = readMessageString(payload, 'action')
 		if (action == 'cancel') {
@@ -103,6 +133,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) this.complete()
 			return
 		}
+		// #ifdef APP-HARMONY || APP-ANDROID
+		if (action == 'rebuild-markdown') {
+			this.rebuildMarkdown(payload)
+			return
+		}
+		// #endif
 		// #ifdef APP-ANDROID
 		if (action == 'start') {
 			this.startRequest(payload)
@@ -111,6 +147,223 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 		if (action == 'start-markdown') this.startMarkdown(payload)
 	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	private ensureLibmarkSession(): boolean {
+		if (this.libmarkSession != null) return true
+		try {
+			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派
+			this.libmarkSession = createSession('html')
+			if (this.libmarkSession != null) return true
+		} catch {
+		}
+		this.failLibmark('libmark_session_create_failed', 'libmark 会话创建失败')
+		return false
+	}
+
+	private appendLibmarkOps(event: LibmarkEvent | null | undefined): void {
+		if (event == null) return
+		const ops = (event as LibmarkEvent).ops
+		for (let i = 0; i < ops.length; i++) {
+			this.libmarkPendingOps.push(ops[i])
+		}
+	}
+
+	private flushLibmarkOps(): void {
+		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return
+		// #ifdef APP-HARMONY
+		const batch = createOpBatch(this.requestVersion)
+		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
+			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
+			batch.pushOp(op.op, op.kind, op.content, op.index, op.unchanged)
+			this.libmarkPendingOpOffset += 1
+		}
+		this.postMessage(batch, { harmonySendable: true } as WorkerPostMessageOptions)
+		// #endif
+		// #ifdef APP-ANDROID
+		const ops = [] as UTSJSONObject[]
+		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
+			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
+			ops.push({
+				op: op.op,
+				kind: op.kind,
+				content: op.content,
+				index: op.index,
+				unchanged: op.unchanged
+			} as UTSJSONObject)
+			this.libmarkPendingOpOffset += 1
+		}
+		this.postMessage({
+			tag: 'libmark-op-batch',
+			requestVersion: this.requestVersion,
+			ops: ops
+		} as UTSJSONObject)
+		// #endif
+		this.libmarkPendingOps = [] as LibmarkOp[]
+		this.libmarkPendingOpOffset = 0
+	}
+
+	private processLibmarkContent(contentDelta: string): boolean {
+		if (contentDelta.length == 0) return true
+		if (this.ensureLibmarkSession() == false) return false
+		try {
+			const session = this.libmarkSession
+			if (session == null) return false
+			this.appendLibmarkOps(feedChunk(session, contentDelta))
+			return true
+		} catch {
+			this.failLibmark('libmark_feed_failed', 'libmark 解析失败')
+			return false
+		}
+	}
+
+	private pumpLibmark() {
+		if (this.finished) return
+		this.flushLibmarkOps()
+		if (this.libmarkPendingContent.length > 0) {
+			const content = this.libmarkPendingContent
+			this.libmarkPendingContent = ''
+			if (this.processLibmarkContent(content) == false) return
+			this.flushLibmarkOps()
+		}
+		if (!this.libmarkCompletionPending) return
+		if (!this.libmarkFinishCalled) {
+			this.libmarkFinishCalled = true
+			const session = this.libmarkSession
+			if (session != null) {
+				try {
+					this.appendLibmarkOps(finishSession(session))
+				} catch {
+					this.failLibmark('libmark_finish_failed', 'libmark 完成解析失败')
+					return
+				}
+				this.destroyLibmarkSession()
+			}
+			this.flushLibmarkOps()
+			if (this.finished) return
+		}
+		this.finished = true
+		this.postMessage({ phase: 'libmark-complete', requestVersion: this.requestVersion } as UTSJSONObject)
+		if (!this.content.endsWith('\n')) this.content += '\n'
+		this.publishSnapshot(true)
+	}
+
+	// #ifdef APP-HARMONY
+	private handleLibmarkChunk(message: ESObject) {
+		if (this.finished || this.libmarkCompletionPending) return
+		const chunk = message as LibmarkChunk
+		if (chunk.requestVersion != this.requestVersion) return
+		const contentDelta = chunk.content
+		const reasoningDelta = chunk.reasoningContent
+		if (contentDelta.length == 0 && reasoningDelta.length == 0) return
+		this.eventCount += 1
+		this.networkChunkCount += 1
+		this.receivedBytes += contentDelta.length + reasoningDelta.length
+		if (contentDelta.length > 0) this.content += contentDelta
+		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
+		if (contentDelta.length > 0) {
+			if (this.libmarkPendingOps.length > 0) {
+				this.libmarkPendingContent += contentDelta
+			} else if (this.processLibmarkContent(contentDelta) == false) return
+		}
+		this.pumpLibmark()
+		this.scheduleHtmlSnapshot()
+	}
+	// #endif
+
+	private failLibmark(code: string, message: string) {
+		this.finished = true
+		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
+		this.renderTimer = 0
+		this.destroyLibmarkSession()
+		this.resetLibmarkProtocol()
+		this.postMessage({
+			phase: 'libmark-error',
+			requestVersion: this.requestVersion,
+			errCode: code,
+			errMsg: message
+		} as UTSJSONObject)
+		this.publishErrorSnapshot(code, message)
+	}
+
+	private destroyLibmarkSession() {
+		const session = this.libmarkSession
+		this.libmarkSession = null
+		if (session == null) return
+		try {
+			destroySession(session)
+		} catch {
+			// Cancellation/reset must not be blocked by native cleanup errors.
+		}
+	}
+
+	private resetLibmarkProtocol() {
+		this.libmarkPendingOps = [] as LibmarkOp[]
+		this.libmarkPendingOpOffset = 0
+		this.libmarkPendingContent = ''
+		this.libmarkCompletionPending = false
+		this.libmarkFinishCalled = false
+	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// 页面冷启动恢复历史消息：用独立 session 解析完整原文并回传 ops，
+	// 不复用流式协议状态，与 AI 请求可并发执行
+	private rebuildMarkdown(payload: UTSJSONObject) {
+		const msgId = readMessageString(payload, 'msgId')
+		const content = readMessageString(payload, 'content')
+		const ops = [] as UTSJSONObject[]
+		if (msgId.length == 0 || content.length == 0) {
+			this.postRebuildOps(msgId, ops)
+			return
+		}
+		let session: object | null = null
+		try {
+			session = createSession('html')
+			this.appendRebuildOps(ops, feedChunk(session!, content))
+			this.appendRebuildOps(ops, finishSession(session!))
+		} catch (_error) {
+			// 解析失败回传空 ops，页面回退为原文显示
+		}
+		if (session != null) {
+			try {
+				destroySession(session!)
+			} catch (_error) {
+			}
+		}
+		this.postRebuildOps(msgId, ops)
+	}
+
+	private appendRebuildOps(target: UTSJSONObject[], event: LibmarkEvent | null | undefined) {
+		if (event == null) return
+		const eventOps = (event as LibmarkEvent).ops
+		for (let i = 0; i < eventOps.length; i++) {
+			const op = eventOps[i]
+			target.push({
+				op: op.op,
+				kind: op.kind,
+				content: op.content,
+				index: op.index,
+				unchanged: op.unchanged
+			} as UTSJSONObject)
+		}
+	}
+
+	private postRebuildOps(msgId: string, ops: UTSJSONObject[]) {
+		this.postMessage({
+			tag: 'libmark-rebuild-ops',
+			msgId: msgId,
+			ops: ops
+		} as UTSJSONObject)
+	}
+	// #endif
+
+	// #ifdef APP-ANDROID
+	private feedLibmarkContent(contentDelta: string): void {
+		if (this.finished || contentDelta.length == 0) return
+		if (this.processLibmarkContent(contentDelta)) this.flushLibmarkOps()
+	}
+	// #endif
+	// #endif
 
 	private resetState(requestVersion: number, renderInterval: number) {
 		this.cancelCurrent()
@@ -127,6 +380,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.terminalSource = ''
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.resetLibmarkProtocol()
+		// #endif
 	}
 
 	// #ifdef APP-ANDROID
@@ -173,6 +429,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.eventCount += 1
 		this.networkChunkCount += 1
 		this.receivedBytes += contentDelta.length + reasoningDelta.length
+		// #ifdef APP-ANDROID
+		this.feedLibmarkContent(contentDelta)
+		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
@@ -211,6 +470,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
+		// #ifdef APP-ANDROID
+		this.feedLibmarkContent(contentDelta)
+		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 	// #endif
@@ -230,9 +492,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private complete() {
 		if (this.finished) return
-		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.libmarkCompletionPending = true
+		this.pumpLibmark()
+		return
+		// #endif
+		this.finished = true
 		if (!this.content.endsWith('\n')) this.content += '\n'
 		this.publishSnapshot(true)
 		// #ifdef APP-ANDROID
@@ -240,13 +507,55 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// 鸿蒙/Android 不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 libmark ops 驱动
+	private publishLibmarkState(phase: string, errCode: string = '', errMsg: string = ''): void {
+		this.snapshotVersion += 1
+		// #ifdef APP-HARMONY
+		const state = new AiWorkerState()
+		state.requestVersion = this.requestVersion
+		state.snapshotVersion = this.snapshotVersion
+		state.phase = phase
+		state.msgBody = this.content
+		state.thinkContent = this.reasoningContent.trim()
+		state.eventCount = this.eventCount
+		state.networkChunkCount = this.networkChunkCount
+		state.receivedBytes = this.receivedBytes
+		state.elapsed = Date.now() - this.startedAt
+		state.errCode = errCode
+		state.errMsg = errMsg
+		this.postMessage(state, { harmonySendable: true } as WorkerPostMessageOptions)
+		// #endif
+		// #ifdef APP-ANDROID
+		this.postMessage({
+			tag: 'ai-worker-state',
+			requestVersion: this.requestVersion,
+			snapshotVersion: this.snapshotVersion,
+			phase: phase,
+			msgBody: this.content,
+			thinkContent: this.reasoningContent.trim(),
+			eventCount: this.eventCount,
+			networkChunkCount: this.networkChunkCount,
+			receivedBytes: this.receivedBytes,
+			elapsed: Date.now() - this.startedAt,
+			errCode: errCode,
+			errMsg: errMsg
+		} as UTSJSONObject)
+		// #endif
+	}
+	// #endif
+
 	private publishSnapshot(isDone: boolean) {
 		// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
 		if (this.content.length == 0 && this.reasoningContent.length == 0 && !isDone) return
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.publishLibmarkState(isDone ? 'complete' : 'snapshot')
+		return
+		// #endif
 		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdownValue == null) return
 		const processedMarkdown = processedMarkdownValue!
-		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
+		// #ifdef APP-IOS || WEB || MP-WEIXIN
 		if (isMd2htmlAvailable() == false) {
 			this.fail('markdown_html_unavailable', 'cmark-gfm Markdown HTML 转换器不可用')
 			return
@@ -270,7 +579,6 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				error instanceof Error ? error.message : 'Markdown HTML 转换失败')
 			return
 		}
-		const htmlBlocks = buildMarkdownHtmlBlocks(html, isDone)
 		this.snapshotVersion += 1
 		const snapshot = {
 			requestVersion: this.requestVersion,
@@ -281,7 +589,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			renderMode: 'html',
 			html: html,
 			htmlLength: html.length,
-			blocks: JSON.stringify(htmlBlocks) ?? '[]',
+			blocks: JSON.stringify(buildMarkdownHtmlBlocks(html, isDone)) ?? '[]',
 			isDone: isDone,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -315,9 +623,21 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.destroyLibmarkSession()
+		this.resetLibmarkProtocol()
+		// #endif
 		// #ifdef APP-ANDROID
 		this.streamRequest?.abort()
 		this.streamRequest = null
+		// #endif
+		this.publishErrorSnapshot(code, message)
+	}
+
+	private publishErrorSnapshot(code: string, message: string) {
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.publishLibmarkState('error', code, message)
+		return
 		// #endif
 		this.snapshotVersion += 1
 		const snapshot = {
@@ -329,7 +649,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			renderMode: '',
 			html: '',
 			htmlLength: 0,
-			blocks: '[]',
+			ast: '',
+			astLength: 0,
 			isDone: false,
 			eventCount: this.eventCount,
 			networkChunkCount: this.networkChunkCount,
@@ -349,6 +670,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		this.finished = true
+		// #ifdef APP-HARMONY || APP-ANDROID
+		this.destroyLibmarkSession()
+		this.resetLibmarkProtocol()
+		// #endif
 		// #ifdef APP-ANDROID
 		this.streamRequest?.abort()
 		this.streamRequest = null

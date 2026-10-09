@@ -72,7 +72,7 @@ test('aborting during search discards a late response and never starts the model
   const context = vm.createContext({
     llmModelMap: new Map([['fixture', { webSearchURL: 'url', getToken: async () => 'token' }]]),
     lastUserQuestionText: () => 'question', console, clearTimeout, clearInterval,
-    destroyAiWorkerRuntime() {}, cancelAiWorkerRequest() {},
+    destroyAiWorkerRuntime() {}, cancelAiWorkerRequest() {}, setAiWorkerDataListener() {},
     webSearch: (_q, _t, _u, _max, onTask) => {
       onTask({ abort: () => aborted++ });
       return new Promise(resolve => { resolveSearch = resolve; });

@@ -44,6 +44,19 @@
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
+	import { prepareTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
+	import { linkSearchCitations } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
+	import { linkMarkdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
+	// #ifdef APP-HARMONY || APP-ANDROID
+	import {
+		libmarkStreamApplyRebuild,
+		libmarkPresentationRevision,
+		libmarkStreamGetBlocks,
+		libmarkStreamRequestRebuild
+	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-worker-runtime'
+	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-worker-runtime'
+	// #endif
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -114,6 +127,42 @@
 		return uniAi.currentChat?.msgList ?? []
 	})
 
+	type MarkdownBlockCache = {
+		body: string
+		theme: string
+		sources: string
+		libmarkRevision: number
+		complete: boolean
+		rebuildVersion: number
+		blocks: MarkdownTextRenderBlock[]
+	}
+	const markdownBlockCache = new Map<string, MarkdownBlockCache>()
+
+	// Worker 重建完成后递增版本号，驱动渲染缓存失效与列表重算
+	const rebuildVersion = ref<number>(0)
+	// 重建导致列表内容高度突变，首帧原生视图可能未重绘：重建完成后主动触发一次滚底刷新
+	let rebuildScrollPending = false
+
+	function scheduleRebuildScroll() {
+		if (rebuildScrollPending) return
+		rebuildScrollPending = true
+		setTimeout(() => {
+			rebuildScrollPending = false
+			if (!scrollInBottom.value || scrollTouch.value) return
+			scrollToLastMsg(false)
+		}, 60)
+	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	// Worker 重建完成回调：应用 ops 后驱动重算（页面环境无法调用 libmark，重建统一在 Worker 执行）
+	const onRebuildResult = (result: AiWorkerRebuildResult) => {
+		if (libmarkStreamApplyRebuild(result.msgId, result.ops)) {
+			rebuildVersion.value += 1
+			scheduleRebuildScroll()
+		}
+	}
+	// #endif
+
 	type ChatRenderItem = {
 		key: string
 		id: string
@@ -157,6 +206,47 @@
 	const RENDER_ITEM_TYPE_AI_SEARCH = 32
 	const RENDER_ITEM_TYPE_AI_SOURCES = 33
 	const RENDER_ITEM_FIRST_OFFSET = 100
+
+	function canRebuildMarkdownFromBody(msg: MsgItem): boolean {
+		// #ifdef APP-HARMONY || APP-ANDROID
+		return msg.body.length > 0
+		// #endif
+		// #ifndef APP-HARMONY || APP-ANDROID
+		return false
+		// #endif
+	}
+
+	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
+		// #ifndef APP-HARMONY || APP-ANDROID
+		return readMessagePresentation(msg._id)
+		// #endif
+		// #ifdef APP-HARMONY || APP-ANDROID
+		const revision = msg.libmarkRevision ?? 0
+		const version = rebuildVersion.value + libmarkPresentationRevision.value
+		const theme = uiTheme.value
+		const sources = JSON.stringify(msg.search?.sources ?? []) ?? ''
+		const cached = markdownBlockCache.get(msg._id)
+		if (cached != null && cached.body == msg.body && cached.theme == theme && cached.sources == sources &&
+			cached.libmarkRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
+		const blocks = libmarkStreamGetBlocks(msg._id)
+		if (blocks.length == 0 && msg.body.length > 0 && msg.rendered) {
+			libmarkStreamRequestRebuild(msg._id, msg.body)
+		}
+		for (let i = 0; i < blocks.length; i++) {
+			const block = blocks[i]
+			if (block.kind == 'html' || block.kind == 'table') {
+				block.html = linkMarkdownFootnotes(block.html, msg.body)
+				if (msg.search != null) block.html = linkSearchCitations(block.html, msg.search!.sources)
+			}
+			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
+		}
+		markdownBlockCache.set(msg._id, {
+			body: msg.body, theme: theme, sources: sources, libmarkRevision: revision,
+			complete: msg.rendered, rebuildVersion: version, blocks: blocks
+		} as MarkdownBlockCache)
+		return blocks
+		// #endif
+	}
 
 	function markdownBlockItemType(block: MarkdownTextRenderBlock): number {
 		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
@@ -206,8 +296,9 @@
 	}
 
 	function isRichTextListBlock(block: MarkdownTextRenderBlock): boolean {
-		// Keep table, code, and Mermaid blocks in dedicated list items.
-		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid'
+		// Only table and code components own native rich-text nodes.
+		return block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid' ||
+			block.kind == 'html' || block.kind == 'image'
 	}
 
 	function normalPartsItemType(parts: AiMsgRenderPart[]): number {
@@ -231,8 +322,8 @@
 		const items = [] as ChatRenderItem[]
 		for (let messageIndex = 0; messageIndex < msgList.value.length; messageIndex++) {
 			const msg = msgList.value[messageIndex]
-			const blocks = msg.from_uid == 'uni-ai' ? readMessagePresentation(msg._id) : noBlocks
-			const hasMarkdown = (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0
+			const blocks = msg.from_uid == 'uni-ai' ? getMarkdownBlocks(msg) : noBlocks
+			const hasMarkdown = blocks.length > 0 || (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || canRebuildMarkdownFromBody(msg)
 			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()
 				+ ':' + ((msg.thinkContent ?? '').length > 0).toString() + ':' + (msg.body.length > 0).toString()
 				+ ':' + ((msg.stressSvgSource ?? '').length > 0).toString() + ':' + hasMarkdown.toString()
@@ -259,6 +350,7 @@
 
 			let hasAiSegment = false
 			let normalSegmentIndex = 0
+			let mermaidBlockIndex = 0
 			const normalParts = [] as AiMsgRenderPart[]
 			const appendNormalPart = (part: AiMsgRenderPart) => {
 				normalParts.push(part)
@@ -273,7 +365,13 @@
 			}
 			const appendRichTextBlock = (block: MarkdownTextRenderBlock) => {
 				flushNormalParts()
-				const blockKey = block.key
+				let blockKey = block.key
+				// #ifdef APP-ANDROID || APP-HARMONY
+				if (block.kind == 'mermaid') {
+					blockKey = 'mermaid-' + mermaidBlockIndex.toString() + (block.isComplete ? '-c' : '')
+					mermaidBlockIndex += 1
+				}
+				// #endif
 				appendAiRenderItem(items, msg, markdownBlockItemType(block), !hasAiSegment, blockKey,
 					[aiRenderPart(block.kind, blockKey, block)] as AiMsgRenderPart[])
 				hasAiSegment = true
@@ -422,6 +520,7 @@
 	}
 	
 	watch(chatActiveId, () => {
+		markdownBlockCache.clear()
 		// Only existing history needs initial bottom positioning. Enabling it on an
 		// empty Android Vapor list can prevent later streamed rows from mounting.
 		initialScrollBottom.value = msgList.value.length > 0
@@ -449,6 +548,7 @@
 			if (activeIds.has(id)) return
 			cached.rows.forEach((row: ChatRenderItem) => { rowCache.delete(row.key) })
 			messageRowCache.delete(id)
+			markdownBlockCache.delete(id)
 		})
 	})
 	
@@ -476,6 +576,8 @@
 			think: msg?.thinkContent ?? '',
 			error: msg?.error_msg ?? '',
 			rendered: msg?.rendered ?? false,
+			libmarkRevision: msg?.libmarkRevision ?? 0,
+			rebuildVersion: rebuildVersion.value,
 			state: state.value,
 			layout: msg != null ? readMessageLayoutRevision(msg._id) : 0
 		}
@@ -594,7 +696,6 @@
 			console.error('[uni-ai-x][Markdown示例] 运行失败', error)
 		}
 	}
-
 	const beforeRequestAi = () => {
 		autoToLastMsg = true
 		needSetLockAutoToLastMsg = true
@@ -603,6 +704,9 @@
 	
 	onMounted(() => {
 		uniAi.onBeforeRequestAi(beforeRequestAi)
+		// #ifdef APP-HARMONY || APP-ANDROID
+		setAiWorkerRebuildListener(onRebuildResult)
+		// #endif
 		// #ifdef H5
 		window.addEventListener('wheel', () => {
 			mouseScroll = true
@@ -626,6 +730,9 @@
 	onBeforeUnmount(() => {
 		if (state.value == 'processing') uniAi.abortRequest()
 		uniAi.offBeforeRequestAi(beforeRequestAi)
+		// #ifdef APP-HARMONY || APP-ANDROID
+		setAiWorkerRebuildListener(null)
+		// #endif
 		scrollingT = clearTimer(scrollingT)
 		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
 		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
@@ -767,4 +874,4 @@
 	}
 }
 /* #endif */
-</style> 
+</style>

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(uni_cmark_html C)
 
 if(NOT DEFINED CMARK_GFM_SOURCE_DIR)
@@ -27,7 +27,6 @@ set(UNI_CMARK_HTML_LIBRARIES
 if(EMSCRIPTEN)
   add_executable(cmarkhtml_web md2html.c)
   target_compile_definitions(cmarkhtml_web PRIVATE
-    UNI_CMARK_NO_JNI
     CMARK_GFM_STATIC_DEFINE
     CMARK_GFM_EXTENSIONS_STATIC_DEFINE
   )
@@ -59,7 +58,6 @@ if(EMSCRIPTEN)
 
   add_executable(cmarkhtml_mp_weixin md2html.c)
   target_compile_definitions(cmarkhtml_mp_weixin PRIVATE
-    UNI_CMARK_NO_JNI
     CMARK_GFM_STATIC_DEFINE
     CMARK_GFM_EXTENSIONS_STATIC_DEFINE
   )
@@ -92,7 +90,6 @@ if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     ios/ScopeparserBridge.m
   )
   target_compile_definitions(scopeparser4ios PRIVATE
-    UNI_CMARK_NO_JNI
     CMARK_GFM_STATIC_DEFINE
     CMARK_GFM_EXTENSIONS_STATIC_DEFINE
   )
@@ -119,37 +116,18 @@ if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   return()
 endif()
 
-add_library(cmarkhtml SHARED md2html.c)
-target_compile_definitions(cmarkhtml PRIVATE
+enable_testing()
+add_executable(md2html_test tests/md2html_test.c md2html.c)
+target_compile_definitions(md2html_test PRIVATE
   CMARK_GFM_STATIC_DEFINE
   CMARK_GFM_EXTENSIONS_STATIC_DEFINE
 )
-target_include_directories(cmarkhtml PRIVATE
+target_include_directories(md2html_test PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMARK_GFM_SOURCE_DIR}/src"
   "${CMARK_GFM_SOURCE_DIR}/extensions"
   "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/src"
   "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/extensions"
 )
-target_link_libraries(cmarkhtml PRIVATE ${UNI_CMARK_HTML_LIBRARIES})
-if(ANDROID)
-  target_link_options(cmarkhtml PRIVATE "-Wl,--exclude-libs,ALL")
-endif()
-
-if(NOT ANDROID)
-  enable_testing()
-  add_executable(md2html_test tests/md2html_test.c md2html.c)
-  target_compile_definitions(md2html_test PRIVATE
-    UNI_CMARK_NO_JNI
-    CMARK_GFM_STATIC_DEFINE
-    CMARK_GFM_EXTENSIONS_STATIC_DEFINE
-  )
-  target_include_directories(md2html_test PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMARK_GFM_SOURCE_DIR}/src"
-    "${CMARK_GFM_SOURCE_DIR}/extensions"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/src"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmark-gfm/extensions"
-  )
-  target_link_libraries(md2html_test PRIVATE ${UNI_CMARK_HTML_LIBRARIES})
-  add_test(NAME md2html_test COMMAND md2html_test)
-endif()
+target_link_libraries(md2html_test PRIVATE ${UNI_CMARK_HTML_LIBRARIES})
+add_test(NAME md2html_test COMMAND md2html_test)

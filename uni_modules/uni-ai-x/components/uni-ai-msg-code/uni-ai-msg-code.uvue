@@ -7,350 +7,37 @@
 				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
-		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="codeScrollViewStyle"
-			>
-			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true" :style="codeRichTextStyle" :nodes="codeRichHtml" mode="native"></rich-text>
+		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="'height:' + preparedHeight + ';background-color:#111827;'">
+			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true"
+				:style="'height:' + preparedHeight + ';font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;color:#d1fae5;'"
+				:nodes="cachedRichHtml" mode="native"></rich-text>
 		</scroll-view>
 	</view>
 </template>
 
 <script lang="uts" setup>
-import { MarkdownToken as IToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import { MsgItem } from '@/uni_modules/uni-ai-x/sdk';
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-import { markdownCodeTokenToRichTextNodes } from '@/uni_modules/uni-ai-x/sdk/markdown-rich-text.uts'
-import { requestCachedCodeText, ParseCodeTextRes } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
-import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
-import { streamingCodeTokens } from '@/uni_modules/uni-ai-x/sdk/streaming-code-tokens.uts'
 
-type UniAiMsgCodeProps = {
+const props = withDefaults(defineProps<{
 	codeText?: string
-	blockKey?: string
-	codeTokens?: IToken[][]
+	language?: string
 	cachedRichHtml?: string
 	preparedHeight?: string
-	language?: string
-	isClose?: number
-	// 所属消息对象（reactive 引用）：list-view 复用 item 的子组件 props 更新在长流式过程中
-	// 可能丢失（vapor v-for/组件 props diff 缺陷），msg 对象属性为响应式直连不受影响，用于兜底
-	msg?: MsgItem | null
-}
-
-const props = withDefaults(defineProps<UniAiMsgCodeProps>(), {
+}>(), {
 	codeText: '',
-	blockKey: '',
-	codeTokens: () => [] as IToken[][],
-	cachedRichHtml: '',
-	preparedHeight: '',
 	language: 'text',
-	isClose: 0,
-	msg: null
+	cachedRichHtml: '',
+	preparedHeight: '38px'
 })
 
-
-const codeDebugEnabled = false
-
-function codeDebug(event: string, detail: string = '') {
-	if (!codeDebugEnabled) return
-	console.info('[uni-ai-x][list-reuse][code] ' + event
-		+ ' msg=' + (props.msg?._id ?? '')
-		+ ' block=' + props.blockKey
-		+ ' lang=' + props.language
-		+ (detail.length > 0 ? ' ' + detail : ''))
-}
-
-let codeHighlightRequestVersion = 0
-let codeIdentityVersion = ''
-const highlightedCodeTokens = ref<IToken[][]>([] as IToken[][])
-const highlightedCodeText = ref<string>('')
-let highlightedCodeLanguage = ''
-let requestedCodeText = ''
-let requestedCodeLanguage = ''
-let pendingCodeText = ''
-let pendingCodeLanguage = ''
-const codeLineHeight = 22
-const codeVerticalPadding = 16
-const displayCodeText = ref<string>(props.codeText)
-
-const stableBlockKey = computed<string>(() => {
-	const value = props.blockKey
-	const result = value.endsWith('-c') ? value.slice(0, value.length - 2) : value
-	codeDebug('computed-stableBlockKey', result)
-	return result
-})
-
-const codeIdentity = computed<string>(() => {
-	const result = (props.msg?._id ?? '') + ':' + stableBlockKey.value
-	codeDebug('computed-codeIdentity', result)
-	return result
-})
-
-function normalizeCodeText(text: string): string {
-	codeDebug('function-normalizeCodeText', 'length=' + text.length.toString())
-	return text.replace(/\r\n/g, '\n')
-}
-
-function normalizeCodeTokens(codeTokens: IToken[][]): IToken[][] {
-	codeDebug('function-normalizeCodeTokens', 'lines=' + codeTokens.length.toString())
-	return (codeTokens ?? [] as IToken[][]).map((lineTokens: IToken[] | null): IToken[] => lineTokens ?? [] as IToken[])
-}
-
-function buildRenderedCodeText(codeTokens: IToken[][]): string {
-	codeDebug('function-buildRenderedCodeText', 'lines=' + codeTokens.length.toString())
-	return codeTokens.map((lineTokens: IToken[]) => {
-		return lineTokens.map((token: IToken) => token.text ?? '').join('')
-	}).join('\n')
-}
-
-function preserveStableCodeLines(codeText: string, nextTokens: IToken[][], language: string): IToken[][] {
-	codeDebug('function-preserveStableCodeLines', 'text=' + codeText.length.toString() + ' lines=' + nextTokens.length.toString())
-	if (highlightedCodeLanguage != language) return nextTokens
-	const previousText = normalizeCodeText(highlightedCodeText.value)
-	const nextText = normalizeCodeText(codeText)
-	if (previousText.length == 0 || !nextText.startsWith(previousText)) return nextTokens
-	const previousLines = previousText.split('\n')
-	const nextLines = nextText.split('\n')
-	const previousTokens = highlightedCodeTokens.value
-	const result = [] as IToken[][]
-	for (let lineIndex = 0; lineIndex < nextTokens.length; lineIndex++) {
-		if (lineIndex < previousLines.length && lineIndex < previousTokens.length
-			&& previousLines[lineIndex] == nextLines[lineIndex]) {
-			result.push(previousTokens[lineIndex])
-		} else {
-			result.push(nextTokens[lineIndex])
-		}
-	}
-	return result
-}
-
-const safeCodeTokens = computed<IToken[][]>(() => {
-	const propTokens = normalizeCodeTokens(props.codeTokens)
-	const highlightedTokens = highlightedCodeTokens.value
-	codeDebug('computed-safeCodeTokens', 'prop=' + propTokens.length.toString() + ' highlighted=' + highlightedTokens.length.toString())
-	if (propTokens.length > 0) return propTokens
-	return highlightedCodeLanguage == props.language ? highlightedTokens : [] as IToken[][]
-})
-
-function highlightCode() {
-	if (props.isClose == 1 && (props.cachedRichHtml ?? '').length > 0) return
-	codeDebug('highlightCode', 'close=' + props.isClose.toString() + ' text=' + displayCodeText.value.length.toString())
-	// 闭合代码块的 token 已经随渲染数据传入，避免回收重用时再次异步解析。
-	if (props.codeTokens.length > 0 && props.isClose == 1) return
-	const language = props.language
-	if (requestedCodeText.length > 0 && requestedCodeLanguage != language) {
-		codeHighlightRequestVersion += 1
-		requestedCodeText = ''
-		requestedCodeLanguage = ''
-		pendingCodeText = ''
-		pendingCodeLanguage = ''
-	}
-	const lines = normalizeCodeText(displayCodeText.value).split('\n')
-	if (lines.length == 0) return
-	const completedCount = props.isClose == 1 ? lines.length : lines.length - 1
-	if (completedCount == 0) {
-		pendingCodeText = ''
-		pendingCodeLanguage = ''
-		return
-	}
-	const completedText = lines.slice(0, completedCount).join('\n')
-	if (highlightedCodeLanguage == language && highlightedCodeText.value == completedText) {
-		pendingCodeText = ''
-		pendingCodeLanguage = ''
-		return
-	}
-	if (requestedCodeLanguage == language && requestedCodeText == completedText) return
-	if (requestedCodeText.length > 0) {
-		pendingCodeText = completedText
-		pendingCodeLanguage = language
-		return
-	}
-	startCodeHighlightRequest(completedText, language)
-}
-
-function startCodeHighlightRequest(codeText: string, language: string) {
-	codeDebug('highlight-request', 'length=' + codeText.length.toString())
-	requestedCodeText = codeText
-	requestedCodeLanguage = language
-	const requestVersion = codeHighlightRequestVersion
-	const identity = codeIdentity.value
-	requestCachedCodeText((result: ParseCodeTextRes) => {
-		if (requestVersion != codeHighlightRequestVersion) {
-			codeDebug('highlight-callback-stale', 'version')
-			return
-		}
-		if (identity != codeIdentity.value) {
-			codeDebug('highlight-callback-stale', 'identity')
-			return
-		}
-		codeDebug('highlight-callback', result.error == null ? 'ok' : 'error')
-		const currentText = normalizeCodeText(displayCodeText.value)
-		if (language == props.language && currentText.startsWith(codeText) && result.error == null) {
-			const hasNewerCachedText = highlightedCodeLanguage == language
-				&& highlightedCodeText.value.length > codeText.length
-				&& currentText.startsWith(highlightedCodeText.value)
-			if (!hasNewerCachedText) {
-				const stableTokens = preserveStableCodeLines(codeText, result.lines, language)
-				highlightedCodeText.value = codeText
-				highlightedCodeLanguage = language
-				highlightedCodeTokens.value = stableTokens
-			}
-		}
-		requestedCodeText = ''
-		requestedCodeLanguage = ''
-		const nextCodeText = pendingCodeText
-		const nextLanguage = pendingCodeLanguage
-		pendingCodeText = ''
-		pendingCodeLanguage = ''
-		if (nextCodeText.length > 0 && nextLanguage == props.language) {
-			const liveText = normalizeCodeText(displayCodeText.value)
-			if (liveText.startsWith(nextCodeText)
-				&& !(highlightedCodeLanguage == nextLanguage && highlightedCodeText.value == nextCodeText)) {
-				startCodeHighlightRequest(nextCodeText, nextLanguage)
-			}
-		}
-	}, props.msg?._id ?? '', stableBlockKey.value, codeText, language)
-}
-
-const safeHighlightedText = computed<string>(() => {
-	const propTokens = normalizeCodeTokens(props.codeTokens)
-	if (propTokens.length > 0) return buildRenderedCodeText(propTokens)
-	const highlightedText = highlightedCodeText.value
-	const result = highlightedCodeLanguage == props.language ? highlightedText : ''
-	codeDebug('computed-safeHighlightedText', 'length=' + result.length.toString())
-	return result
-})
-
-const renderedCodeTokens = computed<IToken[][]>(() => {
-	const result = streamingCodeTokens(displayCodeText.value, safeHighlightedText.value, safeCodeTokens.value)
-	codeDebug('computed-renderedCodeTokens', 'lines=' + result.length.toString())
-	return result
-})
-
-const shouldUseOriginCode = computed<boolean>(() => {
-	const result = renderedCodeTokens.value.length == 0
-	codeDebug('computed-shouldUseOriginCode', result ? 'origin' : 'highlighted')
-	return result
-})
-
-function escapeCodeHtml(text: string): string {
-	codeDebug('function-escapeCodeHtml', 'length=' + text.length.toString())
-	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-}
-
-function codeNodeHtml(node: UTSJSONObject): string {
-	codeDebug('function-codeNodeHtml')
-	const type = node['type'] as string | null
-	if (type == 'text') return escapeCodeHtml((node['text'] as string | null) ?? '')
-	const name = node['name'] as string | null
-	if (name == 'br') return '<br/>'
-	if (name == null) return ''
-	const attrs = node['attrs'] as UTSJSONObject | null
-	let html = '<' + name
-	if (attrs != null) {
-		const style = attrs['style'] as string | null
-		if (style != null) html += ' style="' + escapeCodeHtml(style) + '"'
-	}
-	html += '>'
-	const children = node['children'] as UTSJSONObject[] | null
-	if (children != null) for (let i = 0; i < children.length; i++) html += codeNodeHtml(children[i])
-	return html + '</' + name + '>'
-}
-
-const codeRichNodes = computed<UTSJSONObject[]>(() => {
-	const startedAt = Date.now()
-	const token: IToken = { type: 'code_block', lang: props.language, text: displayCodeText.value, codeTokens: renderedCodeTokens.value }
-	const nodes = markdownCodeTokenToRichTextNodes(token)
-	codeDebug('computed-codeRichNodes', 'nodes=' + nodes.length.toString())
-	measureCodePerformance('codeRichNodes', startedAt, codeIdentity.value)
-	return nodes
-})
-
-const codeRichHtml = computed<string>(() => {
-	const startedAt = Date.now()
-	if (props.isClose == 1 && (props.cachedRichHtml ?? '').length > 0) {
-		codeDebug('cache-hit-codeRichHtml', 'length=' + (props.cachedRichHtml ?? '').length.toString())
-		return props.cachedRichHtml ?? ''
-	}
-	const nodes = codeRichNodes.value
-	let html = ''
-	for (let i = 0; i < nodes.length; i++) html += codeNodeHtml(nodes[i])
-	codeDebug('computed-codeRichHtml', 'length=' + html.length.toString())
-	measureCodePerformance('codeRichHtml', startedAt, codeIdentity.value)
-	return html
-})
-
-const rawCodeLineCount = computed<number>(() => {
-	const result = normalizeCodeText(displayCodeText.value).split('\n').length
-	codeDebug('computed-rawCodeLineCount', 'lines=' + result.toString())
-	return result
-})
-
-const codeLinesStyle = computed<string>(() => {
-	const result = 'height:' + scrollViewHeight.value
-		+ ';font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;'
-	codeDebug('computed-codeLinesStyle')
-	return result
-})
-
-const codeRichTextStyle = computed<string>(() => {
-	const result = codeLinesStyle.value + ';color:#d1fae5;'
-	codeDebug('computed-codeRichTextStyle')
-	return result
-})
-
-function resetCodeIdentityState() {
-	codeDebug('function-resetCodeIdentityState')
-	codeHighlightRequestVersion += 1
-	highlightedCodeText.value = ''
-	highlightedCodeLanguage = ''
-	highlightedCodeTokens.value = [] as IToken[][]
-	requestedCodeText = ''
-	requestedCodeLanguage = ''
-	pendingCodeText = ''
-	pendingCodeLanguage = ''
-}
-
-// Android ListView 复用同一个组件实例时，必须把代码块身份作为状态边界。
-watch((): string => codeIdentity.value + '\u001f' + props.language + '\u001f' + props.isClose.toString() + '\u001f' + props.codeText, () => {
-	const nextIdentity = codeIdentity.value
-	codeDebug('identity-watch', 'next=' + nextIdentity)
-	const shouldReset = codeIdentityVersion.length > 0 && codeIdentityVersion != nextIdentity
-	codeIdentityVersion = nextIdentity
-	if (shouldReset) {
-		resetCodeIdentityState()
-	}
-	displayCodeText.value = props.codeText
-	highlightCode()
-}, { immediate: true })
-
-const scrollViewHeight = computed<string>(() => {
-	if (props.preparedHeight.length > 0) return props.preparedHeight
-	const rawLineCount = rawCodeLineCount.value
-	const result = `${Math.max(1, rawLineCount) * codeLineHeight + codeVerticalPadding}px`
-	codeDebug('computed-scrollViewHeight', result)
-	return result
-})
-
-const codeScrollViewStyle = computed<string>(() => {
-	const result = 'height:' + scrollViewHeight.value + ';background-color:#111827;'
-	codeDebug('computed-codeScrollViewStyle')
-	return result
-})
-
-const copyCode = () => {
-	codeDebug('copy')
+function copyCode() {
 	uni.setClipboardData({
 		data: props.codeText,
 		showToast: false,
-		success: () => {
-			utils.showCopySuccessToast()
-		},
-		fail: () => {
-			utils.showCopyFailureToast()
-		}
+		success: () => { utils.showCopySuccessToast() },
+		fail: () => { utils.showCopyFailureToast() }
 	})
 }
-
 </script>
 
 <style lang="scss" scoped>

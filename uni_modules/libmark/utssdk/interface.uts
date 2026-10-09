@@ -1,0 +1,20 @@
+export type LibmarkOp = {
+	op: number
+	kind: string
+	content: string
+	index: number
+	unchanged: boolean
+}
+
+export type LibmarkEvent = {
+	ops: LibmarkOp[]
+}
+
+export const OP_APPEND: number = 1
+export const OP_TAIL: number = 2
+export const OP_COMMIT: number = 3
+export const OP_RESET: number = 4
+
+export const KIND_HTML: string = 'html'
+export const KIND_DATA: string = 'data'
+export const KIND_AST: string = 'ast'

@@ -1,0 +1,56 @@
+<template>
+	<rich-text :disable-split-screen-render="true" class="uni-ai-libmark-html-block" :style="richTextStyle"
+		:nodes="nodes" mode="native" @itemclick="onItemClick"></rich-text>
+</template>
+
+<script lang="uts" setup>
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	import { prepareLibmarkHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
+	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
+	const emit = defineEmits<{ 'citation': [id: number], 'footnote': [href: string] }>()
+
+	type UniAiLibmarkHtmlProps = {
+		html?: string
+		isComplete?: boolean
+	}
+
+	const props = withDefaults(defineProps<UniAiLibmarkHtmlProps>(), {
+		html: '',
+		isComplete: false
+	})
+
+	// libmark 输出为裸 HTML，渲染前注入样式；节点变化才重新预处理
+	const nodes = computed<string>(() => {
+		if (props.html.length == 0) return ''
+		return prepareLibmarkHtml(props.html, props.isComplete)
+	})
+
+	const richTextStyle = computed<string>(() => {
+		const textColor = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
+		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
+		return 'width:100%;font-size:14px;line-height:20px;color:' + textColor
+			+ ';background-color:' + backgroundColor + ';'
+	})
+
+	function onItemClick(e: UniRichTextItemClickEvent) {
+		if (e.detail.href != null && e.detail.href!.length > 0) {
+			const href = e.detail.href!
+			if (href.startsWith('#uni-ai-footnote-')) { emit('footnote', href); return }
+			const id = citationNumber(href)
+			if (id > 0) emit('citation', id)
+			else openWebLink(href)
+			return
+		}
+		if (e.detail.src != null && e.detail.src!.length > 0) {
+			uni.previewImage({ urls: [e.detail.src!] as string[] })
+		}
+	}
+</script>
+
+<style lang="scss">
+	.uni-ai-libmark-html-block {
+		width: 100%;
+		margin: 2px 0;
+	}
+</style>

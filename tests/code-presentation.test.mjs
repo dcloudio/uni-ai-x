@@ -1,0 +1,123 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { loadUts } from './uts-loader.mjs';
+
+const ref = value => ({ value });
+const rich = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts', ['markdownCodeTokenToRichTextNodes']);
+const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
+const { LibmarkHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/libmark-html.uts', ['LibmarkHtmlStreamAdapter'], {
+  ...html, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
+});
+const converters = loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts',
+  ['libmarkHtmlBlocksToTextBlocks', 'markdownHtmlBlocksToTextBlocks']);
+
+function setup() {
+  const requests = [];
+  const diagrams = [];
+  const code = loadUts('uni_modules/uni-ai-x/sdk/code-presentation.uts', ['prepareCodeBlocks'], {
+    ...rich, requestCachedCodeText: (callback, messageId, key, text, language) => requests.push({ callback, messageId, key, text, language }),
+  });
+  const mermaid = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
+    ref, renderMermaidSvgForTheme: (text, theme, callback) => diagrams.push({ text, theme, callback }),
+  });
+  const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
+    ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
+      ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {},
+    });
+  const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
+    ['refreshMessagePresentation', 'readMessagePresentation', 'forgetMessagePresentation'], {
+      ref, shallowRef: ref, ...code, ...converters, mathWindowWidth: ref(412),
+      linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
+    });
+  return { ...code, ...store, ...legacy, requests, diagrams };
+}
+
+const op = (content, kind = 'html', index = 0) => ({ op: 3, content, kind, index, unchanged: false });
+const codeOp = text => op('<pre><code class="language-js">' + text + '</code></pre>');
+const finish = (request, error = null) => request.callback({
+  language: request.language, error,
+  lines: error == null ? [[{ text: request.text, className: 'keyword' }]] : [],
+});
+const codeBlock = text => ({
+  kind: 'code', key: 'code-0', text, language: 'js', isComplete: true, html: '',
+  codeTokens: [], columnWidths: [], rowTextWidths: [],
+});
+
+test('native snapshots expose code only after highlighted HTML is ready', () => {
+  const api = setup();
+  api.libmarkStreamApply('m', [codeOp('const value = 1;')]);
+  assert.equal(api.libmarkStreamGetBlocks('m').length, 0);
+  finish(api.requests[0]);
+  const block = api.libmarkStreamGetBlocks('m')[0];
+  assert.ok(block.codeRichHtml.includes('color:'));
+  assert.ok(block.codeRichHtml.includes('const'));
+  assert.equal(block.codeHeight, '38px');
+});
+
+test('newer native source and released messages reject delayed highlights', () => {
+  const api = setup();
+  api.libmarkStreamApply('m', [{ ...codeOp('old'), op: 2 }]);
+  api.libmarkStreamApply('m', [{ ...codeOp('new'), op: 2 }]);
+  finish(api.requests[1]);
+  finish(api.requests[0]);
+  assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
+  api.libmarkStreamApply('m', [{ ...codeOp('deleted'), op: 2 }]);
+  api.libmarkStreamRelease('m');
+  finish(api.requests[2]);
+  assert.equal(api.libmarkStreamGetBlocks('m').length, 0);
+});
+
+test('failed highlighting publishes escaped original code instead of blocking the snapshot', () => {
+  const api = setup();
+  const blocks = [codeBlock('<script>&value')];
+  let ready = false;
+  api.prepareCodeBlocks('m', blocks, () => { ready = true; });
+  finish(api.requests[0], 'unsupported');
+  assert.equal(ready, true);
+  assert.ok(blocks[0].codeRichHtml.includes('&lt;script&gt;&amp;value'));
+  assert.ok(!blocks[0].codeRichHtml.includes('<script>'));
+});
+
+test('legacy platforms prepare before publishing and reuse completed presentation', () => {
+  const api = setup();
+  const msg = { _id: 'm', body: '', markdownBlocks: JSON.stringify([codeBlock('old')]) };
+  api.refreshMessagePresentation(msg, 'light');
+  assert.equal(api.readMessagePresentation('m').length, 0);
+  msg.markdownBlocks = JSON.stringify([codeBlock('new')]);
+  api.refreshMessagePresentation(msg, 'light');
+  finish(api.requests[1]);
+  finish(api.requests[0]);
+  assert.equal(api.readMessagePresentation('m')[0].text, 'new');
+  api.refreshMessagePresentation(msg, 'dark');
+  assert.equal(api.requests.length, 2);
+});
+
+test('historical native code can finish asynchronous preparation without triggering another rebuild', () => {
+  const api = setup();
+  assert.equal(api.libmarkStreamRequestRebuild('m', 'code'), true);
+  assert.equal(api.libmarkStreamApplyRebuild('m', [codeOp('history')]), true);
+  assert.equal(api.libmarkStreamRequestRebuild('m', 'code'), false);
+  finish(api.requests[0]);
+  assert.ok(api.libmarkStreamGetBlocks('m')[0].codeRichHtml.length > 0);
+});
+
+test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid presentation', () => {
+  const api = setup();
+  const svg = '<svg width="100" height="50"><text>A</text></svg>';
+  api.libmarkStreamApply('m', [op(JSON.stringify({ type: 'mermaid', source: 'graph TD; A-->B', svg }), 'data')]);
+  assert.ok(api.libmarkStreamGetBlocks('m')[0].mermaidImageSource.startsWith('data:'));
+  assert.equal(api.diagrams.length, 0);
+  api.libmarkStreamApply('g', [op(JSON.stringify({ type: 'mermaid', source: 'gantt\n title Plan' }), 'data')]);
+  assert.equal(api.diagrams.length, 1);
+  api.diagrams[0].callback({ imageSource: '/gantt.svg' });
+  assert.equal(api.libmarkStreamGetBlocks('g')[0].mermaidImageSource, '/gantt.svg');
+});
+
+test('code view only displays prepared HTML and Mermaid retains its original source inset', () => {
+  const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
+  assert.match(source, /:nodes="cachedRichHtml"/);
+  const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
+  assert.match(mermaid, /margin-left: 15px/);
+});

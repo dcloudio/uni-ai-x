@@ -5,8 +5,10 @@ import { MarkdownTextRenderBlock, markdownHtmlBlocksToTextBlocks } from './markd
 import { mathWindowWidth } from './math-presentation.uts'
 import { linkSearchCitations } from './search-citations.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
+import { prepareCodeBlocks } from './code-presentation.uts'
 
 class MessagePresentation {
+	preparationVersion = 0
 	json = ''
 	searchJson = ''
 	footnoteBody = ''
@@ -90,21 +92,25 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 		byKey.set(key, prepared)
 	}
 	const previousBlocks = cache.blocks.value
-	let layoutChanged = previousBlocks.length != next.length
-	if (!layoutChanged) for (let i = 0; i < next.length; i++) {
-		if (!sameBlockLayout(previousBlocks[i], next[i])) { layoutChanged = true; break }
-	}
-	let changed = previousBlocks.length != next.length
-	if (!changed) for (let i = 0; i < next.length; i++) {
-		if (previousBlocks[i] != next[i]) { changed = true; break }
-	}
+	const preparationVersion = ++cache.preparationVersion
 	cache.json = json
 	cache.searchJson = searchJson
 	cache.footnoteBody = footnoteBody
 	cache.theme = theme
 	cache.width = mathWindowWidth.value
-	cache.sources = sources
-	cache.byKey = byKey
-	if (changed) cache.blocks.value = next
-	if (layoutChanged) cache.layoutRevision.value += 1
+	prepareCodeBlocks(msg._id, next, (preparedBlocks: MarkdownTextRenderBlock[]) => {
+		if (messages.get(msg._id) != cache || cache.preparationVersion != preparationVersion) return
+		let layoutChanged = previousBlocks.length != next.length
+		if (!layoutChanged) for (let i = 0; i < next.length; i++) {
+			if (!sameBlockLayout(previousBlocks[i], next[i])) { layoutChanged = true; break }
+		}
+		let changed = previousBlocks.length != next.length
+		if (!changed) for (let i = 0; i < next.length; i++) {
+			if (previousBlocks[i] != next[i]) { changed = true; break }
+		}
+		cache.sources = sources
+		cache.byKey = byKey
+		if (changed) cache.blocks.value = preparedBlocks
+		if (layoutChanged) cache.layoutRevision.value += 1
+	})
 }

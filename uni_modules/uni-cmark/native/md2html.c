@@ -9,9 +9,6 @@
 #include "cmark-gfm-extension_api.h"
 #include "cmark-gfm.h"
 
-#if defined(__ANDROID__) && !defined(UNI_CMARK_NO_JNI)
-#include <jni.h>
-#endif
 
 static const int UNI_CMARK_OPTIONS = CMARK_OPT_VALIDATE_UTF8 |
                                      CMARK_OPT_TABLE_PREFER_STYLE_ATTRIBUTES |
@@ -373,76 +370,3 @@ void uni_cmark_free_json(char *json) {
     cmark_get_default_mem_allocator()->free(json);
   }
 }
-
-#if defined(__ANDROID__) && !defined(UNI_CMARK_NO_JNI)
-static void throw_conversion_error(JNIEnv *env, const char *message) {
-  jclass exception_class = (*env)->FindClass(env, "java/lang/IllegalStateException");
-  if (exception_class != NULL) {
-    (*env)->ThrowNew(env, exception_class, message);
-  }
-}
-
-static jbyteArray markdown_bytes_to_result(JNIEnv *env, jbyteArray markdown_utf8,
-                                           int to_html) {
-  if (markdown_utf8 == NULL) {
-    throw_conversion_error(env, "Markdown input must not be null");
-    return NULL;
-  }
-
-  const jsize markdown_length = (*env)->GetArrayLength(env, markdown_utf8);
-  jbyte *markdown = (*env)->GetByteArrayElements(env, markdown_utf8, NULL);
-  if (markdown == NULL) {
-    return NULL;
-  }
-
-  size_t result_length = 0;
-  char *result = to_html
-                     ? uni_cmark_markdown_to_html(
-                           (const uint8_t *)markdown, (size_t)markdown_length,
-                           &result_length)
-                     : uni_cmark_markdown_to_json(
-                           (const uint8_t *)markdown, (size_t)markdown_length,
-                           &result_length);
-  (*env)->ReleaseByteArrayElements(env, markdown_utf8, markdown, JNI_ABORT);
-  if (result == NULL) {
-    throw_conversion_error(env, to_html ? "Failed to convert Markdown to HTML"
-                                        : "Failed to convert Markdown to JSON");
-    return NULL;
-  }
-  if (result_length > (size_t)INT32_MAX) {
-    if (to_html) {
-      uni_cmark_free_html(result);
-    } else {
-      uni_cmark_free_json(result);
-    }
-    throw_conversion_error(env, "Generated output is too large");
-    return NULL;
-  }
-
-  jbyteArray output = (*env)->NewByteArray(env, (jsize)result_length);
-  if (output != NULL && result_length > 0) {
-    (*env)->SetByteArrayRegion(env, output, 0, (jsize)result_length,
-                              (const jbyte *)result);
-  }
-  if (to_html) {
-    uni_cmark_free_html(result);
-  } else {
-    uni_cmark_free_json(result);
-  }
-  return output;
-}
-
-JNIEXPORT jbyteArray JNICALL
-Java_com_dcloud_cmark_MainActivity_md2htmlUtf8(JNIEnv *env, jobject instance,
-                                               jbyteArray markdown_utf8) {
-  (void)instance;
-  return markdown_bytes_to_result(env, markdown_utf8, 1);
-}
-
-JNIEXPORT jbyteArray JNICALL
-Java_com_dcloud_cmark_MainActivity_md2jsonUtf8(JNIEnv *env, jobject instance,
-                                               jbyteArray markdown_utf8) {
-  (void)instance;
-  return markdown_bytes_to_result(env, markdown_utf8, 0);
-}
-#endif

@@ -61,4 +61,4 @@ web pc端：
 
 ## 声明
 本项目依赖以下作品
-1. 代码块的字体为 [FiraCode-Regular](https://github.com/tonsky/FiraCode)
+1. 代码块使用系统等宽字体，不额外打包字体文件。

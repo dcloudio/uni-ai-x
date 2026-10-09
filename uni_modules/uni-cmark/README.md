@@ -1,7 +1,7 @@
 # uni-cmark
 
 `uni-cmark` 使用固定版本的 cmark-gfm 内核将 Markdown 直接转换为 HTML 或结构化
-JSON AST，支持 uni-app x 的 Android、iOS、Web、微信小程序和鸿蒙平台。
+JSON AST，支持 uni-app x 的 iOS、Web 和微信小程序。Android、鸿蒙改用 libmark。
 
 ```uts
 import {
@@ -40,9 +40,7 @@ if (isMd2htmlAvailable()) {
 所有支持的平台统一使用 cmark-gfm `0.29.0.gfm.13`、相同的 `md2html.c`、扩展和安全
 选项，`md2html` 与 `md2json` 复用同一次解析管线。
 
-- Android 加载 `libcmarkhtml.so`。
 - iOS 通过原生 UTS 桥接加载 `scopeparser4ios.xcframework`。
-- 鸿蒙加载 `cmark.har` 中的原生 N-API 库。
 - Web 在 Markdown Worker 中加载单文件 ESM/WASM 模块。
 - 微信小程序使用同一套 Worker 协议，通过 `WXWebAssembly` 加载独立 WASM 模块。
 
@@ -52,7 +50,6 @@ if (isMd2htmlAvailable()) {
 . /path/to/emsdk_env.sh
 ./native/build-web.sh
 ./native/build-mp-weixin.sh
-./native/build-harmony.sh
 ./native/build-ios.sh
 ```
 
@@ -60,3 +57,13 @@ if (isMd2htmlAvailable()) {
 Worker 加载不依赖部署路径或仅限 Web 的 `uni` API。由于
 `WXWebAssembly.instantiate` 需要加载小程序资源路径，微信小程序产物保留为独立的
 WASM 文件。
+
+## 本地调整记录（2026-09-23）
+
+本项目 Android/鸿蒙平台的 Markdown 解析已切换为 libmark 流式解析，因此移除本插件对
+Android/鸿蒙的 cmark 支持：
+
+- 删除 Android 运行时实现 `utssdk/app-android/`（含 `libcmarkhtml.so` 与 Kotlin 桥）及构建脚本 `native/build-android.sh`
+- 删除鸿蒙运行时实现中的 `cmark.har` 与 N-API 桥（`native/harmony/`、`native/build-harmony.sh`）；`utssdk/app-harmony/index.uts` 保留为最小工程占位（不加载 cmark，接口标记不可用）
+- 删除 Android JNI 桥和专属链接配置；`native/CMakeLists.txt` 仍用于 iOS、Web、小程序及主机测试
+- iOS、Web、微信小程序的支持与构建脚本保持不变

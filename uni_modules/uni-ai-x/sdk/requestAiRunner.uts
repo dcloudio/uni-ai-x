@@ -16,15 +16,23 @@ import {
 	completeAiWorkerMarkdown,
 	destroyAiWorkerRuntime,
 	readAiWorkerSnapshot,
+	setAiWorkerDataListener,
 	startAiWorkerMarkdown,
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
+// #ifdef APP-HARMONY || APP-ANDROID
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
 export type RequestAiRunnerCallbacks = {
 	onSearch?: (search: MessageSearch) => void,
 	onMarkdownHtml: (html: string) => void,
 	onMarkdownBlocks: (blocks: string) => void,
+	// #ifdef APP-HARMONY || APP-ANDROID
+	onMarkdownAstDelta?: (ops: AiWorkerOp[]) => void,
+	// #endif
 	onThinkContent: (thinkContent: string) => void,
 	onMsgBody: (msgBody: string) => void,
 	onState: (state: string) => void,
@@ -73,7 +81,7 @@ function supportsThinking(llm: Llm): boolean {
 function buildThinkingParam(llm: Llm, thinkingOverride: boolean | null = null): UTSJSONObject | null {
 	if (!supportsThinking(llm)) return null
 	const enabled = thinkingOverride ?? llm.thinking ?? true
-	return { type: enabled ? 'enabled' : 'disabled' } as UTSJSONObject
+	return { type: enabled ? 'enabled' : 'disabled' }
 }
 
 function readSnapshotString(snapshot: UTSJSONObject, key: string, defaultValue: string = ''): string {
@@ -169,6 +177,8 @@ class RequestAiRunner {
 		}
 
 	};
+
+
 	resetRequestState() {
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
@@ -217,7 +227,7 @@ class RequestAiRunner {
 		this.handleRequestError({
 			errCode: 'markdown_html_unsupported',
 			errMsg: '当前平台未启用 Markdown HTML Worker'
-		} as UTSJSONObject)
+		})
 	}
 	start(options: RequestAiStartOptions) {
 		this.requestAi(options.messages, options.llm, options.chat_id, options.updateTitleAfterDone ?? false)
@@ -235,7 +245,7 @@ class RequestAiRunner {
 		this.handleRequestError({
 			errCode: 'markdown_html_unsupported',
 			errMsg: '当前平台未启用 Markdown HTML Worker'
-		} as UTSJSONObject)
+		})
 		return
 		// #endif
 		// #endif
@@ -259,7 +269,7 @@ class RequestAiRunner {
 		const searchURL = providerConfig?.webSearchURL ?? ''
 		const query = lastUserQuestionText(messages)
 		let requestMessages = messages
-		this.activeSearch = { status: 'searching', query: query, sources: [] as SearchSource[], error: '' } as MessageSearch
+		this.activeSearch = { status: 'searching', query: query, sources: [] as SearchSource[], error: '' }
 		this.callbacks?.onSearch?.(this.activeSearch!)
 		if (searchURL.length > 0 && query.length > 0) {
 			try {
@@ -268,16 +278,16 @@ class RequestAiRunner {
 				const rawResults = await webSearch(query, token, searchURL, 8, (task: RequestTask) => { this.searchTask = task })
 				if (this.userAbort || version != this.searchVersion) return
 				const results = normalizeSearchSources(rawResults)
-				this.activeSearch = { status: results.length > 0 ? 'complete' : 'empty', query: query, sources: results, error: '' } as MessageSearch
+				this.activeSearch = { status: results.length > 0 ? 'complete' : 'empty', query: query, sources: results, error: '' }
 				this.callbacks?.onSearch?.(this.activeSearch!)
 				requestMessages = injectWebSearchContext(messages, buildWebSearchContext(results))
 			} catch (error) {
 				if (this.userAbort || version != this.searchVersion) return
-				this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '联网搜索失败，将直接回答' } as MessageSearch
+				this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '联网搜索失败，将直接回答' }
 				this.callbacks?.onSearch?.(this.activeSearch!)
 			}
 		} else {
-			this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '当前模型未配置搜索，将直接回答' } as MessageSearch
+			this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '当前模型未配置搜索，将直接回答' }
 			this.callbacks?.onSearch?.(this.activeSearch!)
 		}
 		this.searchTask = null
@@ -307,7 +317,7 @@ class RequestAiRunner {
 				this.onChunkFn(chunkObj)
 			},
 			onError: (errRes) => {
-				this.handleRequestError(errRes as UTSJSONObject)
+				this.handleRequestError(errRes)
 			},
 			onDone: () => {
 				this.finishRequest()
@@ -335,11 +345,11 @@ class RequestAiRunner {
 			const config = this.getProviderConfig(llm.provider, requestOptions)
 			const tmpToken = await this.requestProviderToken(config, requestOptions)
 			if (this.userAbort || requestVersion != this.workerRequestVersion) return
-			const body = {
+			const body: UTSJSONObject = {
 				messages: messages,
 				stream: true,
 				model: llm.model
-			} as UTSJSONObject
+			}
 			const thinkingParam = buildThinkingParam(llm)
 			if (thinkingParam != null) {
 				body['thinking'] = thinkingParam
@@ -356,9 +366,9 @@ class RequestAiRunner {
 				renderInterval: MARKDOWN_RENDER_INTERVAL,
 				timeout: 90000
 			})
-			this.workerPollTimer = setInterval(() => {
+			setAiWorkerDataListener(() => {
 				this.pollWorkerSnapshot(requestVersion)
-			}, 50)
+			})
 		} catch (_error) {
 			// getProviderConfig/requestProviderToken 已通过 requestOptions.onError 上报。
 		}
@@ -368,6 +378,14 @@ class RequestAiRunner {
 	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private pollWorkerSnapshot(requestVersion: number) {
 		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
+		// #ifdef APP-HARMONY || APP-ANDROID
+		const ops = takeAiWorkerOps()
+		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
+		this.pollLibmarkState(requestVersion)
+		return
+		// #endif
+		// #ifndef APP-HARMONY
+		// #ifndef APP-ANDROID
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -391,7 +409,7 @@ class RequestAiRunner {
 				receivedBytes: readSnapshotNumber(snapshot, 'receivedBytes'),
 				elapsed: readSnapshotNumber(snapshot, 'elapsed'),
 				errCode: readSnapshotString(snapshot, 'errCode', 'worker_error')
-			} as UTSJSONObject))
+			}))
 			this.handleWorkerSnapshotError(
 				readSnapshotString(snapshot, 'errCode', 'worker_error'),
 				readSnapshotString(snapshot, 'errMsg', 'Worker 请求失败')
@@ -421,9 +439,9 @@ class RequestAiRunner {
 				htmlLength: readSnapshotNumber(snapshot, 'htmlLength'),
 				terminalSource: readSnapshotString(snapshot, 'terminalSource'),
 				elapsed: readSnapshotNumber(snapshot, 'elapsed')
-			} as UTSJSONObject))
-			this.stopWorkerRuntime(false)
-		}
+			}))
+		this.stopWorkerRuntime(false)
+	}
 		this.callbacks?.onMarkdownBlocks(readSnapshotString(snapshot, 'blocks', '[]'))
 		this.callbacks?.onMarkdownHtml(readSnapshotString(snapshot, 'html'))
 		if (isDone) {
@@ -432,20 +450,72 @@ class RequestAiRunner {
 			this.callbacks?.onRendered(true)
 			this.updateChatTitleAfterDone()
 		}
+		// #endif
+		// #endif
 	}
+
+	// #ifdef APP-HARMONY || APP-ANDROID
+	private pollLibmarkState(requestVersion: number): void {
+		const state = readAiWorkerState()
+		if (state == null) return
+		if (readSnapshotNumber(state, 'requestVersion') != requestVersion) return
+		const phase = readSnapshotString(state, 'phase')
+		const snapshotVersion = readSnapshotNumber(state, 'snapshotVersion')
+		if (phase != 'error' && snapshotVersion <= this.workerSnapshotVersion) return
+		if (snapshotVersion > this.workerSnapshotVersion) this.workerSnapshotVersion = snapshotVersion
+		if (phase == 'error') {
+			console.log('[uni-ai-x][AI Worker] error', JSON.stringify({
+				requestVersion: requestVersion,
+				snapshotVersion: snapshotVersion,
+				eventCount: readSnapshotNumber(state, 'eventCount'),
+				networkChunkCount: readSnapshotNumber(state, 'networkChunkCount'),
+				receivedBytes: readSnapshotNumber(state, 'receivedBytes'),
+				elapsed: readSnapshotNumber(state, 'elapsed'),
+				errCode: readSnapshotString(state, 'errCode', 'worker_error')
+			}))
+			this.handleWorkerSnapshotError(
+				readSnapshotString(state, 'errCode', 'worker_error'),
+				readSnapshotString(state, 'errMsg', 'Worker 请求失败')
+			)
+			return
+		}
+		if (phase != 'snapshot' && phase != 'complete') return
+		this.msgBody = readSnapshotString(state, 'msgBody', this.msgBody)
+		this.thinkContent = readSnapshotString(state, 'thinkContent', this.thinkContent)
+		this.emitMsgBody(true)
+		this.callbacks?.onThinkContent(this.thinkContent)
+		if (phase != 'complete') return
+		console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
+			requestVersion: requestVersion,
+			snapshotVersion: snapshotVersion,
+			eventCount: readSnapshotNumber(state, 'eventCount'),
+			networkChunkCount: readSnapshotNumber(state, 'networkChunkCount'),
+			receivedBytes: readSnapshotNumber(state, 'receivedBytes'),
+			elapsed: readSnapshotNumber(state, 'elapsed')
+		}))
+		this.stopWorkerRuntime(false)
+		this.currentChatState = 'completed'
+		this.callbacks?.onState('completed')
+		this.callbacks?.onRendered(true)
+		this.updateChatTitleAfterDone()
+	}
+	// #endif
 
 	private handleWorkerSnapshotError(errCode: string, errMsg: string) {
 		this.stopWorkerRuntime(false)
 		this.handleRequestError({
 			errCode: errCode,
 			errMsg: errMsg
-		} as UTSJSONObject)
+		})
 	}
 	// #endif
 
 	private stopWorkerRuntime(cancelRequest: boolean) {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
+		// #ifndef MP-WEIXIN
+		setAiWorkerDataListener(null)
+		// #endif
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
 		destroyAiWorkerRuntime()
@@ -463,9 +533,16 @@ class RequestAiRunner {
 			requestVersion: requestVersion,
 			renderInterval: MARKDOWN_RENDER_INTERVAL
 		})
+		// #ifdef MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {
 			this.pollWorkerSnapshot(requestVersion)
 		}, 50)
+		// #endif
+		// #ifndef MP-WEIXIN
+		setAiWorkerDataListener(() => {
+			this.pollWorkerSnapshot(requestVersion)
+		})
+		// #endif
 	}
 	// #endif
 
@@ -477,7 +554,7 @@ class RequestAiRunner {
 				errMsg: '自定义提供商适配器未注册: ' + options.llm.provider
 			}
 			options.onError?.(errInfo)
-			return {} as UTSJSONObject
+			return {}
 		}
 
 		// 适配器会先通过 onError 回调上报具体错误，这里记录上报状态，
@@ -504,7 +581,7 @@ class RequestAiRunner {
 				}
 				options.onError?.(errInfo)
 			}
-			return {} as UTSJSONObject
+			return {}
 		}
 		if (!success) {
 			if (!errorReported) {
@@ -514,9 +591,9 @@ class RequestAiRunner {
 				}
 				options.onError?.(errInfo)
 			}
-			return {} as UTSJSONObject
+			return {}
 		}
-		return {} as UTSJSONObject
+		return {}
 	}
 	async requestAiServer(options : RequestAiServerOptions) : Promise<UTSJSONObject> {
 		let resolveFn = (_ : UTSJSONObject) : void => { }, rejectFn = resolveFn;
@@ -527,11 +604,11 @@ class RequestAiRunner {
 
 		const config = this.getProviderConfig(options.llm.provider, options)
 		const tmpToken = await this.requestProviderToken(config, options)
-		const requestData = {
+		const requestData: UTSJSONObject = {
 			messages: options.messages,
 			stream: options.stream ?? true,
 			model: options.llm.model
-		} as UTSJSONObject
+		}
 		const thinkingParam = buildThinkingParam(options.llm, options.thinkingOverride ?? null)
 		if (thinkingParam != null) {
 			requestData['thinking'] = thinkingParam
@@ -565,8 +642,8 @@ class RequestAiRunner {
 			this.bindStreamChunks(requestTask, options, rejectFn)
 		}
 		return new Promise<UTSJSONObject>((resolve, reject) => {
-			resolveFn = (data : UTSJSONObject) => { resolve(data as UTSJSONObject) }
-			rejectFn = (data : UTSJSONObject) => { reject(data as UTSJSONObject) }
+			resolveFn = (data : UTSJSONObject) => { resolve(data) }
+			rejectFn = (data : UTSJSONObject) => { reject(data) }
 		})
 	}
 	getProviderConfig(provider: string, options: RequestAiServerOptions): Provider {
@@ -598,7 +675,7 @@ class RequestAiRunner {
 			const strData = typeof res.data == 'string' ? res.data : JSON.stringify(res.data)
 			const chunkObj : Chunk = (JSON.parse<Chunk>(strData) ?? {}) as Chunk
 			options.onSuccess?.(chunkObj)
-			resolveFn({} as UTSJSONObject)
+			resolveFn({})
 			return
 		}
 		if (res.data instanceof UTSJSONObject) {
@@ -624,13 +701,13 @@ class RequestAiRunner {
 			}
 		}
 		this.finishStreamRequest(options)
-		resolveFn({} as UTSJSONObject)
+		resolveFn({})
 	}
 	finishStreamRequest(options: RequestAiServerOptions) {
 		const parser = this.streamParser
 		this.streamParser = null
 		if (parser != null) parser.finish()
-		options.onDone?.({} as UTSJSONObject)
+		options.onDone?.({})
 	}
 	bindStreamChunks(requestTask: RequestTask, options: RequestAiServerOptions, rejectFn: RequestPromiseFn) {
 		const parser = new SseStreamParser(
@@ -644,7 +721,7 @@ class RequestAiRunner {
 				rejectFn(err)
 			},
 			() => {
-				options.onDone?.({} as UTSJSONObject)
+				options.onDone?.({})
 			}
 		)
 		this.streamParser = parser
@@ -706,7 +783,7 @@ class RequestAiRunner {
 		this.searchTask?.abort()
 		this.searchTask = null
 		if (this.activeSearch?.status == 'searching') {
-			this.callbacks?.onSearch?.({ status: 'cancelled', query: this.activeSearch!.query, sources: [] as SearchSource[], error: '' } as MessageSearch)
+			this.callbacks?.onSearch?.({ status: 'cancelled', query: this.activeSearch!.query, sources: [] as SearchSource[], error: '' })
 		}
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0

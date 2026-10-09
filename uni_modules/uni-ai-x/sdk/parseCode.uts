@@ -26,7 +26,13 @@ import xslGrammar from '@/uni_modules/uni-highlight/static/grammar/xsl.tmLanguag
 // Import all grammar files - end
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
-import { CreateHighLighter, HighLighterOptions, ILineTokens } from "@/uni_modules/uni-highlight"
+// #ifdef APP
+import { CreateHighLighter } from "@/uni_modules/uni-highlight"
+// #endif
+// #ifndef APP
+import { createHighLighter } from "@/uni_modules/uni-highlight"
+// #endif
+import { CreateHighLighterRes, ILineTokens } from '@/uni_modules/uni-highlight/utssdk/interface.uts'
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 export { MarkdownToken }
@@ -40,7 +46,13 @@ type TmlFile = {
 	scopeName : string,
 	path : string
 }
+// #ifdef APP
 let uniCodeHighlighter = null as CreateHighLighter | null
+// #endif
+// #ifndef APP
+let uniCodeHighlighter = null as CreateHighLighterRes | null
+let highlighterInitialization = null as Promise<CreateHighLighterRes> | null
+// #endif
 const completedCodeCache = new Map<string, MarkdownToken[][]>()
 const pendingCodeCache = new Map<string, ParseCodeTextCallBack[]>()
 const codeCacheOrder = [] as string[]
@@ -48,7 +60,7 @@ const maxCodeCacheEntries = 256
 
 function cloneCodeTokens(lines: MarkdownToken[][]): MarkdownToken[][] {
 	return lines.map((line: MarkdownToken[]): MarkdownToken[] => line.map((token: MarkdownToken): MarkdownToken => {
-		return { type: token.type, text: token.text, className: token.className } as MarkdownToken
+		return { type: token.type, text: token.text, className: token.className }
 	}))
 }
 
@@ -76,7 +88,7 @@ export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId
 	const key = makeCodeHighlightCacheKey(messageId, blockKey, normalizedLanguage, codeText)
 	const cached = completedCodeCache.get(key)
 	if (cached != null) {
-		callback({ lines: cloneCodeTokens(cached), language: normalizedLanguage, error: null } as ParseCodeTextRes)
+		callback({ lines: cloneCodeTokens(cached), language: normalizedLanguage, error: null })
 		return true
 	}
 	const pending = pendingCodeCache.get(key)
@@ -91,7 +103,7 @@ export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId
 		pendingCodeCache.delete(key)
 		callbacks.forEach((item: ParseCodeTextCallBack) => item({
 			lines: cloneCodeTokens(result.lines), language: result.language, error: result.error
-		} as ParseCodeTextRes))
+		}))
 	}, codeText, normalizedLanguage)
 	return false
 }
@@ -126,7 +138,7 @@ function getTmlFile(filePaths: TmlFile[]) {
 	return res
 }
 
-function initUniCodeHighlighter(callBack: () => void){
+function initUniCodeHighlighter(callBack: () => void, onError: (message: string) => void){
 	if (uniCodeHighlighter == null) {
 		// #ifndef APP-ANDROID || APP-HARMONY
 		// 根据 grammarList 生成tmls
@@ -164,8 +176,20 @@ function initUniCodeHighlighter(callBack: () => void){
 		})
 		const tmls = getTmlFile(tmlsList)
 		// #endif
-		uniCodeHighlighter = new CreateHighLighter({ languages: tmls } as HighLighterOptions)
+		// #ifdef APP
+		uniCodeHighlighter = new CreateHighLighter({ languages: tmls })
 		callBack()
+		// #endif
+		// #ifndef APP
+		if (highlighterInitialization == null) highlighterInitialization = createHighLighter({ languages: tmls })
+		highlighterInitialization!.then((highlighter) => {
+			uniCodeHighlighter = highlighter
+			callBack()
+		}).catch((error: any) => {
+			highlighterInitialization = null
+			onError(error.message ?? '代码高亮初始化失败')
+		})
+		// #endif
 	} else {
 		callBack()
 	}
@@ -218,12 +242,15 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 					})
 				});
 			}).catch((error: any) => {
-				const res = { lines: [], language: language, error: error.message } as ParseCodeTextRes
+				const res: ParseCodeTextRes = { lines: [], language: language, error: error.message }
 				utils.runOnDispatcher('main', () => {
 					parseCodeTextCallBack(res)
 					measureCodePerformance('parseCodeText', startedAt, language)
 				})
 			})
+		}, (message: string) => {
+			parseCodeTextCallBack({ lines: [], language: language, error: message })
+			measureCodePerformance('parseCodeText', startedAt, language)
 		})
 	} catch (error) {
 		const res: ParseCodeTextRes = {

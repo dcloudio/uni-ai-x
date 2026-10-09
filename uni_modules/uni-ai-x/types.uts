@@ -113,6 +113,8 @@ export type MsgItem = {
 	markdownHtml?: string
 	markdownBlocks?: string
 	search?: MessageSearch
+	markdownAst?: string
+	libmarkRevision?: number
 	stressSvgSource?: string
 	stressSvgWidth?: number
 	stressSvgHeight?: number

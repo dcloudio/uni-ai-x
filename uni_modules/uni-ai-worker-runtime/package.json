@@ -18,7 +18,8 @@
   "uni_modules": {
     "dependencies": [
       "uni-ai-worker",
-      "uni-cmark"
+      "uni-cmark",
+      "libmark"
     ]
   }
 }

@@ -1,5 +1,10 @@
 import {
+	AiWorkerDataListener,
 	AiWorkerMarkdownStartOptions,
+	AiWorkerOp,
+	AiWorkerRebuildListener,
+	AiWorkerRebuildRequest,
+	AiWorkerRebuildResult,
 	AiWorkerStartOptions,
 	AppendAiWorkerMarkdown,
 	CancelAiWorkerRequest,
@@ -7,9 +12,48 @@ import {
 	CreateAiWorkerRuntime,
 	DestroyAiWorkerRuntime,
 	ReadAiWorkerSnapshot,
+	ReadAiWorkerState,
+	RequestAiWorkerMarkdownRebuild,
+	SetAiWorkerDataListener,
+	SetAiWorkerRebuildListener,
 	StartAiWorkerMarkdown,
 	StartAiWorkerRequest
 } from './interface.uts'
+
+// #ifdef APP-HARMONY
+import {
+	AiWorkerState,
+	LibmarkChunk,
+	LibmarkOpBatch,
+	LibmarkOpEntry,
+	batchCount,
+	batchOp,
+	batchRequestVersion,
+	createOpBatch
+} from './app-harmony/sendable.ets'
+
+export {
+	AiWorkerState,
+	LibmarkChunk,
+	LibmarkOpBatch,
+	LibmarkOpEntry,
+	createOpBatch
+}
+
+type SendablePostMessageOptions = {
+	harmonySendable?: boolean
+	transfer?: any[]
+}
+// #endif
+
+// #ifdef APP-HARMONY || APP-ANDROID
+let pendingLibmarkOps = [] as AiWorkerOp[]
+let latestLibmarkState: UTSJSONObject | null = null
+// Worker 未就绪时排队的重建请求、待监听器消费的重建结果
+let pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
+let pendingRebuildResults = [] as AiWorkerRebuildResult[]
+let rebuildListener: AiWorkerRebuildListener | null = null
+// #endif
 
 // #ifdef MP-WEIXIN
 import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk/mp-weixin/index.uts'
@@ -34,10 +78,30 @@ let pendingMarkdownComplete = false
 let latestSnapshotJson = ''
 let currentRequestVersion = 0
 let runtimeGeneration = 0
+let dataListener: AiWorkerDataListener | null = null
 
 function readMessageString(message: UTSJSONObject, key: string, defaultValue: string = ''): string {
 	const value = message[key] as string | null
 	return value == null ? defaultValue : value as string
+}
+
+function readMessageNumber(message: UTSJSONObject, key: string, defaultValue: number = 0): number {
+	const value = message[key] as number | null
+	return value == null ? defaultValue : value as number
+}
+
+function readMessageBoolean(message: UTSJSONObject, key: string, defaultValue: boolean = false): boolean {
+	const value = message[key] as boolean | null
+	return value == null ? defaultValue : value as boolean
+}
+
+function notifyDataListener(): void {
+	const listener = dataListener
+	if (listener == null) return
+	try {
+		listener()
+	} catch (_error) {
+	}
 }
 
 function postStart(options: AiWorkerStartOptions): void {
@@ -58,12 +122,16 @@ function postStart(options: AiWorkerStartOptions): void {
 
 function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	if (worker == null || !workerReady) return
+	// #ifdef APP-HARMONY || APP-ANDROID
+	pendingLibmarkOps = [] as AiWorkerOp[]
+	latestLibmarkState = null
+	// #endif
 	worker!.postMessage({
 		action: 'start-markdown',
 		renderProtocolVersion: WORKER_RENDER_PROTOCOL_VERSION,
 		requestVersion: options.requestVersion,
 		renderInterval: options.renderInterval ?? 300
-	} as UTSJSONObject, null)
+	}, null)
 	if (pendingMarkdownContent.length > 0 || pendingMarkdownReasoning.length > 0) {
 		postMarkdownChunk(options.requestVersion, pendingMarkdownContent, pendingMarkdownReasoning)
 		pendingMarkdownContent = ''
@@ -76,20 +144,124 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 }
 
 function postMarkdownChunk(requestVersion: number, content: string, reasoningContent: string): void {
+	// #ifdef APP-HARMONY
+	const chunk = new LibmarkChunk()
+	chunk.requestVersion = requestVersion
+	chunk.content = content
+	chunk.reasoningContent = reasoningContent
+	worker?.postMessage(chunk, { harmonySendable: true })
+	return
+	// #endif
 	worker?.postMessage({
 		action: 'append-markdown',
 		requestVersion: requestVersion,
 		content: content,
 		reasoningContent: reasoningContent
-	} as UTSJSONObject, null)
+	}, null)
 }
 
 function postMarkdownComplete(requestVersion: number): void {
 	worker?.postMessage({
 		action: 'complete-markdown',
 		requestVersion: requestVersion
-	} as UTSJSONObject, null)
+	}, null)
 }
+
+// #ifdef APP-HARMONY
+function receiveLibmarkOpBatch(batch: LibmarkOpBatch): void {
+	if (batchRequestVersion(batch) != currentRequestVersion) return
+	const count = batchCount(batch)
+	for (let i = 0; i < count; i++) {
+		const entry = batchOp(batch, i)
+		pendingLibmarkOps.push({
+			op: entry.op,
+			kind: entry.kind,
+			content: entry.content,
+			index: entry.index,
+			unchanged: entry.unchanged
+		})
+	}
+}
+// #endif
+
+// #ifdef APP-ANDROID
+function receiveLibmarkOpBatchObject(message: UTSJSONObject): void {
+	if (readMessageNumber(message, 'requestVersion') != currentRequestVersion) return
+	const ops = message['ops'] as UTSJSONObject[] | null
+	if (ops == null) return
+	for (let i = 0; i < ops.length; i++) {
+		const entry = ops[i]
+		pendingLibmarkOps.push({
+			op: readMessageNumber(entry, 'op'),
+			kind: readMessageString(entry, 'kind'),
+			content: readMessageString(entry, 'content'),
+			index: readMessageNumber(entry, 'index'),
+			unchanged: readMessageBoolean(entry, 'unchanged')
+		})
+	}
+}
+// #endif
+
+// #ifdef APP-HARMONY || APP-ANDROID
+function toAiWorkerOps(rawOps: UTSJSONObject[] | null): AiWorkerOp[] {
+	const ops = [] as AiWorkerOp[]
+	if (rawOps == null) return ops
+	for (let i = 0; i < rawOps.length; i++) {
+		const entry = rawOps[i]
+		ops.push({
+			op: readMessageNumber(entry, 'op'),
+			kind: readMessageString(entry, 'kind'),
+			content: readMessageString(entry, 'content'),
+			index: readMessageNumber(entry, 'index'),
+			unchanged: readMessageBoolean(entry, 'unchanged')
+		})
+	}
+	return ops
+}
+
+function receiveRebuildResult(message: UTSJSONObject): void {
+	const result: AiWorkerRebuildResult = {
+		msgId: readMessageString(message, 'msgId'),
+		ops: toAiWorkerOps(message['ops'] as UTSJSONObject[] | null)
+	}
+	const listener = rebuildListener
+	if (listener == null) {
+		pendingRebuildResults.push(result)
+		return
+	}
+	try {
+		listener(result)
+	} catch (_error) {
+	}
+}
+
+function postRebuildRequest(request: AiWorkerRebuildRequest): void {
+	if (worker == null || !workerReady) return
+	worker!.postMessage({
+		action: 'rebuild-markdown',
+		msgId: request.msgId,
+		content: request.content
+	}, null)
+}
+
+function flushPendingRebuildRequests(): void {
+	if (pendingRebuildRequests.length == 0) return
+	const requests = pendingRebuildRequests
+	pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
+	for (let i = 0; i < requests.length; i++) postRebuildRequest(requests[i])
+}
+
+const requestWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string): void {
+	if (msgId.length == 0 || content.length == 0) return
+	createWorkerRuntime()
+	const request: AiWorkerRebuildRequest = { msgId: msgId, content: content }
+	if (!workerReady) {
+		pendingRebuildRequests.push(request)
+		return
+	}
+	postRebuildRequest(request)
+}
+// #endif
 
 function createWorkerNow(generation: number): void {
 	if (generation != runtimeGeneration || worker != null) return
@@ -99,9 +271,33 @@ function createWorkerNow(generation: number): void {
 	worker!.onMessage((message: any) => {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
+		// #ifdef APP-HARMONY || APP-ANDROID
+		if (readMessageString(result, 'tag') == 'libmark-op-batch') {
+			// #ifdef APP-HARMONY
+			receiveLibmarkOpBatch(message as LibmarkOpBatch)
+			// #endif
+			// #ifdef APP-ANDROID
+			receiveLibmarkOpBatchObject(result)
+			// #endif
+			notifyDataListener()
+			return
+		}
+		if (readMessageString(result, 'tag') == 'ai-worker-state') {
+			latestLibmarkState = result
+			notifyDataListener()
+			return
+		}
+		if (readMessageString(result, 'tag') == 'libmark-rebuild-ops') {
+			receiveRebuildResult(result)
+			return
+		}
+		// #endif
 		const phase = readMessageString(result, 'phase')
 		if (phase == 'ready') {
 			workerReady = true
+			// #ifdef APP-HARMONY || APP-ANDROID
+			flushPendingRebuildRequests()
+			// #endif
 			if (pendingMarkdownStart != null) {
 				const options = pendingMarkdownStart!
 				pendingMarkdownStart = null
@@ -125,21 +321,44 @@ function createWorkerNow(generation: number): void {
 				phase: 'error',
 				errCode: 'markdown_html_unavailable',
 				errMsg: readMessageString(result, 'errMsg', 'Markdown HTML Worker 初始化失败')
-			} as UTSJSONObject) ?? ''
+			}) ?? ''
+			notifyDataListener()
 			return
 		}
 		const snapshotJson = readMessageString(result, 'snapshotJson')
-		if (snapshotJson.length > 0) latestSnapshotJson = snapshotJson
+		if (snapshotJson.length > 0) {
+			latestSnapshotJson = snapshotJson
+			notifyDataListener()
+		}
 	})
 	worker!.onError((_error: any) => {
 		if (generation != runtimeGeneration) return
+		// #ifdef APP-HARMONY || APP-ANDROID
+		latestLibmarkState = {
+			tag: 'ai-worker-state',
+			requestVersion: currentRequestVersion,
+			snapshotVersion: 0,
+			phase: 'error',
+			msgBody: '',
+			thinkContent: '',
+			eventCount: 0,
+			networkChunkCount: 0,
+			receivedBytes: 0,
+			elapsed: 0,
+			errCode: 'worker_error',
+			errMsg: 'Worker 运行失败'
+		}
+		notifyDataListener()
+		return
+		// #endif
 		latestSnapshotJson = JSON.stringify({
 			requestVersion: currentRequestVersion,
 			snapshotVersion: 0,
 			phase: 'error',
 			errCode: 'worker_error',
 			errMsg: 'Worker 运行失败'
-		} as UTSJSONObject) ?? ''
+		}) ?? ''
+		notifyDataListener()
 	})
 }
 
@@ -210,11 +429,16 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	pendingMarkdownContent = ''
 	pendingMarkdownReasoning = ''
 	pendingMarkdownComplete = false
+	// #ifdef APP-HARMONY || APP-ANDROID
+	pendingLibmarkOps = [] as AiWorkerOp[]
+	latestLibmarkState = null
+	currentRequestVersion = 0
+	// #endif
 	if (worker == null || !workerReady) return
 	worker!.postMessage({
 		action: 'cancel',
 		requestVersion: requestVersion
-	} as UTSJSONObject, null)
+	}, null)
 }
 
 const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
@@ -229,6 +453,12 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	pendingMarkdownComplete = false
 	latestSnapshotJson = ''
 	currentRequestVersion = 0
+	// #ifdef APP-HARMONY || APP-ANDROID
+	pendingLibmarkOps = [] as AiWorkerOp[]
+	latestLibmarkState = null
+	pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
+	pendingRebuildResults = [] as AiWorkerRebuildResult[]
+	// #endif
 	if (previousWorker != null) {
 		setTimeout(() => {
 			previousWorker!.terminate()
@@ -284,7 +514,7 @@ function mpSetError(code: string, message: string): void {
 		elapsed: Date.now() - mpStartedAt,
 		errCode: code,
 		errMsg: message
-	} as UTSJSONObject) ?? ''
+	}) ?? ''
 }
 
 function mpPublishSnapshot(isDone: boolean): void {
@@ -309,7 +539,6 @@ function mpPublishSnapshot(isDone: boolean): void {
 			mpSetError('markdown_html_failed', 'Markdown HTML 后处理失败')
 			return
 		}
-		const htmlBlocks = buildMarkdownHtmlBlocks(html, isDone)
 		mpSnapshotVersion += 1
 		mpLatestSnapshotJson = JSON.stringify({
 			requestVersion: mpCurrentRequestVersion,
@@ -320,7 +549,7 @@ function mpPublishSnapshot(isDone: boolean): void {
 			renderMode: 'html',
 			html: html,
 			htmlLength: html.length,
-			blocks: JSON.stringify(htmlBlocks) ?? '[]',
+			blocks: JSON.stringify(buildMarkdownHtmlBlocks(html, isDone)) ?? '[]',
 			isDone: isDone,
 			eventCount: mpEventCount,
 			networkChunkCount: mpNetworkChunkCount,
@@ -329,7 +558,7 @@ function mpPublishSnapshot(isDone: boolean): void {
 			elapsed: Date.now() - mpStartedAt,
 			errCode: '',
 			errMsg: ''
-		} as UTSJSONObject) ?? ''
+		}) ?? ''
 	} catch (error) {
 		mpSetError('markdown_html_failed', error.message as string)
 	}
@@ -511,6 +740,72 @@ export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 	// #endif
 	// #ifndef MP-WEIXIN
 	return readWorkerSnapshot()
+	// #endif
+}
+
+export const readAiWorkerState: ReadAiWorkerState = function (): UTSJSONObject | null {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	return latestLibmarkState
+	// #endif
+	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
+	return null
+	// #endif
+	// #endif
+}
+
+@UTSJS.keepAlive
+export function setAiWorkerDataListener(listener: AiWorkerDataListener | null): void {
+	// #ifndef MP-WEIXIN
+	dataListener = listener
+	// #endif
+}
+
+export const takeAiWorkerOps: () => AiWorkerOp[] = function (): AiWorkerOp[] {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	const result = pendingLibmarkOps
+	pendingLibmarkOps = [] as AiWorkerOp[]
+	return result
+	// #endif
+	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
+	return [] as AiWorkerOp[]
+	// #endif
+	// #endif
+}
+
+export const isLibmarkOpsSupported: () => boolean = function (): boolean {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	return true
+	// #endif
+	// #ifndef APP-HARMONY
+	// #ifndef APP-ANDROID
+	return false
+	// #endif
+	// #endif
+}
+
+export const requestAiWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string): void {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	requestWorkerMarkdownRebuild(msgId, content)
+	// #endif
+}
+
+@UTSJS.keepAlive
+export function setAiWorkerRebuildListener(listener: AiWorkerRebuildListener | null): void {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	rebuildListener = listener
+	const target = listener
+	if (target == null) return
+	if (pendingRebuildResults.length == 0) return
+	const results = pendingRebuildResults
+	pendingRebuildResults = [] as AiWorkerRebuildResult[]
+	for (let i = 0; i < results.length; i++) {
+		try {
+			target(results[i])
+		} catch (_error) {
+		}
+	}
 	// #endif
 }
 
