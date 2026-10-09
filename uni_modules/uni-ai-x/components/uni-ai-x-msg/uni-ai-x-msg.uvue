@@ -193,6 +193,7 @@
 }
 
 .msg-root-loging-icon {
+	border-color: #aaaaaa;
 	margin-top: 10px;
 	width: 16px;
 	height: 16px;
