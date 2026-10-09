@@ -24,7 +24,7 @@ function codeNodeHtml(node: UTSJSONObject): string {
 	return html + '</' + name + '>'
 }
 
-export function buildCodeRichHtml(text: string, language: string, tokens: MarkdownToken[][]): string {
+function buildCodeLineHtml(text: string, language: string, tokens: MarkdownToken[][]): string {
 	const token: MarkdownToken = { type: 'code_block', lang: language, text: text, codeTokens: tokens }
 	const nodes = markdownCodeTokenToRichTextNodes(token)
 	let html = ''
@@ -57,11 +57,10 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 				lines.push(oldLines[i])
 			} else {
 				const tokens = i < block.codeTokens.length ? [block.codeTokens[i]] : [] as MarkdownToken[][]
-				lines.push({ text: texts[i], html: buildCodeRichHtml(texts[i], block.language, tokens) })
+				lines.push({ text: texts[i], html: buildCodeLineHtml(texts[i], block.language, tokens) })
 			}
 		}
 		block.codeLines = lines
-		block.codeRichHtml = buildCodeRichHtml(block.text, block.language, block.codeTokens)
 		block.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'
 	})
 	publish()
@@ -77,11 +76,10 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()
 			for (let i = 0; i < count; i++) {
 				const tokens = i < result.lines.length ? [result.lines[i]] : [] as MarkdownToken[][]
-				const html = buildCodeRichHtml(lines[i].text, block.language, tokens)
+				const html = buildCodeLineHtml(lines[i].text, block.language, tokens)
 				if (html != lines[i].html) lines[i] = { text: lines[i].text, html: html }
 			}
 			block.codeLines = lines
-			block.codeRichHtml = buildCodeRichHtml(block.text, block.language, result.lines)
 			publish()
 		}, messageId, block.key, completedText, block.language)
 	})

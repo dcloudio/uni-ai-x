@@ -103,7 +103,6 @@ function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
 		columnWidths: columnWidths,
 		rowTextWidths: rowTextWidths,
 		codeTokens: block.codeTokens,
-		codeRichHtml: block.codeRichHtml,
 		codeLines: block.codeLines,
 		codeCompleteLines: block.codeCompleteLines,
 		codeHighlightedText: block.codeHighlightedText,

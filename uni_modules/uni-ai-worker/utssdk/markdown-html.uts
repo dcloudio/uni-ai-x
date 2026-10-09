@@ -72,7 +72,6 @@ export type MarkdownHtmlBlock = {
 	columnWidths: number[]
 	rowTextWidths: number[][]
 	codeTokens?: MarkdownHtmlCodeToken[][]
-	codeRichHtml?: string
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
 	mathImageSource?: string

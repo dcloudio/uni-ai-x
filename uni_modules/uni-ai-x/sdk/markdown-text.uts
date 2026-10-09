@@ -28,7 +28,6 @@ export type MarkdownTextRenderBlock = {
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
 	codeHeight?: string
-	codeRichHtml?: string
 	codeLines?: CodePresentationLine[]
 	codeCompleteLines?: number
 	codeHighlightedText?: string
@@ -115,7 +114,6 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[], them
 				block.mermaidImageSource ?? null, block.mermaidRenderTheme ?? null)
 			if (block.kind == 'table') prepared.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
 			if (block.kind == 'code') {
-				prepared.codeRichHtml = block.codeRichHtml ?? ''
 				prepared.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'
 			}
 			result.push(prepared)

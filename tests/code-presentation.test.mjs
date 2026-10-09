@@ -43,19 +43,20 @@ const codeBlock = text => ({
   kind: 'code', key: 'code-0', text, language: 'js', isComplete: true, html: '',
   codeTokens: [], columnWidths: [], rowTextWidths: [],
 });
+const lineHtml = block => block.codeLines.map(line => line.html).join('');
 
 test('native snapshots expose source immediately and replace it with highlighted HTML', () => {
   const api = setup();
   api.libmarkStreamApply('m', [codeOp('const value = 1;')]);
   assert.equal(api.libmarkStreamGetBlocks('m').length, 1);
-  const plain = api.libmarkStreamGetBlocks('m')[0].codeRichHtml;
+  const plain = lineHtml(api.libmarkStreamGetBlocks('m')[0]);
   assert.ok(plain.includes('const'));
   assert.ok(plain.includes('value'));
   finish(api.requests[0]);
   const block = api.libmarkStreamGetBlocks('m')[0];
-  assert.ok(block.codeRichHtml.includes('color:'));
-  assert.notEqual(block.codeRichHtml, plain);
-  assert.ok(block.codeRichHtml.includes('const'));
+  assert.ok(lineHtml(block).includes('color:'));
+  assert.notEqual(lineHtml(block), plain);
+  assert.ok(lineHtml(block).includes('const'));
   assert.equal(block.codeHeight, '38px');
 });
 
@@ -64,7 +65,7 @@ test('newer native source and released messages reject delayed highlights', () =
   api.libmarkStreamApply('m', [{ ...codeOp('old'), op: 2 }]);
   api.libmarkStreamApply('m', [{ ...codeOp('new'), op: 2 }]);
   assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
-  assert.ok(api.libmarkStreamGetBlocks('m')[0].codeRichHtml.includes('new'));
+  assert.ok(lineHtml(api.libmarkStreamGetBlocks('m')[0]).includes('new'));
   assert.equal(api.requests.length, 0);
   assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
   api.libmarkStreamApply('m', [codeOp('deleted')]);
@@ -114,8 +115,8 @@ test('failed highlighting publishes escaped original code instead of blocking th
   api.prepareCodeBlocks('m', blocks, () => { ready = true; });
   finish(api.requests[0], 'unsupported');
   assert.equal(ready, true);
-  assert.ok(blocks[0].codeRichHtml.includes('&lt;script&gt;&amp;value'));
-  assert.ok(!blocks[0].codeRichHtml.includes('<script>'));
+  assert.ok(lineHtml(blocks[0]).includes('&lt;script&gt;&amp;value'));
+  assert.ok(!lineHtml(blocks[0]).includes('<script>'));
 });
 
 test('legacy platforms publish streaming source immediately and reuse completed highlights', () => {
@@ -139,7 +140,7 @@ test('historical native code can finish asynchronous preparation without trigger
   assert.equal(api.libmarkStreamApplyRebuild('m', [codeOp('history')]), true);
   assert.equal(api.libmarkStreamRequestRebuild('m', 'code'), false);
   finish(api.requests[0]);
-  assert.ok(api.libmarkStreamGetBlocks('m')[0].codeRichHtml.length > 0);
+  assert.ok(lineHtml(api.libmarkStreamGetBlocks('m')[0]).length > 0);
 });
 
 test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid presentation', () => {
