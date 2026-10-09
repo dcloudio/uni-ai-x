@@ -9,7 +9,7 @@
 			<scroll-view class="sheet-scroll" direction="vertical">
 				<view v-for="source in visibleSources" :key="source.id" class="sheet-source">
 					<text class="sheet-source-title">[{{source.id}}] {{source.title}}</text>
-					<text class="sheet-url" :user-select="true">{{source.url}}</text>
+					<text class="sheet-url" :user-select="true" @click="openWebLink(source.url)">{{source.url}}</text>
 					<text v-if="source.source.length > 0 || source.date.length > 0" class="sheet-meta">{{source.source}} {{source.date}}</text>
 					<text class="sheet-summary" :user-select="true">{{source.content.length > 0 ? source.content : '暂无摘要'}}</text>
 					<view class="sheet-actions">
