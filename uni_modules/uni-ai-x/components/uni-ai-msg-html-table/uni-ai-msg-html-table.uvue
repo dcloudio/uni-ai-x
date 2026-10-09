@@ -13,7 +13,7 @@
 	import { TablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
-	const emit = defineEmits<{ 'citation': [id: number] }>()
+	const emit = defineEmits<{ 'citation': [id: number], 'footnote': [href: string] }>()
 
 	type UniAiMsgHtmlTableProps = {
 		presentation: TablePresentation
@@ -23,6 +23,7 @@
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
 		if (e.detail.href != null && e.detail.href!.length > 0) {
+			if (e.detail.href!.startsWith('#uni-ai-footnote-')) { emit('footnote', e.detail.href!); return }
 			const id = citationNumber(e.detail.href!)
 			if (id > 0) emit('citation', id)
 			else openWebLink(e.detail.href!)

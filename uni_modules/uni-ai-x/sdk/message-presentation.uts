@@ -4,10 +4,12 @@ import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-h
 import { MarkdownTextRenderBlock, markdownHtmlBlocksToTextBlocks } from './markdown-text.uts'
 import { mathWindowWidth } from './math-presentation.uts'
 import { linkSearchCitations } from './search-citations.uts'
+import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 
 class MessagePresentation {
 	json = ''
 	searchJson = ''
+	footnoteBody = ''
 	theme = ''
 	width = 0
 	sources = new Map<string, string>()
@@ -59,7 +61,8 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 	const cache = entry(msg._id)
 	const json = msg.markdownBlocks ?? ''
 	const searchJson = (msg.search?.sources ?? [] as SearchSource[]).map((source: SearchSource): string => source.id.toString()).join(',')
-	if (cache.json == json && cache.searchJson == searchJson && cache.theme == theme && cache.width == mathWindowWidth.value) return
+	const footnoteBody = msg.body.indexOf('[^') >= 0 ? msg.body : ''
+	if (cache.json == json && cache.searchJson == searchJson && cache.footnoteBody == footnoteBody && cache.theme == theme && cache.width == mathWindowWidth.value) return
 	let source = [] as MarkdownHtmlBlock[]
 	try {
 		if (json.length > 0) source = JSON.parse<MarkdownHtmlBlock[]>(json) as MarkdownHtmlBlock[]
@@ -69,6 +72,9 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 	const byKey = new Map<string, MarkdownTextRenderBlock>()
 	for (let i = 0; i < source.length; i++) {
 		const block = source[i]
+		if (block.kind != 'code' && block.kind != 'math' && block.kind != 'mermaid') {
+			block.html = linkMarkdownFootnotes(block.html, msg.body)
+		}
 		if (msg.search != null && block.kind != 'code' && block.kind != 'math' && block.kind != 'mermaid') {
 			block.html = linkSearchCitations(block.html, msg.search!.sources)
 		}
@@ -94,6 +100,7 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 	}
 	cache.json = json
 	cache.searchJson = searchJson
+	cache.footnoteBody = footnoteBody
 	cache.theme = theme
 	cache.width = mathWindowWidth.value
 	cache.sources = sources

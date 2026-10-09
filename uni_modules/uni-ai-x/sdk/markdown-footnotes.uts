@@ -1,0 +1,42 @@
+export function markdownFootnotes(markdown: string): Map<string, string> {
+	const notes = new Map<string, string>()
+	let fence = ''
+	let active = ''
+	for (const line of markdown.split('\n')) {
+		const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)
+		if (marker != null) {
+			if (fence.length == 0) fence = marker[1]
+			else if (marker[1].charAt(0) == fence.charAt(0) && marker[1].length >= fence.length) fence = ''
+			active = ''
+			continue
+		}
+		if (fence.length > 0) continue
+		const definition = /^ {0,3}\[\^([^\]]+)\]:\s*(.*)$/.exec(line)
+		if (definition != null) {
+			active = definition[1]
+			notes.set(active, definition[2])
+		} else if (active.length > 0 && /^( {4}|\t)/.test(line)) {
+			notes.set(active, notes.get(active)! + '\n' + line.trim())
+		} else if (line.trim().length > 0) active = ''
+	}
+	return notes
+}
+
+export function footnoteLabel(href: string): string {
+	const prefix = '#uni-ai-footnote-'
+	if (!href.startsWith(prefix)) return ''
+	try { return decodeURIComponent(href.slice(prefix.length)) ?? '' } catch (_) { return '' }
+}
+
+// cmark currently parses [^label] definitions as reference links. Normalize only
+// those generated links; code spans and ordinary links retain their behavior.
+export function linkMarkdownFootnotes(html: string, markdown: string): string {
+	if (html.indexOf('>^') < 0) return html
+	const notes = markdownFootnotes(markdown)
+	if (notes.size == 0) return html
+	return html.replace(/<a\s+href="[^"]*"[^>]*>\^([^<]+)<\/a>/g, (match: string, label: string): string => {
+		if (!notes.has(label)) return match
+		const target = '#uni-ai-footnote-' + encodeURIComponent(label)
+		return '<a href="' + target + '">[' + label + ']</a>'
+	})
+}

@@ -19,14 +19,14 @@
 		</template>
 		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
-			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" />
+			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
 			:code-text="part.block.text" :code-tokens="part.block.codeTokens" :cached-rich-html="part.block.codeRichHtml" :prepared-height="part.block.codeHeight" :block-key="part.block.key" :language="part.block.language" :is-close="part.block.isComplete ? 1 : 0" :msg="msg" />
 		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
 			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.block.key" :code-text="part.block.text" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0" :presentation="part.block.math ?? emptyMathPresentation" />
-		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" />
+		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
 		<template v-else-if="part.kind == 'empty'">
 			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
@@ -49,6 +49,7 @@
 	import uniAiMsgMermaid from '@/uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
 	import uniAiMdText from '@/uni_modules/uni-ai-x/components/uni-ai-md-text.uvue'
+	import { footnoteLabel, markdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
 	import uniAiSearchStatus from '@/uni_modules/uni-ai-x/components/uni-ai-search-status.uvue'
 	import uniAiSearchSources from '@/uni_modules/uni-ai-x/components/uni-ai-search-sources.uvue'
 
@@ -76,6 +77,12 @@
 	}>()
 	const hideThinkContent = ref<boolean>(false)
 	function openSource(id: number) { emit('source', props.msg._id, id) }
+	function openFootnote(href: string) {
+		const label = footnoteLabel(href)
+		const content = markdownFootnotes(props.msg.body).get(label)
+		if (content == null) return
+		uni.showModal({ title: '脚注 [' + label + ']', content: content, showCancel: false })
+	}
 
 	const state = computed<string>(() => {
 		return uniAi.currentChat!.state

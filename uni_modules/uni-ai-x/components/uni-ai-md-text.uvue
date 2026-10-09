@@ -9,7 +9,7 @@
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
-	const emit = defineEmits<{ 'citation': [id: number] }>()
+	const emit = defineEmits<{ 'citation': [id: number], 'footnote': [href: string] }>()
 
 	const props = defineProps<{
 		block: MarkdownTextRenderBlock
@@ -22,6 +22,7 @@
 	})
 
 	function openLink(href: string) {
+		if (href.startsWith('#uni-ai-footnote-')) { emit('footnote', href); return }
 		const id = citationNumber(href)
 		if (id > 0) emit('citation', id)
 		else openWebLink(href)
