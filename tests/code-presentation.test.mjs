@@ -65,13 +65,26 @@ test('newer native source and released messages reject delayed highlights', () =
   api.libmarkStreamApply('m', [{ ...codeOp('new'), op: 2 }]);
   assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
   assert.ok(api.libmarkStreamGetBlocks('m')[0].codeRichHtml.includes('new'));
-  finish(api.requests[1]);
-  finish(api.requests[0]);
+  assert.equal(api.requests.length, 0);
   assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
-  api.libmarkStreamApply('m', [{ ...codeOp('deleted'), op: 2 }]);
+  api.libmarkStreamApply('m', [codeOp('deleted')]);
   api.libmarkStreamRelease('m');
-  finish(api.requests[2]);
+  finish(api.requests[0]);
   assert.equal(api.libmarkStreamGetBlocks('m').length, 0);
+});
+
+test('open code stays plain through every append and highlights once on completion', () => {
+  const api = setup();
+  let visible = [];
+  for (const text of ['c', 'co', 'const x = 1;']) {
+    api.prepareCodeBlocks('m', [{ ...codeBlock(text), isComplete: false }], blocks => { visible = blocks; }, visible);
+    assert.equal(api.requests.length, 0);
+    assert.ok(!visible[0].codeLines[0].html.includes('<span'));
+  }
+  api.prepareCodeBlocks('m', [codeBlock('const x = 1;')], blocks => { visible = blocks; }, visible);
+  assert.equal(api.requests.length, 1);
+  finish(api.requests[0]);
+  assert.ok(visible[0].codeLines[0].html.includes('<span'));
 });
 
 test('failed highlighting publishes escaped original code instead of blocking the snapshot', () => {

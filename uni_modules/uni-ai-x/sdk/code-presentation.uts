@@ -43,11 +43,12 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		}))
 	}
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
+		if (!block.isComplete) block.codeTokens = [] as MarkdownToken[][]
 		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
 		const oldLines = old?.codeLines ?? [] as CodePresentationLine[]
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const lines = [] as CodePresentationLine[]
-		let samePrefix = true
+		let samePrefix = block.isComplete || old?.isComplete == false
 		for (let i = 0; i < texts.length; i++) {
 			if (i >= oldLines.length || oldLines[i].text != texts[i]) samePrefix = false
 			if (samePrefix) {
@@ -63,7 +64,7 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 	})
 	publish()
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
-		if (block.codeTokens.length > 0 || block.text.length == 0) return
+		if (!block.isComplete || block.codeTokens.length > 0 || block.text.length == 0) return
 		requestCachedCodeText((result: ParseCodeTextRes) => {
 			if (result.error != null) return
 			block.codeTokens = result.lines
