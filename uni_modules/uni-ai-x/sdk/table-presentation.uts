@@ -1,4 +1,4 @@
-import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableContentHeight, markdownTableThemeColors } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableThemeColors, markdownTableNaturalHeight } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
 export type TablePresentation = {
 	height: string
@@ -11,7 +11,7 @@ export type TablePresentation = {
 export const emptyTablePresentation: TablePresentation = { height: '0px', html: '', containerStyle: '', scrollStyle: '', richTextStyle: '' }
 
 export function prepareTablePresentation(html: string, columnWidths: number[], rowTextWidths: number[][], theme: string): TablePresentation {
-	const height = markdownTableContentHeight(rowTextWidths, columnWidths).toString() + 'px'
+	const height = (markdownTableNaturalHeight(html) + 2).toString() + 'px'
 	const colors = markdownTableThemeColors(theme)
 	return {
 		height: height,

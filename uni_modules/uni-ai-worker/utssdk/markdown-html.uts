@@ -848,6 +848,28 @@ export function markdownTableContentHeight(rowTextWidths: number[][], columnWidt
 	return Math.max(1, Math.ceil(height))
 }
 
+// The rendered table uses nowrap; only explicit line breaks increase row height.
+export function markdownTableNaturalHeight(html: string): number {
+	const rows = collectRows(html)
+	let height = 0
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex].html
+		let cursor = 0
+		let lines = 1
+		while (cursor < row.length) {
+			const cell = findNextCellTag(row, cursor)
+			if (cell == null) break
+			const start = row.indexOf('>', cell.start)
+			const end = row.indexOf('</' + cell.tag + '>', start + 1)
+			if (start < 0 || end < 0) break
+			lines = Math.max(lines, decodeCellText(row.slice(start + 1, end)).split('\n').length)
+			cursor = end + cell.tag.length + 3
+		}
+		height += lines * TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING + 1
+	}
+	return Math.max(TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING + 1, height)
+}
+
 export function applyMarkdownTableColumnWidths(html: string, columnWidths: number[]): string {
 	let result = replaceAllText(html, 'width:' + TABLE_WIDTH_PLACEHOLDER + 'px;', '')
 	for (let columnIndex = 0; columnIndex < columnWidths.length; columnIndex++) {
