@@ -1,7 +1,7 @@
 import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
 
-// Keep native block boundaries; only preview the unconsumed line of a confirmed code tail.
-export class LibmarkCodeTail {
+// Keep native block boundaries; preview only the unconsumed source of a confirmed tail.
+export class LibmarkSourceTail {
 	private line: string = ''
 	private tail: LibmarkOp | null = null
 	private previewVisible: boolean = false
@@ -39,12 +39,34 @@ export class LibmarkCodeTail {
 			this.tail = null
 			this.previewVisible = false
 			if (op.op == 2 && op.kind == 'html' && /^<pre><code(?:\s[^>]*)?>/.test(op.content)
-				&& op.content.indexOf('language-mermaid') < 0 && op.content.indexOf('</code>') >= 0) {
+				&& op.content.indexOf('</code>') >= 0) {
 				this.tail = op
+			}
+			if (op.op == 2 && op.kind == 'data') {
+				try {
+					const data = JSON.parse<UTSJSONObject>(op.content)
+					if (data != null && data.getString('status') == 'partial'
+						&& (data.getString('type') == 'math' || data.getString('type') == 'mermaid')) this.tail = op
+				} catch (_) {}
 			}
 		}
 		const tail = this.tail
-		if (tail == null || this.fence.length == 0) return event
+		if (tail == null) return event
+		if (tail.kind == 'data') {
+			const data = JSON.parse<UTSJSONObject>(tail.content)!
+			const source = data.getString('source') ?? ''
+			let pending = this.line.replace(/\r$/, '')
+			if (data.getString('type') == 'math') {
+				if (source.length == 0) pending = pending.replace(/^ {0,3}(\$\$|\\\[)/, '')
+				pending = pending.replace(/\$\$?[ \t]*$/, '').replace(/\\\]?[ \t]*$/, '')
+			} else if (/^ {0,3}(`+|~+)\s*$/.test(pending)) pending = ''
+			data['source'] = source + pending
+			const preview: LibmarkOp = { op: 2, kind: 'data', index: tail.index, unchanged: false, content: JSON.stringify(data) }
+			ops.push(preview)
+			const result: LibmarkEvent = { ops: ops }
+			return result
+		}
+		if (this.fence.length == 0) return event
 		let line = this.line.replace(/\r$/, '')
 		let removed: number = 0
 		while (removed < this.indent && line.startsWith(' ')) {

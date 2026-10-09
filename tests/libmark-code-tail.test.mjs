@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {loadUts} from './uts-loader.mjs';
-const {LibmarkCodeTail} = loadUts('workers/libmark-code-tail.uts', ['LibmarkCodeTail']);
+const {LibmarkSourceTail: LibmarkCodeTail} = loadUts('workers/libmark-source-tail.uts', ['LibmarkSourceTail'], {
+  JSON: { stringify: JSON.stringify, parse: text => {
+    const value = JSON.parse(text);
+    Object.defineProperty(value, 'getString', { value: key => value[key] ?? null });
+    return value;
+  } },
+});
 const event = (text='', op=2, language='javascript') => ({ops:[{op,kind:'html',index:0,unchanged:false,content:`<pre><code class="language-${language}">${text}</code></pre>\n`}]});
 const content = e => e.ops.at(-1).content;
 
@@ -25,12 +31,31 @@ test('multi-line chunks, escaped HTML, CRLF and closing fences retain native out
   assert.equal(tail.feed('normal paragraph',null),null);
 });
 
-test('does not preview unconfirmed blocks or Mermaid, and a new session has no old tail', () => {
+test('does not preview unconfirmed blocks; Mermaid source streams and new sessions have no old tail', () => {
   const tail = new LibmarkCodeTail();
   assert.equal(tail.feed('plain',null),null);
   tail.feed('\n```mermaid\n',event('',2,'mermaid'));
-  assert.equal(tail.feed('graph TD',null),null);
+  assert.match(content(tail.feed('graph TD',null)), /graph TD/);
   assert.equal(new LibmarkCodeTail().feed('new',null),null);
+});
+
+const math = (source='', status='partial') => ({ops:[{op:status==='complete'?3:2,kind:'data',index:0,unchanged:false,content:JSON.stringify({type:'math',status,source})}]});
+test('math previews the unfinished line, then native lines and the final image take over', () => {
+  const tail = new LibmarkCodeTail();
+  tail.feed('$$\n',math());
+  assert.equal(JSON.parse(content(tail.feed('a',math()))).source, 'a');
+  assert.equal(JSON.parse(content(tail.feed('^2',math()))).source, 'a^2');
+  assert.equal(JSON.parse(content(tail.feed('\n',math('a^2\n')))).source, 'a^2\n');
+  assert.equal(JSON.parse(content(tail.feed('+b',math('a^2\n')))).source, 'a^2\n+b');
+  tail.feed('\n',math('a^2\n+b\n'));
+  assert.equal(JSON.parse(content(tail.feed('$$',math('a^2\n+b\n')))).source, 'a^2\n+b\n');
+  const final=math('a^2\n+b\n','complete');
+  assert.equal(tail.feed('\n',final),final);
+});
+
+test('single-line display math strips its opening delimiter from source preview', () => {
+  const tail = new LibmarkCodeTail();
+  assert.equal(JSON.parse(content(tail.feed('$$a+b',math()))).source, 'a+b');
 });
 
 test('fence indentation is removed consistently with native code output', () => {

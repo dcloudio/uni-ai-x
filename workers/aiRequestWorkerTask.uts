@@ -22,7 +22,7 @@ import {
 	buildMarkdownHtmlBlocks
 } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 // #ifdef APP-HARMONY || APP-ANDROID
-import { LibmarkCodeTail } from './libmark-code-tail.uts'
+import { LibmarkSourceTail } from './libmark-source-tail.uts'
 // #endif
 // #ifdef APP-ANDROID
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
@@ -206,7 +206,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.libmarkPendingOpOffset = 0
 	}
 
-	private codeTail = new LibmarkCodeTail()
+	private sourceTail = new LibmarkSourceTail()
 
 	private processLibmarkContent(contentDelta: string): boolean {
 		if (contentDelta.length == 0) return true
@@ -214,7 +214,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		try {
 			const session = this.libmarkSession
 			if (session == null) return false
-			this.appendLibmarkOps(this.codeTail.feed(contentDelta, feedChunk(session, contentDelta)))
+			this.appendLibmarkOps(this.sourceTail.feed(contentDelta, feedChunk(session, contentDelta)))
 			return true
 		} catch {
 			this.failLibmark('libmark_feed_failed', 'libmark 解析失败')
@@ -386,7 +386,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.codeTail = new LibmarkCodeTail()
+		this.sourceTail = new LibmarkSourceTail()
 		this.resetLibmarkProtocol()
 		// #endif
 	}
