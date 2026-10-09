@@ -3,11 +3,12 @@ import Uri from 'android.net.Uri'
 import { OpenSchema, CanOpenURL } from '../interface.uts'
 
 export const openSchema : OpenSchema = function (url : string) {
-  // HTTP links can be launched even when package visibility hides their handlers.
-  if (/^https?:\/\//i.test(url) || canOpenURL(url)) {
+  // Standard web/mail intents do not require a package-visibility query.
+  const isMail = /^mailto:/i.test(url)
+  if (isMail || /^https?:\/\//i.test(url) || canOpenURL(url)) {
     const context = UTSAndroid.getUniActivity()!
     const uri = Uri.parse(url)
-    const intent = new Intent(Intent.ACTION_VIEW, uri)
+    const intent = new Intent(isMail ? Intent.ACTION_SENDTO : Intent.ACTION_VIEW, uri)
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     intent.setData(uri)
     context.startActivity(intent)

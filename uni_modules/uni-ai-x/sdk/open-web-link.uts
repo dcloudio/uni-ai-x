@@ -1,6 +1,37 @@
 import utils from './utils.uts'
+// #ifdef APP
+import { openSchema, canOpenURL } from '@/uni_modules/uts-openSchema'
+// #endif
+
+function mailFallback(href: string) {
+	let address = href.slice(7).split('?')[0]
+	try { address = decodeURIComponent(address) ?? address } catch (_) {}
+	uni.showModal({ title: '无法打开邮件应用', content: '可以复制邮箱地址后，在邮件应用中撰写邮件。', confirmText: '复制邮箱',
+		success: (result) => { if (result.confirm) uni.setClipboardData({ data: address }) } })
+}
+
+function openMailLink(href: string) {
+	// #ifdef WEB
+	try { window.location.href = href } catch (_) { mailFallback(href) }
+	// #endif
+	// #ifdef APP
+	try {
+		// #ifdef APP-IOS
+		if (!canOpenURL(href)) { mailFallback(href); return }
+		// #endif
+		openSchema(href)
+	} catch (_) { mailFallback(href) }
+	// #endif
+	// #ifdef MP
+	mailFallback(href)
+	// #endif
+}
 
 export function openWebLink(href: string) {
+	if (/^mailto:/i.test(href) && !/[\r\n\u0000]/.test(href)) {
+		openMailLink('mailto:' + href.slice(7))
+		return
+	}
 	if (!/^https?:\/\/[^\s/]+/i.test(href)) {
 		uni.showToast({ title: '不是有效的网页链接', icon: 'none' })
 		return
