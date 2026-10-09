@@ -1,5 +1,5 @@
 <template>
-	<rich-text :disable-split-screen-render="true" class="uni-ai-libmark-html-block" :style="richTextStyle"
+	<rich-text :disable-split-screen-render="true" :user-select="true" class="uni-ai-libmark-html-block" :style="richTextStyle"
 		:nodes="nodes" mode="native" @itemclick="onItemClick"></rich-text>
 </template>
 
