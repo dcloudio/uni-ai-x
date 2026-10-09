@@ -158,10 +158,31 @@ test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid 
 test('code view only displays prepared HTML and Mermaid retains its original source inset', () => {
   const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
-  assert.match(source, /:nodes="line.html"/);
-  assert.match(source, /:key="index"/);
+  assert.match(source, /:nodes="codeHtml"/);
+  assert.equal((source.match(/<rich-text\b/g) ?? []).length, 1);
+  assert.doesNotMatch(source, /<rich-text\b[^>]*\bv-for=/);
   const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
   assert.match(mermaid, /margin-left: 15px/);
+});
+
+test('empty code lines retain a visible layout placeholder before and after highlighting', () => {
+  const api = setup();
+  let visible;
+  api.prepareCodeBlocks('m', [codeBlock('first\n\nlast\n')], blocks => { visible = blocks; });
+  const check = () => {
+    assert.equal(visible[0].codeLines.length, 4);
+    assert.equal(visible[0].codeHeight, '104px');
+    for (const index of [1, 3]) {
+      assert.equal(visible[0].codeLines[index].text, '');
+      assert.ok(visible[0].codeLines[index].html.includes('\u00a0'));
+    }
+    assert.equal(visible[0].text, 'first\n\nlast\n');
+  };
+  check();
+  api.requests[0].callback({ error: null, lines: [
+    [{ text: 'first', className: 'keyword' }], [], [{ text: 'last', className: '' }], [],
+  ] });
+  check();
 });
 
 test('streaming append preserves highlighted prefix lines and updates only the changed row', () => {

@@ -25,7 +25,12 @@ function codeNodeHtml(node: UTSJSONObject): string {
 }
 
 function buildCodeLineHtml(text: string, language: string, tokens: MarkdownToken[][]): string {
-	const token: MarkdownToken = { type: 'code_block', lang: language, text: text, codeTokens: tokens }
+	// 原生 rich-text 会折叠空块，用占位空格保留空行；源码仍保存在 line.text。
+	const token: MarkdownToken = {
+		type: 'code_block', lang: language,
+		text: text.length == 0 ? '\u00A0' : text,
+		codeTokens: text.length == 0 ? [] as MarkdownToken[][] : tokens
+	}
 	const nodes = markdownCodeTokenToRichTextNodes(token)
 	let html = ''
 	for (let i = 0; i < nodes.length; i++) html += codeNodeHtml(nodes[i])
