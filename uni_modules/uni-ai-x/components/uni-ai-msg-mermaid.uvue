@@ -10,18 +10,17 @@
 				<text class="uni-mermaid-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
-		<view class="uni-mermaid-msg-stage" :style="mermaidStageStyle">
-			<image v-if="sourceSelection != props.identity && props.src.length > 0" class="uni-mermaid-msg-image" :src="props.src" mode="aspectFit" @click.stop="previewMermaidImage" />
-			<scroll-view v-else class="uni-mermaid-msg-code-scroll" direction="vertical" :show-scrollbar="false">
+		<view class="uni-mermaid-msg-stage">
+			<image v-if="sourceSelection != props.identity && props.src.length > 0" class="uni-mermaid-msg-image" :src="props.src" mode="widthFix" @click.stop="previewMermaidImage" />
+			<view v-else class="uni-mermaid-msg-code-source">
 				<text class="uni-mermaid-msg-code-text">{{props.codeText}}</text>
-			</scroll-view>
+			</view>
 		</view>
 	</view>
 </template>
 
 <script lang="uts" setup>
 import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
-import { mermaidStageStyle } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 
 const props = withDefaults(defineProps<{
@@ -141,10 +140,6 @@ function copyCode() {
 }
 
 .uni-mermaid-msg-image {
-	height: 100%;
-	position: absolute;
-	left: 0;
-	top: 0;
 	width: 100%;
 	background-color: var(--bg-primary);
 }
@@ -158,13 +153,9 @@ function copyCode() {
 
 
 
-.uni-mermaid-msg-code-scroll {
+.uni-mermaid-msg-code-source {
 	width: 100%;
-	height: 100%;
 	background-color: var(--mermaid-code-surface);
-	position: absolute;
-	left: 0;
-	top: 0;
 }
 
 .uni-mermaid-msg-code-text {

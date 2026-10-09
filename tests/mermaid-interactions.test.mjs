@@ -38,7 +38,7 @@ test('source selection is scoped to message/block identity and source panel is c
   assert.equal(vm.runInContext('sourceSelection.value == props.identity', api.context), true);
   api.props.identity = 'message-b:code-0';
   assert.equal(vm.runInContext('sourceSelection.value == props.identity', api.context), false);
-  assert.match(source, /<scroll-view v-else/);
+  assert.match(source, /<view v-else class="uni-mermaid-msg-code-source"/);
   assert.match(source, /v-if="sourceSelection != props.identity && props.src.length > 0"/);
   assert.doesNotMatch(source, /\b(watch|computed|onMounted|getWindowInfo|JSON\.parse|renderMermaidSvgForTheme)\s*\(/);
 });

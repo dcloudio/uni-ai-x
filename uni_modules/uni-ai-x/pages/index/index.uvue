@@ -22,7 +22,6 @@
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
-	import { initMermaidLayout, updateMermaidLayout } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 	import { updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	import { MsgItem, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
 	import uniAiSourceSheet from '@/uni_modules/uni-ai-x/components/uni-ai-source-sheet.uvue'
@@ -42,7 +41,6 @@
 	function closeSources() { sourceMessageId.value = '' }
 	watch(() => uniAi.currentChat?.id, () => { closeSources() })
 	onResize((event: OnResizeOptions) => {
-		updateMermaidLayout(event.size.windowWidth)
 		updateMathLayout(event.size.windowWidth)
 	})
 	// #ifdef APP
@@ -103,7 +101,6 @@
 	})
 
 	onReady(() => {
-		initMermaidLayout()
 		// #ifdef APP
 		checkUpdate().catch((error) => {
 			const result = error as any
