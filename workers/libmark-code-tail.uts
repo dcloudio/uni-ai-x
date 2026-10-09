@@ -17,13 +17,18 @@ export class LibmarkCodeTail {
 				const source = completed[i].replace(/\r$/, '')
 				if (this.fence.length == 0) {
 					const opening = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(source)
-					if (opening != null && !(opening[2].startsWith('`') && opening[3].indexOf('`') >= 0)) {
-						this.fence = opening[2]
-						this.indent = opening[1].length
+					if (opening != null) {
+						const marker = opening[2] ?? ''
+						const info = opening[3] ?? ''
+						if (!(marker.startsWith('`') && info.indexOf('`') >= 0)) {
+							this.fence = marker
+							this.indent = (opening[1] ?? '').length
+						}
 					}
 				} else {
 					const closing = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(source)
-					if (closing != null && closing[1][0] == this.fence[0] && closing[1].length >= this.fence.length) this.fence = ''
+					const marker = closing == null ? '' : (closing[1] ?? '')
+					if (marker.charAt(0) == this.fence.charAt(0) && marker.length >= this.fence.length) this.fence = ''
 				}
 			}
 		}

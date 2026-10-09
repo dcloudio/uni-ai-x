@@ -105,6 +105,8 @@ function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
 		codeTokens: block.codeTokens,
 		codeRichHtml: block.codeRichHtml,
 		codeLines: block.codeLines,
+		codeCompleteLines: block.codeCompleteLines,
+		codeHighlightedText: block.codeHighlightedText,
 		codeHeight: block.codeHeight,
 		mermaidImageSource: block.mermaidImageSource,
 		level: block.level,

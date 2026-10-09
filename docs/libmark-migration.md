@@ -79,8 +79,9 @@ subsetting requires the libmark build sources; this branch supplies binaries.
   viewport remains 100% wide. Mermaid uses its original independent component,
   including its 15px source inset and existing theme/tab/preview behavior.
 - Both native and legacy render data pass through shared code preparation.
-  Escaped source is published immediately for every streaming update. Highlighting
-  starts only when a code block completes, avoiding repeated plain/color transitions.
+  Escaped source is published immediately for every streaming update. Each completed
+  line is highlighted once; the unfinished line stays plain until its newline or
+  block completion, avoiding repeated plain/color transitions.
   Code uses
   independently keyed rich-text rows: unchanged prefix rows retain their highlights,
   and only changed row HTML is replaced. Tokenization retains full code context.

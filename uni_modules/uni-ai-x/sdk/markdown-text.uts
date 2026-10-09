@@ -30,6 +30,8 @@ export type MarkdownTextRenderBlock = {
 	codeHeight?: string
 	codeRichHtml?: string
 	codeLines?: CodePresentationLine[]
+	codeCompleteLines?: number
+	codeHighlightedText?: string
 	table?: TablePresentation
 	math?: MathPresentation
 	svgSource: string
@@ -95,6 +97,7 @@ export function libmarkHtmlBlocksToTextBlocks(blocks: LibmarkHtmlRenderBlock[],
 		const target = createSpecialBlock(block.kind, block.key, block.html, block.text,
 			block.language, isDone ? true : block.isComplete, block.columnWidths, block.rowTextWidths)
 		target.svgSource = block.svgSource
+		target.codeCompleteLines = block.codeCompleteLines
 		target.svgWidth = block.svgWidth
 		target.svgHeight = block.svgHeight
 		result.push(target)

@@ -26,6 +26,7 @@ export type LibmarkHtmlRenderBlock = {
 	svgWidth: number
 	svgHeight: number
 	blockIndex: number
+	codeCompleteLines?: number
 }
 
 type HtmlSpecialBlock = {
@@ -37,6 +38,7 @@ type HtmlSpecialBlock = {
 type CodeParts = {
 	language: string
 	text: string
+	completeLines: number
 }
 
 type SvgSize = {
@@ -125,13 +127,14 @@ function extractCodeParts(html: string): CodeParts {
 			}
 		}
 	}
-	if (contentStart < 0) return { language: language, text: '' }
+	if (contentStart < 0) return { language: language, text: '', completeLines: 0 }
 	let body = html.slice(contentStart)
 	const codeEnd = body.indexOf('</code>')
 	if (codeEnd >= 0) body = body.slice(0, codeEnd)
 	const preEnd = body.indexOf('</pre>')
 	if (preEnd >= 0) body = body.slice(0, preEnd)
-	return { language: language, text: decodeHtmlText(body).replace(/\n$/, '') }
+	const decoded = decodeHtmlText(body).replace(/\r\n/g, '\n')
+	return { language: language, text: decoded.replace(/\n$/, ''), completeLines: decoded.split('\n').length - 1 }
 }
 
 function readSvgAttribute(tag: string, name: string): number {
@@ -239,6 +242,7 @@ export class LibmarkHtmlStreamAdapter {
 					const parts = extractCodeParts(this.tailContent)
 					const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code', key)
 					entry.text = parts.text
+					entry.codeCompleteLines = parts.completeLines
 					entry.language = parts.language
 					entry.isComplete = false
 					entry.blockIndex = this.tailIndex

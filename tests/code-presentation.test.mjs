@@ -73,7 +73,7 @@ test('newer native source and released messages reject delayed highlights', () =
   assert.equal(api.libmarkStreamGetBlocks('m').length, 0);
 });
 
-test('open code stays plain through every append and highlights once on completion', () => {
+test('unfinished line stays plain through every append and highlights on completion', () => {
   const api = setup();
   let visible = [];
   for (const text of ['c', 'co', 'const x = 1;']) {
@@ -85,6 +85,26 @@ test('open code stays plain through every append and highlights once on completi
   assert.equal(api.requests.length, 1);
   finish(api.requests[0]);
   assert.ok(visible[0].codeLines[0].html.includes('<span'));
+});
+
+test('newline highlights its completed line while the next streaming line stays plain', () => {
+  const api = setup();
+  api.libmarkStreamApply('m', [{ ...codeOp('first'), op: 2 }]);
+  assert.equal(api.requests.length, 0);
+  api.libmarkStreamApply('m', [{ ...codeOp('first\n'), op: 2 }]);
+  assert.equal(api.requests.length, 1);
+  finish(api.requests[0]);
+  const first = api.libmarkStreamGetBlocks('m')[0].codeLines[0];
+  for (const tail of ['s', 'se', 'second']) {
+    api.libmarkStreamApply('m', [{ ...codeOp('first\n' + tail), op: 2 }]);
+    const rows = api.libmarkStreamGetBlocks('m')[0].codeLines;
+    assert.equal(rows[0], first);
+    assert.ok(!rows[1].html.includes('<span'));
+    assert.equal(api.requests.length, 1);
+  }
+  api.libmarkStreamApply('m', [{ ...codeOp('first\nsecond\n'), op: 2 }]);
+  assert.equal(api.requests.length, 2);
+  assert.equal(api.requests[1].text, 'first\nsecond');
 });
 
 test('failed highlighting publishes escaped original code instead of blocking the snapshot', () => {

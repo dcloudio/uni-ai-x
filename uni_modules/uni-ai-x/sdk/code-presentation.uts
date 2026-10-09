@@ -46,9 +46,11 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		if (!block.isComplete) block.codeTokens = [] as MarkdownToken[][]
 		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
 		const oldLines = old?.codeLines ?? [] as CodePresentationLine[]
+		const oldHighlighted = old?.codeHighlightedText ?? ''
+		block.codeHighlightedText = block.text.startsWith(oldHighlighted) ? oldHighlighted : ''
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const lines = [] as CodePresentationLine[]
-		let samePrefix = block.isComplete || old?.isComplete == false
+		let samePrefix = true
 		for (let i = 0; i < texts.length; i++) {
 			if (i >= oldLines.length || oldLines[i].text != texts[i]) samePrefix = false
 			if (samePrefix) {
@@ -64,12 +66,16 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 	})
 	publish()
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
-		if (!block.isComplete || block.codeTokens.length > 0 || block.text.length == 0) return
+		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
+		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
+		const completedText = texts.slice(0, count).join('\n')
+		if (completedText.length == 0 || completedText == block.codeHighlightedText) return
 		requestCachedCodeText((result: ParseCodeTextRes) => {
 			if (result.error != null) return
 			block.codeTokens = result.lines
+			block.codeHighlightedText = completedText
 			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()
-			for (let i = 0; i < lines.length; i++) {
+			for (let i = 0; i < count; i++) {
 				const tokens = i < result.lines.length ? [result.lines[i]] : [] as MarkdownToken[][]
 				const html = buildCodeRichHtml(lines[i].text, block.language, tokens)
 				if (html != lines[i].html) lines[i] = { text: lines[i].text, html: html }
@@ -77,6 +83,6 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 			block.codeLines = lines
 			block.codeRichHtml = buildCodeRichHtml(block.text, block.language, result.lines)
 			publish()
-		}, messageId, block.key, block.text, block.language)
+		}, messageId, block.key, completedText, block.language)
 	})
 }
