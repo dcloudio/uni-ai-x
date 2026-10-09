@@ -6,6 +6,7 @@ import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdow
 import { ref } from 'vue'
 import { prepareCodeBlocks } from './code-presentation.uts'
 import { prepareNativeMermaidBlocks } from './mermaid-presentation.uts'
+import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 
 export const libmarkPresentationRevision = ref<number>(0)
 let presentationTheme = 'light'
@@ -67,6 +68,11 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 	prepareCodeBlocks(entry.messageId, blocks, (prepared: MarkdownTextRenderBlock[]) => {
 		if (!isCurrent()) return
 		entry.textBlocks = prepared
+		prepareNativeInlineMathBlocks(entry.messageId, prepared, presentationTheme, () => {
+			if (!isCurrent()) return
+			entry.textBlocks = prepared.slice()
+			libmarkPresentationRevision.value += 1
+		})
 		libmarkPresentationRevision.value += 1
 		prepareNativeMermaidBlocks(prepared, presentationTheme, () => {
 			if (!isCurrent()) return

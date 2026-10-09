@@ -23,7 +23,7 @@ function setup() {
   });
   const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
     ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
-      ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {},
+      ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {},
     });
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
     ['refreshMessagePresentation', 'readMessagePresentation', 'forgetMessagePresentation'], {

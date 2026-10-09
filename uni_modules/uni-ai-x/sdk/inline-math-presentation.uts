@@ -1,0 +1,63 @@
+import proxyWeb from './proxy-web.uts'
+import type { MarkdownTextRenderBlock } from './markdown-text.uts'
+
+type InlineMathImage = { source: string, width: number, height: number }
+type ImageCallback = (image: InlineMathImage) => void
+const images = new Map<string, InlineMathImage>()
+const pending = new Map<string, Map<string, ImageCallback>>()
+let generation = -1
+
+// Android rich-text 的图片解码不支持 SVG；只为原生解析器已生成的公式图片补充位图。
+export function prepareNativeInlineMathBlocks(messageId: string, blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void) {
+	// #ifdef APP-ANDROID
+	const epoch = proxyWeb.getGeneration()
+	if (generation != epoch) {
+		generation = epoch
+		images.clear()
+		pending.clear()
+	}
+	for (let index = 0; index < blocks.length; index++) {
+		const block = blocks[index]
+		if (block.kind != 'html' && block.kind != 'table') continue
+		const tags = block.html.match(/<img\b[^>]*>/g) ?? [] as string[]
+		for (const tag of tags) {
+			if (!/class="[^"]*\bmath\b[^"]*"/.test(tag)) continue
+			const match = tag.match(/src="(data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+)"/)
+			if (match == null) continue
+			const source = match[1]
+			const key = theme + '\n' + source
+			const apply: ImageCallback = (image: InlineMathImage) => {
+				if (image.source.length == 0) return
+				for (const candidate of tags) {
+					if (!candidate.includes('src="' + source + '"')) continue
+					const replacement = candidate.replace(source, image.source).replace(/\s(?:width|height)="[^"]*"/g, '')
+						.replace(/\s*\/?\s*>$/, ' width="' + image.width.toString() + '" height="' + image.height.toString() + '">')
+					block.html = block.html.split(candidate).join(replacement)
+				}
+			}
+			const cached = images.get(key)
+			if (cached != null) { apply(cached); continue }
+			const subscriber = messageId + ':' + block.key
+			const receive: ImageCallback = (image: InlineMathImage) => { apply(image); changed() }
+			const waiting = pending.get(key)
+			if (waiting != null) { waiting.set(subscriber, receive); continue }
+			const listeners = new Map<string, ImageCallback>()
+			listeners.set(subscriber, receive)
+			pending.set(key, listeners)
+			proxyWeb.callMethod({ action: 'rasterizeInlineMath', source: source, theme: theme }, (result: UTSJSONObject) => {
+				if (proxyWeb.getGeneration() != epoch) return
+				pending.delete(key)
+				const image: InlineMathImage = {
+					source: (result['imageDataURL'] as string | null) ?? '',
+					width: (result['width'] as number | null) ?? 0,
+					height: (result['height'] as number | null) ?? 0
+				}
+				if (image.source.length == 0) return
+				if (images.size >= 64) images.clear()
+				images.set(key, image)
+				listeners.forEach((callback: ImageCallback) => { callback(image) })
+			})
+		}
+	}
+	// #endif
+}

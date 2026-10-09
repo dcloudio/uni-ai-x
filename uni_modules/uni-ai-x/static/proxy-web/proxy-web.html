@@ -89,6 +89,32 @@
           svgDataURL(svgText) {
             return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
           }
+          async rasterizeInlineMath({ source, theme, requestId }) {
+            try {
+              const svg = new TextDecoder().decode(Uint8Array.from(atob(source.split(',')[1]), char => char.charCodeAt(0)));
+              const foreground = theme === 'dark' ? '#ffffff' : '#333333';
+              const normalized = this.normalizeSvg(svg, { foreground, naturalSize: true, styleText: 'svg{fill:' + foreground + '}' });
+              const image = new Image();
+              await new Promise((resolve, reject) => {
+                const timer = setTimeout(() => reject(new Error('Formula image load timeout')), 8000);
+                image.onload = () => { clearTimeout(timer); resolve(); };
+                image.onerror = () => { clearTimeout(timer); reject(new Error('Formula image decode failed')); };
+                image.src = this.svgDataURL(normalized.svgText);
+              });
+              const width = Math.max(1, Math.ceil(normalized.width));
+              const height = Math.max(1, Math.ceil(normalized.height));
+              const scale = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.ceil(width * scale);
+              canvas.height = Math.ceil(height * scale);
+              canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+              this.postMessage({ action: 'rasterizeInlineMath_callback_' + requestId,
+                param: { imageDataURL: canvas.toDataURL('image/png'), width, height } });
+            } catch (error) {
+              this.postMessage({ action: 'rasterizeInlineMath_callback_' + requestId,
+                param: { imageDataURL: '', error: error.message } });
+            }
+          }
 
           parseSvgLength(value, em = 16, ex = 8) {
             if (!value) return null;
