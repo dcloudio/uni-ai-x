@@ -217,6 +217,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private scheduleHtmlSnapshot() {
 		if (this.renderTimer != 0 || this.finished) return
+		if (this.snapshotVersion == 0) {
+			this.publishSnapshot(false)
+			console.log('[uni-ai-x][stream] first snapshot ms:', Date.now() - this.startedAt)
+			return
+		}
 		this.renderTimer = setTimeout(() => {
 			this.renderTimer = 0
 			this.publishSnapshot(false)
