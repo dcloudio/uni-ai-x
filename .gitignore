@@ -24,3 +24,6 @@ platformConfig.json
 /uni-agent-artifacts/*
 !/uni-agent-artifacts/.gitkeep
 selfIdentity.plist
+
+# Local performance captures: screenshots, frame statistics and experiment snapshots.
+/tests/performance/
