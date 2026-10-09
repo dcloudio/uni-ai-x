@@ -73,7 +73,7 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 			entry.textBlocks = prepared.slice()
 			libmarkPresentationRevision.value += 1
 		})
-	})
+	}, entry.textBlocks)
 }
 
 export function libmarkStreamSetTheme(theme: string) {
@@ -104,6 +104,7 @@ function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
 		rowTextWidths: rowTextWidths,
 		codeTokens: block.codeTokens,
 		codeRichHtml: block.codeRichHtml,
+		codeLines: block.codeLines,
 		codeHeight: block.codeHeight,
 		mermaidImageSource: block.mermaidImageSource,
 		level: block.level,

@@ -28,7 +28,7 @@ Reference: `origin/feat/introduce-libmark` at
 - Harmony cmark HAR, N-API source, dedicated CMake project and build script.
 - Unused Android JNI code in the shared cmark C source.
 - Unused AST renderer and view-level asynchronous code highlighting.
-  Highlight HTML is prepared before snapshots are published on all platforms;
+  Code source is published immediately and replaced in place with highlighted HTML;
   the shared highlight token cache remains in use.
 - 60 unused KaTeX font files and unused FiraCode: 1,366,196 bytes (1.30 MiB).
 
@@ -79,9 +79,10 @@ subsetting requires the libmark build sources; this branch supplies binaries.
   viewport remains 100% wide. Mermaid uses its original independent component,
   including its 15px source inset and existing theme/tab/preview behavior.
 - Both native and legacy render data pass through shared code preparation.
-  Supported code waits for highlighted HTML before being published. Pending
-  updates leave the previous presentation visible, stale results are rejected,
-  and failures fall back to escaped source. Code views no longer tokenize.
+  Escaped source is published immediately for every streaming update. Code uses
+  independently keyed rich-text rows: unchanged prefix rows retain their highlights,
+  and only changed row HTML is replaced. Tokenization retains full code context.
+  Stale results are rejected and failures retain source. Code views no longer tokenize.
 - Native Mermaid SVG and WebView fallback results are prepared outside the
   component and passed through its existing src prop.
 - Added two native-caller regression tests using a mock class bridge; these

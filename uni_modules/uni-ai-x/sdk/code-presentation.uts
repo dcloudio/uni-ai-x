@@ -1,5 +1,5 @@
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import type { MarkdownTextRenderBlock } from './markdown-text.uts'
+import type { MarkdownTextRenderBlock, CodePresentationLine } from './markdown-text.uts'
 import { markdownCodeTokenToRichTextNodes } from './markdown-rich-text.uts'
 import { requestCachedCodeText, ParseCodeTextRes } from './parseCode.uts'
 
@@ -32,33 +32,50 @@ export function buildCodeRichHtml(text: string, language: string, tokens: Markdo
 	return html
 }
 
-// Publish a snapshot only after its code blocks have their final display HTML.
+// Publish source immediately; highlighting replaces the same blocks asynchronously.
 export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderBlock[],
-	ready: (blocks: MarkdownTextRenderBlock[]) => void) {
+	ready: (blocks: MarkdownTextRenderBlock[]) => void, previous: MarkdownTextRenderBlock[] = []) {
 	const codeBlocks = blocks.filter((block: MarkdownTextRenderBlock): boolean => block.kind == 'code')
-	let remaining = codeBlocks.length
-	if (remaining == 0) {
-		ready(blocks)
-		return
+	const publish = () => {
+		// Snapshot identity must change for row caches; unchanged line objects stay shared.
+		ready(blocks.map((block: MarkdownTextRenderBlock): MarkdownTextRenderBlock => {
+			return block.kind == 'code' ? { ...block } : block
+		}))
 	}
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
-		const complete = (tokens: MarkdownToken[][]) => {
-			block.codeRichHtml = buildCodeRichHtml(block.text, block.language, tokens)
-			block.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'
-			remaining -= 1
-			if (remaining == 0) ready(blocks)
+		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
+		const oldLines = old?.codeLines ?? [] as CodePresentationLine[]
+		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
+		const lines = [] as CodePresentationLine[]
+		let samePrefix = true
+		for (let i = 0; i < texts.length; i++) {
+			if (i >= oldLines.length || oldLines[i].text != texts[i]) samePrefix = false
+			if (samePrefix) {
+				lines.push(oldLines[i])
+			} else {
+				const tokens = i < block.codeTokens.length ? [block.codeTokens[i]] : [] as MarkdownToken[][]
+				lines.push({ text: texts[i], html: buildCodeRichHtml(texts[i], block.language, tokens) })
+			}
 		}
-		if ((block.codeRichHtml ?? '').length > 0) {
-			remaining -= 1
-			if (remaining == 0) ready(blocks)
-			return
-		}
-		if (block.codeTokens.length > 0 || block.text.length == 0) {
-			complete(block.codeTokens)
-			return
-		}
+		block.codeLines = lines
+		block.codeRichHtml = buildCodeRichHtml(block.text, block.language, block.codeTokens)
+		block.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'
+	})
+	publish()
+	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
+		if (block.codeTokens.length > 0 || block.text.length == 0) return
 		requestCachedCodeText((result: ParseCodeTextRes) => {
-			complete(result.error == null ? result.lines : [] as MarkdownToken[][])
+			if (result.error != null) return
+			block.codeTokens = result.lines
+			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()
+			for (let i = 0; i < lines.length; i++) {
+				const tokens = i < result.lines.length ? [result.lines[i]] : [] as MarkdownToken[][]
+				const html = buildCodeRichHtml(lines[i].text, block.language, tokens)
+				if (html != lines[i].html) lines[i] = { text: lines[i].text, html: html }
+			}
+			block.codeLines = lines
+			block.codeRichHtml = buildCodeRichHtml(block.text, block.language, result.lines)
+			publish()
 		}, messageId, block.key, block.text, block.language)
 	})
 }

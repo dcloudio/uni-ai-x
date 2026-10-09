@@ -44,13 +44,17 @@ const codeBlock = text => ({
   codeTokens: [], columnWidths: [], rowTextWidths: [],
 });
 
-test('native snapshots expose code only after highlighted HTML is ready', () => {
+test('native snapshots expose source immediately and replace it with highlighted HTML', () => {
   const api = setup();
   api.libmarkStreamApply('m', [codeOp('const value = 1;')]);
-  assert.equal(api.libmarkStreamGetBlocks('m').length, 0);
+  assert.equal(api.libmarkStreamGetBlocks('m').length, 1);
+  const plain = api.libmarkStreamGetBlocks('m')[0].codeRichHtml;
+  assert.ok(plain.includes('const'));
+  assert.ok(plain.includes('value'));
   finish(api.requests[0]);
   const block = api.libmarkStreamGetBlocks('m')[0];
   assert.ok(block.codeRichHtml.includes('color:'));
+  assert.notEqual(block.codeRichHtml, plain);
   assert.ok(block.codeRichHtml.includes('const'));
   assert.equal(block.codeHeight, '38px');
 });
@@ -59,6 +63,8 @@ test('newer native source and released messages reject delayed highlights', () =
   const api = setup();
   api.libmarkStreamApply('m', [{ ...codeOp('old'), op: 2 }]);
   api.libmarkStreamApply('m', [{ ...codeOp('new'), op: 2 }]);
+  assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
+  assert.ok(api.libmarkStreamGetBlocks('m')[0].codeRichHtml.includes('new'));
   finish(api.requests[1]);
   finish(api.requests[0]);
   assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
@@ -79,13 +85,14 @@ test('failed highlighting publishes escaped original code instead of blocking th
   assert.ok(!blocks[0].codeRichHtml.includes('<script>'));
 });
 
-test('legacy platforms prepare before publishing and reuse completed presentation', () => {
+test('legacy platforms publish streaming source immediately and reuse completed highlights', () => {
   const api = setup();
   const msg = { _id: 'm', body: '', markdownBlocks: JSON.stringify([codeBlock('old')]) };
   api.refreshMessagePresentation(msg, 'light');
-  assert.equal(api.readMessagePresentation('m').length, 0);
+  assert.equal(api.readMessagePresentation('m')[0].text, 'old');
   msg.markdownBlocks = JSON.stringify([codeBlock('new')]);
   api.refreshMessagePresentation(msg, 'light');
+  assert.equal(api.readMessagePresentation('m')[0].text, 'new');
   finish(api.requests[1]);
   finish(api.requests[0]);
   assert.equal(api.readMessagePresentation('m')[0].text, 'new');
@@ -117,7 +124,33 @@ test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid 
 test('code view only displays prepared HTML and Mermaid retains its original source inset', () => {
   const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
-  assert.match(source, /:nodes="cachedRichHtml"/);
+  assert.match(source, /:nodes="line.html"/);
+  assert.match(source, /:key="index"/);
   const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
   assert.match(mermaid, /margin-left: 15px/);
+});
+
+test('streaming append preserves highlighted prefix lines and updates only the changed row', () => {
+  const api = setup();
+  let visible;
+  api.prepareCodeBlocks('m', [codeBlock('first\nsecond')], blocks => { visible = blocks; });
+  const plainSnapshot = visible[0];
+  api.requests[0].callback({ error: null, lines: [
+    [{ text: 'first', className: 'keyword' }], [{ text: 'second', className: 'string' }],
+  ] });
+  const first = visible[0].codeLines[0];
+  assert.notEqual(visible[0], plainSnapshot);
+  assert.notEqual(visible[0].codeLines[0].html, plainSnapshot.codeLines[0].html);
+  const second = visible[0].codeLines[1];
+  api.prepareCodeBlocks('m', [codeBlock('first\nsecond\nthird')], blocks => { visible = blocks; }, visible);
+  assert.equal(visible[0].codeLines[0], first);
+  assert.equal(visible[0].codeLines[1], second);
+  assert.ok(visible[0].codeLines[2].html.includes('third'));
+  api.requests[1].callback({ error: null, lines: [
+    [{ text: 'first', className: 'keyword' }], [{ text: 'second', className: 'string' }],
+    [{ text: 'third', className: 'constant' }],
+  ] });
+  assert.equal(visible[0].codeLines[0], first);
+  assert.equal(visible[0].codeLines[1], second);
+  assert.ok(visible[0].codeLines[2].html.includes('color:'));
 });

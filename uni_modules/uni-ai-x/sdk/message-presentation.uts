@@ -104,13 +104,9 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 		if (!layoutChanged) for (let i = 0; i < next.length; i++) {
 			if (!sameBlockLayout(previousBlocks[i], next[i])) { layoutChanged = true; break }
 		}
-		let changed = previousBlocks.length != next.length
-		if (!changed) for (let i = 0; i < next.length; i++) {
-			if (previousBlocks[i] != next[i]) { changed = true; break }
-		}
 		cache.sources = sources
 		cache.byKey = byKey
-		if (changed) cache.blocks.value = preparedBlocks
+		cache.blocks.value = preparedBlocks
 		if (layoutChanged) cache.layoutRevision.value += 1
-	})
+	}, previousBlocks)
 }

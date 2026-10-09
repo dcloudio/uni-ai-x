@@ -6,6 +6,11 @@ import { TablePresentation, prepareTablePresentation } from './table-presentatio
 import { MathPresentation, buildMathPresentation } from './math-presentation.uts'
 import type { LibmarkHtmlRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
 
+export type CodePresentationLine = {
+	text: string
+	html: string
+}
+
 export type MarkdownTextRenderBlock = {
 	kind: string
 	key: string
@@ -24,6 +29,7 @@ export type MarkdownTextRenderBlock = {
 	mermaidRenderTheme?: string
 	codeHeight?: string
 	codeRichHtml?: string
+	codeLines?: CodePresentationLine[]
 	table?: TablePresentation
 	math?: MathPresentation
 	svgSource: string

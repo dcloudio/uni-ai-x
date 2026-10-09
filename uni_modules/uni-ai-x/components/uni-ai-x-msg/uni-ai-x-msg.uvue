@@ -21,7 +21,7 @@
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
-			:code-text="part.block.text" :cached-rich-html="part.block.codeRichHtml ?? ''" :prepared-height="part.block.codeHeight ?? '38px'" :language="part.block.language" />
+			:code-text="part.block.text" :prepared-lines="part.block.codeLines ?? []" :prepared-height="part.block.codeHeight ?? '38px'" :language="part.block.language" />
 		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
 			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.block.key" :code-text="part.block.text" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"

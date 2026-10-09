@@ -8,25 +8,28 @@
 			</view>
 		</view>
 		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="'height:' + preparedHeight + ';background-color:#111827;'">
-			<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true"
-				:style="'height:' + preparedHeight + ';font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;color:#d1fae5;'"
-				:nodes="cachedRichHtml" mode="native"></rich-text>
+			<view class="uni-code-msg-lines">
+				<rich-text v-for="(line, index) in preparedLines" :key="index" :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true"
+					style="height:22px;font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;color:#d1fae5;"
+					:nodes="line.html" mode="native"></rich-text>
+			</view>
 		</scroll-view>
 	</view>
 </template>
 
 <script lang="uts" setup>
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import type { CodePresentationLine } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 
 const props = withDefaults(defineProps<{
 	codeText?: string
 	language?: string
-	cachedRichHtml?: string
+	preparedLines?: CodePresentationLine[]
 	preparedHeight?: string
 }>(), {
 	codeText: '',
 	language: 'text',
-	cachedRichHtml: '',
+	preparedLines: () => [] as CodePresentationLine[],
 	preparedHeight: '38px'
 })
 
@@ -89,6 +92,12 @@ function copyCode() {
 	align-items: flex-start;
 	box-sizing: border-box;
 	background-color: #111827;
+}
+
+.uni-code-msg-lines {
+	align-self: flex-start;
+	flex-shrink: 0;
+	padding: 8px 0;
 }
 
 .uni-code-msg-rich-text {
