@@ -95,6 +95,8 @@ function copyCode() {
 }
 
 .uni-code-msg-lines {
+	/* Let the outer scroll viewport clip intrinsic-width code rows. */
+	overflow: visible;
 	align-self: flex-start;
 	flex-shrink: 0;
 	padding: 8px 0;
