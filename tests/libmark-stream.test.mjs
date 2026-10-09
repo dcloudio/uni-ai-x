@@ -9,6 +9,30 @@ const { LibmarkHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/l
 const op = (op, content, kind = 'html', index = 0) => ({ op, content, kind, index, unchanged: false });
 const svg = '<svg width="240" height="80"><text>示例</text></svg>';
 
+test('raw source coexists with parsed blocks and is removed atomically on delivery, reset and finish', () => {
+  const adapter = new LibmarkHtmlStreamAdapter();
+  adapter.applyOps([op(2, '| A | B', 'source', -1)]);
+  assert.equal(adapter.hasContent(), true);
+  assert.equal(adapter.getBlocks()[0].text, '| A | B');
+  const rawKey = adapter.getBlocks()[0].key;
+  adapter.applyOps([op(2, '<p>| A | B |</p>'), op(2, '', 'source', -1)]);
+  assert.equal(adapter.getBlocks().length, 1);
+  assert.equal(adapter.getBlocks()[0].kind, 'html');
+  adapter.applyOps([op(2, '|---|', 'source', -1)]);
+  assert.equal(adapter.getBlocks().length, 2);
+  assert.equal(adapter.getBlocks()[1].key, rawKey);
+  const table = '<table><thead><tr><th>A</th><th>B</th></tr></thead></table>';
+  adapter.applyOps([op(2, table), op(2, '', 'source', -1)]);
+  assert.equal(adapter.getBlocks().length, 1);
+  assert.equal(adapter.getBlocks()[0].html, table);
+  adapter.applyOps([op(2, '| 1 | <literal>', 'source', -1)]);
+  assert.equal(adapter.getBlocks()[1].text, '| 1 | <literal>');
+  adapter.markComplete();
+  assert.equal(adapter.getBlocks().some(b => b.key === rawKey), false);
+  adapter.applyOps([op(2, 'old', 'source', -1), op(4, '')]);
+  assert.equal(adapter.getBlocks().length, 0);
+});
+
 test('code preview becomes one completed block and reset removes previous output', () => {
   const adapter = new LibmarkHtmlStreamAdapter();
   adapter.applyOps([op(2, '<pre><code class="language-js">const a = 1;')]);

@@ -7,8 +7,34 @@ export class LibmarkSourceTail {
 	private previewVisible: boolean = false
 	private fence: string = ''
 	private indent: number = 0
+	private pendingSource: string = ''
+	private visibleSource: string = ''
 
 	feed(chunk: string, event: LibmarkEvent | null): LibmarkEvent | null {
+		this.pendingSource += chunk
+		const result = this.feedConfirmedTail(chunk, event)
+		// The caller feeds at newline boundaries, so a delivery covers completed lines only.
+		if (chunk.endsWith('\n') && event != null && event.ops.length > 0) this.pendingSource = ''
+		const source = this.tail == null ? this.pendingSource : ''
+		return this.withSource(result, source)
+	}
+
+	finish(event: LibmarkEvent | null): LibmarkEvent | null {
+		this.pendingSource = ''
+		return this.withSource(event, '')
+	}
+
+	private withSource(event: LibmarkEvent | null, source: string): LibmarkEvent | null {
+		if (source == this.visibleSource) return event
+		this.visibleSource = source
+		const ops = event == null ? [] as LibmarkOp[] : event.ops.slice()
+		const preview: LibmarkOp = { op: 2, kind: 'source', index: -1, unchanged: false, content: source }
+		ops.push(preview)
+		const result: LibmarkEvent = { ops: ops }
+		return result
+	}
+
+	private feedConfirmedTail(chunk: string, event: LibmarkEvent | null): LibmarkEvent | null {
 		const combined = this.line + chunk
 		const newline = combined.lastIndexOf('\n')
 		if (newline >= 0) {

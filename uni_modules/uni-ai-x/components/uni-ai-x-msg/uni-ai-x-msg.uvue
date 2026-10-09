@@ -29,7 +29,7 @@
 			:href="part.block.math?.src ?? ''" :width="part.block.math?.width ?? 0" :height="part.block.math?.height ?? 0" :render-theme="uiTheme"
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
 		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="widthFix" style="width:100%;" />
-		<text v-else-if="part.block != null && part.block.kind == 'data-text'">{{part.block.text}}</text>
+		<text v-else-if="part.block != null && part.block.kind == 'data-text'" class="msg-root-plain-text">{{part.block.text}}</text>
 		<uni-ai-libmark-html v-else-if="part.block != null && part.block.kind == 'html'"
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />

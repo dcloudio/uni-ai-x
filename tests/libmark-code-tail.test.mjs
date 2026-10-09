@@ -28,15 +28,42 @@ test('multi-line chunks, escaped HTML, CRLF and closing fences retain native out
   assert.equal(tail.feed('``',null),null);
   const closed=event('a\n&lt;b&gt;&amp;\n',3);
   assert.equal(content(tail.feed('\n',closed)),content(closed));
-  assert.equal(tail.feed('normal paragraph',null),null);
+  assert.equal(content(tail.feed('normal paragraph',null)), 'normal paragraph');
 });
 
-test('does not preview unconfirmed blocks; Mermaid source streams and new sessions have no old tail', () => {
+test('unconfirmed blocks show literal source; Mermaid owns its preview and sessions stay isolated', () => {
   const tail = new LibmarkCodeTail();
-  assert.equal(tail.feed('plain',null),null);
+  assert.equal(content(tail.feed('plain',null)), 'plain');
   tail.feed('\n```mermaid\n',event('',2,'mermaid'));
   assert.match(content(tail.feed('graph TD',null)), /graph TD/);
-  assert.equal(new LibmarkCodeTail().feed('new',null),null);
+  assert.equal(content(new LibmarkCodeTail().feed('new',null)), 'new');
+});
+
+test('all unparsed Markdown syntax streams literally and delivery clears only its source preview', () => {
+  for (const line of ['plain **bold**', '# heading', '- [x] task', '  - child', '> quote',
+    '| A | B |', '|---|---|', '[link](https://example.com)', '![image](x.png)',
+    '<div>HTML & text</div>', '---', '    indented code', '[^note]: footnote', '中文😀']) {
+    const tail = new LibmarkCodeTail();
+    let text = '';
+    for (const char of line) {
+      text += char;
+      assert.equal(content(tail.feed(char, null)), text);
+    }
+    const native = {ops:[{op:2,kind:'html',index:0,unchanged:false,content:'<p>delivered</p>'}]};
+    const delivered = tail.feed('\n', native);
+    assert.equal(delivered.ops[0], native.ops[0]);
+    assert.equal(delivered.ops.at(-1).kind, 'source');
+    assert.equal(delivered.ops.at(-1).content, '');
+    assert.equal(content(tail.feed('next', null)), 'next');
+    assert.equal(content(tail.finish(null)), '');
+  }
+});
+
+test('undelivered complete lines remain visible until parser delivery or finish', () => {
+  const tail = new LibmarkCodeTail();
+  assert.equal(content(tail.feed('[id]: url\n', null)), '[id]: url\n');
+  assert.equal(content(tail.feed('next', null)), '[id]: url\nnext');
+  assert.equal(content(tail.finish(null)), '');
 });
 
 const math = (source='', status='partial') => ({ops:[{op:status==='complete'?3:2,kind:'data',index:0,unchanged:false,content:JSON.stringify({type:'math',status,source})}]});

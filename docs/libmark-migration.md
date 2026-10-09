@@ -64,6 +64,23 @@ subsetting requires the libmark build sources; this branch supplies binaries.
 
 ## Verification And Next Step
 
+### Unparsed Source Preview
+
+- Android/Harmony feed network chunks at newline boundaries and publish a separate
+  `source` operation for Markdown not yet delivered by libmark. This covers ordinary
+  text, headings, lists, quotes, table rows, links and other syntax without guessing
+  the final element type. Source is rendered as literal text, never as HTML.
+- Parsed output and removal of its source preview travel in the same operation batch.
+  Confirmed code/math/Mermaid tails keep their existing in-component preview, avoiding
+  duplicate source. Finish and reset clear the generic preview; history rebuilds do
+  not persist transient source operations.
+- The current native HTML/AST protocol has no source offsets. Newline-bounded input
+  keeps pending source aligned with progressive delivery; it does not reparse source
+  with a second Markdown engine. Legacy platforms already parse the full snapshot.
+- When validating Worker edits, inspect the generated Kotlin as well as build success:
+  HBuilderX can reuse the UTS runtime plugin cache despite changes to imported Worker
+  files. Rebuilding that generated plugin cache was required for this Android test.
+
 ### Highlight And Code Layout Follow-up
 
 - Removed the `uni-highlight/utssdk/app-js/index.uts` entry so App bytecode

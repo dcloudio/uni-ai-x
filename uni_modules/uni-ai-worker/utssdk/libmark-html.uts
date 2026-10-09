@@ -183,11 +183,17 @@ export class LibmarkHtmlStreamAdapter {
 	private tailIndex: number = -1
 	private blocks: LibmarkHtmlRenderBlock[] = []
 	private dirty: boolean = true
+	private pendingSource: string = ''
 
 	applyOps(ops: AiWorkerOp[]): boolean {
 		let applied = false
 		for (let index = 0; index < ops.length; index++) {
 			const op = ops[index]
+			if (op.kind == 'source') {
+				this.pendingSource = op.content
+				applied = true
+				continue
+			}
 			if (op.op == 4) {
 				this.reset()
 				applied = true
@@ -227,6 +233,7 @@ export class LibmarkHtmlStreamAdapter {
 
 	// 消息完成兜底：正常流式下 finish 已提交全部尾块，此处仅防御未闭合残块
 	markComplete(): void {
+		this.pendingSource = ''
 		this.finalizeTail()
 		this.dirty = true
 	}
@@ -264,6 +271,12 @@ export class LibmarkHtmlStreamAdapter {
 					result.push(entry)
 				}
 			}
+			if (this.pendingSource.length > 0) {
+				const entry = this.newEntry('data-text', 'libmark-source-tail')
+				entry.text = this.pendingSource
+				entry.isComplete = false
+				result.push(entry)
+			}
 			this.blocks = result
 			this.dirty = false
 		}
@@ -271,6 +284,7 @@ export class LibmarkHtmlStreamAdapter {
 	}
 
 	reset(): void {
+		this.pendingSource = ''
 		this.entries = [] as LibmarkHtmlRenderBlock[]
 		this.clearTail()
 		this.blocks = [] as LibmarkHtmlRenderBlock[]
@@ -278,7 +292,7 @@ export class LibmarkHtmlStreamAdapter {
 	}
 
 	hasContent(): boolean {
-		return this.entries.length > 0 || this.tailContent.length > 0
+		return this.entries.length > 0 || this.tailContent.length > 0 || this.pendingSource.length > 0
 	}
 
 	private clearTail(): void {

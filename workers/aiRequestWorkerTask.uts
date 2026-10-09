@@ -214,7 +214,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		try {
 			const session = this.libmarkSession
 			if (session == null) return false
-			this.appendLibmarkOps(this.sourceTail.feed(contentDelta, feedChunk(session, contentDelta)))
+			let start: number = 0
+			while (start < contentDelta.length) {
+				const newline = contentDelta.indexOf('\n', start)
+				const end = newline < 0 ? contentDelta.length : newline + 1
+				const chunk = contentDelta.slice(start, end)
+				this.appendLibmarkOps(this.sourceTail.feed(chunk, feedChunk(session, chunk)))
+				start = end
+			}
 			return true
 		} catch {
 			this.failLibmark('libmark_feed_failed', 'libmark 解析失败')
@@ -237,7 +244,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			const session = this.libmarkSession
 			if (session != null) {
 				try {
-					this.appendLibmarkOps(finishSession(session))
+					this.appendLibmarkOps(this.sourceTail.finish(finishSession(session)))
 				} catch {
 					this.failLibmark('libmark_finish_failed', 'libmark 完成解析失败')
 					return
