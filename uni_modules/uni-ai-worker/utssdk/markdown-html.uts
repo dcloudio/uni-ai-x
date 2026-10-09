@@ -433,7 +433,7 @@ function styleTaskListItems(source: string): string {
 		// Only the item's own label determines whether its marker is a checkbox.
 		const unorderedStart = findOpenTag(itemHtml, 'ul', 0)
 		const orderedStart = findOpenTag(itemHtml, 'ol', 0)
-		let labelEnd = itemHtml.length
+		let labelEnd: number = itemHtml.length
 		if (unorderedStart >= 0) labelEnd = Math.min(labelEnd, unorderedStart)
 		if (orderedStart >= 0) labelEnd = Math.min(labelEnd, orderedStart)
 		const isTaskItem = itemHtml.slice(0, labelEnd).indexOf('data-uni-ai-task="1"') >= 0
