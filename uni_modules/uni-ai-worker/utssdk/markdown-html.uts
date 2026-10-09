@@ -420,20 +420,28 @@ function styleTaskListItems(source: string): string {
 			result += source.slice(cursor)
 			break
 		}
-		const openEnd = source.indexOf('>', start)
-		const closeStart = openEnd >= 0 ? source.indexOf('</li>', openEnd + 1) : -1
-		if (openEnd < 0 || closeStart < 0) {
+		const range = findClosedBlock(source, 'li', 'list-item', start)
+		if (range == null) {
 			result += source.slice(cursor)
 			break
 		}
+		const openEnd = range.openEnd
+		const closeStart = range.closeStart
 		result += source.slice(cursor, start)
 		const openTag = source.slice(start, openEnd + 1)
 		const itemHtml = source.slice(openEnd + 1, closeStart)
-		const isTaskItem = itemHtml.indexOf('data-uni-ai-task="1"') >= 0
+		// Only the item's own label determines whether its marker is a checkbox.
+		const unorderedStart = findOpenTag(itemHtml, 'ul', 0)
+		const orderedStart = findOpenTag(itemHtml, 'ol', 0)
+		let labelEnd = itemHtml.length
+		if (unorderedStart >= 0) labelEnd = Math.min(labelEnd, unorderedStart)
+		if (orderedStart >= 0) labelEnd = Math.min(labelEnd, orderedStart)
+		const isTaskItem = itemHtml.slice(0, labelEnd).indexOf('data-uni-ai-task="1"') >= 0
 		result += isTaskItem
 			? appendTagStyle(openTag, 'margin:2px 0;line-height:26px;list-style-type:none;')
 			: openTag
-		result += isTaskItem ? normalizeTaskItemHtml(itemHtml) : itemHtml
+		const nestedHtml = styleTaskListItems(itemHtml)
+		result += isTaskItem ? normalizeTaskItemHtml(nestedHtml) : nestedHtml
 		result += '</li>'
 		cursor = closeStart + '</li>'.length
 	}
@@ -660,7 +668,7 @@ function findClosedBlock(source: string, tag: string, kind: string, fromIndex: n
 	const closeTag = '</' + tag + '>'
 	let closeStart = source.indexOf(closeTag, openEnd + 1)
 	if (closeStart < 0) return null
-	if (tag == 'blockquote') {
+	if (tag == 'blockquote' || tag == 'li') {
 		let depth = 1
 		let cursor = openEnd + 1
 		while (depth > 0) {
