@@ -1,0 +1,66 @@
+import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
+
+// Keep native block boundaries; only preview the unconsumed line of a confirmed code tail.
+export class LibmarkCodeTail {
+	private line: string = ''
+	private tail: LibmarkOp | null = null
+	private previewVisible: boolean = false
+	private fence: string = ''
+	private indent: number = 0
+
+	feed(chunk: string, event: LibmarkEvent | null): LibmarkEvent | null {
+		const combined = this.line + chunk
+		const newline = combined.lastIndexOf('\n')
+		if (newline >= 0) {
+			const completed = combined.slice(0, newline).split('\n')
+			for (let i = 0; i < completed.length; i++) {
+				const source = completed[i].replace(/\r$/, '')
+				if (this.fence.length == 0) {
+					const opening = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(source)
+					if (opening != null && !(opening[2].startsWith('`') && opening[3].indexOf('`') >= 0)) {
+						this.fence = opening[2]
+						this.indent = opening[1].length
+					}
+				} else {
+					const closing = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(source)
+					if (closing != null && closing[1][0] == this.fence[0] && closing[1].length >= this.fence.length) this.fence = ''
+				}
+			}
+		}
+		this.line = newline >= 0 ? combined.slice(newline + 1) : combined
+		const ops = event == null ? [] as LibmarkOp[] : event.ops.slice()
+		for (let i = 0; i < ops.length; i++) {
+			const op = ops[i]
+			this.tail = null
+			this.previewVisible = false
+			if (op.op == 2 && op.kind == 'html' && /^<pre><code(?:\s[^>]*)?>/.test(op.content)
+				&& op.content.indexOf('language-mermaid') < 0 && op.content.indexOf('</code>') >= 0) {
+				this.tail = op
+			}
+		}
+		const tail = this.tail
+		if (tail == null || this.fence.length == 0) return event
+		let line = this.line.replace(/\r$/, '')
+		let removed: number = 0
+		while (removed < this.indent && line.startsWith(' ')) {
+			line = line.slice(1)
+			removed += 1
+		}
+		// A partial closing fence must not flash as source while its delimiter arrives.
+		const possibleFence = /^ {0,3}(`+|~+)\s*$/.test(line)
+		if (line.length == 0 || possibleFence) {
+			if (this.previewVisible) ops.push(tail)
+			this.previewVisible = false
+		} else {
+			const end = tail.content.indexOf('</code>')
+			const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+			const preview: LibmarkOp = { op: 2, kind: 'html', index: tail.index, unchanged: false,
+				content: tail.content.slice(0, end) + escaped + tail.content.slice(end) }
+			ops.push(preview)
+			this.previewVisible = true
+		}
+		if (ops.length == 0) return null
+		const result: LibmarkEvent = { ops: ops }
+		return result
+	}
+}
