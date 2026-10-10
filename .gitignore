@@ -27,3 +27,6 @@ selfIdentity.plist
 
 # Local performance captures: screenshots, frame statistics and experiment snapshots.
 /tests/performance/
+
+# Keep local benchmark pages, scripts, reports and raw data together under
+# tests/performance/<date>-<topic>/ instead of adding them to production folders.
