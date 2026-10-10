@@ -37,7 +37,7 @@ function ensureWorker() {
 		}
 		if (worker != created || failed) return
 		if (action == 'ready') {
-			if (payload['protocol'] != 4) { failPresentation('Unsupported HTML patch protocol'); return }
+			if (payload['protocol'] != 6) { failPresentation('Unsupported presentation context protocol'); return }
 			ready = true
 			const queued = pending
 			pending = []
@@ -49,7 +49,7 @@ function ensureWorker() {
 			return
 		}
 		const client = clients.get(payload['id'] as string)
-		if (client == null || action != 'blocks') return
+		if (client == null || (action != 'blocks' && action != 'inline-math')) return
 		client.listener(payload)
 	})
 	created.onError((_error: any) => {
@@ -59,7 +59,7 @@ function ensureWorker() {
 
 @UTSJS.keepAlive
 export function prepareAndroidPresentation(id: string, ops: UTSJSONObject[], done: boolean,
-	theme: string, listener: PresentationListener) {
+	theme: string, listener: PresentationListener, body: string = '', citationIds: number[] = []) {
 	if (!clients.has(id)) clients.set(id, { listener: listener })
 	if (failed) return
 	try {
@@ -68,7 +68,7 @@ export function prepareAndroidPresentation(id: string, ops: UTSJSONObject[], don
 		const immutableOps = ops.map((op: UTSJSONObject): UTSJSONObject => ({
 			op: op['op'], kind: op['kind'], content: op['content'], index: op['index'], unchanged: op['unchanged']
 		} as UTSJSONObject))
-		const message = { action: 'prepare', id: id, ops: immutableOps, done: done, theme: theme } as UTSJSONObject
+		const message = { action: 'prepare', id: id, ops: immutableOps, done: done, theme: theme, body: body, citationIds: citationIds.slice() } as UTSJSONObject
 		if (ready) worker!.postMessage(message, null)
 		else pending.push(message)
 	} catch (error) { failPresentation('Worker creation failed: ' + error) }
@@ -93,4 +93,10 @@ export function releaseAndroidPresentation(id: string) {
 	}
 	pending = pending.filter((message: UTSJSONObject): boolean => message['id'] != id)
 	if (ready && !failed) worker?.postMessage({ action: 'release', id: id } as UTSJSONObject, null)
+}
+
+export function completeAndroidInlineMath(id: string, source: string, theme: string, result: UTSJSONObject) {
+	if (!ready || failed || !clients.has(id)) return
+	worker?.postMessage({action:'inline-math-result',id:id,source:source,theme:theme,
+		image:result['imageDataURL'] ?? '',width:result['width'] ?? 0,height:result['height'] ?? 0} as UTSJSONObject, null)
 }

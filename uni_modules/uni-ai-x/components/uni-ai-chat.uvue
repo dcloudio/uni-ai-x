@@ -225,7 +225,12 @@
 		const revision = msg.libmarkRevision ?? 0
 			const version = libmarkStreamGetRevision(msg._id)
 		const theme = uiTheme.value
+		// #ifdef APP-ANDROID
+		const sources = ''
+		// #endif
+		// #ifndef APP-ANDROID
 		const sources = JSON.stringify(msg.search?.sources ?? []) ?? ''
+		// #endif
 		const cached = markdownBlockCache.get(msg._id)
 		if (cached != null && cached.body == msg.body && cached.theme == theme && cached.sources == sources &&
 			cached.libmarkRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
@@ -233,6 +238,7 @@
 		if (blocks.length == 0 && msg.body.length > 0 && msg.rendered) {
 			libmarkStreamRequestRebuild(msg._id, msg.body)
 		}
+		// #ifndef APP-ANDROID
 		for (let i = 0; i < blocks.length; i++) {
 			const block = blocks[i]
 			const preparedHtml = block.html
@@ -242,6 +248,7 @@
 			}
 			if (block.kind == 'table' && (block.table == null || block.html != preparedHtml)) block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
 		}
+		// #endif
 		markdownBlockCache.set(msg._id, {
 			body: msg.body, theme: theme, sources: sources, libmarkRevision: revision,
 			complete: msg.rendered, rebuildVersion: version, blocks: blocks

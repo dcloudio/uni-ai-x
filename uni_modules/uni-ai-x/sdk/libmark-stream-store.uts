@@ -9,7 +9,8 @@ import { releaseCodeHighlightSessions } from './parseCode.uts'
 import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 // #ifdef APP-ANDROID
-import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_modules/uni-ai-worker-runtime'
+import { prepareAndroidPresentation, releaseAndroidPresentation, completeAndroidInlineMath } from '@/uni_modules/uni-ai-worker-runtime'
+import proxyWeb from './proxy-web.uts'
 // #endif
 
 export const libmarkPresentationRevision = ref<number>(0)
@@ -25,6 +26,8 @@ type LibmarkStreamEntry = {
 	presentationRevision: number
 	adapter: LibmarkHtmlStreamAdapter
 	textBlocks: MarkdownTextRenderBlock[]
+	body: string
+	citationIds: number[]
 }
 
 const streamEntries = new Map<string, LibmarkStreamEntry>()
@@ -62,7 +65,9 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 		preparationVersion: 0,
 		presentationRevision: 0,
 		adapter: new LibmarkHtmlStreamAdapter(),
-		textBlocks: emptyBlocks()
+		textBlocks: emptyBlocks(),
+		body: '',
+		citationIds: []
 	}
 	streamEntries.set(msgId, entry)
 	touchEntry(msgId)
@@ -101,6 +106,14 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 }
 
 // #ifdef APP-ANDROID
+export function libmarkStreamSetContext(msgId: string, body: string, citationIds: number[]) {
+	const entry = entryFor(msgId)
+	if (entry.body == body && entry.citationIds.join(',') == citationIds.join(',')) return
+	entry.body = body
+	entry.citationIds = citationIds
+	if (entry.preparationVersion > 0) prepareAndroidEntry(entry, [])
+}
+
 function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
 	entry.preparationVersion += 1
 	const wireOps = ops.map((op: AiWorkerOp): UTSJSONObject => ({
@@ -108,16 +121,26 @@ function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done:
 	} as UTSJSONObject))
 	prepareAndroidPresentation(entry.workerId, wireOps, done, presentationTheme, (message: UTSJSONObject) => {
 		if (streamEntries.get(entry.messageId) != entry) return
+		if (message['action'] == 'inline-math') {
+			const theme = message['theme'] as string
+			const source = message['source'] as string
+			proxyWeb.callMethod({ action: 'rasterizeInlineMath', source: source, theme: theme }, (result: UTSJSONObject) => {
+				if (streamEntries.get(entry.messageId) != entry || presentationTheme != theme) return
+				completeAndroidInlineMath(entry.workerId, source, theme, result)
+			})
+			return
+		}
 		if (message['action'] == 'error') {
 			notifyEntry(entry)
 			return
 		}
 		const blocks = entry.textBlocks.slice(0, message['length'] as number)
 		const deltas = message['changes'] as UTSJSONObject[]
+		const changed: MarkdownTextRenderBlock[] = []
 		for (let i = 0; i < deltas.length; i++) {
 			const index = deltas[i]['index'] as number
 			const wireBlock = deltas[i]['block'] as UTSJSONObject
-			const block = cloneBlock(wireBlock as MarkdownTextRenderBlock)
+			const block = wireBlock as MarkdownTextRenderBlock
 			const prefix = wireBlock['codeHtmlPrefix'] as number
 			const previousHtml = blocks[index]?.codeHtml ?? ''
 			if (prefix < 0 || prefix > previousHtml.length) {
@@ -126,19 +149,28 @@ function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done:
 			}
 			block.codeHtml = previousHtml.slice(0, prefix) + (block.codeHtml ?? '')
 			blocks[index] = block
+			changed.push(block)
 		}
 		entry.preparationVersion += 1
 		// Worker deltas reuse stable blocks. Only changed blocks need image preparation.
-		const changed = blocks.filter((block: MarkdownTextRenderBlock, index: number): boolean => block != entry.textBlocks[index])
 		entry.textBlocks = blocks
+		const published = changed.slice()
 		const publish = () => {
-			if (streamEntries.get(entry.messageId) != entry || !changed.some((block: MarkdownTextRenderBlock): boolean => entry.textBlocks.includes(block))) return
+			if (streamEntries.get(entry.messageId) != entry || !published.some((block: MarkdownTextRenderBlock): boolean => entry.textBlocks.includes(block))) return
+			const updated = entry.textBlocks.slice()
+			for (let i = 0; i < deltas.length; i++) {
+				const index = deltas[i]['index'] as number
+				if (updated[index] == published[i]) {
+					published[i] = cloneBlock(changed[i])
+					updated[index] = published[i]
+				}
+			}
+			entry.textBlocks = updated
 			notifyEntry(entry)
 		}
-		prepareNativeInlineMathBlocks(entry.messageId, changed, presentationTheme, publish)
 		prepareNativeMermaidBlocks(changed, presentationTheme, publish)
 		notifyEntry(entry)
-	})
+	}, entry.body, entry.citationIds)
 }
 // #endif
 
@@ -218,7 +250,12 @@ export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[]
 	const entry = streamEntries.get(msgId)
 	if (entry == null) return emptyBlocks()
 	touchEntry(msgId)
+	// #ifdef APP-ANDROID
+	return entry!.textBlocks
+	// #endif
+	// #ifndef APP-ANDROID
 	return cloneBlocks(entry!.textBlocks)
+	// #endif
 }
 
 // 仅刷新完成态（不序列化 AST），用于流式结束后的 UI 收尾

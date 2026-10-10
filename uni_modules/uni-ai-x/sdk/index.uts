@@ -1,4 +1,7 @@
 import { reactive, watch, nextTick, ref } from 'vue';
+// #ifdef APP-ANDROID
+import { libmarkStreamSetContext } from './libmark-stream-store.uts'
+// #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
@@ -481,6 +484,9 @@ class UniAi {
 	}
 
 	private prepareMessagePresentation(msg: MsgItem) {
+		// #ifdef APP-ANDROID
+		libmarkStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
+		// #endif
 		// #ifdef APP-ANDROID || APP-HARMONY
 		libmarkStreamSetTheme(uiTheme.value)
 		return
@@ -622,6 +628,9 @@ class UniAi {
 		this.pendingMsgSave = null
 	}
 	updateMsg2Storage(msg: MsgItem) {
+		// #ifdef APP-ANDROID
+		libmarkStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
+		// #endif
 		// #ifndef APP-ANDROID || APP-HARMONY
 		refreshMessagePresentation(msg, uiTheme.value)
 		// #endif

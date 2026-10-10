@@ -1,0 +1,103 @@
+export function markdownFootnotes(markdown: string): Map<string, string> {
+	const notes = new Map<string, string>()
+	let fence = ''
+	let active = ''
+	for (const line of markdown.split('\n')) {
+		const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)
+		if (marker != null) {
+			const value = marker[1] ?? ''
+			if (fence.length == 0) fence = value
+			else if (value.charAt(0) == fence.charAt(0) && value.length >= fence.length) fence = ''
+			active = ''
+			continue
+		}
+		if (fence.length > 0) continue
+		const definition = /^ {0,3}\[\^([^\]]+)\]:\s*(.*)$/.exec(line)
+		if (definition != null) {
+			active = definition[1] ?? ''
+			notes.set(active, definition[2] ?? '')
+		} else if (active.length > 0 && /^( {4}|\t)/.test(line)) {
+			notes.set(active, notes.get(active)! + '\n' + line.trim())
+		} else if (line.trim().length > 0) active = ''
+	}
+	return notes
+}
+
+export function footnoteLabel(href: string): string {
+	const prefix = '#uni-ai-footnote-'
+	if (!href.startsWith(prefix)) return ''
+	try { return decodeURIComponent(href.slice(prefix.length)) ?? '' } catch (_) { return '' }
+}
+
+// cmark currently parses [^label] definitions as reference links. Normalize only
+// those generated links; code spans and ordinary links retain their behavior.
+export function linkMarkdownFootnotes(html: string, markdown: string, preparedNotes: Map<string, string> | null = null): string {
+	if (html.indexOf('>^') < 0) return html
+	const notes = preparedNotes ?? markdownFootnotes(markdown)
+	if (notes.size == 0) return html
+	return html.replace(/<a\s+href="[^"]*"[^>]*>\^([^<]+)<\/a>/g, (match: string, label: string, _offset: number, _input: string): string => {
+		if (!notes.has(label)) return match
+		const target = '#uni-ai-footnote-' + encodeURIComponent(label)
+		return '<a href="' + target + '">[' + label + ']</a>'
+	})
+}
+
+const CITATION_PREFIX = '#uni-ai-source-'
+
+export function citationNumber(href: string): number {
+	if (!href.startsWith(CITATION_PREFIX)) return 0
+	const value = href.slice(CITATION_PREFIX.length)
+	return /^[1-9][0-9]*$/.test(value) ? parseInt(value) : 0
+}
+
+function linkTextReferences(text: string, sources: number[]): string {
+	return text.replace(/\[([1-9][0-9]*)\]/g, (match: string, value: string, _offset: number, _input: string): string => {
+		const id = parseInt(value)
+		if (!sources.includes(id)) return match
+		return '<a href="' + CITATION_PREFIX + value + '" style="color:#5082c8;font-size:12px;">' + match + '</a>'
+	})
+}
+
+// Scan HTML tokens, transforming text only. Quoted attributes and code/link contents stay intact.
+export function linkSearchCitations(html: string, sources: number[]): string {
+	if (sources.length == 0 || html.indexOf('[') < 0) return html
+	let result = ''
+	let cursor = 0
+	const excluded = [] as string[]
+	while (cursor < html.length) {
+		if (html.charAt(cursor) != '<') {
+			let end = html.indexOf('<', cursor)
+			if (end < 0) end = html.length
+			const text = html.slice(cursor, end)
+			result += excluded.length > 0 ? text : linkTextReferences(text, sources)
+			cursor = end
+			continue
+		}
+		if (html.slice(cursor, cursor + 4) == '<!--') {
+			const close = html.indexOf('-->', cursor + 4)
+			const end = close < 0 ? html.length : close + 3
+			result += html.slice(cursor, end)
+			cursor = end
+			continue
+		}
+		let end = cursor + 1
+		let quote = ''
+		for (; end < html.length; end++) {
+			const char = html.charAt(end)
+			if (quote.length > 0) { if (char == quote) quote = '' }
+			else if (char == '"' || char == "'") quote = char
+			else if (char == '>') break
+		}
+		if (end == html.length) { result += html.slice(cursor); break }
+		const tag = html.slice(cursor, end + 1)
+		const nameMatch = /^<\/?\s*([a-zA-Z0-9-]+)/.exec(tag)
+		const name = nameMatch == null ? '' : (nameMatch[1] ?? '').toLowerCase()
+		if (name == 'a' || name == 'code' || name == 'pre' || name == 'script' || name == 'style' || name == 'math') {
+			if (tag.startsWith('</')) { if (excluded[excluded.length - 1] == name) excluded.pop() }
+			else if (!tag.endsWith('/>')) excluded.push(name)
+		}
+		result += tag
+		cursor = end + 1
+	}
+	return result
+}

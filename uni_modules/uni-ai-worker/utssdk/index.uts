@@ -9,4 +9,5 @@ export * from './native-presentation.uts'
 export * from './code-presentation.uts'
 export * from './code-highlight.uts'
 export * from './table-presentation.uts'
+export { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from './presentation-links.uts'
 // #endif

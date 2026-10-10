@@ -6,6 +6,16 @@ import type { MarkdownTextRenderBlock } from '../uni_modules/uni-ai-worker/utssd
 import { prepareCodeBlocks, buildCodeHtmlPatch } from '../uni_modules/uni-ai-worker/utssdk/code-presentation.uts'
 import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../uni_modules/uni-ai-worker/utssdk/code-highlight.uts'
 import { prepareTablePresentation } from '../uni_modules/uni-ai-worker/utssdk/table-presentation.uts'
+import { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from '../uni_modules/uni-ai-worker/utssdk/presentation-links.uts'
+
+type InlineImage = { source: string, width: number, height: number }
+
+function containsDirtyImage(html: string, sources: Set<string>): boolean {
+	for (const source of sources) {
+		if (html.includes(source)) return true
+	}
+	return false
+}
 
 class PresentationEntry {
 	adapter = new LibmarkHtmlStreamAdapter(false)
@@ -16,6 +26,14 @@ class PresentationEntry {
 	timer = 0
 	done = false
 	theme = 'light'
+	body = ''
+	notes = new Map<string, string>()
+	noteKeys = ''
+	citationIds: number[] = []
+	contextDirty = false
+	images = new Map<string, InlineImage>()
+	pendingImages = new Set<string>()
+	dirtyImages = new Set<string>()
 }
 
 function sameDisplayBlock(a: MarkdownTextRenderBlock, b: MarkdownTextRenderBlock): boolean {
@@ -32,7 +50,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 	constructor() { super() }
 
 	override entry() {
-		this.postMessage({ action: 'ready', protocol: 4 } as UTSJSONObject)
+		this.postMessage({ action: 'ready', protocol: 6 } as UTSJSONObject)
 	}
 
 	override onMessage(message: any) {
@@ -45,6 +63,21 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			return
 		}
 		const id = payload['id'] as string
+		if (action == 'inline-math-result') {
+			const target = this.entries.get(id)
+			if (target == null || target.theme != payload['theme']) return
+			const source = payload['source'] as string
+			target.pendingImages.delete(source)
+			const image = payload['image'] as string
+			if (image.length == 0) return
+			target.images.set(source, {source:image,width:payload['width'] as number,height:payload['height'] as number})
+			target.dirtyImages.add(source)
+			if (target.timer == 0) target.timer = setTimeout(() => {
+				target.timer = 0
+				try { this.prepare(id, target) } catch (error) { this.fail(id, error) }
+			}, 64)
+			return
+		}
 		if (action == 'release') {
 			const old = this.entries.get(id)
 			if (old != null && old.timer != 0) clearTimeout(old.timer)
@@ -63,8 +96,25 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			if (current.theme != theme) {
 				current.sources = []
 				current.sent = []
+				current.images.clear()
+				current.pendingImages.clear()
+				current.dirtyImages.clear()
 			}
 			current.theme = theme
+			const body = (payload['body'] as string | null) ?? ''
+			const ids = (payload['citationIds'] as number[] | null) ?? []
+			if (current.body != body) {
+				const notes = body.includes('[^') ? markdownFootnotes(body) : new Map<string, string>()
+				const keys: string[] = []
+				notes.forEach((_value: string, key: string) => { keys.push(key) })
+				const signature = JSON.stringify(keys) ?? ''
+				if (signature != current.noteKeys) current.contextDirty = true
+				current.notes = notes
+				current.noteKeys = signature
+			}
+			if (current.citationIds.join(',') != ids.join(',')) current.contextDirty = true
+			current.body = body
+			current.citationIds = ids
 			const rawOps = payload['ops'] as UTSJSONObject[]
 			const ops = rawOps.map((op: UTSJSONObject): AiWorkerOp => ({
 				op: op['op'] as number, kind: op['kind'] as string, content: op['content'] as string,
@@ -101,15 +151,41 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 		for (let i = 0; i < raw.length; i++) {
 			const signature = (JSON.stringify(raw[i]) ?? '') + ':' + entry.done.toString()
 			sources.push(signature)
-			if (i < entry.sources.length && signature == entry.sources[i]) {
+			const postprocess = raw[i].kind == 'html' || raw[i].kind == 'table'
+			const imageDirty = postprocess && containsDirtyImage(raw[i].html, entry.dirtyImages)
+			if (i < entry.sources.length && signature == entry.sources[i] && !(postprocess && (entry.contextDirty || imageDirty))) {
 				blocks.push(entry.blocks[i])
 				continue
 			}
 			const block = nativeRenderBlock(raw[i], entry.done)
+			if (postprocess) {
+				block.html = linkMarkdownFootnotes(block.html, entry.body, entry.notes)
+				block.html = linkSearchCitations(block.html, entry.citationIds)
+				const tags = block.html.match(/<img\b[^>]*>/g) ?? []
+				for (const tag of tags) {
+					if (tag == null) continue
+					if (!/class="[^"]*\bmath\b[^"]*"/.test(tag)) continue
+					const match = tag.match(/src="(data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+)"/)
+					if (match == null) continue
+					const source = match[1] ?? ''
+					if (source.length == 0) continue
+					const image = entry.images.get(source)
+					if (image != null) {
+						const replacement = tag.replace(source,image.source).replace(/\s(?:width|height)="[^"]*"/g,'')
+							.replace(/\s*\/?\s*>$/, ' width="'+image.width.toString()+'" height="'+image.height.toString()+'">')
+						block.html = block.html.split(tag).join(replacement)
+					} else if (!entry.pendingImages.has(source)) {
+						entry.pendingImages.add(source)
+						this.postMessage({action:'inline-math',id:id,source:source,theme:entry.theme} as UTSJSONObject)
+					}
+				}
+			}
 			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, entry.theme)
 			blocks.push(block)
 		}
 		const previous = entry.blocks
+		entry.contextDirty = false
+		entry.dirtyImages.clear()
 		entry.sources = sources
 		prepareCodeBlocks(id, blocks, (prepared: MarkdownTextRenderBlock[]) => {
 			if (this.entries.get(id) != entry || entry.version != version) return
