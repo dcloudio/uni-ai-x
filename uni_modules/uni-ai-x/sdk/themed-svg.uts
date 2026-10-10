@@ -1,6 +1,6 @@
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-import { getHarmonySvgWorkaroundConfig, prepareHarmonySvgImageSource } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
+import { getHarmonySvgWorkaroundConfig, prepareHarmonySvgImageSource, cleanupPreviousSvgFiles } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
 
 export type ThemedSvgResult = {
 	imageSource: string
@@ -20,6 +20,87 @@ type PendingMermaidRender = {
 const pendingMermaidRenders = new Map<string, PendingMermaidRender>()
 const MERMAID_CACHE_STORAGE_PREFIX = 'uni-ai-mermaid-cache-'
 const MERMAID_RENDER_TIMEOUT = 15000
+const SVG_CACHE_LIMIT = 64
+const SVG_CACHE_WEIGHT_LIMIT = 2 * 1024 * 1024
+const MERMAID_CACHE_INDEX = 'uni-ai-mermaid-cache-index'
+let svgCacheInitialized = false
+const persistentOrder = [] as string[]
+const persistentWeights = new Map<string, number>()
+let persistentWeight = 0
+
+function putSvgCache(cache: Map<string, ThemedSvgResult>, key: string, value: ThemedSvgResult) {
+	cache.delete(key)
+	cache.set(key, value)
+	let weight = 0
+	const keys = [] as string[]
+	cache.forEach((result: ThemedSvgResult, entryKey: string) => {
+		weight += (entryKey.length + result.imageSource.length) * 2
+		keys.push(entryKey)
+	})
+	for (let i = 0; i < keys.length && (cache.size > SVG_CACHE_LIMIT || weight > SVG_CACHE_WEIGHT_LIMIT); i++) {
+		const oldest = cache.get(keys[i])!
+		weight -= (keys[i].length + oldest.imageSource.length) * 2
+		cache.delete(keys[i])
+	}
+}
+
+function removePersistentEntry(key: string) {
+	persistentWeight -= persistentWeights.get(key) ?? 0
+	persistentWeights.delete(key)
+	const index = persistentOrder.indexOf(key)
+	if (index >= 0) persistentOrder.splice(index, 1)
+	uni.removeStorageSync(key)
+}
+
+function trimPersistentCache() {
+	while (persistentOrder.length > SVG_CACHE_LIMIT || persistentWeight > SVG_CACHE_WEIGHT_LIMIT) {
+		removePersistentEntry(persistentOrder[0])
+	}
+	uni.setStorageSync(MERMAID_CACHE_INDEX, JSON.stringify(persistentOrder))
+}
+
+function ensureSvgCacheInitialized() {
+	if (svgCacheInitialized) return
+	svgCacheInitialized = true
+	const protectedSources = [] as string[]
+	try {
+		const allKeys = uni.getStorageInfoSync().keys.filter((key: string): boolean => key.startsWith(MERMAID_CACHE_STORAGE_PREFIX) && key != MERMAID_CACHE_INDEX)
+		const saved = uni.getStorageSync(MERMAID_CACHE_INDEX) as string
+		const indexed = saved.length > 0 ? JSON.parse<string[]>(saved) : null
+		const candidates = indexed ?? allKeys.slice(-SVG_CACHE_LIMIT)
+		for (let i = 0; i < candidates.length; i++) {
+			const key = candidates[i]
+			if (!key.startsWith(MERMAID_CACHE_STORAGE_PREFIX) || key == MERMAID_CACHE_INDEX || persistentWeights.has(key)) continue
+			const value = uni.getStorageSync(key) as string
+			if (value.length == 0) continue
+			persistentOrder.push(key)
+			persistentWeights.set(key, value.length * 2)
+			persistentWeight += value.length * 2
+		}
+		trimPersistentCache()
+		for (let i = 0; i < persistentOrder.length; i++) {
+			try {
+				const value = JSON.parse<ThemedSvgResult>(uni.getStorageSync(persistentOrder[i]) as string)
+				if (value != null && value.imageSource.length > 0) protectedSources.push(value.imageSource)
+			} catch (_) { }
+		}
+		// Migrate old unindexed entries in small batches, away from the render call.
+		let index = 0
+		const cleanOldEntries = () => {
+			for (let count = 0; count < 16 && index < allKeys.length; count++) {
+				const key = allKeys[index++]
+				if (!persistentWeights.has(key)) {
+					try { uni.removeStorageSync(key) } catch (_) { }
+				}
+			}
+			if (index < allKeys.length) setTimeout(cleanOldEntries, 0)
+		}
+		setTimeout(cleanOldEntries, 0)
+	} catch (error) {
+		console.warn('[SvgCache] initialize cache failed: ' + error)
+	}
+	cleanupPreviousSvgFiles(protectedSources)
+}
 
 function persistentCacheKey(key: string): string {
 	let hash = 7
@@ -31,9 +112,17 @@ function persistentCacheKey(key: string): string {
 
 function readPersistentMermaidCache(key: string): ThemedSvgResult | null {
 	try {
-		const value = uni.getStorageSync(persistentCacheKey(key)) as string
+		const storageKey = persistentCacheKey(key)
+		if (!persistentWeights.has(storageKey)) return null
+		const value = uni.getStorageSync(storageKey) as string
 		if (value.length == 0) return null
 		const result = JSON.parse<ThemedSvgResult>(value) as ThemedSvgResult
+		// #ifdef APP-ANDROID || APP-HARMONY
+		if (result.imageSource.startsWith(uni.env.CACHE_PATH + '/ai-svg-cache/')) {
+			try { uni.getFileSystemManager().accessSync(result.imageSource) }
+			catch (_) { removePersistentEntry(storageKey); return null }
+		}
+		// #endif
 		return result.imageSource.length > 0 ? result : null
 	} catch (_error) {
 		return null
@@ -42,7 +131,17 @@ function readPersistentMermaidCache(key: string): ThemedSvgResult | null {
 
 function writePersistentMermaidCache(key: string, result: ThemedSvgResult) {
 	try {
-		uni.setStorageSync(persistentCacheKey(key), JSON.stringify(result))
+		const storageKey = persistentCacheKey(key)
+		const serialized = JSON.stringify(result) ?? ''
+		if (serialized.length * 2 > SVG_CACHE_WEIGHT_LIMIT) return
+		uni.setStorageSync(storageKey, serialized)
+		persistentWeight -= persistentWeights.get(storageKey) ?? 0
+		const index = persistentOrder.indexOf(storageKey)
+		if (index >= 0) persistentOrder.splice(index, 1)
+		persistentOrder.push(storageKey)
+		persistentWeights.set(storageKey, serialized.length * 2)
+		persistentWeight += serialized.length * 2
+		trimPersistentCache()
 	} catch (error) {
 		console.warn('[SvgCache] persist Mermaid cache failed: ' + error)
 	}
@@ -113,6 +212,7 @@ function deliverResult(callback: ThemedSvgCallback, result: ThemedSvgResult) {
 }
 
 export function renderMathSvgForTheme(mathText: string, theme: string, callback: ThemedSvgCallback) {
+	ensureSvgCacheInitialized()
 	const renderTheme = normalizedTheme(theme)
 	const workaround = getHarmonySvgWorkaroundConfig()
 	const renderVariant = workaround.cacheVariant + ':opaque-theme-background-v1'
@@ -138,13 +238,14 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 					height: (param['height'] as number | null) ?? 0,
 					theme: (param['theme'] as string | null) ?? renderTheme
 				}
-				if (cacheable && result.imageSource.length > 0) mathCache.set(key, result)
+				if (cacheable && result.imageSource.length > 0) putSvgCache(mathCache, key, result)
 				deliverResult(callback, result)
 			})
 	})
 }
 
 export function renderMermaidSvgForTheme(mermaidText: string, theme: string, callback: ThemedSvgCallback) {
+	ensureSvgCacheInitialized()
 	const renderTheme = normalizedTheme(theme)
 	const workaround = getHarmonySvgWorkaroundConfig()
 	const inlineComputedStyles = shouldInlineMermaidComputedStyles()
@@ -166,7 +267,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 	}
 	const persisted = readPersistentMermaidCache(key)
 	if (persisted != null) {
-		mermaidCache.set(key, persisted)
+		putSvgCache(mermaidCache, key, persisted)
 		deliverResult(callback, persisted)
 		return
 	}
@@ -188,7 +289,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		clearTimeout(active.timer)
 		pendingMermaidRenders.delete(pendingKey)
 		if (cacheable && result.imageSource.length > 0) {
-			mermaidCache.set(key, result)
+			putSvgCache(mermaidCache, key, result)
 			writePersistentMermaidCache(key, result)
 		}
 		for (let index = 0; index < active.callbacks.length; index++) {

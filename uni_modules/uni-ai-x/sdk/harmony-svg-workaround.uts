@@ -16,6 +16,38 @@ let svgCacheDirectoryReady = false
 let svgCacheDirectoryCreating = false
 let svgCacheDirectoryWaiters = [] as ((ready: boolean) => void)[]
 let svgCacheFileSequence = 0
+let svgStartupCleanupFinished = false
+const svgFilesCreatedDuringCleanup = new Set<string>()
+
+// Only startup orphans can be removed: current-run snapshots may still own file paths.
+export function cleanupPreviousSvgFiles(protectedSources: string[]) {
+	// #ifdef APP-HARMONY || APP-ANDROID
+	const directory = uni.env.CACHE_PATH + '/ai-svg-cache/'
+	const protectedFiles = new Set<string>(protectedSources)
+	const finish = () => {
+		svgStartupCleanupFinished = true
+		svgFilesCreatedDuringCleanup.clear()
+	}
+	uni.getFileSystemManager().readdir({
+		dirPath: directory,
+		success: (result) => {
+			let index = 0
+			const removeNext = () => {
+				if (index >= result.files.length) { finish(); return }
+				const name = result.files[index++]
+				const path = directory + name
+				if (!/^\d+-\d+\.svg$/.test(name) || protectedFiles.has(path) || svgFilesCreatedDuringCleanup.has(path)) {
+					setTimeout(removeNext, 0)
+					return
+				}
+				uni.getFileSystemManager().unlink({ filePath: path, complete: () => { setTimeout(removeNext, 0) } })
+			}
+			removeNext()
+		},
+		fail: () => { finish() }
+	})
+	// #endif
+}
 
 function getHarmonySdkApiVersion(): number {
 	let sdkApiVersion = 0
@@ -109,6 +141,7 @@ export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boo
 		svgCacheFileSequence += 1
 		const filePath = uni.env.CACHE_PATH + '/ai-svg-cache/' + Date.now().toString()
 			+ '-' + svgCacheFileSequence.toString() + '.svg'
+		if (!svgStartupCleanupFinished) svgFilesCreatedDuringCleanup.add(filePath)
 		// #ifdef APP-HARMONY || APP-ANDROID
 		uni.getFileSystemManager().writeFile({
 			filePath,
