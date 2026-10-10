@@ -11,12 +11,17 @@ export class LibmarkSourceTail {
 	private visibleSource: string = ''
 
 	feed(chunk: string, event: LibmarkEvent | null): LibmarkEvent | null {
+		// #ifdef APP-ANDROID
+		return this.feedConfirmedTail(chunk, event)
+		// #endif
+		// #ifndef APP-ANDROID
 		this.pendingSource += chunk
 		const result = this.feedConfirmedTail(chunk, event)
 		// The caller feeds at newline boundaries, so a delivery covers completed lines only.
 		if (chunk.endsWith('\n') && event != null && event.ops.length > 0) this.pendingSource = ''
 		const source = this.tail == null ? this.pendingSource : ''
 		return this.withSource(result, source)
+		// #endif
 	}
 
 	finish(event: LibmarkEvent | null): LibmarkEvent | null {

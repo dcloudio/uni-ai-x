@@ -3,7 +3,7 @@ import type { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts
 import type { TablePresentation } from './table-presentation.uts'
 
 export type CodePresentationLine = { text: string, html: string }
-export type NativeMathPresentation = { src: string, width: number, height: number, sourceWidth: string, sourceHeight: string }
+export type NativeMathPresentation = { src: string, width: number, height: number, sourceWidth: string, sourceHeight: string, sourceIdentity?: string, sourceText?: string }
 export type MarkdownTextRenderBlock = {
 	kind: string
 	key: string
@@ -20,6 +20,7 @@ export type MarkdownTextRenderBlock = {
 	quoteDepth: number
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
+	mermaidRenderFailed?: boolean
 	codeHeight?: string
 	codeLines?: CodePresentationLine[]
 	codeHtml?: string

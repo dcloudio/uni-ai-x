@@ -1,0 +1,218 @@
+import ReentrantLock from 'java.util.concurrent.locks.ReentrantLock'
+
+const writeLock = new ReentrantLock()
+const generations = new Map<string, number>()
+let sequence = 0
+const indexEpochs = new Map<string, number>()
+const syncRevisions = new Map<string, number>()
+const queueLock = new ReentrantLock()
+const tasks: (() => void)[] = []
+let draining = false
+
+function enqueue(task: () => void) {
+	queueLock.lock()
+	let start = false
+	try {
+		tasks.push(task)
+		if (!draining) { draining = true; start = true }
+	} finally { queueLock.unlock() }
+	if (!start) return
+	UTSAndroid.getDispatcher('io').async((_task) => {
+		while (true) {
+			queueLock.lock()
+			let next: (() => void) | null = null
+			try {
+				next = tasks.shift() ?? null
+				if (next == null) draining = false
+			} finally { queueLock.unlock() }
+			if (next == null) break
+			try { next() } catch (error) { console.error('[uni-ai-x][storage-queue] ' + error) }
+		}
+	})
+}
+
+// Invalidation waits for an already committing write before a synchronous save/delete.
+export function invalidateAndroidMessageWrite(key: string) {
+	writeLock.lock()
+	try {
+		generations.delete(key)
+		syncRevisions.set(key, ++sequence)
+		if (key.startsWith('uni-ai-chat-') && key.endsWith('-msgIds')) indexEpochs.set(key, (indexEpochs.get(key) ?? 0) + 1)
+	} finally { writeLock.unlock() }
+}
+
+@UTSJS.keepAlive
+export function saveAndroidMessageInBackground(key: string, snapshot: UTSJSONObject, callback: (ok: boolean) => void) {
+	writeLock.lock()
+	const version = ++sequence
+	try { generations.set(key, version) } finally { writeLock.unlock() }
+	enqueue(() => {
+		let ok = false
+		try {
+			const data = JSON.stringify(snapshot)
+			writeLock.lock()
+			try {
+				if (generations.get(key) == version) {
+					uni.setStorageSync(key, data)
+					generations.delete(key)
+					ok = true
+				}
+			} finally { writeLock.unlock() }
+		} catch (error) { console.error('[uni-ai-x][message-storage] ' + error) }
+		const success = ok
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(success) })
+	})
+}
+
+@UTSJS.keepAlive
+export function readAndroidChatMessages(chatId: string, callback: (messages: UTSJSONObject[] | null) => void) {
+	enqueue(() => {
+		let result: UTSJSONObject[] | null = null
+		try {
+			const rawIds = uni.getStorageSync('uni-ai-chat-' + chatId + '-msgIds') as string
+			const ids = rawIds.length > 0 ? (JSON.parse<string[]>(rawIds) ?? []) : []
+			const messages: UTSJSONObject[] = []
+			for (const id of ids) {
+				const key = 'uni-ai-msg-' + id
+				const raw = uni.getStorageSync(key) as string
+				if (raw.length == 0) continue
+				const message = JSON.parse<UTSJSONObject>(raw)
+				if (message == null) continue
+				const search = message['search'] as UTSJSONObject | null
+				if (search?.['status'] == 'searching') search!['status'] = 'cancelled'
+				const legacy = ((message['markdownHtml'] as string | null) ?? '').length > 0 || ((message['markdownAst'] as string | null) ?? '').length > 0 || ((message['markdownBlocks'] as string | null) ?? '').length > 0
+				message['markdownHtml'] = ''
+				message['markdownAst'] = ''
+				message['markdownBlocks'] = ''
+				message['libmarkRevision'] = 0
+				if (message['from_uid'] == 'uni-ai' && ((message['body'] as string | null) ?? '').length > 0) message['rendered'] = true
+				messages.push(message)
+				if (legacy) {
+					const updated = JSON.stringify(message)
+					writeLock.lock()
+					try {
+						if (!generations.has(key) && uni.getStorageSync(key) == raw) uni.setStorageSync(key, updated)
+					} finally { writeLock.unlock() }
+				}
+			}
+			messages.sort((a: UTSJSONObject, b: UTSJSONObject): number => (a['create_time'] as number) - (b['create_time'] as number))
+			result = messages
+		} catch (error) { console.error('[uni-ai-x][history] ' + error) }
+		const value = result
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(value) })
+	})
+}
+
+@UTSJS.keepAlive
+export function readAndroidChatList(callback: (chats: UTSJSONObject[] | null) => void) {
+	enqueue(() => {
+		let result: UTSJSONObject[] | null = null
+		try {
+			const raw = uni.getStorageSync('uni-ai-chatList') as string
+			result = raw.length > 0 ? JSON.parse<UTSJSONObject[]>(raw) : []
+		} catch (error) { console.error('[uni-ai-x][chat-list] ' + error) }
+		const value = result
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(value) })
+	})
+}
+
+@UTSJS.keepAlive
+export function readAndroidSettings(callback: (value: UTSJSONObject | null) => void) {
+	enqueue(() => {
+		let result: UTSJSONObject | null = null
+		try {
+			const stored = uni.getStorageSync('uni-ai-setting')
+			const raw = typeof stored == 'string' ? stored as string : JSON.stringify(stored)
+			if (raw.length > 0) result = JSON.parse<UTSJSONObject>(raw)
+		} catch (error) { console.error('[uni-ai-x][settings] ' + error) }
+		const value = result
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(value) })
+	})
+}
+
+@UTSJS.keepAlive
+export function writeAndroidStorageBatch(entries: UTSJSONObject[], callback: (ok: boolean) => void) {
+	const versions: number[] = []
+	writeLock.lock()
+	try {
+		for (const entry of entries) {
+			const version = ++sequence
+			versions.push(version)
+			generations.set(entry['key'] as string, version)
+		}
+	} finally { writeLock.unlock() }
+	enqueue(() => {
+		let ok = true
+		try {
+			for (let i = 0; i < entries.length; i++) {
+				const key = entries[i]['key'] as string
+				const data = JSON.stringify(entries[i]['data'])
+				writeLock.lock()
+				try {
+					if (generations.get(key) == versions[i]) {
+						uni.setStorageSync(key, data)
+						generations.delete(key)
+					} else ok = false
+				} finally { writeLock.unlock() }
+			}
+		} catch (error) { ok = false; console.error('[uni-ai-x][storage-batch] ' + error) }
+		const result = ok
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(result) })
+	})
+}
+
+@UTSJS.keepAlive
+export function mutateAndroidChatMessages(chatId: string, additions: UTSJSONObject[], removed: string[], deleteAll: boolean, callback: (ok: boolean) => void) {
+	const indexKey = 'uni-ai-chat-' + chatId + '-msgIds'
+	const versions: number[] = []
+	writeLock.lock()
+	const epoch = indexEpochs.get(indexKey) ?? 0
+	const deletionVersion = sequence
+	try {
+		for (const message of additions) {
+			const version = ++sequence
+			versions.push(version)
+			generations.set('uni-ai-msg-' + (message['_id'] as string), version)
+		}
+		for (const id of removed) generations.delete('uni-ai-msg-' + id)
+	} finally { writeLock.unlock() }
+	enqueue(() => {
+		let ok = false
+		try {
+			const raw = uni.getStorageSync(indexKey) as string
+			const ids = raw.length > 0 ? (JSON.parse<string[]>(raw) ?? []) : []
+			const deleted = deleteAll ? ids : removed
+			const serialized = additions.map((message: UTSJSONObject): string => JSON.stringify(message))
+			writeLock.lock()
+			try {
+				if ((indexEpochs.get(indexKey) ?? 0) == epoch) {
+					const removedSet = new Set<string>()
+					for (const id of deleted) {
+						const key = 'uni-ai-msg-' + id
+						if ((syncRevisions.get(key) ?? 0) > deletionVersion || (generations.get(key) ?? 0) > deletionVersion) continue
+						if (deleteAll) generations.delete(key)
+						uni.removeStorageSync(key)
+						syncRevisions.delete(key)
+						removedSet.add(id)
+					}
+					const next = ids.filter((id: string): boolean => !removedSet.has(id))
+					const existing = new Set<string>(next)
+					for (let i = 0; i < additions.length; i++) {
+						const id = additions[i]['_id'] as string
+						if (!existing.has(id)) { next.push(id); existing.add(id) }
+						const key = 'uni-ai-msg-' + id
+						if (generations.get(key) == versions[i]) {
+							uni.setStorageSync(key, serialized[i])
+							generations.delete(key)
+						}
+					}
+					if (deleteAll && next.length == 0) uni.removeStorageSync(indexKey)
+					else uni.setStorageSync(indexKey, JSON.stringify(next))
+					ok = true
+				}
+			} finally { writeLock.unlock() }
+		} catch (error) { console.error('[uni-ai-x][chat-mutation] ' + error) }
+		const success = ok
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(success) })
+	})
+}

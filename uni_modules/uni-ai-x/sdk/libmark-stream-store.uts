@@ -3,7 +3,7 @@ import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-worker-runt
 import { LibmarkHtmlStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
 import { libmarkHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { prepareCodeBlocks } from './code-presentation.uts'
 import { releaseCodeHighlightSessions } from './parseCode.uts'
 import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
@@ -14,7 +14,11 @@ import proxyWeb from './proxy-web.uts'
 // #endif
 
 export const libmarkPresentationRevision = ref<number>(0)
+// #ifdef APP-ANDROID
+const messageRevisions = reactive(new Map<string, number>())
+// #endif
 let presentationTheme = 'light'
+let presentationWidth = 360
 
 // 内存中保留的渲染条目上限：超出后按最近访问顺序淘汰最久未访问的条目
 const STREAM_ENTRY_LIMIT = 200
@@ -28,6 +32,9 @@ type LibmarkStreamEntry = {
 	textBlocks: MarkdownTextRenderBlock[]
 	body: string
 	citationIds: number[]
+	pendingOps: AiWorkerOp[]
+	pendingDone: boolean
+	preparationQueued: boolean
 }
 
 const streamEntries = new Map<string, LibmarkStreamEntry>()
@@ -67,7 +74,10 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 		adapter: new LibmarkHtmlStreamAdapter(),
 		textBlocks: emptyBlocks(),
 		body: '',
-		citationIds: []
+		citationIds: [],
+		pendingOps: [],
+		pendingDone: false,
+		preparationQueued: false
 	}
 	streamEntries.set(msgId, entry)
 	touchEntry(msgId)
@@ -78,10 +88,18 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 function notifyEntry(entry: LibmarkStreamEntry) {
 	entry.presentationRevision = libmarkPresentationRevision.value + 1
 	libmarkPresentationRevision.value = entry.presentationRevision
+	// #ifdef APP-ANDROID
+	messageRevisions.set(entry.messageId, entry.presentationRevision)
+	// #endif
 }
 
 export function libmarkStreamGetRevision(msgId: string): number {
+	// #ifdef APP-ANDROID
+	return messageRevisions.get(msgId) ?? 0
+	// #endif
+	// #ifndef APP-ANDROID
 	return streamEntries.get(msgId)?.presentationRevision ?? 0
+	// #endif
 }
 
 function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void {
@@ -106,6 +124,12 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 }
 
 // #ifdef APP-ANDROID
+export function libmarkStreamSetLayoutWidth(width: number) {
+	if (width <= 0 || width == presentationWidth) return
+	presentationWidth = width
+	streamEntries.forEach((entry: LibmarkStreamEntry) => { if (entry.preparationVersion > 0) prepareAndroidEntry(entry, []) })
+}
+
 export function libmarkStreamSetContext(msgId: string, body: string, citationIds: number[]) {
 	const entry = entryFor(msgId)
 	if (entry.body == body && entry.citationIds.join(',') == citationIds.join(',')) return
@@ -116,6 +140,23 @@ export function libmarkStreamSetContext(msgId: string, body: string, citationIds
 
 function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
 	entry.preparationVersion += 1
+	for (const op of ops) entry.pendingOps.push({ op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged })
+	entry.pendingDone = entry.pendingDone || done
+	if (entry.preparationQueued) return
+	entry.preparationQueued = true
+	// One native submission for ops, body and completion published in the same task.
+	Promise.resolve().then(() => {
+		entry.preparationQueued = false
+		if (streamEntries.get(entry.messageId) != entry) return
+		const pending = entry.pendingOps
+		const complete = entry.pendingDone
+		entry.pendingOps = []
+		entry.pendingDone = false
+		sendAndroidEntry(entry, pending, complete)
+	})
+}
+
+function sendAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean) {
 	const wireOps = ops.map((op: AiWorkerOp): UTSJSONObject => ({
 		op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged
 	} as UTSJSONObject))
@@ -170,7 +211,7 @@ function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done:
 		}
 		prepareNativeMermaidBlocks(changed, presentationTheme, publish)
 		notifyEntry(entry)
-	}, entry.body, entry.citationIds)
+	}, entry.body, entry.citationIds, presentationWidth)
 }
 // #endif
 
@@ -342,6 +383,9 @@ export function libmarkStreamRelease(msgId: string): void {
 	// #endif
 	releaseCodeHighlightSessions(msgId)
 	streamEntries.delete(msgId)
+	// #ifdef APP-ANDROID
+	messageRevisions.delete(msgId)
+	// #endif
 	const index = streamEntryOrder.indexOf(msgId)
 	if (index >= 0) streamEntryOrder.splice(index, 1)
 	// #ifdef APP-ANDROID || APP-HARMONY

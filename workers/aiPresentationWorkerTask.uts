@@ -7,6 +7,8 @@ import { prepareCodeBlocks, buildCodeHtmlPatch } from '../uni_modules/uni-ai-wor
 import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../uni_modules/uni-ai-worker/utssdk/code-highlight.uts'
 import { prepareTablePresentation } from '../uni_modules/uni-ai-worker/utssdk/table-presentation.uts'
 import { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from '../uni_modules/uni-ai-worker/utssdk/presentation-links.uts'
+import { prepareMathSourceLayout } from '../uni_modules/uni-ai-worker/utssdk/math-layout.uts'
+import { prepareLibmarkHtml } from '../uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
 type InlineImage = { source: string, width: number, height: number }
 
@@ -18,7 +20,8 @@ function containsDirtyImage(html: string, sources: Set<string>): boolean {
 }
 
 class PresentationEntry {
-	adapter = new LibmarkHtmlStreamAdapter(false)
+	// Merge adjacent ordinary HTML so headings, paragraphs and lists share one RichText.
+	adapter = new LibmarkHtmlStreamAdapter(true)
 	blocks: MarkdownTextRenderBlock[] = []
 	sources: string[] = []
 	sent: MarkdownTextRenderBlock[] = []
@@ -26,6 +29,7 @@ class PresentationEntry {
 	timer = 0
 	done = false
 	theme = 'light'
+	windowWidth = 360
 	body = ''
 	notes = new Map<string, string>()
 	noteKeys = ''
@@ -40,6 +44,7 @@ function sameDisplayBlock(a: MarkdownTextRenderBlock, b: MarkdownTextRenderBlock
 	return a.kind == b.kind && a.key == b.key && a.html == b.html && a.text == b.text &&
 		a.language == b.language && a.isComplete == b.isComplete && a.codeLines === b.codeLines &&
 		a.codeHeight == b.codeHeight && a.table === b.table && a.level == b.level &&
+		a.math?.sourceWidth == b.math?.sourceWidth && a.math?.sourceHeight == b.math?.sourceHeight &&
 		a.indent == b.indent && a.marker == b.marker && a.quoteDepth == b.quoteDepth &&
 		a.mermaidImageSource == b.mermaidImageSource && a.svgSource == b.svgSource &&
 		a.svgWidth == b.svgWidth && a.svgHeight == b.svgHeight
@@ -50,7 +55,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 	constructor() { super() }
 
 	override entry() {
-		this.postMessage({ action: 'ready', protocol: 6 } as UTSJSONObject)
+		this.postMessage({ action: 'ready', protocol: 8 } as UTSJSONObject)
 	}
 
 	override onMessage(message: any) {
@@ -101,6 +106,9 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 				current.dirtyImages.clear()
 			}
 			current.theme = theme
+			const windowWidth = (payload['windowWidth'] as number | null) ?? 360
+			if (current.windowWidth != windowWidth) current.sources = []
+			current.windowWidth = windowWidth
 			const body = (payload['body'] as string | null) ?? ''
 			const ids = (payload['citationIds'] as number[] | null) ?? []
 			if (current.body != body) {
@@ -158,6 +166,14 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 				continue
 			}
 			const block = nativeRenderBlock(raw[i], entry.done)
+			if (block.kind == 'math') {
+				const previous = i < entry.blocks.length ? entry.blocks[i] : null
+				const sameSource = previous != null && previous.text == block.text && previous.svgSource == block.svgSource && previous.svgWidth == block.svgWidth && previous.svgHeight == block.svgHeight
+				const layout = prepareMathSourceLayout(block.text, entry.windowWidth)
+				layout.sourceIdentity = sameSource ? previous.math?.sourceIdentity : id + ':' + block.key + ':' + version.toString()
+				layout.sourceText = block.text.trim()
+				block.math = layout
+			}
 			if (postprocess) {
 				block.html = linkMarkdownFootnotes(block.html, entry.body, entry.notes)
 				block.html = linkSearchCitations(block.html, entry.citationIds)
@@ -180,6 +196,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 					}
 				}
 			}
+			if (block.kind == 'html') block.html = prepareLibmarkHtml(block.html, block.isComplete)
 			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, entry.theme)
 			blocks.push(block)
 		}
@@ -207,9 +224,10 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 					codeTokens: [] as UTSJSONObject[][], codeLines: [] as UTSJSONObject[],
 					codeHtml: codePatch.html, codeHtmlPrefix: codePatch.prefixLength,
 					codeContentHeight: (Math.max(1, lines.length) * 22).toString() + 'px',
-					codeHeight: source.codeHeight ?? '', table: source.table ?? null,
+					codeHeight: source.codeHeight ?? '', table: source.table ?? null, math: source.math ?? null,
 					level: source.level, indent: source.indent, marker: source.marker, quoteDepth: source.quoteDepth,
 					mermaidImageSource: source.mermaidImageSource ?? '',
+					mermaidRenderFailed: source.mermaidRenderFailed ?? false,
 					svgSource: source.svgSource, svgWidth: source.svgWidth, svgHeight: source.svgHeight
 				} as UTSJSONObject
 				changes.push({ index: i, block: block } as UTSJSONObject)

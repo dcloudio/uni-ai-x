@@ -1,5 +1,8 @@
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+// #ifdef APP-ANDROID
+import { readAndroidSvgCache, writeAndroidSvgCache } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
 import { getHarmonySvgWorkaroundConfig, prepareHarmonySvgImageSource, cleanupPreviousSvgFiles } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
 
 export type ThemedSvgResult = {
@@ -60,6 +63,10 @@ function trimPersistentCache() {
 }
 
 function ensureSvgCacheInitialized() {
+	// #ifdef APP-ANDROID
+	return
+	// #endif
+	// #ifndef APP-ANDROID
 	if (svgCacheInitialized) return
 	svgCacheInitialized = true
 	const protectedSources = [] as string[]
@@ -100,6 +107,7 @@ function ensureSvgCacheInitialized() {
 		console.warn('[SvgCache] initialize cache failed: ' + error)
 	}
 	cleanupPreviousSvgFiles(protectedSources)
+	// #endif
 }
 
 function persistentCacheKey(key: string): string {
@@ -130,6 +138,11 @@ function readPersistentMermaidCache(key: string): ThemedSvgResult | null {
 }
 
 function writePersistentMermaidCache(key: string, result: ThemedSvgResult) {
+	// #ifdef APP-ANDROID
+	writeAndroidSvgCache(key, { imageSource: result.imageSource, width: result.width, height: result.height, theme: result.theme } as UTSJSONObject)
+	return
+	// #endif
+	// #ifndef APP-ANDROID
 	try {
 		const storageKey = persistentCacheKey(key)
 		const serialized = JSON.stringify(result) ?? ''
@@ -145,6 +158,7 @@ function writePersistentMermaidCache(key: string, result: ThemedSvgResult) {
 	} catch (error) {
 		console.warn('[SvgCache] persist Mermaid cache failed: ' + error)
 	}
+	// #endif
 }
 
 function normalizedTheme(theme: string): string {
@@ -265,63 +279,81 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 		deliverResult(callback, cached)
 		return
 	}
+	// #ifndef APP-ANDROID
 	const persisted = readPersistentMermaidCache(key)
 	if (persisted != null) {
 		putSvgCache(mermaidCache, key, persisted)
 		deliverResult(callback, persisted)
 		return
 	}
-	const pendingKey = proxyWeb.getGeneration().toString() + ':' + key
-	const pending = pendingMermaidRenders.get(pendingKey)
-	if (pending != null) {
-		proxyWeb.notifyRequest()
-		pending.callbacks.push(callback)
-		return
+	// #endif
+	const render = () => {
+		const pendingKey = proxyWeb.getGeneration().toString() + ':' + key
+		const pending = pendingMermaidRenders.get(pendingKey)
+		if (pending != null) {
+			proxyWeb.notifyRequest()
+			pending.callbacks.push(callback)
+			return
+		}
+		const request: PendingMermaidRender = {
+			callbacks: [callback],
+			timer: 0
+		}
+		pendingMermaidRenders.set(pendingKey, request)
+		const finish = (result: ThemedSvgResult, cacheable: boolean) => {
+			const active = pendingMermaidRenders.get(pendingKey)
+			if (active == null) return
+			clearTimeout(active.timer)
+			pendingMermaidRenders.delete(pendingKey)
+			if (cacheable && result.imageSource.length > 0) {
+				putSvgCache(mermaidCache, key, result)
+				writePersistentMermaidCache(key, result)
+			}
+			for (let index = 0; index < active.callbacks.length; index++) {
+				deliverResult(active.callbacks[index], result)
+			}
+		}
+		request.timer = setTimeout(() => {
+			finish({ imageSource: '', width: 0, height: 0, theme: renderTheme } as ThemedSvgResult, false)
+		}, MERMAID_RENDER_TIMEOUT)
+		proxyWeb.callMethod({
+			action: 'renderMermaid',
+			mermaidText,
+			theme: renderTheme,
+			rasterScale: workaround.rasterScale,
+			inlineComputedStyles,
+			normalizeMermaidNodeText,
+			normalizeMermaidEdgeLabels,
+			materializeMermaidPointEndMarkers,
+			iosCoreSvgCompatibility,
+			harmonyWorkaround: workaround.enabled
+		}, (param: UTSJSONObject) => {
+			const hasTextElements = (param['hasTextElements'] as boolean | null) ?? false
+			prepareHarmonySvgImageSource(param['imageDataURL'] as string,
+				shouldUseFileSourceForSvg(hasTextElements),
+				(imageSource: string, cacheable: boolean) => {
+					const result: ThemedSvgResult = {
+						imageSource,
+						width: (param['width'] as number | null) ?? 0,
+						height: (param['height'] as number | null) ?? 0,
+						theme: (param['theme'] as string | null) ?? renderTheme
+					}
+					finish(result, cacheable)
+				})
+		})
 	}
-	const request: PendingMermaidRender = {
-		callbacks: [callback],
-		timer: 0
-	}
-	pendingMermaidRenders.set(pendingKey, request)
-	const finish = (result: ThemedSvgResult, cacheable: boolean) => {
-		const active = pendingMermaidRenders.get(pendingKey)
-		if (active == null) return
-		clearTimeout(active.timer)
-		pendingMermaidRenders.delete(pendingKey)
-		if (cacheable && result.imageSource.length > 0) {
+	// #ifdef APP-ANDROID
+	const epoch = proxyWeb.getGeneration()
+	readAndroidSvgCache(key, (persisted: UTSJSONObject | null) => {
+		if (proxyWeb.getGeneration() != epoch) return
+		if (persisted != null) {
+			const result = persisted as ThemedSvgResult
 			putSvgCache(mermaidCache, key, result)
-			writePersistentMermaidCache(key, result)
-		}
-		for (let index = 0; index < active.callbacks.length; index++) {
-			deliverResult(active.callbacks[index], result)
-		}
-	}
-	request.timer = setTimeout(() => {
-		finish({ imageSource: '', width: 0, height: 0, theme: renderTheme } as ThemedSvgResult, false)
-	}, MERMAID_RENDER_TIMEOUT)
-	proxyWeb.callMethod({
-		action: 'renderMermaid',
-		mermaidText,
-		theme: renderTheme,
-		rasterScale: workaround.rasterScale,
-		inlineComputedStyles,
-		normalizeMermaidNodeText,
-		normalizeMermaidEdgeLabels,
-		materializeMermaidPointEndMarkers,
-		iosCoreSvgCompatibility,
-		harmonyWorkaround: workaround.enabled
-	}, (param: UTSJSONObject) => {
-		const hasTextElements = (param['hasTextElements'] as boolean | null) ?? false
-		prepareHarmonySvgImageSource(param['imageDataURL'] as string,
-			shouldUseFileSourceForSvg(hasTextElements),
-			(imageSource: string, cacheable: boolean) => {
-				const result: ThemedSvgResult = {
-					imageSource,
-					width: (param['width'] as number | null) ?? 0,
-					height: (param['height'] as number | null) ?? 0,
-					theme: (param['theme'] as string | null) ?? renderTheme
-				}
-				finish(result, cacheable)
-			})
+			deliverResult(callback, result)
+		} else render()
 	})
+	// #endif
+	// #ifndef APP-ANDROID
+	render()
+	// #endif
 }

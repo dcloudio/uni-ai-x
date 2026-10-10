@@ -41,6 +41,7 @@
 </template>
 
 <script lang="uts" setup>
+	import type { ComputedRef } from 'vue'
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
@@ -65,7 +66,6 @@
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-	import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
 	function openSource(messageId: string, id: number) {
 		emit('source', messageId, id)
@@ -143,11 +143,13 @@
 	const rebuildVersion = ref<number>(0)
 	// 重建导致列表内容高度突变，首帧原生视图可能未重绘：重建完成后主动触发一次滚底刷新
 	let rebuildScrollPending = false
+	let rebuildScrollTimer = 0
 
 	function scheduleRebuildScroll() {
 		if (rebuildScrollPending) return
 		rebuildScrollPending = true
-		setTimeout(() => {
+		rebuildScrollTimer = setTimeout(() => {
+			rebuildScrollTimer = 0
 			rebuildScrollPending = false
 			if (!scrollInBottom.value || scrollTouch.value) return
 			scrollToLastMsg(false)
@@ -225,6 +227,13 @@
 		const revision = msg.libmarkRevision ?? 0
 			const version = libmarkStreamGetRevision(msg._id)
 		const theme = uiTheme.value
+		// Android presentation revisions already represent visible content; raw body changes alone must not rebuild rows.
+		// #ifdef APP-ANDROID
+		const cacheBody = ''
+		// #endif
+		// #ifndef APP-ANDROID
+		const cacheBody = msg.body
+		// #endif
 		// #ifdef APP-ANDROID
 		const sources = ''
 		// #endif
@@ -232,7 +241,7 @@
 		const sources = JSON.stringify(msg.search?.sources ?? []) ?? ''
 		// #endif
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.body == msg.body && cached.theme == theme && cached.sources == sources &&
+		if (cached != null && cached.body == cacheBody && cached.theme == theme && cached.sources == sources &&
 			cached.libmarkRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
 		const blocks = libmarkStreamGetBlocks(msg._id)
 		if (blocks.length == 0 && msg.body.length > 0 && msg.rendered) {
@@ -250,7 +259,7 @@
 		}
 		// #endif
 		markdownBlockCache.set(msg._id, {
-			body: msg.body, theme: theme, sources: sources, libmarkRevision: revision,
+			body: cacheBody, theme: theme, sources: sources, libmarkRevision: revision,
 			complete: msg.rendered, rebuildVersion: version, blocks: blocks
 		} as MarkdownBlockCache)
 		return blocks
@@ -326,14 +335,8 @@
 		return RENDER_ITEM_TYPE_AI_NORMAL
 	}
 
-		const renderItemList = computed<ChatRenderItem[]>(() => {
-			// 全局标记只触发列表检查，缓存有效性由每条消息的版本决定。
-			libmarkPresentationRevision.value
-			rebuildVersion.value
-		const startedAt = Date.now()
-		const items = [] as ChatRenderItem[]
-		for (let messageIndex = 0; messageIndex < msgList.value.length; messageIndex++) {
-			const msg = msgList.value[messageIndex]
+	function buildMessageRows(msg: MsgItem): ChatRenderItem[] {
+		const items: ChatRenderItem[] = []
 			const blocks = msg.from_uid == 'uni-ai' ? getMarkdownBlocks(msg) : noBlocks
 			const hasMarkdown = blocks.length > 0 || (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || canRebuildMarkdownFromBody(msg)
 			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()
@@ -342,8 +345,7 @@
 				+ ':' + (msg.search?.status ?? '') + ':' + (msg.search?.sources.length ?? 0).toString() + ':' + msg.rendered.toString()
 			const cached = messageRowCache.get(msg._id)
 			if (cached != null && cached.msg == msg && cached.blocks == blocks && cached.structure == structure) {
-				items.push(...cached.rows)
-				continue
+				return cached.rows
 			}
 			const rowStart = items.length
 			if (msg.from_uid != 'uni-ai') {
@@ -357,7 +359,7 @@
 					isFirst: true
 				} as ChatRenderItem)
 				messageRowCache.set(msg._id, { msg: msg, structure: structure, blocks: blocks, rows: items.slice(rowStart) } as MessageRowCache)
-				continue
+				return items
 			}
 
 			let hasAiSegment = false
@@ -380,7 +382,10 @@
 				let blockKey = block.key
 				// #ifdef APP-ANDROID || APP-HARMONY
 				if (block.kind == 'mermaid') {
-					blockKey = 'mermaid-' + mermaidBlockIndex.toString() + (block.isComplete ? '-c' : '')
+					blockKey = 'mermaid-' + mermaidBlockIndex.toString()
+					// #ifndef APP-ANDROID
+					blockKey += block.isComplete ? '-c' : ''
+					// #endif
 					mermaidBlockIndex += 1
 				}
 				// #endif
@@ -415,10 +420,20 @@
 							}
 						}
 					} else if (msg.body.length > 0) {
+						// #ifdef APP-ANDROID
 						appendNormalPart(aiRenderPart('plain', 'plain'))
+						// #endif
+						// #ifndef APP-ANDROID
+						appendNormalPart(aiRenderPart('plain', 'plain'))
+						// #endif
 					}
 				} else if (msg.body.length > 0) {
+					// #ifdef APP-ANDROID
 					appendNormalPart(aiRenderPart('plain', 'plain'))
+					// #endif
+					// #ifndef APP-ANDROID
+					appendNormalPart(aiRenderPart('plain', 'plain'))
+					// #endif
 				} else if (stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && msg.search?.status != 'searching') {
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
@@ -439,8 +454,29 @@
 				rows.forEach((row: ChatRenderItem) => { liveKeys.add(row.key) })
 				cached.rows.forEach((row: ChatRenderItem) => { if (!liveKeys.has(row.key)) rowCache.delete(row.key) })
 			}
+		return items
+	}
+
+	const messageComputations = new Map<string, { msg: MsgItem, rows: ComputedRef<ChatRenderItem[]> }>()
+	const renderItemList = computed<ChatRenderItem[]>(() => {
+		// #ifdef APP-HARMONY
+		libmarkPresentationRevision.value
+		rebuildVersion.value
+		// #endif
+		const items: ChatRenderItem[] = []
+		for (const msg of msgList.value) {
+			// #ifdef APP-ANDROID
+			let cached = messageComputations.get(msg._id)
+			if (cached == null || cached.msg != msg) {
+				cached = { msg: msg, rows: computed<ChatRenderItem[]>(() => buildMessageRows(msg)) }
+				messageComputations.set(msg._id, cached)
+			}
+			items.push(...cached.rows.value)
+			// #endif
+			// #ifndef APP-ANDROID
+			items.push(...buildMessageRows(msg))
+			// #endif
 		}
-		measureCodePerformance('renderItemList', startedAt, chatActiveId.value)
 		return items
 	})
 	
@@ -461,6 +497,7 @@
 		scrollWithAnimation.value = userClick
 		bottomAnchorId.value = bottomAnchorId.value == 'last-msg-a' ? 'last-msg-b' : 'last-msg-a'
 		nextTick(() => {
+			if (viewDisposed || !autoToLastMsg) return
 			// 限幅在 10 万~20 万间震荡：流式期间每帧递增会累计到数百万，
 			// 超大 scrollTop 疑似导致 list-view 内部状态异常（既有 item 的子组件 props 更新丢失）
 			scrollTop.value = scrollTop.value > 100000 ? 100000 : scrollTop.value + 100000
@@ -532,6 +569,7 @@
 	}
 	
 	watch(chatActiveId, () => {
+		messageComputations.clear()
 		markdownBlockCache.clear()
 		// Only existing history needs initial bottom positioning. Enabling it on an
 		// empty Android Vapor list can prevent later streamed rows from mounting.
@@ -558,6 +596,7 @@
 		msgList.value.forEach((msg: MsgItem) => { activeIds.add(msg._id) })
 		messageRowCache.forEach((cached: MessageRowCache, id: string) => {
 			if (activeIds.has(id)) return
+			messageComputations.delete(id)
 			cached.rows.forEach((row: ChatRenderItem) => { rowCache.delete(row.key) })
 			messageRowCache.delete(id)
 			markdownBlockCache.delete(id)
@@ -579,25 +618,44 @@
 		}
 	}
 	
+	let scrollUpdateQueued = false
+	let viewDisposed = false
 	watch(() => {
 		const msg = lastMsg.value
 		return {
 			id: msg?._id ?? '',
+			// #ifndef APP-ANDROID
 			body: msg?.body ?? '',
+			// #endif
+			// #ifdef APP-ANDROID
+			presentation: msg != null ? libmarkStreamGetRevision(msg._id) : 0,
+			// #endif
 			html: msg?.markdownHtml ?? '',
 			think: msg?.thinkContent ?? '',
 			error: msg?.error_msg ?? '',
 			rendered: msg?.rendered ?? false,
+			// #ifndef APP-ANDROID
 			libmarkRevision: msg?.libmarkRevision ?? 0,
 			rebuildVersion: rebuildVersion.value,
+			// #endif
 			state: state.value,
 			layout: msg != null ? readMessageLayoutRevision(msg._id) : 0
 		}
 	}, async () => {
+		// #ifdef APP-ANDROID
+		if (scrollUpdateQueued) return
+		scrollUpdateQueued = true
+		const chatId = chatActiveId.value
+		await nextTick()
+		scrollUpdateQueued = false
+		if (viewDisposed || chatId != chatActiveId.value) return
+		// #endif
 		setIsInScrollBottom()
 		lockAutoToLastMsg()
 		if (!scrollTouch.value && autoToLastMsg) {
+			// #ifndef APP-ANDROID
 			await nextTick()
+			// #endif
 			scrollToLastMsg(false)
 		}
 	})
@@ -740,6 +798,9 @@
 	})
 
 	onBeforeUnmount(() => {
+		viewDisposed = true
+		if (rebuildScrollTimer != 0) clearTimeout(rebuildScrollTimer)
+		messageComputations.clear()
 		if (state.value == 'processing') uniAi.abortRequest()
 		uniAi.offBeforeRequestAi(beforeRequestAi)
 		// #ifdef APP-HARMONY || APP-ANDROID

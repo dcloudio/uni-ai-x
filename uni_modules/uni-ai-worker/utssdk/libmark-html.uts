@@ -256,6 +256,17 @@ export class LibmarkHtmlStreamAdapter {
 					entry.isComplete = false
 					entry.blockIndex = this.tailIndex
 					result.push(entry)
+				// #ifdef APP-ANDROID
+				} else if (topLevelTag(this.tailContent) == 'table') {
+					const prepared = prepareMarkdownTable(this.tailContent, result.length)
+					const entry = this.newEntry('table', key)
+					entry.html = prepared.html
+					entry.columnWidths = prepared.columnWidths
+					entry.rowTextWidths = prepared.rowTextWidths
+					entry.isComplete = false
+					entry.blockIndex = this.tailIndex
+					result.push(entry)
+				// #endif
 				} else if (isOpenTagPrefix(this.tailContent.trim(), 'svg')) {
 					const entry = this.newEntry('image', key)
 					entry.svgSource = svgToImageSource(this.tailContent)

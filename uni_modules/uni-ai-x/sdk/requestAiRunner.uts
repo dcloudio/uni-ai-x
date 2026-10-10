@@ -4,10 +4,7 @@ import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 import {
 	lastUserQuestionText,
-	webSearch,
-	normalizeSearchSources,
-	buildWebSearchContext,
-	injectWebSearchContext
+	webSearchForRequest
 } from '@/uni_modules/uni-ai-x/sdk/web-search.uts'
 // #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 import {
@@ -275,12 +272,12 @@ class RequestAiRunner {
 			try {
 				const token = await providerConfig!.getToken?.()!
 				if (this.userAbort || version != this.searchVersion) return
-				const rawResults = await webSearch(query, token, searchURL, 8, (task: RequestTask) => { this.searchTask = task })
+				const prepared = await webSearchForRequest(query, token, searchURL, messages, (task: RequestTask) => { this.searchTask = task })
 				if (this.userAbort || version != this.searchVersion) return
-				const results = normalizeSearchSources(rawResults)
+				const results = prepared.sources
 				this.activeSearch = { status: results.length > 0 ? 'complete' : 'empty', query: query, sources: results, error: '' }
 				this.callbacks?.onSearch?.(this.activeSearch!)
-				requestMessages = injectWebSearchContext(messages, buildWebSearchContext(results))
+				requestMessages = prepared.messages
 			} catch (error) {
 				if (this.userAbort || version != this.searchVersion) return
 				this.activeSearch = { status: 'failed', query: query, sources: [] as SearchSource[], error: '联网搜索失败，将直接回答' }
@@ -362,7 +359,8 @@ class RequestAiRunner {
 				model: llm.model,
 				url: config.baseURL!,
 				authorization: 'Bearer ' + tmpToken,
-				bodyJson: JSON.stringify(body),
+				bodyJson: '',
+				body: body,
 				renderInterval: MARKDOWN_RENDER_INTERVAL,
 				timeout: 90000
 			})

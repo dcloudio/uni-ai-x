@@ -1,0 +1,149 @@
+import ReentrantLock from 'java.util.concurrent.locks.ReentrantLock'
+import File from 'java.io.File'
+import FileOutputStream from 'java.io.FileOutputStream'
+import Base64 from 'android.util.Base64'
+
+const cacheLock = new ReentrantLock()
+const prefix = 'uni-ai-mermaid-cache-'
+const indexKey = prefix + 'index'
+const weights = new Map<string, number>()
+const order: string[] = []
+let weight = 0
+let initialized = false
+let fileSequence = 0
+
+function storageKey(key: string): string {
+	let hash = 7
+	for (let i = 0; i < key.length; i++) hash = (hash * 31 + (key.charCodeAt(i) ?? 0)) % 2147483647
+	return prefix + hash.toString(16) + '-' + key.length.toString()
+}
+
+function removeEntry(key: string) {
+	weight -= weights.get(key) ?? 0
+	weights.delete(key)
+	const index = order.indexOf(key)
+	if (index >= 0) order.splice(index, 1)
+	uni.removeStorageSync(key)
+}
+
+function trimCache() {
+	while (order.length > 64 || weight > 2 * 1024 * 1024) removeEntry(order[0])
+	uni.setStorageSync(indexKey, JSON.stringify(order))
+}
+
+function initializeCache() {
+	if (initialized) return
+	const all = uni.getStorageInfoSync().keys.filter((key: string): boolean => key.startsWith(prefix) && key != indexKey)
+	const saved = uni.getStorageSync(indexKey) as string
+	let indexed: string[] | null = null
+	try { if (saved.length > 0) indexed = JSON.parse<string[]>(saved) } catch (_) { }
+	const candidates = indexed ?? all.slice(-64)
+	for (const key of candidates) {
+		if (!key.startsWith(prefix) || key == indexKey || weights.has(key)) continue
+		const value = uni.getStorageSync(key) as string
+		if (value.length == 0) continue
+		order.push(key)
+		weights.set(key, value.length * 2)
+		weight += value.length * 2
+	}
+	trimCache()
+	const protectedFiles = new Set<string>()
+	for (const key of order) {
+		try {
+			const value = JSON.parse<UTSJSONObject>(uni.getStorageSync(key) as string)
+			const source = value?.['imageSource'] as string | null
+			if (source != null) protectedFiles.add(UTSAndroid.convert2AbsFullPath(source))
+		} catch (_) { }
+	}
+	for (const key of all) if (!weights.has(key)) uni.removeStorageSync(key)
+	const directory = new File(UTSAndroid.convert2AbsFullPath(uni.env.CACHE_PATH + '/ai-svg-cache/'))
+	const files = directory.listFiles()
+	if (files != null) for (const file of files) {
+		if (/^\d+-\d+\.svg$/.test(file.getName()) && !protectedFiles.has(file.getAbsolutePath())) file.delete()
+	}
+	initialized = true
+}
+
+@UTSJS.keepAlive
+export function readAndroidSvgCache(key: string, callback: (result: UTSJSONObject | null) => void) {
+	UTSAndroid.getDispatcher('io').async((_task) => {
+		let result: UTSJSONObject | null = null
+		cacheLock.lock()
+		try {
+			initializeCache()
+			const id = storageKey(key)
+			if (weights.has(id)) {
+				result = JSON.parse<UTSJSONObject>(uni.getStorageSync(id) as string)
+				const source = (result?.['imageSource'] as string | null) ?? ''
+				const directory = UTSAndroid.convert2AbsFullPath(uni.env.CACHE_PATH + '/ai-svg-cache/')
+				if (source.length == 0 || ((source.startsWith(uni.env.CACHE_PATH + '/ai-svg-cache/') || source.startsWith(directory)) && !new File(UTSAndroid.convert2AbsFullPath(source)).exists())) {
+					removeEntry(id)
+					result = null
+				}
+			}
+		} catch (error) { result = null; console.warn('[SvgCache] background read failed: ' + error) }
+		finally { cacheLock.unlock() }
+		const value = result
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(value) })
+	})
+}
+
+export function writeAndroidSvgCache(key: string, result: UTSJSONObject) {
+	UTSAndroid.getDispatcher('io').async((_task) => {
+		cacheLock.lock()
+		try {
+			initializeCache()
+			const data = JSON.stringify(result)
+			if (data.length * 2 <= 2 * 1024 * 1024) {
+				const id = storageKey(key)
+				uni.setStorageSync(id, data)
+				weight -= weights.get(id) ?? 0
+				const index = order.indexOf(id)
+				if (index >= 0) order.splice(index, 1)
+				order.push(id)
+				weights.set(id, data.length * 2)
+				weight += data.length * 2
+				trimCache()
+			}
+		} catch (error) { console.warn('[SvgCache] background write failed: ' + error) }
+		finally { cacheLock.unlock() }
+	})
+}
+
+@UTSJS.keepAlive
+export function prepareAndroidSvgSource(dataURL: string, callback: (source: string, cacheable: boolean) => void) {
+	UTSAndroid.getDispatcher('io').async((_task) => {
+		let source = dataURL
+		let cacheable = false
+		cacheLock.lock()
+		try {
+			initializeCache()
+			const svgPrefix = 'data:image/svg+xml;base64,'
+			if (dataURL.startsWith(svgPrefix)) {
+				const directory = new File(UTSAndroid.convert2AbsFullPath(uni.env.CACHE_PATH + '/ai-svg-cache/'))
+				directory.mkdirs()
+				const file = new File(directory, Date.now().toString() + '-' + (++fileSequence).toString() + '.svg')
+				const output = new FileOutputStream(file)
+				try { output.write(Base64.decode(dataURL.substring(svgPrefix.length), Base64.DEFAULT)) }
+				finally { output.close() }
+				source = file.getAbsolutePath()
+			}
+			cacheable = true
+		} catch (error) { console.warn('[SvgCache] background image preparation failed: ' + error) }
+		finally { cacheLock.unlock() }
+		const prepared = source
+		const success = cacheable
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(prepared, success) })
+	})
+}
+
+@UTSJS.keepAlive
+export function encodeAndroidWebRequest(snapshot: UTSJSONObject, callback: (code: string) => void) {
+	UTSAndroid.getDispatcher('io').async((_task) => {
+		let code = ''
+		try { code = 'onMessage("' + encodeURIComponent(JSON.stringify(snapshot)) + '")' }
+		catch (error) { console.error('[proxy-web] encoding failed: ' + error) }
+		const result = code
+		UTSAndroid.getDispatcher('main').async((_main) => { callback(result) })
+	})
+}

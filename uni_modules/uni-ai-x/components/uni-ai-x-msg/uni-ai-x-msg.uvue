@@ -23,9 +23,11 @@
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
 			:code-text="part.block.text" :prepared-html="part.block.codeHtml ?? ''" :prepared-content-height="part.block.codeContentHeight ?? '22px'" :prepared-height="part.block.codeHeight ?? '38px'" :language="part.block.language" />
 		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
-			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.block.key" :code-text="part.block.text" />
+			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.key" :code-text="part.block.text" :image-width="part.block.svgWidth" :image-height="part.block.svgHeight" :render-failed="part.block.mermaidRenderFailed" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
+			:source-width="part.block.math?.sourceWidth ?? '160px'" :source-height="part.block.math?.sourceHeight ?? '44px'"
+			:source-identity="part.block.math?.sourceIdentity" :source-text="part.block.math?.sourceText"
 			:href="part.block.math?.src ?? ''" :width="part.block.math?.width ?? 0" :height="part.block.math?.height ?? 0" :render-theme="uiTheme"
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
 		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="widthFix" style="width:100%;" />

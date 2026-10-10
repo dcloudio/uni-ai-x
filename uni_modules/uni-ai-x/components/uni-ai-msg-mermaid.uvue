@@ -2,17 +2,20 @@
 	<view class="uni-mermaid-msg-root" :class="uiTheme == 'dark' ? 'uni-theme-dark' : 'uni-theme-light'">
 		<view class="uni-mermaid-msg-code-header">
 			<view class="uni-mermaid-msg-switch" flatten>
-				<text class="uni-mermaid-msg-switch-item" :class="sourceSelection != props.identity && props.src.length > 0 ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = ''">图表</text>
-				<text class="uni-mermaid-msg-switch-item" :class="sourceSelection == props.identity || props.src.length == 0 ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = props.identity">代码</text>
+				<text class="uni-mermaid-msg-switch-item" :class="!showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = ''">图表</text>
+				<text class="uni-mermaid-msg-switch-item" :class="showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = props.identity">代码</text>
 			</view>
-			<view v-if="sourceSelection == props.identity || props.src.length == 0" class="uni-mermaid-msg-copy-btn" @click.stop="copyCode">
+			<view v-if="showSource" class="uni-mermaid-msg-copy-btn" @click.stop="copyCode">
 				<uni-ai-icon code="e60c" size="12" :color="uiTheme == 'dark' ? '#f4f4f4' : '#334155'" />
 				<text class="uni-mermaid-msg-copy-text" flatten>复制代码</text>
 			</view>
 		</view>
 		<view class="uni-mermaid-msg-stage">
+			<!-- #ifdef APP-ANDROID -->
+			<view v-if="sourceSelection != props.identity && props.src.length == 0 && !props.renderFailed && !showSource" :style="pendingImageStyle"><loading /></view>
+			<!-- #endif -->
 			<image v-if="sourceSelection != props.identity && props.src.length > 0" class="uni-mermaid-msg-image" :src="props.src" mode="widthFix" @click.stop="previewMermaidImage" />
-			<view v-else class="uni-mermaid-msg-code-source">
+			<view v-else-if="showSource" class="uni-mermaid-msg-code-source">
 				<text class="uni-mermaid-msg-code-text">{{props.codeText}}</text>
 			</view>
 		</view>
@@ -22,11 +25,15 @@
 <script lang="uts" setup>
 import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 
 const props = withDefaults(defineProps<{
 	codeText?: string
 	identity: string
 	src?: string
+	imageWidth?: number
+	imageHeight?: number
+	renderFailed?: boolean
 }>(), {
 	codeText: '',
 	src: ''
@@ -34,6 +41,21 @@ const props = withDefaults(defineProps<{
 
 // Only user interaction changes local state; a recycled row cannot inherit another block's tab.
 const sourceSelection = ref<string>('')
+const showSource = computed<boolean>(() => {
+	// #ifdef APP-ANDROID
+	return sourceSelection.value == props.identity || props.src.length == 0
+	// #endif
+	// #ifndef APP-ANDROID
+	return sourceSelection.value == props.identity || props.src.length == 0
+	// #endif
+})
+const pendingImageStyle = computed<string>(() => {
+	const width = props.imageWidth ?? 0
+	const height = props.imageHeight ?? 0
+	const available = Math.max(1, mathWindowWidth.value - 64)
+	const reserved = width > 0 && height > 0 ? available * height / width : 120
+	return 'width:100%;height:' + Math.max(44, reserved).toString() + 'px;align-items:center;justify-content:center;'
+})
 
 function previewMermaidImage() {
 	// #ifdef WEB

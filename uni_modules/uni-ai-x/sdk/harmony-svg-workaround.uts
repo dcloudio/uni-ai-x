@@ -1,3 +1,7 @@
+// #ifdef APP-ANDROID
+import { prepareAndroidSvgSource } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
+
 export type HarmonySvgWorkaroundConfig = {
 	rasterScale: number
 	enabled: boolean
@@ -128,6 +132,12 @@ export function getHarmonySvgWorkaroundConfig(): HarmonySvgWorkaroundConfig {
 }
 
 export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boolean, callback: SvgImageSourceCallback) {
+	// #ifdef APP-ANDROID
+	if (useFileSource) {
+		prepareAndroidSvgSource(dataURL, callback)
+		return
+	}
+	// #endif
 	if (!useFileSource || !dataURL.startsWith(SVG_DATA_URL_PREFIX)) {
 		callback(dataURL, true)
 		return

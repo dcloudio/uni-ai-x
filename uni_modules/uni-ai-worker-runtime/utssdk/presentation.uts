@@ -37,7 +37,7 @@ function ensureWorker() {
 		}
 		if (worker != created || failed) return
 		if (action == 'ready') {
-			if (payload['protocol'] != 6) { failPresentation('Unsupported presentation context protocol'); return }
+			if (payload['protocol'] != 8) { failPresentation('Unsupported presentation layout protocol'); return }
 			ready = true
 			const queued = pending
 			pending = []
@@ -59,7 +59,7 @@ function ensureWorker() {
 
 @UTSJS.keepAlive
 export function prepareAndroidPresentation(id: string, ops: UTSJSONObject[], done: boolean,
-	theme: string, listener: PresentationListener, body: string = '', citationIds: number[] = []) {
+	theme: string, listener: PresentationListener, body: string = '', citationIds: number[] = [], windowWidth: number = 360) {
 	if (!clients.has(id)) clients.set(id, { listener: listener })
 	if (failed) return
 	try {
@@ -68,7 +68,7 @@ export function prepareAndroidPresentation(id: string, ops: UTSJSONObject[], don
 		const immutableOps = ops.map((op: UTSJSONObject): UTSJSONObject => ({
 			op: op['op'], kind: op['kind'], content: op['content'], index: op['index'], unchanged: op['unchanged']
 		} as UTSJSONObject))
-		const message = { action: 'prepare', id: id, ops: immutableOps, done: done, theme: theme, body: body, citationIds: citationIds.slice() } as UTSJSONObject
+		const message = { action: 'prepare', id: id, ops: immutableOps, done: done, theme: theme, body: body, citationIds: citationIds.slice(), windowWidth: windowWidth } as UTSJSONObject
 		if (ready) worker!.postMessage(message, null)
 		else pending.push(message)
 	} catch (error) { failPresentation('Worker creation failed: ' + error) }

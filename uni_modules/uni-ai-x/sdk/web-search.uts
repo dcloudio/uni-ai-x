@@ -1,6 +1,35 @@
 // 联网搜索：调用服务商的全网搜索 API，把结果作为上下文注入对话请求。
 // 目前对接七牛云“全网搜索 API”（POST /search/web），不同 provider 通过 webSearchURL 配置各自接口。
 import { RequestAiCoMessage, MultiModalContent, TextParse, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
+// #ifdef APP-ANDROID
+import { prepareAndroidWebSearch } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
+
+export type PreparedWebSearch = { sources: SearchSource[], messages: RequestAiCoMessage[] }
+
+export async function webSearchForRequest(query: string, token: string, url: string, messages: RequestAiCoMessage[], onTask: (task: RequestTask) => void): Promise<PreparedWebSearch> {
+	// #ifdef APP-ANDROID
+	return await new Promise<PreparedWebSearch>((resolve, reject) => {
+		const task = uni.request({ url: url, method: 'POST', dataType: 'text', timeout: 20000,
+			data: { query: query, max_results: WEB_SEARCH_MAX_RESULTS, search_type: 'web' },
+			header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+			success: (response: RequestSuccess<any>) => {
+				if (response.statusCode < 200 || response.statusCode >= 300) { reject(new Error('搜索失败（HTTP ' + response.statusCode.toString() + '）')); return }
+				prepareAndroidWebSearch(response.data as string, messages as UTSJSONObject[], (result: UTSJSONObject) => {
+					const error = (result['error'] as string | null) ?? ''
+					if (error.length > 0) reject(new Error(error))
+					else resolve({ sources: result['sources'] as SearchSource[], messages: result['messages'] as RequestAiCoMessage[] })
+				})
+			}, fail: (error: RequestFail) => { reject(new Error(error.errMsg)) }
+		})
+		onTask(task)
+	})
+	// #endif
+	// #ifndef APP-ANDROID
+	const sources = normalizeSearchSources(await webSearch(query, token, url, WEB_SEARCH_MAX_RESULTS, onTask))
+	return { sources: sources, messages: injectWebSearchContext(messages, buildWebSearchContext(sources)) }
+	// #endif
+}
 
 const WEB_SEARCH_MAX_RESULTS = 8
 

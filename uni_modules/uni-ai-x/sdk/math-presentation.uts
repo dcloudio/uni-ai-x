@@ -13,6 +13,8 @@ export type MathPresentation = {
 	height: number
 	sourceWidth: string
 	sourceHeight: string
+	sourceIdentity?: string
+	sourceText?: string
 }
 
 export const mathWindowWidth = ref<number>(0)

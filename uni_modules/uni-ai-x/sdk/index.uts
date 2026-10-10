@@ -1,6 +1,7 @@
 import { reactive, watch, nextTick, ref } from 'vue';
 // #ifdef APP-ANDROID
-import { libmarkStreamSetContext } from './libmark-stream-store.uts'
+import { libmarkStreamSetContext, libmarkStreamSetLayoutWidth } from './libmark-stream-store.uts'
+import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
@@ -106,6 +107,13 @@ class UniAi {
 	private stressDataSequence: number = 0
 	private stressMessageRunSequence: number = 0
 	private loadedChatIds: string[] = [] as string[]
+	private loadingChats = new Map<string, Promise<void>>()
+	private storageReady: Promise<void> | null = null
+	private settingsReady: Promise<void> | null = null
+	private settingEditedDuringLoad = false
+	private settingSaveVersion = 0
+	private storageLoading = false
+	private loadingSendChatId = ''
 	imgList: ImgItem[] = reactive<ImgItem[]>([]);
 	// 正在编辑的用户消息：发送时将替换该消息及其之后的全部消息
 	editingState: EditState = reactive<EditState>({
@@ -396,11 +404,15 @@ class UniAi {
 	}
 	
 	addChat(checkEmpty: boolean = true) {
+		if (this.storageLoading) {
+			this.storageReady?.then(() => { this.addChat(checkEmpty) })
+			return
+		}
 		this.cancelEditMsg()
 		// 检查是否已经存在空会话，如果存在则直接选中，否则创建新会话
 		const lastItem = this.chat.datas.length == 0 ? null : this.chat.datas[0] as ChatItem | null;
 		let activeId = lastItem?.id ?? ''
-		if (!checkEmpty || lastItem?.msgList.length != 0) {
+		if (!checkEmpty || lastItem == null || this.loadedChatIds.indexOf(lastItem.id) < 0 || lastItem.msgList.length != 0) {
 			const newChat: ChatItem = {
 				id: this.getLocalMsgId(),
 				title: "新对话",
@@ -445,11 +457,16 @@ class UniAi {
 			uniAi.chat.datas.splice(index, 1)
 			const loadedIndex = this.loadedChatIds.indexOf(chatId)
 			if (loadedIndex >= 0) this.loadedChatIds.splice(loadedIndex, 1)
-			this.storageManager.deleteChat(chatId)
+			this.storageManager.deleteChatInBackground(chatId)
+			this.saveChatList2Storage()
 		})
 	}
 
 	deleteAllChats(): void {
+		if (this.storageLoading) {
+			this.storageReady?.then(() => { this.deleteAllChats() })
+			return
+		}
 		this.chat.datas.forEach((chat: ChatItem) => {
 			chat.msgList.forEach((msg: MsgItem) => { forgetMessagePresentation(msg._id) })
 		})
@@ -462,7 +479,7 @@ class UniAi {
 			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) libmarkStreamRelease(msgList[msgIndex]._id)
 		}
 		// #endif
-		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChat(chatIds[index])
+		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChatInBackground(chatIds[index])
 		this.chat.datas.splice(0, this.chat.datas.length)
 		this.loadedChatIds.splice(0, this.loadedChatIds.length)
 		this.chat.activeId = ''
@@ -478,7 +495,7 @@ class UniAi {
 				this.answerGeneration += 1
 			}
 		}
-		this.loadChatMessages(chatId)
+		this.loadChatMessages(chatId).catch((error) => { console.error('加载会话失败:', error) })
 		this.chat.activeId = chatId
 		this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 	}
@@ -503,14 +520,33 @@ class UniAi {
 		// #endif
 	}
 
-	private loadChatMessages(chatId: string) {
-		if (this.loadedChatIds.indexOf(chatId) >= 0) return
+	private loadChatMessages(chatId: string): Promise<void> {
+		// #ifdef APP-ANDROID
+		if (this.loadedChatIds.indexOf(chatId) >= 0) return Promise.resolve()
+		const pending = this.loadingChats.get(chatId)
+		if (pending != null) return pending
 		const chat = this.chat.datas.find((item) => item.id == chatId)
-		if (chat == null) return
+		if (chat == null) return Promise.resolve()
+		const task = this.storageManager.getChatMessagesAsync(chatId).then((messages: MsgItem[]) => {
+			if (this.chat.datas.find((item) => item.id == chatId) != chat) return
+			const existing = new Set(chat.msgList.map((msg: MsgItem) => msg._id))
+			chat.msgList.unshift(...messages.filter((msg: MsgItem) => !existing.has(msg._id)))
+			if (this.chat.activeId == chatId) chat.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
+			this.loadedChatIds.push(chatId)
+		}).finally(() => { this.loadingChats.delete(chatId) })
+		this.loadingChats.set(chatId, task)
+		return task
+		// #endif
+		// #ifndef APP-ANDROID
+		if (this.loadedChatIds.indexOf(chatId) >= 0) return Promise.resolve()
+		const chat = this.chat.datas.find((item) => item.id == chatId)
+		if (chat == null) return Promise.resolve()
 		const messages = this.storageManager.getChatMessages(chatId)
 		chat.msgList.push(...messages)
 		chat.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 		this.loadedChatIds.push(chatId)
+		return Promise.resolve()
+		// #endif
 	}
 		
 	get lastAiMsg(): MsgItem | null {
@@ -525,14 +561,32 @@ class UniAi {
 	
 	constructor() {
 		initUiTheme()
+		// #ifdef APP-ANDROID
+		libmarkStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
+		this.storageLoading = true
+		this.storageReady = this.loadDataFromNewStorage()
+		// #endif
+		// #ifndef APP-ANDROID
 		this.loadDataFromNewStorage()
+		// #endif
+		// #ifdef APP-ANDROID
+		const stopTracking = watch(() => this.setting, () => { this.settingEditedDuringLoad = true }, { deep: true, flush: 'sync' })
+		this.settingsReady = this.loadSetting().finally(() => { stopTracking(); this.watchSetting(); this.settingsReady = null })
+		// #endif
+		// #ifndef APP-ANDROID
 		this.loadSetting()
 		this.watchSetting()
+		// #endif
 		watch(uiTheme, () => {
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 		})
 		watch(mathWindowWidth, () => {
+			// #ifdef APP-ANDROID
+			libmarkStreamSetLayoutWidth(mathWindowWidth.value)
+			// #endif
+			// #ifndef APP-ANDROID
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { refreshMessagePresentation(msg, uiTheme.value) })
+			// #endif
 		})
 	}
 	private buildDefaultLlm(): Llm {
@@ -543,15 +597,21 @@ class UniAi {
 			thinking: true
 		}
 	}
-	// 同步读取设置，避免与 watchSetting 的立即保存在时序上互相覆盖
-	private loadSetting() {
+	// Start persistence only after loading, preserving edits made while loading.
+	private async loadSetting(): Promise<void> {
 		let raw: UTSJSONObject | null = null
 		try {
+			// #ifdef APP-ANDROID
+			raw = await new Promise<UTSJSONObject | null>((resolve) => { readAndroidSettings(resolve) })
+			if (this.settingEditedDuringLoad) return
+			// #endif
+			// #ifndef APP-ANDROID
 			const stored = uni.getStorageSync('uni-ai-setting')
 			if (stored != null) {
 				const text = typeof stored == 'string' ? stored as string : JSON.stringify(stored)
 				if (text.length > 0) raw = JSON.parse<UTSJSONObject>(text) as UTSJSONObject
 			}
+			// #endif
 		} catch (error) {
 			console.error('uni-ai-setting 读取失败', error)
 			this.pushSettingNotice('本地设置数据读取失败，已恢复默认设置')
@@ -606,12 +666,24 @@ class UniAi {
 		}, { deep: true, immediate: true })
 	}
 	private saveSetting() {
+		// #ifdef APP-ANDROID
+		const llm = this.setting.llm
+		const snapshot = { theme: this.setting.theme, language: this.setting.language,
+			llm: { provider: llm.provider, model: llm.model, webSearch: llm.webSearch, thinking: llm.thinking } } as UTSJSONObject
+		const version = ++this.settingSaveVersion
+		writeAndroidStorageBatch([{ key: 'uni-ai-setting', data: snapshot } as UTSJSONObject], (ok: boolean) => {
+			if (!ok && version == this.settingSaveVersion) console.error('后台保存设置失败')
+		})
+		return
+		// #endif
+		// #ifndef APP-ANDROID
 		try {
 			const plainSetting = JSON.parse<Setting>(JSON.stringify(this.setting)) as Setting
 			uni.setStorageSync('uni-ai-setting', plainSetting)
 		} catch (error) {
 			console.error('uni-ai-setting 存储失败', error)
 		}
+		// #endif
 	}
 	/**
 	 * 收到 msg 被更新的通知后，自动保存消息（防抖）
@@ -620,6 +692,7 @@ class UniAi {
 	private pendingMsgSave: MsgItem | null = null
 	// 正在流式生成的 AI 消息：中断时需要落一次最终状态
 	private streamingAiMsg: MsgItem | null = null
+	private activeAnswerMsg: MsgItem | null = null
 	private clearPendingMsgSave() {
 		if (this.sM2STimer != 0) {
 			clearTimeout(this.sM2STimer)
@@ -640,10 +713,10 @@ class UniAi {
 			this.sM2STimer = 0
 			const pending = this.pendingMsgSave
 			this.pendingMsgSave = null
-			if (pending != null) this.storageManager.updateMessage(pending!)
+			if (pending != null) this.storageManager.updateStreamingMessage(pending!)
 		}, 1000)
 	}
-	// 源码用于重建原生渲染数据，完成或中断时立即保存。
+	// 完成或中断时立即提交保存；Android 的序列化和写入在原生 IO 线程完成。
 	flushMsg2Storage(msg: MsgItem | null = null) {
 		const pending = msg != null ? msg! : this.pendingMsgSave
 		this.clearPendingMsgSave()
@@ -651,7 +724,7 @@ class UniAi {
 			// #ifndef APP-ANDROID || APP-HARMONY
 			refreshMessagePresentation(pending!, uiTheme.value)
 			// #endif
-			this.storageManager.updateMessage(pending!)
+			this.storageManager.updateStreamingMessage(pending!)
 		}
 	}
 	saveChatList2Storage() {
@@ -665,7 +738,7 @@ class UniAi {
 				}
 				return aiChat
 			})
-			this.storageManager.saveChatList(aiChats)
+			this.storageManager.saveChatListInBackground(aiChats)
 		}
 	}
 	// 更新会话标题 和 会话更新时间 时，自动保存会话列表到 storage
@@ -693,10 +766,16 @@ class UniAi {
 	/**
 	 * 从新的存储结构中加载数据
 	 */
-	private loadDataFromNewStorage(): void {
+	private async loadDataFromNewStorage(): Promise<void> {
 		try {
 			// 获取会话列表
+			// #ifdef APP-ANDROID
+			const aiChats = await this.storageManager.getChatListAsync()
+			this.storageLoading = false
+			// #endif
+			// #ifndef APP-ANDROID
 			const aiChats = this.storageManager.getChatList()
+			// #endif
 			
 			if (aiChats.length == 0) {
 				// 如果没有会话，创建一个新会话
@@ -722,10 +801,11 @@ class UniAi {
 			// 默认选中第一个会话
 			if (this.chat.datas.length > 0) {
 				this.chat.activeId = this.chat.datas[0].id
-				this.loadChatMessages(this.chat.activeId)
+				this.loadChatMessages(this.chat.activeId).catch((error) => { console.error('加载会话失败:', error) })
 			}
 			
 		} catch (error) {
+			this.storageLoading = false
 			console.error('从新存储结构加载数据失败:', error)
 			// 如果失败，创建一个新会话
 			this.addChat()
@@ -747,7 +827,7 @@ class UniAi {
 		}
 		msgList.push(newMsg)
 		this.prepareMessagePresentation(msgList[msgList.length - 1])
-		this.storageManager.addMessage(newMsg)
+		this.storageManager.addMessageInBackground(newMsg)
 		if (msg.from_uid != 'uni-ai') {
 			// 仅首次提问时用问题前缀作为临时标题，避免后续消息覆盖已生成的总结标题
 			if (this.currentChat!.title == '新对话') {
@@ -766,12 +846,16 @@ class UniAi {
 		const msgList = this.currentChat!.msgList
 		const index = msgList.findIndex((item) => item._id == msgId)
 		if (index != -1) {
+			if (this.activeAnswerMsg?._id == msgId) {
+				if (this.streamingAiMsg != null) this.abortRequest()
+				this.activeAnswerMsg = null
+			}
 			forgetMessagePresentation(msgId)
 			// #ifdef APP-HARMONY || APP-ANDROID
 			libmarkStreamRelease(msgId)
 			// #endif
 			msgList.splice(index, 1)
-			this.storageManager.removeMessages(this.currentChat!.id, [msgId] as string[])
+			this.storageManager.removeMessagesInBackground(this.currentChat!.id, [msgId] as string[])
 		} else {
 			console.error('需要删除的消息未找到', msgId, this.currentChat!.msgList)
 			throw new Error('需要删除的消息未找到')
@@ -807,6 +891,10 @@ class UniAi {
 		if (index == -1) return
 		const removedIds = [] as string[]
 		for (let i = index; i < msgList.length; i++) {
+			if (this.activeAnswerMsg?._id == msgList[i]._id) {
+				if (this.streamingAiMsg != null) this.abortRequest()
+				this.activeAnswerMsg = null
+			}
 			removedIds.push(msgList[i]._id)
 			forgetMessagePresentation(msgList[i]._id)
 		}
@@ -816,7 +904,7 @@ class UniAi {
 		for (let i = index; i < msgList.length; i++) libmarkStreamRelease(msgList[i]._id)
 		// #endif
 		msgList.splice(index, msgList.length - index)
-		this.storageManager.removeMessages(chat.id, removedIds)
+		this.storageManager.removeMessagesInBackground(chat.id, removedIds)
 		this.updateChatUpdateTime(chat.id)
 	}
 	
@@ -835,6 +923,20 @@ class UniAi {
 	}
 	
 	async sendMsg(inputContent: string = ''): Promise<void> {
+		// #ifdef APP-ANDROID
+		if (this.settingsReady != null) await this.settingsReady
+		if (this.storageLoading && this.storageReady != null) await this.storageReady
+		const target = this.currentChat
+		if (target == null) return
+		if (inputContent == '') inputContent = target.inputContent
+		if (this.loadedChatIds.indexOf(target.id) < 0) {
+			if (this.loadingSendChatId == target.id) return
+			this.loadingSendChatId = target.id
+			try { await this.loadChatMessages(target.id) }
+			finally { if (this.loadingSendChatId == target.id) this.loadingSendChatId = '' }
+		}
+		if (this.currentChat != target) return
+		// #endif
 		// 发送消息
 		if (inputContent == '') {
 			inputContent = this.currentChat!.inputContent
@@ -900,6 +1002,7 @@ class UniAi {
 	answerQuestion(aiMsgItem: MsgItem) {
 		this.abortRequest()
 		this.streamingAiMsg = aiMsgItem
+		this.activeAnswerMsg = aiMsgItem
 		const answerGeneration = this.answerGeneration
 		this.emitBeforeRequestAi()
 		this.updateChatUpdateTime(this.currentChat!.id)
@@ -907,7 +1010,7 @@ class UniAi {
 		const messages = this.getMsgToAi(this.currentChat!)
 		const isActiveAiMsg = (): boolean => {
 			const chat = this.currentChat
-			return this.answerGeneration == answerGeneration && chat != null && chat.id == aiMsgItem.chat_id && chat.msgList.find((item) => item._id == aiMsgItem._id) != null
+			return this.answerGeneration == answerGeneration && chat != null && chat.id == aiMsgItem.chat_id && this.activeAnswerMsg == aiMsgItem
 		}
 		const runnerCallbacks: RequestAiRunnerCallbacks = {
 			onSearch: (search) => {
@@ -938,11 +1041,13 @@ class UniAi {
 			},
 			onThinkContent: (thinkContent: string) => {
 				if (!isActiveAiMsg()) return
+				if (aiMsgItem.thinkContent == thinkContent) return
 				aiMsgItem.thinkContent = thinkContent
 				this.updateMsg2Storage(aiMsgItem)
 			},
 			onMsgBody: (msgBody: string) => {
 				if (!isActiveAiMsg()) return
+				if (aiMsgItem.body == msgBody) return
 				aiMsgItem.body = msgBody
 				this.updateMsg2Storage(aiMsgItem)
 			},

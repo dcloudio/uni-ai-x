@@ -1,4 +1,7 @@
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+// #ifdef APP-ANDROID
+import { encodeAndroidWebRequest } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
 type OnMsgFn = (e : UTSJSONObject) => void
 type VoidFn = () => void
 type WebviewEvalTarget = {
@@ -10,6 +13,9 @@ class ProxyWeb {
 	callbackMap : Map<string, OnMsgFn> = new Map()
 	// 会话代际：release() 自增，用于作废切换会话前的在途请求
 	private epoch : number = 0
+	private encodingSequence = 0
+	private deliverySequence = 0
+	private encodedRequests = new Map<number, string>()
 	// 宿主回调：未就绪且收到请求时通知页面按需挂载 web-view
 	private ensureHandler : VoidFn | null = null
 	// 宿主回调：每次发起请求时触发，用于取消待执行的释放
@@ -56,6 +62,34 @@ class ProxyWeb {
 		const key = (param['action'] as string) + '_callback_' + requestId
 		this.callbackMap.set(key, callback)
 
+		// #ifdef APP-ANDROID
+		const sequence = this.encodingSequence++
+		const deliver = (code: string) => {
+			utils.runOnDispatcher('main', () => {
+				if (epoch != this.epoch) return
+				if (code.length == 0) this.callbackMap.delete(key)
+				this.encodedRequests.set(sequence, code)
+				while (this.encodedRequests.has(this.deliverySequence)) {
+					const next = this.encodedRequests.get(this.deliverySequence)!
+					this.encodedRequests.delete(this.deliverySequence++)
+					if (next.length > 0) (this.webviewContext as WebviewEvalTarget | null)?.evalJS(next)
+				}
+			})
+		}
+		// Small requests cost less to encode locally than to cross the native bridge.
+		let characters = 0
+		for (const name of Object.keys(param)) {
+			const value = param[name]
+			if (typeof value == 'string') characters += (value as string).length
+		}
+		if (characters >= 256 * 1024) {
+			encodeAndroidWebRequest({ ...param } as UTSJSONObject, deliver)
+		} else {
+			try { deliver('onMessage("' + encodeURIComponent(JSON.stringify(param)) + '")') }
+			catch (error) { deliver(''); console.error('[proxy-web] encoding failed:', error) }
+		}
+		// #endif
+		// #ifndef APP-ANDROID
 		const code = `onMessage("${encodeURIComponent(JSON.stringify(param))}")`;
 		// #ifdef APP
 		utils.runOnDispatcher('main', () => {
@@ -65,6 +99,7 @@ class ProxyWeb {
 		// #endif
 		// #ifdef WEB
 			(this.webviewContext as any)?.contentWindow.eval(code)
+		// #endif
 		// #endif
 	}
 	private requestEnsure(epoch: number) {
@@ -87,6 +122,9 @@ class ProxyWeb {
 		this.isInit = false
 		this.webviewContext = null
 		this.callbackMap = new Map<string, OnMsgFn>()
+		this.encodedRequests.clear()
+		this.encodingSequence = 0
+		this.deliverySequence = 0
 		console.log('[proxy-web] release: 释放 WebView')
 	}
 	onWebMsg(e : UniWebViewMessageEvent) {

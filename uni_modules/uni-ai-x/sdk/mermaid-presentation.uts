@@ -22,7 +22,7 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 		// #ifndef MP-WEIXIN
 		if (block.text.trim().length == 0) continue
 		renderMermaidSvgForTheme(block.text, theme, (result: ThemedSvgResult) => {
-			if (result.imageSource.length == 0) return
+			if (result.imageSource.length == 0) { block.mermaidRenderFailed = true; changed(); return }
 			block.mermaidImageSource = result.imageSource
 			changed()
 		})

@@ -118,6 +118,9 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.url = options.url
 	message.authorization = options.authorization
 	message.bodyJson = options.bodyJson
+	// #ifdef APP-ANDROID
+	message.body = options.body ?? null
+	// #endif
 	message.renderInterval = options.renderInterval ?? 300
 	message.timeout = options.timeout ?? 90000
 	worker!.postMessage(message, null)
@@ -829,3 +832,11 @@ export const destroyAiWorkerRuntime: DestroyAiWorkerRuntime = function (): void 
 	destroyWorkerRuntime()
 	// #endif
 }
+// #ifdef APP-ANDROID
+export { saveAndroidMessageInBackground, invalidateAndroidMessageWrite } from './background-storage.uts'
+export { readAndroidChatMessages, readAndroidChatList, writeAndroidStorageBatch } from './background-storage.uts'
+export { mutateAndroidChatMessages } from './background-storage.uts'
+export { readAndroidSettings } from './background-storage.uts'
+export { readAndroidSvgCache, writeAndroidSvgCache, prepareAndroidSvgSource, encodeAndroidWebRequest } from './background-render.uts'
+export { prepareAndroidWebSearch } from './background-search.uts'
+// #endif

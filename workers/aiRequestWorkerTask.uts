@@ -403,9 +403,16 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		const requestVersion = readMessageNumber(payload, 'requestVersion')
 		const url = readMessageString(payload, 'url')
 		const authorization = readMessageString(payload, 'authorization')
-		const bodyJson = readMessageString(payload, 'bodyJson')
+		let bodyJson = readMessageString(payload, 'bodyJson')
 		const timeout = readMessageNumber(payload, 'timeout', 90000)
 		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
+		try {
+			const body = payload['body'] as UTSJSONObject | null
+			if (body != null) bodyJson = JSON.stringify(body)
+		} catch (_error) {
+			this.fail('invalid_request', '请求数据序列化失败')
+			return
+		}
 		if (requestVersion <= 0 || url.length == 0 || authorization.length == 0 || bodyJson.length == 0) {
 			this.fail('invalid_request', 'Worker 请求参数不完整')
 			return

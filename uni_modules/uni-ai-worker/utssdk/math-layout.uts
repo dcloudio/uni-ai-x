@@ -1,0 +1,23 @@
+import type { NativeMathPresentation } from './native-presentation.uts'
+
+function lineWidth(text: string): number {
+	let width = 0
+	for (let i = 0; i < text.length; i++) {
+		const code = text.charCodeAt(i) ?? 0
+		const full = (code >= 0x1100 && code <= 0x115f) || (code >= 0x2e80 && code <= 0xa4cf)
+			|| (code >= 0xac00 && code <= 0xd7a3) || (code >= 0xf900 && code <= 0xfaff)
+			|| (code >= 0xff01 && code <= 0xff60) || (code >= 0xffe0 && code <= 0xffe6)
+		width += 14 * (code == 9 ? 2.4 : full ? 1.05 : 0.7)
+	}
+	return Math.max(1, Math.ceil(width)) + 28
+}
+
+export function prepareMathSourceLayout(text: string, windowWidth: number): NativeMathPresentation {
+	const widths = text.split('\n').map((line: string): number => lineWidth(line))
+	let maxWidth = 1
+	for (const width of widths) maxWidth = Math.max(maxWidth, width)
+	const width = Math.max(1, Math.min(maxWidth, Math.max(160, Math.min(windowWidth, 800) - 90)))
+	let lines = 0
+	for (const value of widths) lines += Math.max(1, Math.ceil(value / width))
+	return { src: '', width: 1, height: 44, sourceWidth: width.toString() + 'px', sourceHeight: Math.max(44, lines * 22).toString() + 'px' }
+}

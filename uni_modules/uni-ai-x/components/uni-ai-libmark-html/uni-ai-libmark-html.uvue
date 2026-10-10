@@ -5,7 +5,9 @@
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+	// #ifndef APP-ANDROID
 	import { prepareLibmarkHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	// #endif
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
 	const emit = defineEmits<{ 'citation': [id: number], 'footnote': [href: string] }>()
@@ -20,10 +22,15 @@
 		isComplete: false
 	})
 
-	// libmark 输出为裸 HTML，渲染前注入样式；节点变化才重新预处理
+	// Android receives styled HTML from the presentation Worker.
 	const nodes = computed<string>(() => {
+		// #ifdef APP-ANDROID
+		return props.html
+		// #endif
+		// #ifndef APP-ANDROID
 		if (props.html.length == 0) return ''
 		return prepareLibmarkHtml(props.html, props.isComplete)
+		// #endif
 	})
 
 	const richTextStyle = computed<string>(() => {

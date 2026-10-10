@@ -27,6 +27,7 @@ export type MarkdownTextRenderBlock = {
 	quoteDepth: number
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
+	mermaidRenderFailed?: boolean
 	codeHeight?: string
 	codeHtml?: string
 	codeContentHeight?: string

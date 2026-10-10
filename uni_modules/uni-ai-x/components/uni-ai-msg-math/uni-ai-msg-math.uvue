@@ -21,6 +21,10 @@
     // #endif
     const props = defineProps<{
         href?: string
+        sourceWidth?: string
+        sourceHeight?: string
+        sourceIdentity?: string
+        sourceText?: string
 	        width?: number
 	        height?: number
 	        svgSource?: string
@@ -107,8 +111,13 @@
     }
 
     const sourceContentWidthValue = computed<number>(() => {
+        // #ifdef APP-ANDROID
+        return parseFloat(props.sourceWidth ?? '160px')
+        // #endif
+        // #ifndef APP-ANDROID
         const sourceWidth = estimateMaxLineTextWidth((props.text ?? '').split('\n'), 14, 'mono') + 28
         return Math.max(1, Math.min(sourceWidth, visibleMathWidth()))
+        // #endif
     })
 
     const sourceContentWidth = computed<string>(() => {
@@ -116,6 +125,10 @@
     })
 
     const sourceContentHeight = computed<string>(() => {
+        // #ifdef APP-ANDROID
+        return props.sourceHeight ?? '44px'
+        // #endif
+        // #ifndef APP-ANDROID
         const lines = (props.text ?? '').split('\n')
         let visualLineCount = 0
         for (let i = 0; i < lines.length; i++) {
@@ -123,6 +136,7 @@
             visualLineCount += Math.max(1, Math.ceil(lineWidth / sourceContentWidthValue.value))
         }
         return Math.max(44, visualLineCount * 22).toString() + 'px'
+        // #endif
     })
 
     const sourceTextStyle = computed<string>(() => {
@@ -240,10 +254,10 @@
     function onMathBuffer1Error(_event: ImageErrorEvent) { onMathBufferError(1) }
 
 	    function syncMathImageTheme() {
-	        const mathText = (props.text ?? '').trim()
+	        const mathText = props.sourceText ?? (props.text ?? '').trim()
 	        const svgSource = props.svgSource ?? ''
-	        const sourceKey = mathText + '\n' + svgSource + '\n' + (props.svgWidth ?? 0).toString()
-	            + '\n' + (props.svgHeight ?? 0).toString()
+	        const sourceKey = props.sourceIdentity ?? (mathText + '\n' + svgSource + '\n' + (props.svgWidth ?? 0).toString()
+	            + '\n' + (props.svgHeight ?? 0).toString())
 	        if (mathSourceKey != sourceKey) {
 	            mathSourceKey = sourceKey
 	            mathImageLoadFailed.value = false
@@ -304,6 +318,7 @@
     }
 
 	    watch((): string => {
+	        if (props.sourceIdentity != null) return uiTheme.value + ':' + (props.renderTheme ?? '') + ':' + props.sourceIdentity! + ':' + (props.isClose ?? 0).toString() + ':' + (props.href ?? '')
 	        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n'
 	            + (props.svgSource ?? '') + '\n' + (props.svgWidth ?? 0).toString() + '\n'
 	            + (props.svgHeight ?? 0).toString() + '\n'
