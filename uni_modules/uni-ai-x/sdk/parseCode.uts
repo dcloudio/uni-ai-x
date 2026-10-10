@@ -55,7 +55,7 @@ let highlighterInitialization = null as Promise<CreateHighLighterRes> | null
 // #endif
 type CachedCode = { source: string, lines: MarkdownToken[][], weight: number }
 type CodeRequest = { source: string, callback: ParseCodeTextCallBack }
-type PendingCode = { request: CodeRequest, next: CodeRequest | null }
+type PendingCode = { request: CodeRequest, next: CodeRequest | null, releaseWhenIdle: boolean }
 const completedCodeCache = new Map<string, CachedCode>()
 const pendingCodeCache = new Map<string, PendingCode>()
 const codeCacheOrder = [] as string[]
@@ -79,17 +79,19 @@ function disposeHighlightSession(session: CodeHighlightSession) {
 	session.tail.then(() => { uniCodeHighlighter?.releaseSession(session.id) })
 }
 
-export function releaseCodeHighlightSessions(messageId: string) {
+export function releaseCodeHighlightSessions(messageId: string, finishPending: boolean = false) {
 	const prefix = messageId + '\u001f'
 	completedCodeCache.forEach((_value: CachedCode, key: string) => { if (key.startsWith(prefix)) removeCodeCache(key) })
 	pendingCodeCache.forEach((pending: PendingCode, key: string) => {
 		if (!key.startsWith(prefix)) return
+		if (finishPending) { pending.releaseWhenIdle = true; return }
 		pendingCodeCache.delete(key)
 		cancelCodeRequest(pending.request)
 		if (pending.next != null) cancelCodeRequest(pending.next!)
 	})
 	highlightSessions.forEach((session: CodeHighlightSession, key: string) => {
 		if (session.messageId != messageId) return
+		if (finishPending && pendingCodeCache.has(key)) return
 		highlightSessions.delete(key)
 		disposeHighlightSession(session)
 	})
@@ -187,10 +189,19 @@ function cancelCodeRequest(request: CodeRequest) {
 	request.callback({ lines: [], language: '', error: '代码高亮请求已失效' })
 }
 
-export function clearCodeHighlightCache() {
+export function clearCodeHighlightCache(finishPending: boolean = false) {
 	completedCodeCache.clear()
 	codeCacheOrder.length = 0
 	codeCacheWeight = 0
+	if (finishPending) {
+		pendingCodeCache.forEach((value: PendingCode) => { value.releaseWhenIdle = true })
+		highlightSessions.forEach((session: CodeHighlightSession, key: string) => {
+			if (pendingCodeCache.has(key)) return
+			disposeHighlightSession(session)
+			highlightSessions.delete(key)
+		})
+		return
+	}
 	const pending = [] as PendingCode[]
 	pendingCodeCache.forEach((value: PendingCode) => { pending.push(value) })
 	pendingCodeCache.clear()
@@ -207,9 +218,17 @@ function runCodeRequest(key: string, pending: PendingCode, messageId: string, bl
 		if (pendingCodeCache.get(key) != pending) return
 		const done = pending.request
 		const next = pending.next
-		if (result.error == null) putCodeCache(key, done.source, result.lines)
+		if (result.error == null && !pending.releaseWhenIdle) putCodeCache(key, done.source, result.lines)
 		pendingCodeCache.delete(key)
-		if (next != null) requestCachedCodeText(next.callback, messageId, blockKey, next.source, language)
+		if (next != null) {
+			requestCachedCodeText(next.callback, messageId, blockKey, next.source, language)
+			const following = pendingCodeCache.get(key)
+			if (following != null && pending.releaseWhenIdle) following.releaseWhenIdle = true
+		} else if (pending.releaseWhenIdle) {
+			const session = highlightSessions.get(key)
+			if (session != null) disposeHighlightSession(session)
+			highlightSessions.delete(key)
+		}
 		done.callback(result)
 	}, messageId, blockKey, pending.request.source, language)
 }
@@ -241,7 +260,7 @@ export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId
 		}
 		return true
 	}
-	const created: PendingCode = { request, next: null }
+	const created: PendingCode = { request, next: null, releaseWhenIdle: false }
 	pendingCodeCache.set(key, created)
 	runCodeRequest(key, created, messageId, blockKey, normalizedLanguage)
 	return false

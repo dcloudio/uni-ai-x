@@ -99,3 +99,31 @@ test('oversized results are delivered but are not retained by cache or native se
   assert.equal(api.completedCodeCache.size, 0);
   assert.equal(api.highlightSessions.size, 0);
 });
+
+test('leaving a chat drains its latest highlight without cancelling the next chat', async () => {
+  const api = setup();
+  const old = api.request('/*', 'a', 'old');
+  const last = api.request('/*\ncomment\n*/', 'a', 'old');
+  const incoming = api.request('const incoming = 1', 'a', 'new');
+  api.releaseCodeHighlightSessions('old', true);
+  assert.equal((await old).error, null);
+  assert.equal((await last).lines[1][0].className, 'comment');
+  assert.equal((await incoming).error, null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(api.highlightSessions.size, 1);
+  assert.equal(api.completedCodeCache.size, 1);
+  assert.ok([...api.completedCodeCache.keys()][0].startsWith('new\u001f'));
+});
+
+test('page teardown delivers final snapshots and then releases all highlighter resources', async () => {
+  const api = setup();
+  const first = api.request('one');
+  const latest = api.request('one\ntwo');
+  api.clearCodeHighlightCache(true);
+  assert.equal((await first).error, null);
+  assert.equal((await latest).error, null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(api.highlightSessions.size, 0);
+  assert.equal(api.completedCodeCache.size, 0);
+  assert.equal(api.states.size, 0);
+});
