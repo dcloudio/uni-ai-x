@@ -44,6 +44,7 @@ export class CreateHighLighter {
 	public langMap: Map<string, string>
 	public handleMap: Map<string, any>
 	public grammar: ScopeparserBridge
+	private sessions = new Map<string, any>()
 	constructor(options : HighLighterOptions) {
 			const languages = options.languages!;
 			const langMap : Map<string, string> = new Map();
@@ -59,6 +60,34 @@ export class CreateHighLighter {
 			this.langMap = langMap
 			this.handleMap = new Map()
 			this.grammar = new ScopeparserBridge()
+	}
+	releaseSession(sessionId: string): void {
+		const handle = this.sessions.get(sessionId)
+		if (handle != null) this.grammar.destroyStackHandle(withHandle = handle)
+		this.sessions.delete(sessionId)
+	}
+	async tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
+		const tmlStr = this.langMap.get(langId)
+		if (tmlStr == null) return []
+		if (reset) this.releaseSession(sessionId)
+		let handle = this.sessions.get(sessionId)
+		if (handle == null) {
+			handle = this.grammar.addGrammar(withLangId = langId, jsonText = tmlStr!)
+			this.sessions.set(sessionId, handle)
+		}
+		const result = [] as ILineTokens[]
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i] + '\n'
+			const raw = await this.grammar.tokenizeLine(withHandle = handle, langId = langId, text = line)
+			if (raw == null) throw new Error('Code tokenizer returned no result')
+			const parsed = JSON.parseArray<ktToken>(raw!) ?? [] as ktToken[]
+			const tokens = [] as IToken[]
+			mapByteOffsetsToCharOffsets(line, parsed).forEach((item: ktToken) => {
+				tokens.push(new IToken(item.start, item.end, item.token.split(' ')))
+			})
+			result.push(new ILineTokens(tokens))
+		}
+		return result
 	}
 	async tokenizeLine(langId : string, lineText : string, state : any): Promise<ILineTokens | null> {
 

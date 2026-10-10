@@ -80,6 +80,7 @@ test('released rebuilds cannot repopulate memory and reset permits retry after f
   ], {
     LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild: (...args) => requests.push(args),
     libmarkHtmlBlocksToTextBlocks: blocks => blocks, ref: value => ({ value }),
+    releaseCodeHighlightSessions() {},
     prepareCodeBlocks: (_id, blocks, ready) => ready(blocks), prepareNativeMermaidBlocks() {}, prepareNativeInlineMathBlocks() {},
   });
   assert.equal(store.libmarkStreamRequestRebuild('m', 'hello'), true);

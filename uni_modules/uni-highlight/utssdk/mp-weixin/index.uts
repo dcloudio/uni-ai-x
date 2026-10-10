@@ -18,6 +18,8 @@ export type HighLighterOptions = {
 }
 
 export type CreateHighLighterRes = {
+	tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]>
+	releaseSession(sessionId: string): void
 	tokenizeFullText(langId: string, fullCodeText:string): Promise<ILineTokens[]>
 	tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | null>
 }
@@ -62,7 +64,26 @@ export async function createHighLighter(options: HighLighterOptions):Promise<Cre
 		}
 	});
 	
+	const sessions = new Map<string, any>()
 	return {
+		releaseSession(sessionId: string): void {
+			sessions.delete(sessionId)
+		},
+		async tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
+			const scopeName = langMap.get(langId)
+			if (scopeName == null) return []
+			const grammar = await registry.loadGrammar(scopeName)
+			let state = reset ? vsctm.INITIAL : (sessions.get(sessionId) ?? vsctm.INITIAL)
+			const result = [] as ILineTokens[]
+			for (let i = 0; i < lines.length; i++) {
+				const parsed = grammar?.tokenizeLine(lines[i] + '\n', state)
+				if (parsed == null) throw new Error('Code tokenizer returned no result')
+				state = parsed.ruleStack
+				result.push({ tokens: parsed.tokens, state: state })
+			}
+			sessions.set(sessionId, state)
+			return result
+		},
 		async tokenizeFullText(langId: string, fullCodeText:string): Promise<ILineTokens[]> {
 			let scopeName = langMap.get(langId)
 			if (!scopeName) return []

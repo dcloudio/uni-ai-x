@@ -40,6 +40,8 @@ export type CreateHighLighter = (options: HighLighterOptions) => Promise<CreateH
 
 
 export type CreateHighLighterRes = {
+	tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]>
+	releaseSession(sessionId: string): void
 	tokenizeFullText(langId: string, fullCodeText:string): Promise<ILineTokens[]>
 	tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | null>
 }

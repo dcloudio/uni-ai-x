@@ -5,6 +5,7 @@ import { libmarkHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdo
 import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import { ref } from 'vue'
 import { prepareCodeBlocks } from './code-presentation.uts'
+import { releaseCodeHighlightSessions } from './parseCode.uts'
 import { prepareNativeMermaidBlocks } from './mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 
@@ -37,6 +38,7 @@ function evictEntriesIfNeeded(): void {
 		const oldest = streamEntryOrder.shift()
 		if (oldest == null) break
 		streamEntries.delete(oldest!)
+		releaseCodeHighlightSessions(oldest!)
 	}
 }
 
@@ -226,6 +228,7 @@ export function libmarkStreamReset(msgId: string): void {
 }
 
 export function libmarkStreamRelease(msgId: string): void {
+	releaseCodeHighlightSessions(msgId)
 	streamEntries.delete(msgId)
 	const index = streamEntryOrder.indexOf(msgId)
 	if (index >= 0) streamEntryOrder.splice(index, 1)

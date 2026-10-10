@@ -58,6 +58,91 @@ const pendingCodeCache = new Map<string, ParseCodeTextCallBack[]>()
 const codeCacheOrder = [] as string[]
 const maxCodeCacheEntries = 256
 
+type CodeHighlightSession = {
+	messageId: string
+	id: string
+	source: string[]
+	lines: MarkdownToken[][]
+	tail: Promise<void>
+	released: boolean
+}
+const highlightSessions = new Map<string, CodeHighlightSession>()
+let highlightSessionSequence = 0
+
+function disposeHighlightSession(session: CodeHighlightSession) {
+	session.released = true
+	session.tail.then(() => { uniCodeHighlighter?.releaseSession(session.id) })
+}
+
+export function releaseCodeHighlightSessions(messageId: string) {
+	highlightSessions.forEach((session: CodeHighlightSession, key: string) => {
+		if (session.messageId != messageId) return
+		highlightSessions.delete(key)
+		disposeHighlightSession(session)
+	})
+}
+
+function tokensForLine(source: string, parsed: ILineTokens | null): MarkdownToken[] {
+	const tokens = [] as MarkdownToken[]
+	parsed?.tokens.forEach((token) => {
+		const start = Math.max(0, Math.min(token.startIndex, source.length))
+		const end = Math.max(start, Math.min(token.endIndex, source.length))
+		if (start < end) tokens.push({ text: source.substring(start, end), className: scopeClassName(token.scopes ?? null) })
+	})
+	return tokens
+}
+
+function parseIncrementalCode(callback: ParseCodeTextCallBack, messageId: string, blockKey: string, source: string, language: string) {
+	if (!grammarList.includes(language)) {
+		callback({ lines: [], language, error: '不支持解析的语言类型' })
+		return
+	}
+	const key = messageId + '\u001f' + blockKey + '\u001f' + language
+	let session = highlightSessions.get(key)
+	if (session == null) {
+		highlightSessionSequence += 1
+		session = { messageId, id: 'code-' + highlightSessionSequence.toString(), source: [], lines: [], tail: Promise.resolve(), released: false }
+		// Bound native syntax stacks independently of the completed-result cache.
+		if (highlightSessions.size >= 64) {
+			let oldest = ''
+			highlightSessions.forEach((_value: CodeHighlightSession, entryKey: string) => { if (oldest.length == 0) oldest = entryKey })
+			const expired = highlightSessions.get(oldest)
+			if (expired != null) disposeHighlightSession(expired)
+			highlightSessions.delete(oldest)
+		}
+	}
+	highlightSessions.delete(key)
+	highlightSessions.set(key, session)
+	const active = session
+	active.tail = active.tail.then(async () => {
+		if (active.released) {
+			callback({ lines: [], language, error: '代码高亮会话已释放' })
+			return
+		}
+		try {
+			await new Promise<void>((resolve, reject) => initUniCodeHighlighter(resolve, (message: string) => reject(new Error(message))))
+			const sourceLines = source.split('\n')
+			let appendOnly = sourceLines.length >= active.source.length
+			for (let i = 0; appendOnly && i < active.source.length; i++) {
+				if (active.source[i] != sourceLines[i]) appendOnly = false
+			}
+			const start = appendOnly ? active.source.length : 0
+			const added = sourceLines.slice(start)
+			const parsed = added.length > 0 ? await uniCodeHighlighter!.tokenizeLines(active.id, language, added, start == 0) : [] as ILineTokens[]
+			if (parsed.length != added.length) throw new Error('代码高亮返回行数不一致')
+			const lines = appendOnly ? active.lines.slice() : [] as MarkdownToken[][]
+			for (let i = 0; i < added.length; i++) lines.push(tokensForLine(added[i], parsed[i]))
+			active.source = sourceLines
+			active.lines = lines
+			callback({ lines, language, error: null })
+		} catch (error) {
+			active.source = []
+			active.lines = []
+			callback({ lines: [], language, error: '代码增量高亮失败' })
+		}
+	})
+}
+
 function cloneCodeTokens(lines: MarkdownToken[][]): MarkdownToken[][] {
 	return lines.map((line: MarkdownToken[]): MarkdownToken[] => line.map((token: MarkdownToken): MarkdownToken => {
 		return { type: token.type, text: token.text, className: token.className }
@@ -97,14 +182,14 @@ export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId
 		return true
 	}
 	pendingCodeCache.set(key, [callback] as ParseCodeTextCallBack[])
-	parseCodeText((result: ParseCodeTextRes) => {
+	parseIncrementalCode((result: ParseCodeTextRes) => {
 		if (result.error == null) putCodeCache(key, result.lines)
 		const callbacks = pendingCodeCache.get(key) ?? [] as ParseCodeTextCallBack[]
 		pendingCodeCache.delete(key)
 		callbacks.forEach((item: ParseCodeTextCallBack) => item({
 			lines: cloneCodeTokens(result.lines), language: result.language, error: result.error
 		}))
-	}, codeText, normalizedLanguage)
+	}, messageId, blockKey, codeText, normalizedLanguage)
 	return false
 }
 

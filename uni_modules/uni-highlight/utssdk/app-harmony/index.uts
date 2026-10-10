@@ -22,6 +22,12 @@ export class CreateHighLighter {
 	async tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | null> {
 		return (await this.highlighter).tokenizeLine(langId, lineText, state)
 	}
+	async tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
+		return (await this.highlighter).tokenizeLines(sessionId, langId, lines, reset)
+	}
+	async releaseSession(sessionId: string): Promise<void> {
+		(await this.highlighter).releaseSession(sessionId)
+	}
 }
 
 export class lineTokens {
@@ -83,6 +89,7 @@ function mapByteOffsetsToCharOffsets(text : string, tokens : KtToken[]) : KtToke
 export async function createHighLighter(options : HighLighterOptions) : Promise<CreateHighLighterRes> {
 	const languages = options.languages;
 	const langMap : Map<string, string> = new Map();
+	const sessions = new Map<string, number>()
 	// const grammar = await new MainActivity()
 	UTSJSONObject.keys(languages).forEach(key => {
 		// console.log(key)
@@ -95,6 +102,37 @@ export async function createHighLighter(options : HighLighterOptions) : Promise<
 	})
 
 	let fns : CreateHighLighterRes = {
+		releaseSession(sessionId: string): void {
+			const handle = sessions.get(sessionId)
+			if (handle != null) destroyStackHandle(handle)
+			sessions.delete(sessionId)
+		},
+		async tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
+			const tmlStr = langMap.get(langId)
+			if (tmlStr == null) return []
+			let handle = sessions.get(sessionId)
+			if (reset && handle != null) {
+				destroyStackHandle(handle)
+				sessions.delete(sessionId)
+				handle = null
+			}
+			if (handle == null) {
+				handle = addGrammar(langId, tmlStr)
+				sessions.set(sessionId, handle)
+			}
+			const result = [] as ILineTokens[]
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i] + '\n'
+				const raw = await tokenizeLine(handle, langId, line)
+				const parsed = JSON.parse<KtToken[]>(raw) ?? [] as KtToken[]
+				const tokens = [] as IToken[]
+				mapByteOffsetsToCharOffsets(line, parsed).forEach((item: KtToken) => {
+					tokens.push(new IToken(item.start, item.end, item.token.split(' ')))
+				})
+				result.push(new ILineTokens(tokens))
+			}
+			return result
+		},
 
 		async tokenizeFullText(langId : string, fullCodeText : string) : Promise<ILineTokens[]> {
 			let tmlStr = langMap.get(langId)

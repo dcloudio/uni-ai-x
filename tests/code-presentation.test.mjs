@@ -23,11 +23,11 @@ function setup() {
   });
   const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
     ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamGetRevision', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
-      ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {},
+      ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
     });
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
     ['refreshMessagePresentation', 'readMessagePresentation', 'forgetMessagePresentation'], {
-      ref, shallowRef: ref, ...code, ...converters, mathWindowWidth: ref(412),
+      ref, shallowRef: ref, ...code, ...converters, mathWindowWidth: ref(412), releaseCodeHighlightSessions() {},
       linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
     });
   return { ...code, ...store, ...legacy, requests, diagrams };

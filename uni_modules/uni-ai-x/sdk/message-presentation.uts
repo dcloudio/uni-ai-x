@@ -6,6 +6,7 @@ import { mathWindowWidth } from './math-presentation.uts'
 import { linkSearchCitations } from './search-citations.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { prepareCodeBlocks } from './code-presentation.uts'
+import { releaseCodeHighlightSessions } from './parseCode.uts'
 
 class MessagePresentation {
 	preparationVersion = 0
@@ -36,6 +37,7 @@ export function readMessagePresentation(messageId: string): MarkdownTextRenderBl
 }
 
 export function forgetMessagePresentation(messageId: string) {
+	releaseCodeHighlightSessions(messageId)
 	messages.delete(messageId)
 }
 

@@ -19,6 +19,12 @@ export class CreateHighLighter {
 	async tokenizeLine(langId: string, lineText: string, state: any): Promise<ILineTokens | null> {
 		return (await this.highlighter).tokenizeLine(langId, lineText, state)
 	}
+	async tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
+		return (await this.highlighter).tokenizeLines(sessionId, langId, lines, reset)
+	}
+	async releaseSession(sessionId: string): Promise<void> {
+		(await this.highlighter).releaseSession(sessionId)
+	}
 }
 
 export class lineTokens {
@@ -33,6 +39,7 @@ export function createHighLighter(options : HighLighterOptions) : Promise<Create
     const langMap : Map<string, string> = new Map();
     const grammar = new MainActivity()
     const handleMap: Map<string, Long> = new Map();
+    const sessions: Map<string, Long> = new Map();
 
     for (let id in languages) {
         try {
@@ -43,6 +50,37 @@ export function createHighLighter(options : HighLighterOptions) : Promise<Create
     }
 
     let fns : CreateHighLighterRes = {
+        releaseSession(sessionId: string): void {
+            const handle = sessions.get(sessionId)
+            if (handle != null) grammar.destroyHandle(handle)
+            sessions.delete(sessionId)
+        },
+        tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
+            const tmlStr = langMap.get(langId)
+            if (tmlStr == null) return Promise.resolve([] as ILineTokens[])
+            let handle = sessions.get(sessionId)
+            if (reset && handle != null) {
+                grammar.destroyHandle(handle)
+                sessions.delete(sessionId)
+                handle = null
+            }
+            if (handle == null) {
+                handle = grammar.addGrammar(langId, tmlStr)
+                sessions.set(sessionId, handle)
+            }
+            const result = [] as ILineTokens[]
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i] + '\n'
+                const raw = grammar.tokenizeLine(handle, langId, line)
+                const parsed = JSON.parse<ktToken[]>(raw) ?? [] as ktToken[]
+                const tokens = [] as IToken[]
+                mapByteOffsetsToCharOffsets(line, parsed.toTypedArray()).forEach((item: ktToken) => {
+                    tokens.push(new IToken(item.start, item.end, item.token.split(' ')))
+                })
+                result.push(new ILineTokens(tokens))
+            }
+            return Promise.resolve(result)
+        },
         tokenizeFullText(langId : string, fullCodeText : string) : Promise<ILineTokens[]> {
             let tmlStr = langMap.get(langId)
             if (tmlStr === null) return Promise.resolve([])

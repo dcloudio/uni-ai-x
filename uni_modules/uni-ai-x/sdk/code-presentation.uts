@@ -52,7 +52,8 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
 		const oldLines = old?.codeLines ?? [] as CodePresentationLine[]
 		const oldHighlighted = old?.codeHighlightedText ?? ''
-		block.codeHighlightedText = block.text.startsWith(oldHighlighted) ? oldHighlighted : ''
+		block.codeHighlightedText = block.text == oldHighlighted || block.text.startsWith(oldHighlighted + '\n') ? oldHighlighted : ''
+		if (block.codeHighlightedText.length > 0) block.codeTokens = old?.codeTokens ?? [] as MarkdownToken[][]
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const lines = [] as CodePresentationLine[]
 		let samePrefix = true
@@ -66,7 +67,7 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 			}
 		}
 		block.codeLines = lines
-		block.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'
+		block.codeHeight = (Math.max(1, texts.length) * 22 + 16).toString() + 'px'
 	})
 	publish()
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
@@ -74,12 +75,14 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
 		const completedText = texts.slice(0, count).join('\n')
 		if (completedText.length == 0 || completedText == block.codeHighlightedText) return
+		const highlightedCount = block.codeHighlightedText.length == 0 ? 0 : block.codeHighlightedText.split('\n').length
+		const unchangedCount = completedText.startsWith(block.codeHighlightedText + '\n') ? highlightedCount : 0
 		requestCachedCodeText((result: ParseCodeTextRes) => {
 			if (result.error != null) return
 			block.codeTokens = result.lines
 			block.codeHighlightedText = completedText
 			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()
-			for (let i = 0; i < count; i++) {
+			for (let i = unchangedCount; i < count; i++) {
 				const tokens = i < result.lines.length ? [result.lines[i]] : [] as MarkdownToken[][]
 				const html = buildCodeLineHtml(lines[i].text, block.language, tokens)
 				if (html != lines[i].html) lines[i] = { text: lines[i].text, html: html }
