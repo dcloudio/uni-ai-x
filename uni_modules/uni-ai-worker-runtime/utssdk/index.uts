@@ -107,6 +107,21 @@ function notifyDataListener(): void {
 	}
 }
 
+// 应用语言用于 libmark 文本字体的语言偏好（BCP-47，如 zh-Hans）；读取失败或平台不支持时退回 null
+let appLanguageResolved = false
+let appLanguageCache: string | null = null
+function resolveAppLanguage(): string | null {
+	if (appLanguageResolved) return appLanguageCache
+	appLanguageResolved = true
+	try {
+		const language = uni.getAppBaseInfo().appLanguage
+		appLanguageCache = (language != null && language.length > 0) ? language : null
+	} catch (_error) {
+		appLanguageCache = null
+	}
+	return appLanguageCache
+}
+
 function postStart(options: AiWorkerStartOptions): void {
 	if (worker == null || !workerReady) return
 	const message = new UTSJSONObject()
@@ -120,6 +135,7 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.bodyJson = options.bodyJson
 	message.renderInterval = options.renderInterval ?? 300
 	message.timeout = options.timeout ?? 90000
+	message.language = resolveAppLanguage()
 	worker!.postMessage(message, null)
 }
 
@@ -133,7 +149,8 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 		action: 'start-markdown',
 		renderProtocolVersion: WORKER_RENDER_PROTOCOL_VERSION,
 		requestVersion: options.requestVersion,
-		renderInterval: options.renderInterval ?? 300
+		renderInterval: options.renderInterval ?? 300,
+		language: resolveAppLanguage()
 	}, null)
 	if (pendingMarkdownContent.length > 0 || pendingMarkdownReasoning.length > 0) {
 		postMarkdownChunk(options.requestVersion, pendingMarkdownContent, pendingMarkdownReasoning)
@@ -243,7 +260,8 @@ function postRebuildRequest(request: AiWorkerRebuildRequest): void {
 	worker!.postMessage({
 		action: 'rebuild-markdown',
 		msgId: request.msgId,
-		content: request.content
+		content: request.content,
+		language: resolveAppLanguage()
 	}, null)
 }
 

@@ -11,10 +11,12 @@ import type { LibmarkEvent } from '../interface.uts'
 /**
  * 创建一个 progressive session。
  * mode 为 "ast" 时只交付 AST（无 HTML、无 DATA），省略或 "html" 时交付 HTML 与 DATA。
+ * languageTags 为内容语言偏好（BCP-47，可为逗号分隔的优先级列表），设备语言由
+ * Kotlin 包装类追加在后，用于挑 mermaid 文本字体与集合字体的 face。
  * 返回的句柄是携带会话 id 的对象，id 对应的裸指针留在 Kotlin 包装类里。
  */
-export function createSession(mode?: string): object {
-	return { id: LibmarkBridge.createSession(mode) }
+export function createSession(mode?: string, languageTags?: string): object {
+	return { id: LibmarkBridge.createSession(mode, languageTags) } as object
 }
 
 /** 提交一段 Markdown chunk，返回本次产生的块级操作集合；没有事件时返回 null。 */

@@ -1,5 +1,6 @@
 package uts.sdk.modules.libmark
 
+import android.os.LocaleList
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -24,14 +25,27 @@ object LibmarkBridge {
         System.loadLibrary("mark_bridge")
     }
 
-    fun createSession(mode: String?): Int {
-        val pointer = nativeCreateSession(mode)
+    /**
+     * languageTags 是宿主给出的内容语言偏好（BCP-47，可为逗号分隔的优先级列表），
+     * 设备当前语言作为兜底追加在其后：内容语言优先是刻意的选择，见 bridge 侧注释。
+     */
+    fun createSession(mode: String?, languageTags: String?): Int {
+        val pointer = nativeCreateSession(mode, composeLocales(languageTags))
         if (pointer == 0L) {
             throw IllegalStateException("libmark session creation failed")
         }
         nextSessionId += 1
         sessions[nextSessionId] = pointer
         return nextSessionId
+    }
+
+    /** 内容语言在前、设备语言在后，交给桥接库按顺序解析字体。 */
+    private fun composeLocales(languageTags: String?): String {
+        val preferred = languageTags?.trim().orEmpty()
+        val deviceLocales = LocaleList.getDefault().toLanguageTags()
+        if (preferred.isEmpty()) return deviceLocales
+        if (deviceLocales.isEmpty()) return preferred
+        return "$preferred,$deviceLocales"
     }
 
     fun feedChunk(id: Int, chunk: String): String? {
@@ -49,7 +63,7 @@ object LibmarkBridge {
         nativeDestroySession(pointer)
     }
 
-    private external fun nativeCreateSession(mode: String?): Long
+    private external fun nativeCreateSession(mode: String?, locales: String?): Long
 
     private external fun nativeFeedChunk(handle: Long, chunk: String): String?
 

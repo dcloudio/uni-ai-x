@@ -78,6 +78,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
 	// #ifdef APP-HARMONY || APP-ANDROID
 	private libmarkSession: object | null = null
+	private libmarkLanguage: string | null = null
 	private libmarkPendingOps: LibmarkOp[] = []
 	private libmarkPendingOpOffset: number = 0
 	private libmarkPendingContent: string = ''
@@ -155,8 +156,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private ensureLibmarkSession(): boolean {
 		if (this.libmarkSession != null) return true
 		try {
-			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派
-			this.libmarkSession = createSession('html')
+			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派；
+			// 语言用主线程传入的应用语言，为空时由桥接按设备语言兜底挑集合字体的 face
+			this.libmarkSession = createSession('html', this.libmarkLanguage)
 			if (this.libmarkSession != null) return true
 		} catch {
 		}
@@ -219,7 +221,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				const newline = contentDelta.indexOf('\n', start)
 				const end = newline < 0 ? contentDelta.length : newline + 1
 				const chunk = contentDelta.slice(start, end)
-				this.appendLibmarkOps(this.sourceTail.feed(chunk, feedChunk(session, chunk)))
+				this.appendLibmarkOps(this.sourceTail.feed(chunk, feedChunk(session, chunk) ?? null))
 				start = end
 			}
 			return true
@@ -244,7 +246,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			const session = this.libmarkSession
 			if (session != null) {
 				try {
-					this.appendLibmarkOps(this.sourceTail.finish(finishSession(session)))
+					this.appendLibmarkOps(this.sourceTail.finish(finishSession(session) ?? null))
 				} catch {
 					this.failLibmark('libmark_finish_failed', 'libmark 完成解析失败')
 					return
@@ -323,6 +325,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private rebuildMarkdown(payload: UTSJSONObject) {
 		const msgId = readMessageString(payload, 'msgId')
 		const content = readMessageString(payload, 'content')
+		const language = readMessageString(payload, 'language')
 		const ops = [] as UTSJSONObject[]
 		if (msgId.length == 0 || content.length == 0) {
 			this.postRebuildOps(msgId, ops)
@@ -330,7 +333,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		let session: object | null = null
 		try {
-			session = createSession('html')
+			session = createSession('html', language.length > 0 ? language : null)
 			this.appendRebuildOps(ops, feedChunk(session!, content))
 			this.appendRebuildOps(ops, finishSession(session!))
 		} catch (_error) {
@@ -390,6 +393,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.networkChunkCount = 0
 		this.receivedBytes = 0
 		this.terminalSource = ''
+		this.libmarkLanguage = null
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
 		// #ifdef APP-HARMONY || APP-ANDROID
@@ -410,6 +414,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			this.fail('invalid_request', 'Worker 请求参数不完整')
 			return
 		}
+		const language = readMessageString(payload, 'language')
+		this.libmarkLanguage = language.length > 0 ? language : null
 
 		this.streamRequest = new WorkerStreamRequest(
 			(data: string) => { this.handleSseEvent(data) },
@@ -428,6 +434,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private startMarkdown(payload: UTSJSONObject) {
 		const requestVersion = readMessageNumber(payload, 'requestVersion')
 		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
+		const language = readMessageString(payload, 'language')
+		this.libmarkLanguage = language.length > 0 ? language : null
 		if (requestVersion <= 0) {
 			this.fail('invalid_markdown_request', 'Worker Markdown 请求参数不完整')
 			return
