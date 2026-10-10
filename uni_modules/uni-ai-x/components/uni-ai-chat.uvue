@@ -51,6 +51,7 @@
 	import {
 		libmarkStreamApplyRebuild,
 		libmarkPresentationRevision,
+		libmarkStreamGetRevision,
 		libmarkStreamGetBlocks,
 		libmarkStreamRequestRebuild
 	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
@@ -222,7 +223,7 @@
 		// #endif
 		// #ifdef APP-HARMONY || APP-ANDROID
 		const revision = msg.libmarkRevision ?? 0
-		const version = rebuildVersion.value + libmarkPresentationRevision.value
+			const version = libmarkStreamGetRevision(msg._id)
 		const theme = uiTheme.value
 		const sources = JSON.stringify(msg.search?.sources ?? []) ?? ''
 		const cached = markdownBlockCache.get(msg._id)
@@ -317,7 +318,10 @@
 		return RENDER_ITEM_TYPE_AI_NORMAL
 	}
 
-	const renderItemList = computed<ChatRenderItem[]>(() => {
+		const renderItemList = computed<ChatRenderItem[]>(() => {
+			// 全局标记只触发列表检查，缓存有效性由每条消息的版本决定。
+			libmarkPresentationRevision.value
+			rebuildVersion.value
 		const startedAt = Date.now()
 		const items = [] as ChatRenderItem[]
 		for (let messageIndex = 0; messageIndex < msgList.value.length; messageIndex++) {

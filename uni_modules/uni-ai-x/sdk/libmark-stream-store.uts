@@ -17,6 +17,7 @@ const STREAM_ENTRY_LIMIT = 200
 type LibmarkStreamEntry = {
 	messageId: string
 	preparationVersion: number
+	presentationRevision: number
 	adapter: LibmarkHtmlStreamAdapter
 	textBlocks: MarkdownTextRenderBlock[]
 }
@@ -52,6 +53,7 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 	const entry: LibmarkStreamEntry = {
 		messageId: msgId,
 		preparationVersion: 0,
+		presentationRevision: 0,
 		adapter: new LibmarkHtmlStreamAdapter(),
 		textBlocks: emptyBlocks()
 	}
@@ -59,6 +61,15 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 	touchEntry(msgId)
 	evictEntriesIfNeeded()
 	return entry
+}
+
+function notifyEntry(entry: LibmarkStreamEntry) {
+	entry.presentationRevision = libmarkPresentationRevision.value + 1
+	libmarkPresentationRevision.value = entry.presentationRevision
+}
+
+export function libmarkStreamGetRevision(msgId: string): number {
+	return streamEntries.get(msgId)?.presentationRevision ?? 0
 }
 
 function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void {
@@ -71,13 +82,13 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 		prepareNativeInlineMathBlocks(entry.messageId, prepared, presentationTheme, () => {
 			if (!isCurrent()) return
 			entry.textBlocks = prepared.slice()
-			libmarkPresentationRevision.value += 1
+			notifyEntry(entry)
 		})
-		libmarkPresentationRevision.value += 1
+		notifyEntry(entry)
 		prepareNativeMermaidBlocks(prepared, presentationTheme, () => {
 			if (!isCurrent()) return
 			entry.textBlocks = prepared.slice()
-			libmarkPresentationRevision.value += 1
+			notifyEntry(entry)
 		})
 	}, entry.textBlocks)
 }

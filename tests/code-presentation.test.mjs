@@ -22,7 +22,7 @@ function setup() {
     ref, renderMermaidSvgForTheme: (text, theme, callback) => diagrams.push({ text, theme, callback }),
   });
   const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
-    ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
+    ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamGetRevision', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
       ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {},
     });
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
@@ -44,6 +44,22 @@ const codeBlock = text => ({
   codeTokens: [], columnWidths: [], rowTextWidths: [],
 });
 const lineHtml = block => block.codeLines.map(line => line.html).join('');
+
+test('presentation revisions change only for the message receiving source or asynchronous results', () => {
+  const api = setup();
+  api.libmarkStreamApply('history', [codeOp('old')]);
+  finish(api.requests[0]);
+  const revision = api.libmarkStreamGetRevision('history');
+  api.libmarkStreamApply('live', [codeOp('new')]);
+  const plainRevision = api.libmarkStreamGetRevision('live');
+  finish(api.requests[1]);
+  assert.equal(api.libmarkStreamGetRevision('history'), revision);
+  assert.ok(api.libmarkStreamGetRevision('live') > plainRevision);
+  api.libmarkStreamRelease('history');
+  assert.equal(api.libmarkStreamGetRevision('history'), 0);
+  api.libmarkStreamApply('history', [codeOp('recreated')]);
+  assert.ok(api.libmarkStreamGetRevision('history') > revision);
+});
 
 test('native snapshots expose source immediately and replace it with highlighted HTML', () => {
   const api = setup();
