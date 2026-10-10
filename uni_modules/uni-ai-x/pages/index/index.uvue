@@ -23,6 +23,7 @@
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 	import { updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+	import { clearCodeHighlightCache } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 	import { MsgItem, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
 	import uniAiSourceSheet from '@/uni_modules/uni-ai-x/components/uni-ai-source-sheet.uvue'
 	const sourceMessageId = ref('')
@@ -40,6 +41,7 @@
 	}
 	function closeSources() { sourceMessageId.value = '' }
 	watch(() => uniAi.currentChat?.id, () => { closeSources() })
+	watch((): string => uniAi.chat.activeId, () => { clearCodeHighlightCache() }, { flush: 'sync' })
 	onResize((event: OnResizeOptions) => {
 		updateMathLayout(event.size.windowWidth)
 	})
@@ -112,6 +114,7 @@
 	})
 
 	onUnmounted(() => {
+		clearCodeHighlightCache()
 		uniAi.offOpenSetting(openModelPopup)
 		// #ifndef MP-WEIXIN
 		cancelProxyWebRelease()

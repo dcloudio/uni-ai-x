@@ -23,7 +23,7 @@ function setup() {
     releaseSession(id) { released.push(id); states.delete(id); }
   }
   const api = loadUts('uni_modules/uni-ai-x/sdk/parseCode.uts',
-    ['requestCachedCodeText', 'releaseCodeHighlightSessions'], {
+    ['requestCachedCodeText', 'releaseCodeHighlightSessions', 'clearCodeHighlightCache', 'completedCodeCache', 'codeCacheWeight', 'highlightSessions'], {
       CreateHighLighter, MarkdownToken: {},
       uni: { getFileSystemManager: () => ({ readFileSync: path => readFileSync(new URL('..' + path, import.meta.url), 'utf8') }) },
       utils: { runOnDispatcher: (_dispatcher, callback) => callback() }, measureCodePerformance() {},
@@ -46,15 +46,40 @@ test('streaming highlights only new lines and preserves isolated multiline synta
   assert.equal(api.calls[3].reset, true);
 });
 
-test('concurrent requests for one block serialize and reuse the completed prefix', async () => {
+test('concurrent requests coalesce to the latest prefix without leaving callbacks pending', async () => {
   const api = setup();
   const results = await Promise.all([api.request('one'), api.request('one\ntwo'), api.request('one\ntwo\nthree')]);
-  assert.ok(results.every(result => result.error == null));
-  assert.deepEqual(api.calls.map(call => Array.from(call.lines)), [['one'], ['two'], ['three']]);
+  assert.equal(results[0].error, null);
+  assert.notEqual(results[1].error, null);
+  assert.equal(results[2].error, null);
+  assert.deepEqual(api.calls.map(call => Array.from(call.lines)), [['one'], ['two', 'three']]);
   api.releaseCodeHighlightSessions('m');
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(api.states.size, 0);
   assert.equal(api.released.length, 1);
+});
+
+test('one block retains only its latest result and release removes its cached source', async () => {
+  const api = setup();
+  for (let i = 1; i <= 100; i++) await api.request(Array(i).fill('line').join('\n'));
+  assert.equal(api.completedCodeCache.size, 1);
+  assert.equal(api.calls.reduce((sum, call) => sum + call.lines.length, 0), 100);
+  api.releaseCodeHighlightSessions('m');
+  assert.equal(api.completedCodeCache.size, 0);
+  assert.equal(api.highlightSessions.size, 0);
+});
+
+test('clearing pending work settles callbacks and prevents stale cache restoration', async () => {
+  const api = setup();
+  const pending = api.request('first');
+  const latest = api.request('first\nsecond');
+  api.clearCodeHighlightCache();
+  assert.notEqual((await pending).error, null);
+  assert.notEqual((await latest).error, null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(api.completedCodeCache.size, 0);
+  assert.equal(api.highlightSessions.size, 0);
+  assert.equal((await api.request('fresh')).error, null);
 });
 
 test('changing the last line resets the syntax stack instead of treating it as an append', async () => {
@@ -64,4 +89,13 @@ test('changing the last line resets the syntax stack instead of treating it as a
   assert.equal(result.error, null);
   assert.equal(api.calls[1].reset, true);
   assert.deepEqual(Array.from(api.calls[1].lines), ['/**/ const value = 1']);
+});
+
+test('oversized results are delivered but are not retained by cache or native sessions', async () => {
+  const api = setup();
+  const result = await api.request('x'.repeat(600000));
+  assert.equal(result.error, null);
+  assert.equal(result.lines[0][0].text.length, 600000);
+  assert.equal(api.completedCodeCache.size, 0);
+  assert.equal(api.highlightSessions.size, 0);
 });
