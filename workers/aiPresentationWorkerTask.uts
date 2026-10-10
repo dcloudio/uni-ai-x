@@ -221,3 +221,11 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 	}
 }
 // #endif
+
+// #ifndef APP-ANDROID
+// Worker 入口在非 Android 平台也会生成，保留同名空实现保证编译；运行时不会创建该 Worker。
+export class AiPresentationWorkerTask extends WorkerTaskImpl {
+	override entry() {}
+	override onMessage(message: any) {}
+}
+// #endif

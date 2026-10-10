@@ -182,7 +182,7 @@ function receiveLibmarkOpBatch(batch: LibmarkOpBatch): void {
 			content: entry.content,
 			index: entry.index,
 			unchanged: entry.unchanged
-		})
+		} as AiWorkerOp)
 	}
 }
 // #endif
