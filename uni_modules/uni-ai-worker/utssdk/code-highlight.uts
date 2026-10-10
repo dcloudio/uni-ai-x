@@ -1,0 +1,455 @@
+const grammarList = ['javascript', 'python', 'typescript', 'javascriptReact', 'html', 'css', 'cpp', 'dart', 'go', 'java', 'lua', 'php', 'r', 'sql', 'json', 'jsonc', 'jsonl', 'c', 'cuda-cpp', 'xml', 'xsl']
+// Import all grammar files - start
+// #ifndef APP-ANDROID || APP-HARMONY
+import javascriptGrammar from '@/uni_modules/uni-highlight/static/grammar/javascript.tmLanguage.json'
+import pythonGrammar from '@/uni_modules/uni-highlight/static/grammar/python.tmLanguage.json'
+import javascriptReactGrammar from '@/uni_modules/uni-highlight/static/grammar/Javascript-react.tmLanguage.json'
+import typescriptGrammar from '@/uni_modules/uni-highlight/static/grammar/typescript.tmLanguage.json'
+import htmlGrammar from '@/uni_modules/uni-highlight/static/grammar/html.tmLanguage.json'
+import cssGrammar from '@/uni_modules/uni-highlight/static/grammar/css.tmLanguage.json'
+import cppGrammar from '@/uni_modules/uni-highlight/static/grammar/cpp.tmLanguage.json'
+import dartGrammar from '@/uni_modules/uni-highlight/static/grammar/dart.tmLanguage.json'
+import goGrammar from '@/uni_modules/uni-highlight/static/grammar/go.tmLanguage.json'
+import javaGrammar from '@/uni_modules/uni-highlight/static/grammar/java.tmLanguage.json'
+import luaGrammar from '@/uni_modules/uni-highlight/static/grammar/lua.tmLanguage.json'
+import phpGrammar from '@/uni_modules/uni-highlight/static/grammar/php.tmLanguage.json'
+import rGrammar from '@/uni_modules/uni-highlight/static/grammar/r.tmLanguage.json'
+import sqlGrammar from '@/uni_modules/uni-highlight/static/grammar/sql.tmLanguage.json'
+import jsonGrammar from '@/uni_modules/uni-highlight/static/grammar/json.tmLanguage.json'
+import jsoncGrammar from '@/uni_modules/uni-highlight/static/grammar/jsonc.tmLanguage.json'
+import jsonlGrammar from '@/uni_modules/uni-highlight/static/grammar/jsonl.tmLanguage.json'
+import cGrammar from '@/uni_modules/uni-highlight/static/grammar/c.tmLanguage.json'
+import cudaCppGrammar from '@/uni_modules/uni-highlight/static/grammar/cuda-cpp.tmLanguage.json'
+import xmlGrammar from '@/uni_modules/uni-highlight/static/grammar/xml.tmLanguage.json'
+import xslGrammar from '@/uni_modules/uni-highlight/static/grammar/xsl.tmLanguage.json'
+// #endif
+// Import all grammar files - end
+
+// #ifdef APP
+import { CreateHighLighter } from "@/uni_modules/uni-highlight"
+// #endif
+// #ifndef APP
+import { createHighLighter } from "@/uni_modules/uni-highlight"
+// #endif
+import { CreateHighLighterRes, ILineTokens, HighLighterOptions } from '@/uni_modules/uni-highlight/utssdk/interface.uts'
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import { measureCodePerformance } from './code-performance.uts'
+
+function runOnDispatcher(taskName: string, fn: () => void) {
+	// #ifdef APP-ANDROID
+	try { UTSAndroid.getDispatcher(taskName).async((_) => { fn() }) } catch (_) { fn() }
+	// #endif
+	// #ifndef APP-ANDROID
+	fn()
+	// #endif
+}
+export { MarkdownToken }
+export type ParseCodeTextRes = {
+	lines: MarkdownToken[][],
+	language: string,
+	error: string | null
+}
+export type ParseCodeTextCallBack = (parseCodeTextRes: ParseCodeTextRes) => void
+type TmlFile = {
+	scopeName : string,
+	path : string
+}
+// #ifdef APP
+let uniCodeHighlighter = null as CreateHighLighter | null
+// #endif
+// #ifndef APP
+let uniCodeHighlighter = null as CreateHighLighterRes | null
+let highlighterInitialization = null as Promise<CreateHighLighterRes> | null
+// #endif
+type CachedCode = { source: string, lines: MarkdownToken[][], weight: number }
+type CodeRequest = { source: string, callback: ParseCodeTextCallBack }
+type PendingCode = { request: CodeRequest, next: CodeRequest | null, releaseWhenIdle: boolean }
+const completedCodeCache = new Map<string, CachedCode>()
+const pendingCodeCache = new Map<string, PendingCode>()
+const codeCacheOrder = [] as string[]
+const maxCodeCacheEntries = 64
+const maxCodeCacheWeight = 2 * 1024 * 1024
+let codeCacheWeight = 0
+
+type CodeHighlightSession = {
+	messageId: string
+	id: string
+	source: string[]
+	lines: MarkdownToken[][]
+	tail: Promise<void>
+	released: boolean
+}
+const highlightSessions = new Map<string, CodeHighlightSession>()
+let highlightSessionSequence = 0
+const sessionDisposals: Promise<void>[] = []
+
+function disposeHighlightSession(session: CodeHighlightSession) {
+	session.released = true
+	const disposal = session.tail.then(async () => { await uniCodeHighlighter?.releaseSession(session.id) })
+	sessionDisposals.push(disposal)
+	disposal.then(() => {
+		const index = sessionDisposals.indexOf(disposal)
+		if (index >= 0) sessionDisposals.splice(index, 1)
+	})
+}
+
+export async function closeCodeHighlightWorker(): Promise<void> {
+	clearCodeHighlightCache()
+	const disposals = sessionDisposals.slice()
+	for (let i = 0; i < disposals.length; i++) await disposals[i]
+}
+
+export function releaseCodeHighlightSessions(messageId: string, finishPending: boolean = false) {
+	const prefix = messageId + '\u001f'
+	// Native UTS Map iterators reject deletion during forEach.
+	const completedKeys: string[] = []
+	completedCodeCache.forEach((_value: CachedCode, key: string) => { if (key.startsWith(prefix)) completedKeys.push(key) })
+	for (const key of completedKeys) removeCodeCache(key)
+	const pendingKeys: string[] = []
+	pendingCodeCache.forEach((_value: PendingCode, key: string) => { if (key.startsWith(prefix)) pendingKeys.push(key) })
+	for (const key of pendingKeys) {
+		const pending = pendingCodeCache.get(key)
+		if (pending == null) continue
+		if (finishPending) { pending.releaseWhenIdle = true; continue }
+		pendingCodeCache.delete(key)
+		cancelCodeRequest(pending.request)
+		if (pending.next != null) cancelCodeRequest(pending.next!)
+	}
+	const sessionKeys: string[] = []
+	highlightSessions.forEach((session: CodeHighlightSession, key: string) => {
+		if (session.messageId != messageId) return
+		if (finishPending && pendingCodeCache.has(key)) return
+		sessionKeys.push(key)
+	})
+	for (const key of sessionKeys) {
+		const session = highlightSessions.get(key)
+		if (session == null) continue
+		highlightSessions.delete(key)
+		disposeHighlightSession(session)
+	}
+}
+
+function tokensForLine(source: string, parsed: ILineTokens | null): MarkdownToken[] {
+	const tokens = [] as MarkdownToken[]
+	let cursor = 0
+	parsed?.tokens.forEach((token) => {
+		const start = Math.max(cursor, Math.min(token.startIndex, source.length))
+		const end = Math.max(0, Math.min(token.endIndex, source.length))
+		if (start >= end) return
+		// Native grammars can leave gaps, including tails of multiline constructs.
+		// Highlight ranges decorate source; they must never decide which text survives.
+		if (cursor < start) tokens.push({ text: source.substring(cursor, start), className: '' } as MarkdownToken)
+		tokens.push({ text: source.substring(start, end), className: scopeClassName(token.scopes ?? null) } as MarkdownToken)
+		cursor = end
+	})
+	if (cursor < source.length) tokens.push({ text: source.substring(cursor), className: '' } as MarkdownToken)
+	return tokens
+}
+
+function parseIncrementalCode(callback: ParseCodeTextCallBack, messageId: string, blockKey: string, source: string, language: string) {
+	if (!grammarList.includes(language)) {
+		callback({ lines: [], language, error: '不支持解析的语言类型' })
+		return
+	}
+	const key = messageId + '\u001f' + blockKey + '\u001f' + language
+	let session = highlightSessions.get(key)
+	if (session == null) {
+		highlightSessionSequence += 1
+		session = { messageId, id: 'code-' + highlightSessionSequence.toString(), source: [], lines: [], tail: Promise.resolve(), released: false }
+		// Bound native syntax stacks independently of the completed-result cache.
+		if (highlightSessions.size >= 64) {
+			let oldest = ''
+			highlightSessions.forEach((_value: CodeHighlightSession, entryKey: string) => { if (oldest.length == 0) oldest = entryKey })
+			const expired = highlightSessions.get(oldest)
+			if (expired != null) disposeHighlightSession(expired)
+			highlightSessions.delete(oldest)
+		}
+	}
+	highlightSessions.delete(key)
+	highlightSessions.set(key, session)
+	const active = session
+	active.tail = active.tail.then(async () => {
+		if (active.released) {
+			callback({ lines: [], language, error: '代码高亮会话已释放' })
+			return
+		}
+		try {
+			await new Promise<void>((resolve, reject) => initUniCodeHighlighter(() => { resolve() }, (message: string) => reject(new Error(message))))
+			const sourceLines = source.split('\n')
+			let appendOnly = sourceLines.length >= active.source.length
+			for (let i = 0; appendOnly && i < active.source.length; i++) {
+				if (active.source[i] != sourceLines[i]) appendOnly = false
+			}
+			const start = appendOnly ? active.source.length : 0
+			const added = sourceLines.slice(start)
+			const parsed = added.length > 0 ? await uniCodeHighlighter!.tokenizeLines(active.id, language, added, start == 0) : [] as ILineTokens[]
+			if (parsed.length != added.length) throw new Error('代码高亮返回行数不一致')
+			const lines = appendOnly ? active.lines.slice() : [] as MarkdownToken[][]
+			for (let i = 0; i < added.length; i++) lines.push(tokensForLine(added[i], parsed[i]))
+			active.source = sourceLines
+			active.lines = lines
+			callback({ lines, language, error: null })
+		} catch (error) {
+			active.source = []
+			active.lines = []
+			callback({ lines: [], language, error: '代码增量高亮失败' })
+		}
+	})
+}
+
+function removeCodeCache(key: string) {
+	const previous = completedCodeCache.get(key)
+	if (previous != null) codeCacheWeight -= previous.weight
+	completedCodeCache.delete(key)
+	const index = codeCacheOrder.indexOf(key)
+	if (index >= 0) codeCacheOrder.splice(index, 1)
+}
+
+function putCodeCache(key: string, source: string, lines: MarkdownToken[][]) {
+	removeCodeCache(key)
+	let weight = source.length * 2
+	for (let i = 0; i < lines.length; i++) {
+		for (let j = 0; j < lines[i].length; j++) weight += ((lines[i][j].text ?? '').length + (lines[i][j].className ?? '').length) * 2 + 64
+	}
+	// Token arrays are immutable snapshots, shared with presentation and syntax state.
+	completedCodeCache.set(key, { source, lines, weight })
+	codeCacheOrder.push(key)
+	codeCacheWeight += weight
+	while (codeCacheOrder.length > maxCodeCacheEntries || codeCacheWeight > maxCodeCacheWeight) {
+		const oldest = codeCacheOrder[0]
+		removeCodeCache(oldest)
+		const session = highlightSessions.get(oldest)
+		if (session != null) disposeHighlightSession(session)
+		highlightSessions.delete(oldest)
+	}
+}
+
+function cancelCodeRequest(request: CodeRequest) {
+	request.callback({ lines: [], language: '', error: '代码高亮请求已失效' })
+}
+
+export function clearCodeHighlightCache(finishPending: boolean = false) {
+	completedCodeCache.clear()
+	codeCacheOrder.length = 0
+	codeCacheWeight = 0
+	if (finishPending) {
+		pendingCodeCache.forEach((value: PendingCode) => { value.releaseWhenIdle = true })
+		const idleKeys: string[] = []
+		highlightSessions.forEach((_session: CodeHighlightSession, key: string) => { if (!pendingCodeCache.has(key)) idleKeys.push(key) })
+		for (const key of idleKeys) {
+			const session = highlightSessions.get(key)
+			if (session != null) disposeHighlightSession(session)
+			highlightSessions.delete(key)
+		}
+		return
+	}
+	const pending = [] as PendingCode[]
+	pendingCodeCache.forEach((value: PendingCode) => { pending.push(value) })
+	pendingCodeCache.clear()
+	highlightSessions.forEach((session: CodeHighlightSession) => { disposeHighlightSession(session) })
+	highlightSessions.clear()
+	pending.forEach((value: PendingCode) => {
+		cancelCodeRequest(value.request)
+		if (value.next != null) cancelCodeRequest(value.next!)
+	})
+}
+
+function runCodeRequest(key: string, pending: PendingCode, messageId: string, blockKey: string, language: string) {
+	parseIncrementalCode((result: ParseCodeTextRes) => {
+		if (pendingCodeCache.get(key) != pending) return
+		const done = pending.request
+		const next = pending.next
+		if (result.error == null && !pending.releaseWhenIdle) putCodeCache(key, done.source, result.lines)
+		pendingCodeCache.delete(key)
+		if (next != null) {
+			requestCachedCodeText(next.callback, messageId, blockKey, next.source, language)
+			const following = pendingCodeCache.get(key)
+			if (following != null && pending.releaseWhenIdle) following.releaseWhenIdle = true
+		} else if (pending.releaseWhenIdle) {
+			const session = highlightSessions.get(key)
+			if (session != null) disposeHighlightSession(session)
+			highlightSessions.delete(key)
+		}
+		done.callback(result)
+	}, messageId, blockKey, pending.request.source, language)
+}
+
+export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId: string, blockKey: string, codeText: string, language: string): boolean {
+	const normalizedLanguage = language == 'js' ? 'javascript' : language
+	const key = messageId + '\u001f' + blockKey + '\u001f' + normalizedLanguage
+	const cached = completedCodeCache.get(key)
+	if (cached != null && cached.source == codeText) {
+		callback({ lines: cached.lines, language: normalizedLanguage, error: null })
+		return true
+	}
+	const pending = pendingCodeCache.get(key)
+	const request: CodeRequest = { source: codeText, callback }
+	if (pending != null) {
+		if (pending.request.source == codeText) {
+			const previous = pending.request
+			pending.request = request
+			cancelCodeRequest(previous)
+			if (pending.next != null) {
+				const obsolete = pending.next!
+				pending.next = null
+				cancelCodeRequest(obsolete)
+			}
+		} else {
+			const previous = pending.next
+			pending.next = request
+			if (previous != null) cancelCodeRequest(previous)
+		}
+		return true
+	}
+	const created: PendingCode = { request, next: null, releaseWhenIdle: false }
+	pendingCodeCache.set(key, created)
+	runCodeRequest(key, created, messageId, blockKey, normalizedLanguage)
+	return false
+}
+
+function scopeClassName(scopes: string[] | null): string {
+	if (scopes == null) return ''
+	const recognized = ['comment', 'string', 'constant', 'keyword', 'storage', 'function', 'variable', 'entity', 'support', 'meta', 'punctuation']
+	for (let scopeIndex = scopes.length - 1; scopeIndex >= 0; scopeIndex--) {
+		const parts = scopes[scopeIndex].split('.')
+		for (let partIndex = parts.length - 1; partIndex >= 0; partIndex--) {
+			if (recognized.includes(parts[partIndex])) return parts[partIndex]
+		}
+	}
+	return ''
+}
+
+function getTmlFile(filePaths: TmlFile[]) {
+	let fileManager = uni.getFileSystemManager()
+	let res = {}
+	try {
+		filePaths.forEach(item => {
+			let content = fileManager.readFileSync(item.path, 'utf-8') as string
+			res[item.scopeName] = JSON.parse(content)
+		})
+	} catch (err) {
+		console.error('读取tml文件失败，请检查文件是否存在', err, filePaths)
+		throw new Error('读取代码高亮语法文件失败')
+	}
+	return res
+}
+
+function initUniCodeHighlighter(callBack: () => void, onError: (message: string) => void){
+	if (uniCodeHighlighter == null) {
+		// #ifndef APP-ANDROID || APP-HARMONY
+		// 根据 grammarList 生成tmls
+		const tmls = {
+			javascript: javascriptGrammar,
+			python: pythonGrammar,
+			typescript: typescriptGrammar,
+			javascriptReact: javascriptReactGrammar,
+			html: htmlGrammar,
+			css: cssGrammar,
+			cpp: cppGrammar,
+			dart: dartGrammar,
+			go: goGrammar,
+			java: javaGrammar,
+			lua: luaGrammar,
+			php: phpGrammar,
+			r: rGrammar,
+			sql: sqlGrammar,
+			json: jsonGrammar,
+			jsonc: jsoncGrammar,
+			jsonl: jsonlGrammar,
+			c: cGrammar,
+			"cuda-cpp": cudaCppGrammar,
+			xml: xmlGrammar,
+			xsl: xslGrammar
+		}
+		// #endif
+		// #ifdef APP-ANDROID || APP-HARMONY
+		const tmlsList = [] as TmlFile[]
+		grammarList.forEach(item => {
+			tmlsList.push({
+				scopeName: item,
+				path: `/uni_modules/uni-highlight/static/grammar/${item == 'javascriptReact' ? 'Javascript-react' : item}.tmLanguage.json`
+			})
+		})
+		const tmls = getTmlFile(tmlsList)
+		// #endif
+		// #ifdef APP
+		uniCodeHighlighter = new CreateHighLighter({ languages: tmls } as HighLighterOptions)
+		callBack()
+		// #endif
+		// #ifndef APP
+		if (highlighterInitialization == null) highlighterInitialization = createHighLighter({ languages: tmls })
+		highlighterInitialization!.then((highlighter) => {
+			uniCodeHighlighter = highlighter
+			callBack()
+		}).catch((error: any) => {
+			highlighterInitialization = null
+			onError(error.message ?? '代码高亮初始化失败')
+		})
+		// #endif
+	} else {
+		callBack()
+	}
+}
+
+export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, codeSource: string, language: string) {
+	const startedAt = Date.now()
+	if (language == 'js') language = "javascript"
+	try {
+		// 判断这个language是否在支持的列表中
+		if (!grammarList.includes(language)) {
+			// console.error('不支持解析的语言类型',language,'仅支持',grammarList.join(','))
+			const res: ParseCodeTextRes = {
+				lines: [],
+				language: language,
+				error: '不支持解析的语言类型'
+			}
+			measureCodePerformance('parseCodeText', startedAt, language)
+			parseCodeTextCallBack(res)
+			return
+		}
+		initUniCodeHighlighter(() => {
+			uniCodeHighlighter!.tokenizeFullText(language, codeSource).then((lineTokens: ILineTokens[]) => {
+				runOnDispatcher("io", () => {
+					const sourceLines = codeSource.split('\n')
+					const parsedLines = [] as MarkdownToken[][]
+					for (let lineIndex = 0; lineIndex < sourceLines.length; lineIndex++) {
+						const sourceLine = sourceLines[lineIndex]
+						const parsedLine = lineIndex < lineTokens.length ? lineTokens[lineIndex] : null
+						parsedLines.push(tokensForLine(sourceLine, parsedLine))
+					}
+					const res: ParseCodeTextRes = {
+						lines: parsedLines,
+						language: language,
+						error: null
+					}
+					runOnDispatcher('main', () => {
+						parseCodeTextCallBack(res)
+						measureCodePerformance('parseCodeText', startedAt, language)
+					})
+				});
+			}).catch((error) => {
+				const res: ParseCodeTextRes = { lines: [], language: language, error: '' + error }
+				runOnDispatcher('main', () => {
+					parseCodeTextCallBack(res)
+					measureCodePerformance('parseCodeText', startedAt, language)
+				})
+			})
+		}, (message: string) => {
+			parseCodeTextCallBack({ lines: [], language: language, error: message })
+			measureCodePerformance('parseCodeText', startedAt, language)
+		})
+	} catch (error) {
+		const res: ParseCodeTextRes = {
+			lines: [],
+			language: language,
+			// #ifdef WEB
+			error: (error as any).message
+			// #endif
+			// #ifndef WEB
+			error: error.message
+			// #endif
+		}
+		parseCodeTextCallBack(res)
+		measureCodePerformance('parseCodeText', startedAt, language)
+	}
+}

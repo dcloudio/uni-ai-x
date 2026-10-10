@@ -1,7 +1,6 @@
 import {
 	AiWorkerDataListener,
 	AiWorkerMarkdownStartOptions,
-	AiWorkerOp,
 	AiWorkerRebuildListener,
 	AiWorkerRebuildRequest,
 	AiWorkerRebuildResult,
@@ -19,6 +18,7 @@ import {
 	StartAiWorkerMarkdown,
 	StartAiWorkerRequest
 } from './interface.uts'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
 
 // #ifdef APP-HARMONY
 import {
@@ -65,6 +65,9 @@ import {
 // #endif
 
 export * from './interface.uts'
+// #ifdef APP-ANDROID
+export { prepareAndroidPresentation, releaseAndroidPresentation } from './presentation.uts'
+// #endif
 
 // #ifndef MP-WEIXIN
 const WORKER_RENDER_PROTOCOL_VERSION = 3
@@ -197,7 +200,7 @@ function receiveLibmarkOpBatchObject(message: UTSJSONObject): void {
 			content: readMessageString(entry, 'content'),
 			index: readMessageNumber(entry, 'index'),
 			unchanged: readMessageBoolean(entry, 'unchanged')
-		})
+		} as AiWorkerOp)
 	}
 }
 // #endif
@@ -214,7 +217,7 @@ function toAiWorkerOps(rawOps: UTSJSONObject[] | null): AiWorkerOp[] {
 			content: readMessageString(entry, 'content'),
 			index: readMessageNumber(entry, 'index'),
 			unchanged: readMessageBoolean(entry, 'unchanged')
-		})
+		} as AiWorkerOp)
 	}
 	return ops
 }

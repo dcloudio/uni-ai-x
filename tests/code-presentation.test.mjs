@@ -24,7 +24,7 @@ function setup() {
   const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
     ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamGetRevision', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
       ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
-    });
+    }, ['APP', 'APP-HARMONY']);
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
     ['refreshMessagePresentation', 'readMessagePresentation', 'forgetMessagePresentation'], {
       ref, shallowRef: ref, ...code, ...converters, mathWindowWidth: ref(412), releaseCodeHighlightSessions() {},
@@ -174,7 +174,8 @@ test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid 
 test('code view only displays prepared HTML and Mermaid retains its original source inset', () => {
   const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
-  assert.match(source, /:nodes="codeHtml"/);
+  assert.match(source, /:nodes="preparedHtml"/);
+  assert.doesNotMatch(source, /computed\s*[<(]|preparedLines/);
   assert.equal((source.match(/<rich-text\b/g) ?? []).length, 1);
   assert.doesNotMatch(source, /<rich-text\b[^>]*\bv-for=/);
   const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
@@ -188,6 +189,8 @@ test('empty code lines retain a visible layout placeholder before and after high
   const check = () => {
     assert.equal(visible[0].codeLines.length, 4);
     assert.equal(visible[0].codeHeight, '104px');
+    assert.equal(visible[0].codeContentHeight, '88px');
+    assert.equal(visible[0].codeHtml, visible[0].codeLines.map(line => '<div style="height:22px;line-height:22px;white-space:pre;">' + line.html + '</div>').join(''));
     for (const index of [1, 3]) {
       assert.equal(visible[0].codeLines[index].text, '');
       assert.ok(visible[0].codeLines[index].html.includes('\u00a0'));

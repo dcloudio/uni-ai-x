@@ -1,0 +1,47 @@
+import type { LibmarkHtmlRenderBlock } from './libmark-html.uts'
+import type { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import type { TablePresentation } from './table-presentation.uts'
+
+export type CodePresentationLine = { text: string, html: string }
+export type NativeMathPresentation = { src: string, width: number, height: number, sourceWidth: string, sourceHeight: string }
+export type MarkdownTextRenderBlock = {
+	kind: string
+	key: string
+	html: string
+	text: string
+	language: string
+	isComplete: boolean
+	columnWidths: number[]
+	rowTextWidths: number[][]
+	codeTokens: MarkdownToken[][]
+	level: number
+	indent: number
+	marker: string
+	quoteDepth: number
+	mermaidImageSource?: string
+	mermaidRenderTheme?: string
+	codeHeight?: string
+	codeLines?: CodePresentationLine[]
+	codeHtml?: string
+	codeContentHeight?: string
+	codeCompleteLines?: number
+	codeHighlightedText?: string
+	table?: TablePresentation
+	math?: NativeMathPresentation
+	svgSource: string
+	svgWidth: number
+	svgHeight: number
+}
+
+// Pure conversion shared by the page fallback and the Android presentation Worker.
+export function nativeRenderBlock(block: LibmarkHtmlRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
+	return {
+		kind: block.kind, key: block.key, html: block.html, text: block.text,
+		language: block.language, isComplete: isDone || block.isComplete,
+		columnWidths: block.columnWidths, rowTextWidths: block.rowTextWidths,
+		codeTokens: [], codeCompleteLines: block.codeCompleteLines,
+		level: 0, indent: 0, marker: '', quoteDepth: 0,
+		mermaidImageSource: '', mermaidRenderTheme: '',
+		svgSource: block.svgSource, svgWidth: block.svgWidth, svgHeight: block.svgHeight
+	}
+}

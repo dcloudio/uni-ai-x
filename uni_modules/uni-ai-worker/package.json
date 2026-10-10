@@ -17,7 +17,8 @@
   },
 	"uni_modules": {
 		"dependencies": [
-			"uni-cmark"
+			"uni-cmark",
+			"uni-highlight"
 		]
 	}
 }

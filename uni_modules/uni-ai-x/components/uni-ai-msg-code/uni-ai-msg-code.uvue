@@ -10,9 +10,9 @@
 		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="'height:' + preparedHeight + ';background-color:#111827;'">
 			<view class="uni-code-msg-lines">
 				<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true"
-					:style="{height: (Math.max(1, preparedLines.length) * 22).toString() + 'px'}"
+					:style="{height: preparedContentHeight}"
 					style="font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;color:#d1fae5;"
-					:nodes="codeHtml" mode="native"></rich-text>
+					:nodes="preparedHtml" mode="native"></rich-text>
 			</view>
 		</scroll-view>
 	</view>
@@ -20,27 +20,19 @@
 
 <script lang="uts" setup>
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-import type { CodePresentationLine } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 
 const props = withDefaults(defineProps<{
 	codeText?: string
 	language?: string
-	preparedLines?: CodePresentationLine[]
+	preparedHtml?: string
+	preparedContentHeight?: string
 	preparedHeight?: string
 }>(), {
 	codeText: '',
 	language: 'text',
-	preparedLines: () => [] as CodePresentationLine[],
+	preparedHtml: '',
+	preparedContentHeight: '22px',
 	preparedHeight: '38px'
-})
-
-const codeHtml = computed<string>(() => {
-	let html = ''
-	for (let index = 0; index < props.preparedLines.length; index++) {
-		// 固定 HTML 行高保留空行，整块代码只创建一个原生 rich-text。
-		html += '<div style="height:22px;line-height:22px;white-space:pre;">' + props.preparedLines[index].html + '</div>'
-	}
-	return html
 })
 
 function copyCode() {

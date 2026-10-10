@@ -1,0 +1,2 @@
+// Android uses libmark for parsing; retain the shared token model for highlighting.
+export type { MarkdownToken, Align, ParseMdRes, AsyncMd2JsonCallback } from '../interface.uts'

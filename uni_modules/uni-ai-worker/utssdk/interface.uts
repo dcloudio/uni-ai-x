@@ -1,0 +1,7 @@
+export type AiWorkerOp = {
+	op: number,
+	kind: string,
+	content: string,
+	index: number,
+	unchanged: boolean
+}

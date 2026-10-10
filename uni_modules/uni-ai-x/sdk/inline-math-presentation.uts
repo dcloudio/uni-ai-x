@@ -33,6 +33,7 @@ export function prepareNativeInlineMathBlocks(messageId: string, blocks: Markdow
 					const replacement = candidate.replace(source, image.source).replace(/\s(?:width|height)="[^"]*"/g, '')
 						.replace(/\s*\/?\s*>$/, ' width="' + image.width.toString() + '" height="' + image.height.toString() + '">')
 					block.html = block.html.split(candidate).join(replacement)
+					if (block.kind == 'table') block.table = undefined
 				}
 			}
 			const cached = images.get(key)

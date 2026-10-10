@@ -6,8 +6,11 @@ import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdow
 import { ref } from 'vue'
 import { prepareCodeBlocks } from './code-presentation.uts'
 import { releaseCodeHighlightSessions } from './parseCode.uts'
-import { prepareNativeMermaidBlocks } from './mermaid-presentation.uts'
+import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
+// #ifdef APP-ANDROID
+import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
 
 export const libmarkPresentationRevision = ref<number>(0)
 let presentationTheme = 'light'
@@ -17,6 +20,7 @@ const STREAM_ENTRY_LIMIT = 200
 
 type LibmarkStreamEntry = {
 	messageId: string
+	workerId: string
 	preparationVersion: number
 	presentationRevision: number
 	adapter: LibmarkHtmlStreamAdapter
@@ -24,6 +28,7 @@ type LibmarkStreamEntry = {
 }
 
 const streamEntries = new Map<string, LibmarkStreamEntry>()
+let workerSequence = 0
 // 最近访问顺序（末尾最新），用于 LRU 淘汰
 const streamEntryOrder = [] as string[]
 
@@ -37,8 +42,7 @@ function evictEntriesIfNeeded(): void {
 	while (streamEntryOrder.length > STREAM_ENTRY_LIMIT) {
 		const oldest = streamEntryOrder.shift()
 		if (oldest == null) break
-		streamEntries.delete(oldest!)
-		releaseCodeHighlightSessions(oldest!)
+		libmarkStreamRelease(oldest!)
 	}
 }
 
@@ -54,6 +58,7 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 	}
 	const entry: LibmarkStreamEntry = {
 		messageId: msgId,
+		workerId: msgId + ':' + (++workerSequence).toString(),
 		preparationVersion: 0,
 		presentationRevision: 0,
 		adapter: new LibmarkHtmlStreamAdapter(),
@@ -95,10 +100,59 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 	}, entry.textBlocks)
 }
 
+// #ifdef APP-ANDROID
+function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
+	entry.preparationVersion += 1
+	const wireOps = ops.map((op: AiWorkerOp): UTSJSONObject => ({
+		op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged
+	} as UTSJSONObject))
+	prepareAndroidPresentation(entry.workerId, wireOps, done, presentationTheme, (message: UTSJSONObject) => {
+		if (streamEntries.get(entry.messageId) != entry) return
+		if (message['action'] == 'error') {
+			notifyEntry(entry)
+			return
+		}
+		const blocks = entry.textBlocks.slice(0, message['length'] as number)
+		const deltas = message['changes'] as UTSJSONObject[]
+		for (let i = 0; i < deltas.length; i++) {
+			const index = deltas[i]['index'] as number
+			const wireBlock = deltas[i]['block'] as UTSJSONObject
+			const block = cloneBlock(wireBlock as MarkdownTextRenderBlock)
+			const prefix = wireBlock['codeHtmlPrefix'] as number
+			const previousHtml = blocks[index]?.codeHtml ?? ''
+			if (prefix < 0 || prefix > previousHtml.length) {
+				console.error('[uni-ai-x][presentation-worker] Invalid HTML patch prefix')
+				return
+			}
+			block.codeHtml = previousHtml.slice(0, prefix) + (block.codeHtml ?? '')
+			blocks[index] = block
+		}
+		entry.preparationVersion += 1
+		// Worker deltas reuse stable blocks. Only changed blocks need image preparation.
+		const changed = blocks.filter((block: MarkdownTextRenderBlock, index: number): boolean => block != entry.textBlocks[index])
+		entry.textBlocks = blocks
+		const publish = () => {
+			if (streamEntries.get(entry.messageId) != entry || !changed.some((block: MarkdownTextRenderBlock): boolean => entry.textBlocks.includes(block))) return
+			notifyEntry(entry)
+		}
+		prepareNativeInlineMathBlocks(entry.messageId, changed, presentationTheme, publish)
+		prepareNativeMermaidBlocks(changed, presentationTheme, publish)
+		notifyEntry(entry)
+	})
+}
+// #endif
+
 export function libmarkStreamSetTheme(theme: string) {
 	if (presentationTheme == theme) return
 	presentationTheme = theme
-	streamEntries.forEach((entry: LibmarkStreamEntry) => { refreshEntry(entry) })
+	streamEntries.forEach((entry: LibmarkStreamEntry) => {
+		// #ifdef APP-ANDROID
+		prepareAndroidEntry(entry, [])
+		// #endif
+		// #ifndef APP-ANDROID
+		refreshEntry(entry)
+		// #endif
+	})
 }
 
 function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
@@ -123,9 +177,12 @@ function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
 		rowTextWidths: rowTextWidths,
 		codeTokens: block.codeTokens,
 		codeLines: block.codeLines,
+		codeHtml: block.codeHtml,
+		codeContentHeight: block.codeContentHeight,
 		codeCompleteLines: block.codeCompleteLines,
 		codeHighlightedText: block.codeHighlightedText,
 		codeHeight: block.codeHeight,
+		table: block.table,
 		mermaidImageSource: block.mermaidImageSource,
 		level: block.level,
 		indent: block.indent,
@@ -146,9 +203,15 @@ function cloneBlocks(blocks: MarkdownTextRenderBlock[]): MarkdownTextRenderBlock
 export function libmarkStreamApply(msgId: string, ops: AiWorkerOp[]): boolean {
 	if (ops.length == 0) return false
 	const entry = entryFor(msgId)
+	// #ifdef APP-ANDROID
+	prepareAndroidEntry(entry, ops)
+	return true
+	// #endif
+	// #ifndef APP-ANDROID
 	const applied = entry.adapter.applyOps(ops)
 	refreshEntry(entry)
 	return applied
+	// #endif
 }
 
 export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[] {
@@ -162,8 +225,14 @@ export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[]
 export function libmarkStreamMarkComplete(msgId: string): void {
 	const entry = streamEntries.get(msgId)
 	if (entry == null) return
+	// #ifdef APP-ANDROID
+	prepareAndroidEntry(entry!, [], true)
+	return
+	// #endif
+	// #ifndef APP-ANDROID
 	entry!.adapter.markComplete()
 	refreshEntry(entry!, true)
+	// #endif
 }
 
 // #ifdef APP-HARMONY || APP-ANDROID
@@ -184,7 +253,7 @@ export function libmarkStreamRequestRebuild(msgId: string, text: string): boolea
 	if (rebuildFailedMsgIds.indexOf(msgId) >= 0) return false
 	if (rebuildingMsgIds.indexOf(msgId) >= 0) return false
 	const existing = streamEntries.get(msgId)
-	if (existing != null && existing!.adapter.getBlocks().length > 0) return false
+	if (existing != null && (existing!.textBlocks.length > 0 || existing!.preparationVersion > 0)) return false
 	rebuildingMsgIds.push(msgId)
 	requestAiWorkerMarkdownRebuild(msgId, text)
 	return true
@@ -210,7 +279,9 @@ export function libmarkStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boo
 	}
 	if (ops.length == 0) return markFailed()
 	const applied = libmarkStreamApply(msgId, ops)
+	// #ifndef APP-ANDROID
 	if (streamEntries.get(msgId)!.adapter.getBlocks().length == 0) return markFailed()
+	// #endif
 	return applied
 	// #endif
 	// #ifndef APP-HARMONY
@@ -228,6 +299,10 @@ export function libmarkStreamReset(msgId: string): void {
 }
 
 export function libmarkStreamRelease(msgId: string): void {
+	// #ifdef APP-ANDROID
+	const entry = streamEntries.get(msgId)
+	if (entry != null) releaseAndroidPresentation(entry.workerId)
+	// #endif
 	releaseCodeHighlightSessions(msgId)
 	streamEntries.delete(msgId)
 	const index = streamEntryOrder.indexOf(msgId)
@@ -238,4 +313,10 @@ export function libmarkStreamRelease(msgId: string): void {
 	const failedIndex = rebuildFailedMsgIds.indexOf(msgId)
 	if (failedIndex >= 0) rebuildFailedMsgIds.splice(failedIndex, 1)
 	// #endif
+}
+
+export function releaseAllLibmarkStreams(): void {
+	const ids: string[] = []
+	streamEntries.forEach((entry: LibmarkStreamEntry) => { ids.push(entry.messageId) })
+	for (let i = 0; i < ids.length; i++) libmarkStreamRelease(ids[i])
 }

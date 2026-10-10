@@ -1,3 +1,6 @@
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+export type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+
 export type AiWorkerStartOptions = {
 	requestVersion: number,
 	provider: string,
@@ -25,13 +28,6 @@ export type AppendAiWorkerMarkdown = (
 export type CompleteAiWorkerMarkdown = (requestVersion: number) => void
 export type ReadAiWorkerSnapshot = () => string
 export type ReadAiWorkerState = () => UTSJSONObject | null
-export type AiWorkerOp = {
-	op: number,
-	kind: string,
-	content: string,
-	index: number,
-	unchanged: boolean
-}
 export type TakeAiWorkerOps = () => AiWorkerOp[]
 export type IsLibmarkOpsSupported = () => boolean
 export type CancelAiWorkerRequest = (requestVersion: number) => void

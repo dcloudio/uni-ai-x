@@ -235,11 +235,12 @@
 		}
 		for (let i = 0; i < blocks.length; i++) {
 			const block = blocks[i]
+			const preparedHtml = block.html
 			if (block.kind == 'html' || block.kind == 'table') {
 				block.html = linkMarkdownFootnotes(block.html, msg.body)
 				if (msg.search != null) block.html = linkSearchCitations(block.html, msg.search!.sources)
 			}
-			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
+			if (block.kind == 'table' && (block.table == null || block.html != preparedHtml)) block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
 		}
 		markdownBlockCache.set(msg._id, {
 			body: msg.body, theme: theme, sources: sources, libmarkRevision: revision,

@@ -1,0 +1,31 @@
+import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableThemeColors, markdownTableNaturalHeight } from './markdown-html.uts'
+
+export type TablePresentation = {
+	height: string
+	html: string
+	containerStyle: string
+	scrollStyle: string
+	richTextStyle: string
+}
+
+export const emptyTablePresentation: TablePresentation = { height: '0px', html: '', containerStyle: '', scrollStyle: '', richTextStyle: '' }
+
+const presentations = new Map<string, TablePresentation>()
+
+export function prepareTablePresentation(html: string, columnWidths: number[], rowTextWidths: number[][], theme: string): TablePresentation {
+	const key = theme + '\n' + columnWidths.join(',') + '\n' + html
+	const cached = presentations.get(key)
+	if (cached != null) return cached
+	const height = (markdownTableNaturalHeight(html) + 2).toString() + 'px'
+	const colors = markdownTableThemeColors(theme)
+	const result = {
+		height: height,
+		html: applyMarkdownTableTheme(applyMarkdownTableColumnWidths(html, columnWidths), theme),
+		containerStyle: 'width:100%;margin-top:6px;margin-bottom:6px;box-sizing:border-box;border-top-width:1px;border-right-width:1px;border-bottom-width:0;border-left-width:1px;border-style:solid;border-color:' + colors.border + ';background-color:' + colors.background + ';',
+		scrollStyle: 'width:100%;height:' + height + ';box-sizing:border-box;flex-direction:row;background-color:' + colors.background + ';',
+		richTextStyle: 'height:' + height + ';align-self:flex-start;flex-shrink:0;font-size:14px;line-height:22px;color:' + colors.text + ';background-color:' + colors.background + ';'
+	} as TablePresentation
+	if (presentations.size >= 32) presentations.clear()
+	presentations.set(key, result)
+	return result
+}

@@ -1,0 +1,96 @@
+type PresentationListener = (message: UTSJSONObject) => void
+type PresentationClient = { listener: PresentationListener }
+
+let worker: Worker | null = null
+let ready = false
+let failed = false
+let pending: UTSJSONObject[] = []
+const clients = new Map<string, PresentationClient>()
+const closing = new Map<Worker, number>()
+
+function terminateWorker(target: Worker) {
+	const timer = closing.get(target)
+	if (timer != null) clearTimeout(timer)
+	closing.delete(target)
+	target.terminate()
+}
+
+function failPresentation(message: string) {
+	failed = true
+	pending = []
+	console.error('[uni-ai-x][presentation-worker] ' + message)
+	clients.forEach((client: PresentationClient) => {
+		client.listener({ action: 'error' } as UTSJSONObject)
+	})
+}
+
+function ensureWorker() {
+	if (worker != null || failed) return
+	const created = uni.createWorker('workers/aiPresentationWorkerTask.uts')
+	worker = created
+	created.onMessage((message: any) => {
+		const payload = message as UTSJSONObject
+		const action = payload['action'] as string
+		if (action == 'closed' && closing.has(created)) {
+			terminateWorker(created)
+			return
+		}
+		if (worker != created || failed) return
+		if (action == 'ready') {
+			if (payload['protocol'] != 4) { failPresentation('Unsupported HTML patch protocol'); return }
+			ready = true
+			const queued = pending
+			pending = []
+			for (let i = 0; i < queued.length; i++) created.postMessage(queued[i], null)
+			return
+		}
+		if (action == 'error') {
+			failPresentation((payload['message'] as string | null) ?? 'preparation failed')
+			return
+		}
+		const client = clients.get(payload['id'] as string)
+		if (client == null || action != 'blocks') return
+		client.listener(payload)
+	})
+	created.onError((_error: any) => {
+		if (worker == created) failPresentation('Worker execution failed')
+	})
+}
+
+@UTSJS.keepAlive
+export function prepareAndroidPresentation(id: string, ops: UTSJSONObject[], done: boolean,
+	theme: string, listener: PresentationListener) {
+	if (!clients.has(id)) clients.set(id, { listener: listener })
+	if (failed) return
+	try {
+		ensureWorker()
+		// Android can share message references: send immutable payloads, never UI objects.
+		const immutableOps = ops.map((op: UTSJSONObject): UTSJSONObject => ({
+			op: op['op'], kind: op['kind'], content: op['content'], index: op['index'], unchanged: op['unchanged']
+		} as UTSJSONObject))
+		const message = { action: 'prepare', id: id, ops: immutableOps, done: done, theme: theme } as UTSJSONObject
+		if (ready) worker!.postMessage(message, null)
+		else pending.push(message)
+	} catch (error) { failPresentation('Worker creation failed: ' + error) }
+}
+
+export function releaseAndroidPresentation(id: string) {
+	clients.delete(id)
+	if (clients.size == 0) {
+		const previous = worker
+		const canClose = ready && !failed
+		worker = null
+		ready = false
+		failed = false
+		pending = []
+		if (previous != null) {
+			if (canClose) {
+				closing.set(previous, setTimeout(() => { terminateWorker(previous) }, 2000))
+				previous.postMessage({ action: 'close' } as UTSJSONObject, null)
+			} else previous.terminate()
+		}
+		return
+	}
+	pending = pending.filter((message: UTSJSONObject): boolean => message['id'] != id)
+	if (ready && !failed) worker?.postMessage({ action: 'release', id: id } as UTSJSONObject, null)
+}

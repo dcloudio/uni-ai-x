@@ -1,0 +1,147 @@
+// #ifdef APP-ANDROID
+import { LibmarkHtmlStreamAdapter } from '../uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
+import { nativeRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
+import type { AiWorkerOp } from '../uni_modules/uni-ai-worker/utssdk/interface.uts'
+import type { MarkdownTextRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
+import { prepareCodeBlocks, buildCodeHtmlPatch } from '../uni_modules/uni-ai-worker/utssdk/code-presentation.uts'
+import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../uni_modules/uni-ai-worker/utssdk/code-highlight.uts'
+import { prepareTablePresentation } from '../uni_modules/uni-ai-worker/utssdk/table-presentation.uts'
+
+class PresentationEntry {
+	adapter = new LibmarkHtmlStreamAdapter(false)
+	blocks: MarkdownTextRenderBlock[] = []
+	sources: string[] = []
+	sent: MarkdownTextRenderBlock[] = []
+	version = 0
+	timer = 0
+	done = false
+	theme = 'light'
+}
+
+function sameDisplayBlock(a: MarkdownTextRenderBlock, b: MarkdownTextRenderBlock): boolean {
+	return a.kind == b.kind && a.key == b.key && a.html == b.html && a.text == b.text &&
+		a.language == b.language && a.isComplete == b.isComplete && a.codeLines === b.codeLines &&
+		a.codeHeight == b.codeHeight && a.table === b.table && a.level == b.level &&
+		a.indent == b.indent && a.marker == b.marker && a.quoteDepth == b.quoteDepth &&
+		a.mermaidImageSource == b.mermaidImageSource && a.svgSource == b.svgSource &&
+		a.svgWidth == b.svgWidth && a.svgHeight == b.svgHeight
+}
+
+export class AiPresentationWorkerTask extends WorkerTaskImpl {
+	private entries = new Map<string, PresentationEntry>()
+	constructor() { super() }
+
+	override entry() {
+		this.postMessage({ action: 'ready', protocol: 4 } as UTSJSONObject)
+	}
+
+	override onMessage(message: any) {
+		const payload = message as UTSJSONObject
+		const action = payload['action'] as string
+		if (action == 'close') {
+			this.entries.forEach((entry: PresentationEntry) => { if (entry.timer != 0) clearTimeout(entry.timer) })
+			this.entries.clear()
+			closeCodeHighlightWorker().then(() => { this.postMessage({ action: 'closed' } as UTSJSONObject) })
+			return
+		}
+		const id = payload['id'] as string
+		if (action == 'release') {
+			const old = this.entries.get(id)
+			if (old != null && old.timer != 0) clearTimeout(old.timer)
+			this.entries.delete(id)
+			releaseCodeHighlightSessions(id)
+			return
+		}
+		let entry = this.entries.get(id)
+		if (entry == null) {
+			entry = new PresentationEntry()
+			this.entries.set(id, entry)
+		}
+		const current = entry
+		try {
+			const theme = payload['theme'] as string
+			if (current.theme != theme) {
+				current.sources = []
+				current.sent = []
+			}
+			current.theme = theme
+			const rawOps = payload['ops'] as UTSJSONObject[]
+			const ops = rawOps.map((op: UTSJSONObject): AiWorkerOp => ({
+				op: op['op'] as number, kind: op['kind'] as string, content: op['content'] as string,
+				index: op['index'] as number, unchanged: op['unchanged'] as boolean
+			} as AiWorkerOp))
+			if (ops.length > 0) current.adapter.applyOps(ops)
+			if (payload['done'] == true) {
+				current.done = true
+				current.adapter.markComplete()
+			}
+			// Coalesce stream bursts without delaying the final flush.
+			if (current.done) {
+				if (current.timer != 0) clearTimeout(current.timer)
+				current.timer = 0
+				this.prepare(id, current)
+			} else if (current.timer == 0) {
+				current.timer = setTimeout(() => {
+					current.timer = 0
+					try { this.prepare(id, current) } catch (error) { this.fail(id, error) }
+				}, 64)
+			}
+		} catch (error) { this.fail(id, error) }
+	}
+
+	private fail(id: string, error: any) {
+		this.postMessage({ action: 'error', id: id, message: '' + error } as UTSJSONObject)
+	}
+
+	private prepare(id: string, entry: PresentationEntry) {
+		const version = ++entry.version
+		const raw = entry.adapter.getBlocks()
+		const blocks: MarkdownTextRenderBlock[] = []
+		const sources: string[] = []
+		for (let i = 0; i < raw.length; i++) {
+			const signature = (JSON.stringify(raw[i]) ?? '') + ':' + entry.done.toString()
+			sources.push(signature)
+			if (i < entry.sources.length && signature == entry.sources[i]) {
+				blocks.push(entry.blocks[i])
+				continue
+			}
+			const block = nativeRenderBlock(raw[i], entry.done)
+			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, entry.theme)
+			blocks.push(block)
+		}
+		const previous = entry.blocks
+		entry.sources = sources
+		prepareCodeBlocks(id, blocks, (prepared: MarkdownTextRenderBlock[]) => {
+			if (this.entries.get(id) != entry || entry.version != version) return
+			entry.blocks = prepared
+			const changes: UTSJSONObject[] = []
+			for (let i = 0; i < prepared.length; i++) {
+				// Preserve native Select All across the complete semantic code block.
+				const source = prepared[i]
+				if (i < entry.sent.length && sameDisplayBlock(source, entry.sent[i])) continue
+				const lines = source.codeLines ?? []
+				const old = i < entry.sent.length ? entry.sent[i] : null
+				const oldLines = old != null && old.key == source.key && old.kind == source.kind ? (old.codeLines ?? []) : []
+				const codePatch = buildCodeHtmlPatch(lines, oldLines)
+				// Only immutable strings and display metadata cross the Worker boundary.
+				const block = {
+					kind: source.kind, key: source.key, html: source.html, text: source.text,
+					language: source.language, isComplete: source.isComplete,
+					columnWidths: source.columnWidths, rowTextWidths: source.rowTextWidths,
+					codeTokens: [] as UTSJSONObject[][], codeLines: [] as UTSJSONObject[],
+					codeHtml: codePatch.html, codeHtmlPrefix: codePatch.prefixLength,
+					codeContentHeight: (Math.max(1, lines.length) * 22).toString() + 'px',
+					codeHeight: source.codeHeight ?? '', table: source.table ?? null,
+					level: source.level, indent: source.indent, marker: source.marker, quoteDepth: source.quoteDepth,
+					mermaidImageSource: source.mermaidImageSource ?? '',
+					svgSource: source.svgSource, svgWidth: source.svgWidth, svgHeight: source.svgHeight
+				} as UTSJSONObject
+				changes.push({ index: i, block: block } as UTSJSONObject)
+			}
+			if (changes.length == 0 && prepared.length == entry.sent.length) return
+			entry.sent = prepared.slice()
+			this.postMessage({ action: 'blocks', id: id, length: prepared.length, changes: changes } as UTSJSONObject)
+		}, previous)
+	}
+}
+// #endif

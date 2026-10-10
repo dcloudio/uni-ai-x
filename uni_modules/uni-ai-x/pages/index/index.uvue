@@ -24,6 +24,9 @@
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 	import { updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	import { clearCodeHighlightCache, releaseCodeHighlightSessions } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
+	// #ifdef APP-ANDROID
+	import { releaseAllLibmarkStreams } from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	// #endif
 	import { MsgItem, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
 	import uniAiSourceSheet from '@/uni_modules/uni-ai-x/components/uni-ai-source-sheet.uvue'
 	const sourceMessageId = ref('')
@@ -118,6 +121,9 @@
 	})
 
 	onUnmounted(() => {
+		// #ifdef APP-ANDROID
+		releaseAllLibmarkStreams()
+		// #endif
 		clearCodeHighlightCache(true)
 		uniAi.offOpenSetting(openModelPopup)
 		// #ifndef MP-WEIXIN

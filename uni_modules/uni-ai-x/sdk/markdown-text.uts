@@ -28,6 +28,8 @@ export type MarkdownTextRenderBlock = {
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
 	codeHeight?: string
+	codeHtml?: string
+	codeContentHeight?: string
 	codeLines?: CodePresentationLine[]
 	codeCompleteLines?: number
 	codeHighlightedText?: string

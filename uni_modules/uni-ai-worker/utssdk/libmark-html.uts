@@ -1,4 +1,4 @@
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import type { AiWorkerOp } from './interface.uts'
 import {
 	codeLanguage,
 	decodeHtmlText,
@@ -177,6 +177,8 @@ function parseEnvelope(payload: string): LibmarkDataEnvelope | null {
 }
 
 export class LibmarkHtmlStreamAdapter {
+	private mergeHtml: boolean
+	constructor(mergeHtml: boolean = true) { this.mergeHtml = mergeHtml }
 	private entries: LibmarkHtmlRenderBlock[] = []
 	private tailKind: string = ''
 	private tailContent: string = ''
@@ -346,7 +348,7 @@ export class LibmarkHtmlStreamAdapter {
 	private appendHtmlSegment(html: string, index: number): void {
 		if (html.length == 0) return
 		const last = this.entries.length > 0 ? this.entries[this.entries.length - 1] : null
-		if (last != null && last!.kind == 'html') {
+		if (this.mergeHtml && last != null && last!.kind == 'html') {
 			last!.html += html
 			return
 		}
