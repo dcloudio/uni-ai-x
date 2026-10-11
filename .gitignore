@@ -25,6 +25,11 @@ platformConfig.json
 !/uni-agent-artifacts/.gitkeep
 selfIdentity.plist
 
+# libmark 原生桥接层构建准备与产物（源码与脚本入库，产物不入库）
+/native/include/
+/native/prebuilt/
+/native/build/
+
 # Local performance captures: screenshots, frame statistics and experiment snapshots.
 /tests/performance/
 

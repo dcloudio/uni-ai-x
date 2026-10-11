@@ -1,0 +1,24 @@
+{
+  "name": "libmark",
+  "version": "1.0.0",
+  "description": "libmark Markdown renderer native library for HarmonyOS",
+  "main": "index.ets",
+  "author": "libmark",
+  "license": "MIT",
+  "compatibleSdkVersion": 17,
+  "compatibleSdkType": "HarmonyOS",
+  "nativeComponents": [
+    {
+      "name": "libmark-full.so",
+      "compatibleSdkVersion": 17,
+      "compatibleSdkType": "HarmonyOS",
+      "linkLibraries": []
+    },
+    {
+      "name": "libmark_bridge.so",
+      "compatibleSdkVersion": 17,
+      "compatibleSdkType": "HarmonyOS",
+      "linkLibraries": ["libmark-full.so"]
+    }
+  ]
+}
