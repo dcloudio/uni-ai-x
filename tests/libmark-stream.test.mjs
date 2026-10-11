@@ -73,6 +73,23 @@ test('Mermaid native SVG and fallback source stay associated with separate block
   assert.match(blocks[1].text, /^gantt/);
 });
 
+test('Gantt native SVG absorbs the paired DATA envelope instead of rendering twice', () => {
+  const adapter = new LibmarkHtmlStreamAdapter();
+  const ganttSource = 'gantt\n  title 项目交付计划\n  section 开发\n  需求分析 :a1, 2026-10-01, 2d';
+  const ganttSvg = '<svg width="320" height="140"><text>gantt</text></svg>';
+  adapter.applyOps([
+    op(3, ganttSvg, 'html', 7),
+    op(3, JSON.stringify({ type: 'mermaid', source: ganttSource, svg: ganttSvg }), 'data', 7),
+  ]);
+  const blocks = adapter.getBlocks();
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].kind, 'mermaid');
+  assert.equal(blocks[0].text, ganttSource);
+  assert.equal(blocks[0].svgWidth, 320);
+  assert.equal(blocks[0].svgHeight, 140);
+  assert.equal(Buffer.from(blocks[0].svgSource.split(',')[1], 'base64').toString(), ganttSvg);
+});
+
 test('released rebuilds cannot repopulate memory and reset permits retry after failure', () => {
   const requests = [];
   const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts', [

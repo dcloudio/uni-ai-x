@@ -31,7 +31,7 @@ native/
 
 ## 图表背景色
 
-mermaid（流程图 / 时序图 / 状态图）的 SVG 背景在桥接层创建 session 时设置：
+mermaid（流程图 / 时序图 / 甘特图 / 状态图）的 SVG 背景在桥接层创建 session 时设置：
 `mermaid_options.background_color` 为亮灰色 `#f5f5f5`，插件会在场景最底层铺一层
 同色矩形；留空则保持透明。两处源码保持一致：
 
