@@ -432,7 +432,12 @@ function styleTaskListItems(source: string): string {
 		// Only the item's own label determines whether its marker is a checkbox.
 		const unorderedStart = findOpenTag(itemHtml, 'ul', 0)
 		const orderedStart = findOpenTag(itemHtml, 'ol', 0)
+		// #ifdef APP-ANDROID
+		let labelEnd: number = Number.from(itemHtml.length)
+		// #endif
+		// #ifndef APP-ANDROID
 		let labelEnd: number = Number(itemHtml.length)
+		// #endif
 		if (unorderedStart >= 0) labelEnd = Math.min(labelEnd, unorderedStart)
 		if (orderedStart >= 0) labelEnd = Math.min(labelEnd, orderedStart)
 		const isTaskItem = itemHtml.slice(0, labelEnd).indexOf('data-uni-ai-task="1"') >= 0
@@ -884,7 +889,13 @@ export function markdownTableNaturalHeight(html: string): number {
 			const start = row.indexOf('>', cell.start)
 			const end = row.indexOf('</' + cell.tag + '>', start + 1)
 			if (start < 0 || end < 0) break
-			lines = Math.max(lines, Number(decodeCellText(row.slice(start + 1, end)).split('\n').length))
+			const cellLineCount = decodeCellText(row.slice(start + 1, end)).split('\n').length
+			// #ifdef APP-ANDROID
+			lines = Math.max(lines, Number.from(cellLineCount))
+			// #endif
+			// #ifndef APP-ANDROID
+			lines = Math.max(lines, Number(cellLineCount))
+			// #endif
 			cursor = end + cell.tag.length + 3
 		}
 		height += lines * TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING + 1

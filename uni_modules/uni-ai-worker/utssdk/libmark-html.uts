@@ -380,7 +380,12 @@ export class LibmarkHtmlStreamAdapter {
 			return
 		}
 		if (kind == 'table') {
+			// #ifdef APP-ANDROID
+			const prepared = prepareMarkdownTable(html, Number.from(this.entries.length))
+			// #endif
+			// #ifndef APP-ANDROID
 			const prepared = prepareMarkdownTable(html, Number(this.entries.length))
+			// #endif
 			const entry = this.newEntry('table')
 			entry.html = prepared.html
 			entry.columnWidths = prepared.columnWidths
@@ -414,7 +419,12 @@ export class LibmarkHtmlStreamAdapter {
 			entry.blockIndex = index
 			this.entries.push(entry)
 		} else if (tag == 'table') {
+			// #ifdef APP-ANDROID
+			const prepared = prepareMarkdownTable(content, Number.from(this.entries.length))
+			// #endif
+			// #ifndef APP-ANDROID
 			const prepared = prepareMarkdownTable(content, Number(this.entries.length))
+			// #endif
 			const entry = this.newEntry('table')
 			entry.html = prepared.html
 			entry.columnWidths = prepared.columnWidths
@@ -453,7 +463,13 @@ export class LibmarkHtmlStreamAdapter {
 	}
 
 	private findDataEntryIndex(index: number): number {
-		for (let i = Number(this.entries.length) - 1; i >= 0; i--) {
+		// #ifdef APP-ANDROID
+		const entryCount = Number.from(this.entries.length)
+		// #endif
+		// #ifndef APP-ANDROID
+		const entryCount = Number(this.entries.length)
+		// #endif
+		for (let i = entryCount - 1; i >= 0; i--) {
 			const entry = this.entries[i]
 			if (entry.blockIndex != index) continue
 			if (entry.kind == 'math' || entry.kind == 'mermaid' || entry.kind == 'data-text') return i
@@ -465,7 +481,13 @@ export class LibmarkHtmlStreamAdapter {
 	// 合并组交付时序号不可知，退化为最近一个未被认领的 svg 条目
 	private findSvgEntryIndex(index: number): number {
 		let fallback = -1
-		for (let i = Number(this.entries.length) - 1; i >= 0; i--) {
+		// #ifdef APP-ANDROID
+		const entryCount = Number.from(this.entries.length)
+		// #endif
+		// #ifndef APP-ANDROID
+		const entryCount = Number(this.entries.length)
+		// #endif
+		for (let i = entryCount - 1; i >= 0; i--) {
 			const entry = this.entries[i]
 			if (entry.kind != 'image') continue
 			if (entry.blockIndex == index) return i

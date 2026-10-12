@@ -64,7 +64,12 @@ export class WorkerStreamRequest {
 				if (this.networkChunkCount == 0 && typeof response.data == 'string' && (response.data as string).length > 0) {
 					console.warn('[uni-ai-x][stream] no network chunks; parsing buffered response')
 					const bytes = new TextEncoder().encode(response.data as string)
+					// #ifdef APP-ANDROID
+					this.receivedBytes = Number.from(bytes.length)
+					// #endif
+					// #ifndef APP-ANDROID
 					this.receivedBytes = Number(bytes.length)
+					// #endif
 					this.streamDecoder?.push(bytes.buffer as ArrayBuffer)
 				}
 				this.streamDecoder?.finish()
