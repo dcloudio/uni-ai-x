@@ -107,6 +107,27 @@ function tokensForLine(source: string, parsed: ILineTokens | null): MarkdownToke
 	return tokens
 }
 
+// #ifdef APP-IOS
+function decodeIosCodeTokens(json: string, sources: string[]): ILineTokens[] {
+	const rows = JSON.parse(json) as ILineTokens[]
+	if (!Array.isArray(rows) || rows.length != sources.length) throw new Error('Invalid iOS highlight rows')
+	for (let i = 0; i < rows.length; i++) {
+		const row = rows[i]
+		if (row == null || !Array.isArray(row.tokens)) throw new Error('Missing iOS highlight tokens')
+		for (const token of row.tokens) {
+			if (token == null || !Number.isInteger(token.startIndex) || !Number.isInteger(token.endIndex) ||
+				token.startIndex < 0 || token.endIndex < token.startIndex || token.endIndex > sources[i].length + 1 ||
+				!Array.isArray(token.scopes) || !token.scopes.every((scope) => typeof scope == 'string')) {
+				throw new Error('Invalid iOS highlight token')
+			}
+		}
+		const text = tokensForLine(sources[i], row).map((token) => token.text ?? '').join('')
+		if (text != sources[i]) throw new Error('iOS highlight source mismatch')
+	}
+	return rows
+}
+// #endif
+
 function parseIncrementalCode(callback: ParseCodeTextCallBack, messageId: string, blockKey: string, source: string, language: string) {
 	if (!grammarList.includes(language)) {
 		callback({ lines: [], language, error: '不支持解析的语言类型' })
@@ -143,7 +164,13 @@ function parseIncrementalCode(callback: ParseCodeTextCallBack, messageId: string
 			}
 			const start = appendOnly ? active.source.length : 0
 			const added = sourceLines.slice(start)
+			// #ifdef APP-IOS
+			const json = added.length > 0 ? await uniCodeHighlighter!.tokenizeLinesJson(active.id, language, added, start == 0) : '[]'
+			const parsed = decodeIosCodeTokens(json, added)
+			// #endif
+			// #ifndef APP-IOS
 			const parsed = added.length > 0 ? await uniCodeHighlighter!.tokenizeLines(active.id, language, added, start == 0) : [] as ILineTokens[]
+			// #endif
 			if (parsed.length != added.length) throw new Error('代码高亮返回行数不一致')
 			const lines = appendOnly ? active.lines.slice() : [] as MarkdownToken[][]
 			for (let i = 0; i < added.length; i++) lines.push(tokensForLine(added[i], parsed[i]))

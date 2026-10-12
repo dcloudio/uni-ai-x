@@ -2,6 +2,20 @@
  * interface.uts
  * uts插件接口定义文件，按规范定义接口文件可以在HBuilderX中更好的做到语法提示
  */
+// #ifdef APP-IOS
+// iOS returns data records across the native/JS bridge, not NSObject instances.
+export type IToken = {
+  startIndex: number
+  endIndex: number
+  scopes: string[]
+}
+
+export type ILineTokens = {
+  tokens: IToken[]
+}
+// #endif
+
+// #ifndef APP-IOS
 export class IToken {
   readonly startIndex: number;
   readonly endIndex: number;
@@ -13,6 +27,7 @@ export class IToken {
     this.scopes = scopes;
   }
 }
+// #endif
 
 
 export type AndroidToken = {
@@ -27,9 +42,11 @@ export type AndroidToken = {
 // 	state:any
 // }
 
+// #ifndef APP-IOS
 export class ILineTokens {
   constructor(readonly tokens: IToken[]) {}
 }
+// #endif
 
 export type HighLighterOptions = {
 	languages: UTSJSONObject

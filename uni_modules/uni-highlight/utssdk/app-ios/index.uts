@@ -24,20 +24,29 @@ function mapByteOffsetsToCharOffsets(text : string, tokens : ktToken[]) : ktToke
 		if (codePoint == null) continue
 		const utf8Length = codePointToUtf8Bytes(codePoint)
 		byteToChar.set(byteIndex, charIndex)
-		for (let byteOffset = 0; byteOffset < utf8Length; byteOffset++) {
-			byteToChar.set(byteIndex + byteOffset, charIndex)
-		}
 		const charWidth = codePoint > 0xFFFF ? 2 : 1
 		if (charWidth == 2) index++
 		byteIndex += utf8Length
 		charIndex += charWidth
 		byteToChar.set(byteIndex, charIndex)
 	}
-	return tokens.map(token => {
-		const start = byteToChar.get(token.start) ?? 0
-		const end = byteToChar.get(token.end) ?? charIndex
-		return { start, end, token: token.token } as ktToken
-	})
+	// Native ranges decorate the source; gaps and invalid ranges must not remove text.
+	const result = [] as ktToken[]
+	let cursor = 0
+	for (const token of tokens) {
+		const mappedStart = byteToChar.get(token.start)
+		const mappedEnd = byteToChar.get(token.end)
+		// Only accept UTF-8 character boundaries, never expand invalid offsets to a full line.
+		if (mappedStart == null || mappedEnd == null) continue
+		const start = Math.max(cursor, mappedStart!)
+		const end: number = mappedEnd!
+		if (start >= end) continue
+		if (cursor < start) result.push({ start: cursor, end: start, token: '' } as ktToken)
+		result.push({ start, end, token: token.token } as ktToken)
+		cursor = end
+	}
+	if (cursor < charIndex) result.push({ start: cursor, end: charIndex, token: '' } as ktToken)
+	return result
 }
 
 export class CreateHighLighter {
@@ -83,11 +92,18 @@ export class CreateHighLighter {
 			const parsed = JSON.parseArray<ktToken>(raw!) ?? [] as ktToken[]
 			const tokens = [] as IToken[]
 			mapByteOffsetsToCharOffsets(line, parsed).forEach((item: ktToken) => {
-				tokens.push(new IToken(item.start, item.end, item.token.split(' ')))
+				tokens.push({ startIndex: item.start, endIndex: item.end, scopes: item.token.split(' ') } as IToken)
 			})
-			result.push(new ILineTokens(tokens))
+			result.push({ tokens } as ILineTokens)
 		}
 		return result
+	}
+	// Serialize inside native UTS: nested native objects must not cross the JS bridge.
+	async tokenizeLinesJson(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<string> {
+		const rows: ILineTokens[] = await this.tokenizeLines(sessionId, langId, lines, reset)
+		const json: string | null = JSON.stringify(rows)
+		if (json == null) throw new Error('Code tokenizer serialization failed')
+		return json!
 	}
 	async tokenizeLine(langId : string, lineText : string, state : any): Promise<ILineTokens | null> {
 
@@ -106,14 +122,15 @@ export class CreateHighLighter {
 		const tokens : IToken[] = []
 		
 
-		let lineTokensJson: ktToken[] = JSON.parseArray<ktToken>(lineTokens)!
+		const parsed = JSON.parseArray<ktToken>(lineTokens) ?? [] as ktToken[]
+		const lineTokensJson = mapByteOffsetsToCharOffsets(lineText, parsed)
 		
 		for (let j = 0; j < lineTokensJson.length; j++) {
 			const token: ktToken = (lineTokensJson[j]) as ktToken
-			const iToken = new IToken(token.start, token.end, token.token.split(" "))
+			const iToken = { startIndex: token.start, endIndex: token.end, scopes: token.token.split(" ") } as IToken
 			tokens.push(iToken)
 		}
-		let nTokens : ILineTokens = new ILineTokens(tokens)
+		let nTokens : ILineTokens = { tokens } as ILineTokens
 		// console.log(19191, nTokens)
 		res = nTokens
 		
@@ -138,9 +155,9 @@ export class CreateHighLighter {
 			const lineTokensJson : ktToken[] = JSON.parseArray<ktToken>(lineTokens) ?? [] as ktToken[]
 			const charOffsets = mapByteOffsetsToCharOffsets(line, lineTokensJson)
 			charOffsets.forEach(token => {
-				tokens.push(new IToken(token.start, token.end, token.token.split(" ")))
+				tokens.push({ startIndex: token.start, endIndex: token.end, scopes: token.token.split(" ") } as IToken)
 			})
-			res.push(new ILineTokens(tokens))
+			res.push({ tokens } as ILineTokens)
 		}
 		this.grammar.resetStackHandle(handle)
 		this.grammar.destroyStackHandle(handle)
