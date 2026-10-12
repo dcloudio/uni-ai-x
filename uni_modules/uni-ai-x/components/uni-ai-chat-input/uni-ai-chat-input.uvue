@@ -153,6 +153,10 @@
 
 .chat-input {
 	position: absolute;
+	/* #ifdef MP-WEIXIN */
+	position: relative;
+	flex-shrink: 0;
+	/* #endif */
 	left: 0;
 	right: 0;
 	bottom: 0;

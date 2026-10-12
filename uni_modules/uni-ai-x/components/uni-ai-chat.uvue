@@ -19,8 +19,13 @@
 							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent" @source="openSource"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
+					<!-- #ifdef MP-WEIXIN -->
+					<list-item :style="bottomAnchorStyle" id="msg-list-bottom"></list-item>
+					<!-- #endif -->
+					<!-- #ifndef MP-WEIXIN -->
 					<list-item :style="bottomAnchorStyle" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
 					<list-item :style="bottomAnchorStyle" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
+					<!-- #endif -->
 				</list-view>
 				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
 					<add-chat-btn />
@@ -95,6 +100,9 @@
 	const scrollWithAnimation = ref<boolean>(false)
 	const scrollTouch = ref<boolean>(false)
 	const scrolling = ref<boolean>(false)
+	// #ifdef MP-WEIXIN
+	const chatInstance = getCurrentInstance()!.proxy!
+	// #endif
 	let autoToLastMsg = false
 	let scrollingT = 0
 	let scrollBottomCheckTimer = 0
@@ -542,6 +550,25 @@
 	}
 
 	function updateScrollInBottom() {
+		// #ifdef MP-WEIXIN
+		const chatId = chatActiveId.value
+		nextTick(() => {
+			if (viewDisposed || msgList.value.length == 0) return
+			const query = uni.createSelectorQuery().in(chatInstance)
+			query.select('#msg-list').boundingClientRect()
+			query.select('#msg-list-bottom').boundingClientRect()
+			query.exec((result) => {
+				if (viewDisposed || chatId != chatActiveId.value) return
+				const list = result[0] as NodeInfo | null
+				const bottom = result[1] as NodeInfo | null
+				if (list == null || bottom == null) return
+				const diff = (bottom.bottom ?? 0) - (list.bottom ?? 0)
+				scrollInBottom.value = diff < (scrollInBottom.value ? 60 : 30)
+				if (scrollTouch.value) autoToLastMsg = diff <= 3
+				syncScrollToBottomBtn()
+			})
+		})
+		// #endif
 		// #ifndef MP-WEIXIN
 		nextTick(() => {
 			const scrollList = uni.getElementById('msg-list')
@@ -604,6 +631,7 @@
 	})
 	
 	const lockAutoToLastMsg = () => {
+		// #ifndef MP-WEIXIN
 		if (!needSetLockAutoToLastMsg) return
 		const lastMsgFirstItem = renderItemList.value.find((item: ChatRenderItem): boolean => {
 			return item.isAi && item.isFirst && item.msg._id == lastMsg.value?._id
@@ -616,6 +644,7 @@
 			autoToLastMsg = false
 			needSetLockAutoToLastMsg = false
 		}
+		// #endif
 	}
 	
 	let scrollUpdateQueued = false
@@ -789,11 +818,7 @@
 		// #endif
 
 		// #ifdef MP-WEIXIN
-		const observer = uni.createIntersectionObserver(getCurrentInstance().proxy,{});
-		observer.relativeTo('#msg-list').observe('#last-msg-a', (result: any) => {
-			scrollInBottom.value = result.intersectionRatio > 0
-			syncScrollToBottomBtn()
-		})
+		updateScrollInBottom()
 		// #endif
 	})
 
@@ -923,6 +948,32 @@
 .chat-box-tip {
 	display: none;
 }
+
+/* #ifdef MP-WEIXIN */
+.chat-box {
+	height: 100%;
+	min-height: 0;
+}
+
+.chat-box-chat,
+.chat-box-scroll-view-box {
+	min-height: 0;
+}
+
+.chat-box-msg-list {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	margin-bottom: 0;
+}
+
+.chat-box-add-chat,
+.chat-box-scroll-to-bottom {
+	bottom: 10px;
+}
+/* #endif */
 
 /* #ifdef H5 */
 @media screen and (min-device-width:960px){
