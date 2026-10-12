@@ -8,9 +8,9 @@
 			</view>
 		</view>
 		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="'height:' + preparedHeight + ';background-color:#111827;'">
-			<view class="uni-code-msg-lines">
+			<view class="uni-code-msg-lines" :style="contentWidthStyle">
 				<rich-text :disable-split-screen-render="true" class="uni-code-msg-rich-text" :user-select="true"
-					:style="{height: preparedContentHeight}"
+					:style="'height:' + preparedContentHeight + ';' + contentWidthStyle"
 					style="font-size:14px;line-height:22px;font-family:monospace;background-color:#111827;color:#d1fae5;"
 					:nodes="preparedHtml" mode="native"></rich-text>
 			</view>
@@ -34,6 +34,23 @@ const props = withDefaults(defineProps<{
 	preparedContentHeight: '22px',
 	preparedHeight: '38px'
 })
+
+const contentWidthStyle = computed((): string => {
+	// #ifdef APP-IOS
+	// Conservative 14px monospace estimate, including the HTML's horizontal margins.
+	let longest = 0
+	for (const line of props.codeText.split('\n')) {
+		let width = 0
+		for (const char of line) width += char == '\t' ? 36 : ((char.codePointAt(0) ?? 0) > 255 ? 18 : 9)
+		longest = Math.max(longest, width)
+	}
+	return 'width:' + Math.ceil(longest + 32).toString() + 'px;'
+	// #endif
+	// #ifndef APP-IOS
+	return ''
+	// #endif
+})
+
 
 function copyCode() {
 	uni.setClipboardData({
@@ -108,5 +125,12 @@ function copyCode() {
 	align-self: flex-start;
 	flex-shrink: 0;
 }
+
+/* #ifdef APP-IOS */
+.uni-code-msg-code-scroll-view {
+	flex-shrink: 0;
+}
+
+/* #endif */
 
 </style>

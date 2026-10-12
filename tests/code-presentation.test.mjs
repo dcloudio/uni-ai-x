@@ -175,7 +175,7 @@ test('code view only displays prepared HTML and Mermaid retains its original sou
   const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
   assert.match(source, /:nodes="preparedHtml"/);
-  assert.doesNotMatch(source, /computed\s*[<(]|preparedLines/);
+  assert.doesNotMatch(source, /preparedLines/);
   assert.equal((source.match(/<rich-text\b/g) ?? []).length, 1);
   assert.doesNotMatch(source, /<rich-text\b[^>]*\bv-for=/);
   const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
