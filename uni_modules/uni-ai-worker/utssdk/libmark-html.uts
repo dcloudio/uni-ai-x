@@ -380,7 +380,7 @@ export class LibmarkHtmlStreamAdapter {
 			return
 		}
 		if (kind == 'table') {
-			const prepared = prepareMarkdownTable(html, this.entries.length)
+			const prepared = prepareMarkdownTable(html, Number(this.entries.length))
 			const entry = this.newEntry('table')
 			entry.html = prepared.html
 			entry.columnWidths = prepared.columnWidths
@@ -414,7 +414,7 @@ export class LibmarkHtmlStreamAdapter {
 			entry.blockIndex = index
 			this.entries.push(entry)
 		} else if (tag == 'table') {
-			const prepared = prepareMarkdownTable(content, this.entries.length)
+			const prepared = prepareMarkdownTable(content, Number(this.entries.length))
 			const entry = this.newEntry('table')
 			entry.html = prepared.html
 			entry.columnWidths = prepared.columnWidths
@@ -434,7 +434,7 @@ export class LibmarkHtmlStreamAdapter {
 		if (envelope != null && envelope.type == 'mermaid') {
 			const svgEntryIndex = this.findSvgEntryIndex(index)
 			if (svgEntryIndex >= 0) {
-				const previousKey = this.entries[svgEntryIndex].key
+				const previousKey: string = this.entries[svgEntryIndex].key
 				this.entries[svgEntryIndex] = this.buildDataEntry(envelope, content, index, previousKey)
 				this.clearTail()
 				return
@@ -443,7 +443,7 @@ export class LibmarkHtmlStreamAdapter {
 		// 同一块可能分两次提交（先 partial 后 complete）：更新既有条目而不是追加
 		const existingIndex = this.findDataEntryIndex(index)
 		if (existingIndex >= 0) {
-			const previousKey = this.entries[existingIndex].key
+			const previousKey: string = this.entries[existingIndex].key
 			this.entries[existingIndex] = this.buildDataEntry(envelope, content, index, previousKey)
 			this.clearTail()
 			return
@@ -453,7 +453,7 @@ export class LibmarkHtmlStreamAdapter {
 	}
 
 	private findDataEntryIndex(index: number): number {
-		for (let i = this.entries.length - 1; i >= 0; i--) {
+		for (let i = Number(this.entries.length) - 1; i >= 0; i--) {
 			const entry = this.entries[i]
 			if (entry.blockIndex != index) continue
 			if (entry.kind == 'math' || entry.kind == 'mermaid' || entry.kind == 'data-text') return i
@@ -465,7 +465,7 @@ export class LibmarkHtmlStreamAdapter {
 	// 合并组交付时序号不可知，退化为最近一个未被认领的 svg 条目
 	private findSvgEntryIndex(index: number): number {
 		let fallback = -1
-		for (let i = this.entries.length - 1; i >= 0; i--) {
+		for (let i = Number(this.entries.length) - 1; i >= 0; i--) {
 			const entry = this.entries[i]
 			if (entry.kind != 'image') continue
 			if (entry.blockIndex == index) return i

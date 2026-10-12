@@ -63,7 +63,7 @@ export class CreateHighLighter {
 	}
 	releaseSession(sessionId: string): void {
 		const handle = this.sessions.get(sessionId)
-		if (handle != null) this.grammar.destroyStackHandle(withHandle = handle)
+		if (handle != null) this.grammar.destroyStackHandle(handle)
 		this.sessions.delete(sessionId)
 	}
 	async tokenizeLines(sessionId: string, langId: string, lines: string[], reset: boolean): Promise<ILineTokens[]> {
@@ -78,7 +78,7 @@ export class CreateHighLighter {
 		const result = [] as ILineTokens[]
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i] + '\n'
-			const raw = await this.grammar.tokenizeLine(withHandle = handle, langId = langId, text = line)
+			const raw: string | null = await this.grammar.tokenizeLine(withHandle = handle, langId = langId, text = line)
 			if (raw == null) throw new Error('Code tokenizer returned no result')
 			const parsed = JSON.parseArray<ktToken>(raw!) ?? [] as ktToken[]
 			const tokens = [] as IToken[]
@@ -130,8 +130,8 @@ export class CreateHighLighter {
 			const line = textN[i] + "\n";
 			const lineTokens : string | null = await this.grammar.tokenizeLine(withHandle = handle, langId = langId, text = line);
 			if (lineTokens === null) {
-				this.grammar.resetStackHandle(withHandle = handle)
-				this.grammar.destroyStackHandle(withHandle = handle)
+				this.grammar.resetStackHandle(handle)
+				this.grammar.destroyStackHandle(handle)
 				return []
 			}
 			const tokens : IToken[] = []
@@ -142,8 +142,8 @@ export class CreateHighLighter {
 			})
 			res.push(new ILineTokens(tokens))
 		}
-		this.grammar.resetStackHandle(withHandle = handle)
-		this.grammar.destroyStackHandle(withHandle = handle)
+		this.grammar.resetStackHandle(handle)
+		this.grammar.destroyStackHandle(handle)
 		return res
 	}
 }

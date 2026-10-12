@@ -1,5 +1,8 @@
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+// iOS turns this type re-export into an invalid Swift value alias.
+// #ifndef APP-IOS
 export type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+// #endif
 
 export type AiWorkerStartOptions = {
 	requestVersion: number,

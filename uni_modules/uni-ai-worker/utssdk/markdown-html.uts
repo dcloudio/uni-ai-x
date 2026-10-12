@@ -432,7 +432,7 @@ function styleTaskListItems(source: string): string {
 		// Only the item's own label determines whether its marker is a checkbox.
 		const unorderedStart = findOpenTag(itemHtml, 'ul', 0)
 		const orderedStart = findOpenTag(itemHtml, 'ol', 0)
-		let labelEnd: number = itemHtml.length
+		let labelEnd: number = Number(itemHtml.length)
 		if (unorderedStart >= 0) labelEnd = Math.min(labelEnd, unorderedStart)
 		if (orderedStart >= 0) labelEnd = Math.min(labelEnd, orderedStart)
 		const isTaskItem = itemHtml.slice(0, labelEnd).indexOf('data-uni-ai-task="1"') >= 0
@@ -875,7 +875,7 @@ export function markdownTableNaturalHeight(html: string): number {
 	const rows = collectRows(html)
 	let height = 0
 	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-		const row = rows[rowIndex].html
+		const row: string = rows[rowIndex].html
 		let cursor = 0
 		let lines = 1
 		while (cursor < row.length) {
@@ -884,7 +884,7 @@ export function markdownTableNaturalHeight(html: string): number {
 			const start = row.indexOf('>', cell.start)
 			const end = row.indexOf('</' + cell.tag + '>', start + 1)
 			if (start < 0 || end < 0) break
-			lines = Math.max(lines, decodeCellText(row.slice(start + 1, end)).split('\n').length)
+			lines = Math.max(lines, Number(decodeCellText(row.slice(start + 1, end)).split('\n').length))
 			cursor = end + cell.tag.length + 3
 		}
 		height += lines * TABLE_LINE_HEIGHT + TABLE_CELL_VERTICAL_PADDING + 1
