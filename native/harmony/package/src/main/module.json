@@ -1,0 +1,24 @@
+{
+  "app": {
+    "bundleName": "com.libmark.native",
+    "versionCode": 1000000,
+    "versionName": "1.0.0",
+    "minAPIVersion": 50000017,
+    "targetAPIVersion": 50000017,
+    "apiReleaseType": "Release",
+    "compileSdkVersion": "5.0.5.17",
+    "compileSdkType": "HarmonyOS",
+    "appEnvironments": [],
+    "bundleType": "app"
+  },
+  "module": {
+    "name": "libmark",
+    "type": "har",
+    "deviceTypes": ["default"],
+    "packageName": "libmark",
+    "installationFree": false,
+    "virtualMachine": "ark12.0.6.0",
+    "compileMode": "esmodule",
+    "dependencies": []
+  }
+}

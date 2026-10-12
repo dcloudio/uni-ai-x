@@ -1,12 +1,3 @@
-// #ifdef APP-HARMONY
-// Harmony generates an entry for every Worker file, including Android-only workers.
-export class AiPresentationWorkerTask extends WorkerTaskImpl {
-	constructor() { super() }
-	override entry() {}
-	override onMessage(message: any) {}
-}
-// #endif
-
 // #ifdef APP-ANDROID
 import { LibmarkHtmlStreamAdapter } from '../uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
 import { nativeRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
@@ -246,5 +237,13 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			this.postMessage({ action: 'blocks', id: id, length: prepared.length, changes: changes } as UTSJSONObject)
 		}, previous)
 	}
+}
+// #endif
+
+// #ifndef APP-ANDROID
+// Worker 入口在非 Android 平台也会生成，保留同名空实现保证编译；运行时不会创建该 Worker。
+export class AiPresentationWorkerTask extends WorkerTaskImpl {
+	override entry() {}
+	override onMessage(message: any) {}
 }
 // #endif

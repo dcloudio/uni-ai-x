@@ -76,6 +76,24 @@ function mermaidBlock(index: number): string {
 		+ '```\n\n'
 }
 
+function ganttBlock(index: number): string {
+	return '```mermaid\n'
+		+ 'gantt\n'
+		+ '  title 项目交付计划 ' + index.toString() + '\n'
+		+ '  dateFormat YYYY-MM-DD\n'
+		+ '  axisFormat %m-%d\n'
+		+ '  excludes weekends\n'
+		+ '  todayMarker off\n'
+		+ '  section 开发\n'
+		+ '  需求分析 :done, requirements, 2026-10-01, 2d\n'
+		+ '  接口开发 :active, api, after requirements, 3d\n'
+		+ '  页面开发 :ui, after requirements, 4d\n'
+		+ '  section 交付\n'
+		+ '  联调测试 :crit, test, after api ui, 2d\n'
+		+ '  发布上线 :milestone, release, after test, 0d\n'
+		+ '```\n\n'
+}
+
 function dividerBlock(index: number): string {
 	return '分割线前文本 ' + index.toString() + '\n\n---\n\n分割线后文本 ' + index.toString() + '\n\n'
 }
@@ -111,6 +129,7 @@ export function createDemoMarkdownBlock(scenarioId: string, index: number): stri
 	if (scenarioId == 'link') return linkBlock(index)
 	if (scenarioId == 'math') return mathBlock(index)
 	if (scenarioId == 'mermaid') return mermaidBlock(index)
+	if (scenarioId == 'gantt') return ganttBlock(index)
 	if (scenarioId == 'divider') return dividerBlock(index)
 	if (scenarioId == 'paragraph') return paragraphBlock(index)
 	return mixedBlock(index)
