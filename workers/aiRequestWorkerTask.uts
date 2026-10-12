@@ -219,7 +219,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				const newline = contentDelta.indexOf('\n', start)
 				const end = newline < 0 ? contentDelta.length : newline + 1
 				const chunk = contentDelta.slice(start, end)
-				this.appendLibmarkOps(this.sourceTail.feed(chunk, feedChunk(session, chunk)))
+				this.appendLibmarkOps(this.sourceTail.feed(chunk, feedChunk(session, chunk) ?? null))
 				start = end
 			}
 			return true
@@ -244,7 +244,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			const session = this.libmarkSession
 			if (session != null) {
 				try {
-					this.appendLibmarkOps(this.sourceTail.finish(finishSession(session)))
+					this.appendLibmarkOps(this.sourceTail.finish(finishSession(session) ?? null))
 				} catch {
 					this.failLibmark('libmark_finish_failed', 'libmark 完成解析失败')
 					return
