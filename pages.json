@@ -23,12 +23,14 @@
 				"navigationBarTitleText" : "选择文本"
 			}
 		},
+		// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
 		{
 			"path" : "uni_modules/uni-upgrade-center-app/pages/uni-app-x/upgrade-popup",
 			"style" : {
 				"navigationBarTitleText" : ""
 			}
 		}
+		// #endif
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "@navigationBarTextStyle",
