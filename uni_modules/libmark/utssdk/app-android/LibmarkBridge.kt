@@ -28,9 +28,10 @@ object LibmarkBridge {
     /**
      * languageTags 是宿主给出的内容语言偏好（BCP-47，可为逗号分隔的优先级列表），
      * 设备当前语言作为兜底追加在其后：内容语言优先是刻意的选择，见 bridge 侧注释。
+     * darkMode 决定插件默认前景色，background 是宿主显式给出的画布底色（#rrggbb）。
      */
-    fun createSession(mode: String?, languageTags: String?): Int {
-        val pointer = nativeCreateSession(mode, composeLocales(languageTags))
+    fun createSession(mode: String?, languageTags: String?, darkMode: Boolean?, background: String?): Int {
+        val pointer = nativeCreateSession(mode, composeLocales(languageTags), darkMode == true, background)
         if (pointer == 0L) {
             throw IllegalStateException("libmark session creation failed")
         }
@@ -63,7 +64,8 @@ object LibmarkBridge {
         nativeDestroySession(pointer)
     }
 
-    private external fun nativeCreateSession(mode: String?, locales: String?): Long
+    private external fun nativeCreateSession(mode: String?, locales: String?, darkMode: Boolean,
+                                             background: String?): Long
 
     private external fun nativeFeedChunk(handle: Long, chunk: String): String?
 

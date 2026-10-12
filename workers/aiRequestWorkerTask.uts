@@ -79,6 +79,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// #ifdef APP-HARMONY || APP-ANDROID
 	private libmarkSession: object | null = null
 	private libmarkLanguage: string | null = null
+	// 解析会话的配色：darkMode 决定 libmark 插件默认前景色，background 是画布底色；
+	// 由主线程按当前主题随启动消息传入。
+	private libmarkDarkMode: boolean = false
+	private libmarkBackground: string = ''
 	private libmarkPendingOps: LibmarkOp[] = []
 	private libmarkPendingOpOffset: number = 0
 	private libmarkPendingContent: string = ''
@@ -157,8 +161,10 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.libmarkSession != null) return true
 		try {
 			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派；
-			// 语言用主线程传入的应用语言，为空时由桥接按设备语言兜底挑集合字体的 face
-			this.libmarkSession = createSession('html', this.libmarkLanguage)
+			// 语言用主线程传入的应用语言，为空时由桥接按设备语言兜底挑集合字体的 face；
+			// 配色（深浅色与画布底色）用主线程按当前主题传入的值
+			this.libmarkSession = createSession('html', this.libmarkLanguage,
+				this.libmarkDarkMode, this.libmarkBackground)
 			if (this.libmarkSession != null) return true
 		} catch {
 		}
@@ -326,6 +332,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		const msgId = readMessageString(payload, 'msgId')
 		const content = readMessageString(payload, 'content')
 		const language = readMessageString(payload, 'language')
+		const darkMode = (payload['darkMode'] as boolean | null) ?? false
+		const background = readMessageString(payload, 'background')
 		const ops = [] as UTSJSONObject[]
 		if (msgId.length == 0 || content.length == 0) {
 			this.postRebuildOps(msgId, ops)
@@ -333,7 +341,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		let session: object | null = null
 		try {
-			session = createSession('html', language.length > 0 ? language : null)
+			session = createSession('html', language.length > 0 ? language : null, darkMode, background)
 			this.appendRebuildOps(ops, feedChunk(session!, content))
 			this.appendRebuildOps(ops, finishSession(session!))
 		} catch (_error) {
@@ -397,6 +405,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.preprocessor = new MarkdownPreprocessor()
 		// #ifdef APP-HARMONY || APP-ANDROID
 		this.libmarkLanguage = null
+		this.libmarkDarkMode = false
+		this.libmarkBackground = ''
 		this.sourceTail = new LibmarkSourceTail()
 		this.resetLibmarkProtocol()
 		// #endif
@@ -423,6 +433,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		const language = readMessageString(payload, 'language')
 		this.libmarkLanguage = language.length > 0 ? language : null
+		this.libmarkDarkMode = (payload['darkMode'] as boolean | null) ?? false
+		this.libmarkBackground = readMessageString(payload, 'background')
 
 		this.streamRequest = new WorkerStreamRequest(
 			(data: string) => { this.handleSseEvent(data) },
@@ -444,6 +456,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #ifdef APP-HARMONY || APP-ANDROID
 		const language = readMessageString(payload, 'language')
 		this.libmarkLanguage = language.length > 0 ? language : null
+		this.libmarkDarkMode = (payload['darkMode'] as boolean | null) ?? false
+		this.libmarkBackground = readMessageString(payload, 'background')
 		// #endif
 		if (requestVersion <= 0) {
 			this.fail('invalid_markdown_request', 'Worker Markdown 请求参数不完整')

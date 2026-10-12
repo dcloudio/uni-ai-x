@@ -13,6 +13,7 @@ import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
 import { prepareMermaidPresentation } from './mermaid-presentation.uts'
 import { prepareMathPresentation, mathWindowWidth } from './math-presentation.uts'
 import { refreshMessagePresentation, forgetMessagePresentation } from './message-presentation.uts'
+import { pluginBackgroundFor } from './plugin-theme.uts'
 import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
 // #ifdef APP-HARMONY || APP-ANDROID
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
@@ -1100,7 +1101,10 @@ class UniAi {
 			messages,
 			llm: this.llm as Llm,
 			chat_id: this.currentChat!.id,
-			updateTitleAfterDone: userMsgCount == 1
+			updateTitleAfterDone: userMsgCount == 1,
+			// libmark 解析会话随当前主题配色，中间态 SVG 与展示层最终渲染保持一致
+			darkMode: uiTheme.value == 'dark',
+			background: pluginBackgroundFor(uiTheme.value)
 		})
 	}
 	

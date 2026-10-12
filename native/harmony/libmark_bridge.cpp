@@ -279,11 +279,40 @@ static void Sha256(const uint8_t *data, size_t size, uint8_t out[32]) {
 }
 
 /*
- * createSession(mode?: string, languageTags?: string)。mode 为 "ast" 时只交付 AST
- * 通道：既不产出 HTML，也没有 DATA 通道，插件渲染载荷全部经节点 payload 随 AST 交付；
- * 默认（或 "html"）保持 HTML + DATA。languageTags 是逗号分隔的 BCP-47 语言优先级
- * 列表（内容语言在前），用于挑 mermaid 文本字体与集合字体的 face。
+ * createSession(mode?: string, languageTags?: string, darkMode?: boolean, background?: string)。
+ * mode 为 "ast" 时只交付 AST 通道：既不产出 HTML，也没有 DATA 通道，插件渲染载荷全部经
+ * 节点 payload 随 AST 交付；默认（或 "html"）保持 HTML + DATA。languageTags 是逗号分隔的
+ * BCP-47 语言优先级列表（内容语言在前），用于挑 mermaid 文本字体与集合字体的 face。
+ * darkMode 决定 mermaid、math 插件的默认前景色（省略按浅色）；background 是宿主显式给出
+ * 的画布底色（#rrggbb，省略或格式不对时按浅色底兜底）。
  */
+static const char kDefaultPluginBackground[] = "#f5f5f5";
+
+static std::string NormalizePluginBackground(const std::string &text) {
+  if (text.size() == 7 && text[0] == '#') {
+    bool valid = true;
+    for (size_t i = 1; i < text.size(); ++i) {
+      const char c = text[i];
+      if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+        valid = false;
+        break;
+      }
+    }
+    if (valid) return text;
+  }
+  return std::string(kDefaultPluginBackground);
+}
+
+/* 非布尔或缺省一律按 false（浅色）处理，避免宿主误传导致 session 创建失败。 */
+static bool ReadBoolArg(napi_env env, napi_value value) {
+  napi_valuetype type = napi_undefined;
+  bool result = false;
+  if (value == nullptr || napi_typeof(env, value, &type) != napi_ok || type != napi_boolean)
+    return false;
+  if (napi_get_value_bool(env, value, &result) != napi_ok) return false;
+  return result;
+}
+
 static std::string ReadUtf8Arg(napi_env env, napi_value value) {
   napi_valuetype type = napi_undefined;
   size_t size = 0;
@@ -298,14 +327,18 @@ static std::string ReadUtf8Arg(napi_env env, napi_value value) {
 }
 
 static napi_value CreateSession(napi_env env, napi_callback_info info) {
-  size_t argc = 2;
-  napi_value args[2] = {nullptr, nullptr};
+  size_t argc = 4;
+  napi_value args[4] = {nullptr, nullptr, nullptr, nullptr};
   napi_value self;
   if (napi_get_cb_info(env, info, &argc, args, &self, nullptr) != napi_ok) {
     return Throw(env, "libmark session creation failed");
   }
   const std::string mode = ReadUtf8Arg(env, args[0]);
   const std::string locale_text = ReadUtf8Arg(env, args[1]);
+  const bool dark_mode = ReadBoolArg(env, args[2]);
+  const std::string background = NormalizePluginBackground(ReadUtf8Arg(env, args[3]));
+  const libmark_color_scheme color_scheme =
+      dark_mode ? LIBMARK_COLOR_SCHEME_DARK : LIBMARK_COLOR_SCHEME_LIGHT;
   const bool ast_only = mode == "ast";
   auto *state = new BridgeSession();
   /*
@@ -345,7 +378,9 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
   mermaid_options.max_subgraph_depth = 32;
   mermaid_options.max_label_bytes = 50000;
   mermaid_options.max_svg_bytes = 4 * 1024 * 1024;
-  mermaid_options.background_color = {(const uint8_t *)"#f5f5f5", sizeof("#f5f5f5") - 1};
+  /* 底色只在 session create 时被插件解析成 RGB，这里借用局部字符串即可。 */
+  mermaid_options.background_color = {(const uint8_t *)background.data(), background.size()};
+  mermaid_options.color_scheme = color_scheme;
   if (has_font) {
     mermaid_options.fonts = &mermaid_font;
     mermaid_options.font_count = 1;
@@ -385,6 +420,8 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
   libmark_math_options_v1 math_options{};
   math_options.struct_size = sizeof(math_options);
   math_options.inline_output = LIBMARK_MATH_INLINE_OUTPUT_IMAGE;
+  math_options.background_color = {(const uint8_t *)background.data(), background.size()};
+  math_options.color_scheme = color_scheme;
   if (font_registered) {
     math_options.text_fonts = &math_text_font;
     math_options.text_font_count = 1;

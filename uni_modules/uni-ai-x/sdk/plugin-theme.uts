@@ -1,0 +1,12 @@
+// libmark 原生插件（mermaid / math）的画布底色。
+//
+// 与展示层 webview 重渲染、消息卡片的底色保持一致（proxy-web.html 的
+// renderMermaid / mathSvgRender 用同一组取值），浅色 #ffffff、深色 #25282c；
+// 解析会话按主题透传给原生插件，避免中间态 SVG 与最终渲染底色不一致。
+export const LIGHT_PLUGIN_BACKGROUND = '#ffffff'
+export const DARK_PLUGIN_BACKGROUND = '#25282c'
+
+/** 当前主题（'dark' 或其他）对应的插件画布底色。 */
+export function pluginBackgroundFor(theme: string): string {
+	return theme == 'dark' ? DARK_PLUGIN_BACKGROUND : LIGHT_PLUGIN_BACKGROUND
+}

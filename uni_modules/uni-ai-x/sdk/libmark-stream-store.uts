@@ -8,6 +8,7 @@ import { prepareCodeBlocks } from './code-presentation.uts'
 import { releaseCodeHighlightSessions } from './parseCode.uts'
 import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
+import { pluginBackgroundFor } from './plugin-theme.uts'
 // #ifdef APP-ANDROID
 import { prepareAndroidPresentation, releaseAndroidPresentation, completeAndroidInlineMath } from '@/uni_modules/uni-ai-worker-runtime'
 import proxyWeb from './proxy-web.uts'
@@ -333,7 +334,9 @@ export function libmarkStreamRequestRebuild(msgId: string, text: string): boolea
 	const existing = streamEntries.get(msgId)
 	if (existing != null && (existing!.textBlocks.length > 0 || existing!.preparationVersion > 0)) return false
 	rebuildingMsgIds.push(msgId)
-	requestAiWorkerMarkdownRebuild(msgId, text)
+	// 重建会话与展示层当前主题保持一致，重建出的中间态 SVG 用同色画布
+	requestAiWorkerMarkdownRebuild(msgId, text, presentationTheme == 'dark',
+		pluginBackgroundFor(presentationTheme))
 	return true
 	// #endif
 	// #ifndef APP-HARMONY

@@ -510,13 +510,36 @@ void Sha256(const uint8_t *data, size_t size, uint8_t out[32]) {
 }
 
 /*
- * createSession(mode, locales)。mode 为 "ast" 时只交付 AST 通道并打开节点 payload，
- * 其余取值交付 HTML + DATA，与 HarmonyOS 桥一致。locales 是逗号分隔的 BCP-47 语言
- * 优先级列表（内容语言在前、设备语言在后），用于挑 mermaid 文本字体与集合字体的 face。
+ * createSession(mode, locales, darkMode, background)。mode 为 "ast" 时只交付 AST 通道
+ * 并打开节点 payload，其余取值交付 HTML + DATA，与 HarmonyOS 桥一致。locales 是逗号
+ * 分隔的 BCP-47 语言优先级列表（内容语言在前、设备语言在后），用于挑 mermaid 文本字体
+ * 与集合字体的 face。darkMode 决定两个插件的默认前景色（省略按浅色），background 是
+ * 宿主显式给出的画布底色（#rrggbb，省略或格式不对时按浅色底兜底）。
  */
-jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring locales) {
+static const char kDefaultPluginBackground[] = "#f5f5f5";
+
+std::string NormalizePluginBackground(const std::string &text) {
+  if (text.size() == 7 && text[0] == '#') {
+    bool valid = true;
+    for (size_t i = 1; i < text.size(); ++i) {
+      const char c = text[i];
+      if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+        valid = false;
+        break;
+      }
+    }
+    if (valid) return text;
+  }
+  return std::string(kDefaultPluginBackground);
+}
+
+jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring locales,
+                    jboolean dark_mode, jstring background) {
   const std::string mode_text = ToUtf8(env, mode);
   const std::string locale_text = ToUtf8(env, locales);
+  const std::string background_text = NormalizePluginBackground(ToUtf8(env, background));
+  const libmark_color_scheme color_scheme =
+      dark_mode == JNI_TRUE ? LIBMARK_COLOR_SCHEME_DARK : LIBMARK_COLOR_SCHEME_LIGHT;
   const bool ast_only = mode_text == "ast";
   auto *state = new BridgeSession();
   /*
@@ -556,7 +579,10 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
   mermaid_options.max_subgraph_depth = 32;
   mermaid_options.max_label_bytes = 50000;
   mermaid_options.max_svg_bytes = 4 * 1024 * 1024;
-  mermaid_options.background_color = {(const uint8_t *)"#f5f5f5", sizeof("#f5f5f5") - 1};
+  /* 底色只在 session create 时被插件解析成 RGB，这里借用局部字符串即可。 */
+  mermaid_options.background_color = {(const uint8_t *)background_text.data(),
+                                      background_text.size()};
+  mermaid_options.color_scheme = color_scheme;
   if (has_font) {
     mermaid_options.fonts = &mermaid_font;
     mermaid_options.font_count = 1;
@@ -601,6 +627,9 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
   libmark_math_options_v1 math_options{};
   math_options.struct_size = sizeof(math_options);
   math_options.inline_output = LIBMARK_MATH_INLINE_OUTPUT_IMAGE;
+  math_options.background_color = {(const uint8_t *)background_text.data(),
+                                   background_text.size()};
+  math_options.color_scheme = color_scheme;
   if (font_registered) {
     math_options.text_fonts = &math_text_font;
     math_options.text_font_count = 1;
@@ -677,8 +706,10 @@ void DestroySession(JNIEnv *env, jobject /*unused*/, jlong handle) {
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_uts_sdk_modules_libmark_LibmarkBridge_nativeCreateSession(JNIEnv *env, jobject thiz,
-                                                               jstring mode, jstring locales) {
-  return CreateSession(env, thiz, mode, locales);
+                                                               jstring mode, jstring locales,
+                                                               jboolean dark_mode,
+                                                               jstring background) {
+  return CreateSession(env, thiz, mode, locales, dark_mode, background);
 }
 
 extern "C" JNIEXPORT jstring JNICALL

@@ -8,6 +8,8 @@ import {
 	reportDemoMarkdownSnapshot
 } from '@/demo/markdown/demo-chat.uts'
 import { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts'
+import { uiTheme } from '@/uni_modules/uni-ai-x/sdk/index.uts'
+import { pluginBackgroundFor } from '@/uni_modules/uni-ai-x/sdk/plugin-theme.uts'
 // #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 import {
 	appendAiWorkerMarkdown,
@@ -89,7 +91,9 @@ export default class MarkdownDemoRunner {
 		this.stopped = false
 		startAiWorkerMarkdown({
 			requestVersion: this.requestVersion,
-			renderInterval: DEMO_RENDER_INTERVAL
+			renderInterval: DEMO_RENDER_INTERVAL,
+			darkMode: uiTheme.value == 'dark',
+			background: pluginBackgroundFor(uiTheme.value)
 		})
 		// #ifdef MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {

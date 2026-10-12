@@ -139,6 +139,8 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.renderInterval = options.renderInterval ?? 300
 	message.timeout = options.timeout ?? 90000
 	message.language = resolveAppLanguage()
+	message.darkMode = options.darkMode ?? false
+	message.background = options.background ?? ''
 	worker!.postMessage(message, null)
 }
 
@@ -153,7 +155,9 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 		renderProtocolVersion: WORKER_RENDER_PROTOCOL_VERSION,
 		requestVersion: options.requestVersion,
 		renderInterval: options.renderInterval ?? 300,
-		language: resolveAppLanguage()
+		language: resolveAppLanguage(),
+		darkMode: options.darkMode ?? false,
+		background: options.background ?? ''
 	}, null)
 	if (pendingMarkdownContent.length > 0 || pendingMarkdownReasoning.length > 0) {
 		postMarkdownChunk(options.requestVersion, pendingMarkdownContent, pendingMarkdownReasoning)
@@ -264,7 +268,9 @@ function postRebuildRequest(request: AiWorkerRebuildRequest): void {
 		action: 'rebuild-markdown',
 		msgId: request.msgId,
 		content: request.content,
-		language: resolveAppLanguage()
+		language: resolveAppLanguage(),
+		darkMode: request.darkMode,
+		background: request.background
 	}, null)
 }
 
@@ -275,10 +281,10 @@ function flushPendingRebuildRequests(): void {
 	for (let i = 0; i < requests.length; i++) postRebuildRequest(requests[i])
 }
 
-const requestWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string): void {
+const requestWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string, darkMode: boolean, background: string): void {
 	if (msgId.length == 0 || content.length == 0) return
 	createWorkerRuntime()
-	const request: AiWorkerRebuildRequest = { msgId: msgId, content: content }
+	const request: AiWorkerRebuildRequest = { msgId: msgId, content: content, darkMode: darkMode, background: background }
 	if (!workerReady) {
 		pendingRebuildRequests.push(request)
 		return
@@ -809,9 +815,9 @@ export const isLibmarkOpsSupported: () => boolean = function (): boolean {
 	// #endif
 }
 
-export const requestAiWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string): void {
+export const requestAiWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string, darkMode: boolean, background: string): void {
 	// #ifdef APP-HARMONY || APP-ANDROID
-	requestWorkerMarkdownRebuild(msgId, content)
+	requestWorkerMarkdownRebuild(msgId, content, darkMode, background)
 	// #endif
 }
 

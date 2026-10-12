@@ -42,7 +42,11 @@ export type RequestAiStartOptions = {
 	llm: Llm,
 	chat_id: string,
 	// 是否在回答成功结束后自动更新会话标题（仅会话首条提问时传 true，避免每轮都消耗模型 RPM）
-	updateTitleAfterDone ?: boolean
+	updateTitleAfterDone ?: boolean,
+	// libmark 解析会话的配色：darkMode 决定插件默认前景色，background 是画布底色；
+	// 只影响原生解析产出的中间态 SVG，最终绘制仍由展示层按主题重渲染。
+	darkMode ?: boolean,
+	background ?: string
 }
 type RequestAiOnChunkFn = (chunkObj : Chunk) => void
 type RequestAiOnErrorFn = (err : UTSJSONObject) => void
@@ -113,6 +117,9 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
+	// 本次请求的 libmark 解析配色，由 start 的 options 提供，随 worker 启动消息透传
+	private pluginDarkMode: boolean = false
+	private pluginBackground: string = ''
 	private finishRequested: boolean = false
 	private streamParser: SseStreamParser | null = null
 	// 等回答成功结束后再触发标题总结，避免与回答请求并发占用同一模型的 RPM
@@ -227,6 +234,8 @@ class RequestAiRunner {
 		})
 	}
 	start(options: RequestAiStartOptions) {
+		this.pluginDarkMode = options.darkMode ?? false
+		this.pluginBackground = options.background ?? ''
 		this.requestAi(options.messages, options.llm, options.chat_id, options.updateTitleAfterDone ?? false)
 	}
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string, updateTitleAfterDone: boolean = false) {
@@ -362,7 +371,9 @@ class RequestAiRunner {
 				bodyJson: '',
 				body: body,
 				renderInterval: MARKDOWN_RENDER_INTERVAL,
-				timeout: 90000
+				timeout: 90000,
+				darkMode: this.pluginDarkMode,
+				background: this.pluginBackground
 			})
 			setAiWorkerDataListener(() => {
 				this.pollWorkerSnapshot(requestVersion)
@@ -529,7 +540,9 @@ class RequestAiRunner {
 		this.workerActive = true
 		startAiWorkerMarkdown({
 			requestVersion: requestVersion,
-			renderInterval: MARKDOWN_RENDER_INTERVAL
+			renderInterval: MARKDOWN_RENDER_INTERVAL,
+			darkMode: this.pluginDarkMode,
+			background: this.pluginBackground
 		})
 		// #ifdef MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {

@@ -13,12 +13,18 @@ export type AiWorkerStartOptions = {
 	bodyJson: string,
 	body?: UTSJSONObject,
 	renderInterval?: number,
-	timeout?: number
+	timeout?: number,
+	// 解析会话的配色：darkMode 决定 libmark 插件默认前景色，background 是宿主显式
+	// 给出的画布底色（#rrggbb），由主线程按当前主题给出。
+	darkMode?: boolean,
+	background?: string
 }
 
 export type AiWorkerMarkdownStartOptions = {
 	requestVersion: number,
-	renderInterval?: number
+	renderInterval?: number,
+	darkMode?: boolean,
+	background?: string
 }
 
 export type CreateAiWorkerRuntime = () => void
@@ -42,12 +48,14 @@ export type SetAiWorkerDataListener = (listener: AiWorkerDataListener | null) =>
 // 页面冷启动恢复历史消息：请求 Worker 用 libmark 从原文重建渲染 ops
 export type AiWorkerRebuildRequest = {
 	msgId: string,
-	content: string
+	content: string,
+	darkMode: boolean,
+	background: string
 }
 export type AiWorkerRebuildResult = {
 	msgId: string,
 	ops: AiWorkerOp[]
 }
 export type AiWorkerRebuildListener = (result: AiWorkerRebuildResult) => void
-export type RequestAiWorkerMarkdownRebuild = (msgId: string, content: string) => void
+export type RequestAiWorkerMarkdownRebuild = (msgId: string, content: string, darkMode: boolean, background: string) => void
 export type SetAiWorkerRebuildListener = (listener: AiWorkerRebuildListener | null) => void
