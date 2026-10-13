@@ -218,20 +218,28 @@ export class StorageManager {
 
 	updateStreamingMessage(message: MsgItem) {
 		if (removedMessages.has(message._id) || removedChats.has(message.chat_id)) return
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		storageRevision++
 		const snapshot = snapshotMessage(message)
 		pendingWrites.set(message._id, snapshot)
-		saveAndroidMessageInBackground(STORAGE_KEYS.MSG_CONTENT_PREFIX + message._id, snapshot as UTSJSONObject, (ok: boolean) => {
-			if (pendingWrites.get(message._id) != snapshot) return
+		let retries = 0
+		const isCurrent = (): boolean => pendingWrites.get(message._id) == snapshot && !removedMessages.has(message._id) && !removedChats.has(message.chat_id)
+		const attempt = () => {
+			if (!isCurrent()) return
+			// #ifdef APP-ANDROID
+			saveAndroidMessageInBackground(STORAGE_KEYS.MSG_CONTENT_PREFIX + message._id, snapshot as UTSJSONObject, receive)
+			// #endif
+			// #ifdef APP-HARMONY
+			requestSnapshotWork({ action: 'save-message', message: snapshot } as UTSJSONObject, (result: UTSJSONObject) => { receive(result['ok'] == true) })
+			// #endif
+		}
+		const receive = (ok: boolean) => {
+			if (!isCurrent()) return
 			if (ok) pendingWrites.delete(message._id)
-			else console.error('[uni-ai-x] Message save failed: ' + message._id)
-		})
-		// #endif
-		// #ifdef APP-HARMONY
-		requestSnapshotWork({ action: 'save-message', message: snapshotMessage(message) } as UTSJSONObject, (result: UTSJSONObject) => {
-			if (result['ok'] != true) console.error('[render-snapshot] message write failed: ' + message._id)
-		})
+			else if (retries < 3) { retries++; setTimeout(attempt, 1000 * retries) }
+			else console.error('[render-snapshot] message save exhausted: ' + message._id)
+		}
+		attempt()
 		// #endif
 		// #ifndef APP-ANDROID || APP-HARMONY
 		this.updateMessage(message)
@@ -240,9 +248,7 @@ export class StorageManager {
 
 	private invalidateMessageWrite(msgId: string) {
 		invalidateKey(STORAGE_KEYS.MSG_CONTENT_PREFIX + msgId)
-		// #ifdef APP-ANDROID
 		pendingWrites.delete(msgId)
-		// #endif
 	}
 	// 旧版消息渲染字段的惰性重写队列（鸿蒙/Android）
 	private pendingMigrateMsgIds = [] as string[]

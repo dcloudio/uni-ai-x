@@ -72,6 +72,8 @@ test('invalid version, changed source, partial blocks, missing files and travers
 });
 
 function store() {
+  const timers = new Map();
+  let timerId = 0;
   const work = [];
   const preparations = [];
   let parses = 0;
@@ -79,6 +81,8 @@ function store() {
     ['libmarkStreamBindMessage', 'libmarkStreamMarkComplete', 'libmarkStreamApply', 'libmarkStreamGetBlocks',
       'libmarkStreamRequestRebuild', 'libmarkStreamRelease', 'libmarkStreamSetTheme'], {
       ref: value => ({ value }), reactive: value => value, ...pure,
+      setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
+      clearTimeout: id => timers.delete(id),
       LibmarkHtmlStreamAdapter: class { reset() {} },
       requestSnapshotWork: (request, callback) => work.push({ request, callback }),
       requestAiWorkerMarkdownRebuild: () => parses++,
@@ -86,7 +90,83 @@ function store() {
       releaseAndroidPresentation() {}, releaseCodeHighlightSessions() {},
       prepareNativeMermaidBlocks() {}, pluginBackgroundFor: () => '#fff',
     });
-  return { ...api, work, preparations, parses: () => parses };
+  return { ...api, work, preparations, parses: () => parses, tick: () => {
+    const callbacks = [...timers.values()]; timers.clear(); callbacks.forEach(fn => fn());
+  } };
+}
+
+test('failed diagram terminal state persists and asset errors retry without further stream events', async () => {
+  const api = store();
+  let saved = 0;
+  const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
+  await api.libmarkStreamBindMessage(msg, () => saved++);
+  api.libmarkStreamMarkComplete('m');
+  await Promise.resolve();
+  const failed = block({ kind: 'mermaid', mermaidRenderFailed: true, mermaidImageSource: '' });
+  api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
+    changes: [{ index: 0, block: failed }] });
+  assert.equal(api.work.length, 1);
+  api.work[0].callback({ snapshot: null });
+  api.tick();
+  assert.equal(api.work.length, 2);
+  api.work[1].callback({ snapshot: snapshot([failed]) });
+  assert.equal(saved, 1);
+  assert.equal(msg.renderSnapshot.blocks[0].mermaidRenderFailed, true);
+});
+
+test('asset retries stop after three retries and are cancelled when a message is released', async () => {
+  for (const release of [false, true]) {
+    const api = store();
+    await api.libmarkStreamBindMessage({ _id: 'm', from_uid: 'uni-ai', body: 'hello' }, () => {});
+    api.libmarkStreamMarkComplete('m');
+    await Promise.resolve();
+    api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
+      changes: [{ index: 0, block: block() }] });
+    api.work[0].callback({ snapshot: null });
+    if (release) api.libmarkStreamRelease('m');
+    for (let i = 0; i < 5; i++) { api.tick(); api.work.at(-1).callback({ snapshot: null }); }
+    assert.equal(api.work.length, release ? 1 : 4);
+  }
+});
+
+test('failed native math becomes persistable source text and failed diagrams are not rendered again', () => {
+  let renders = 0;
+  const { prepareNativeMermaidBlocks } = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
+    renderMathSvgForTheme: (text, theme, done) => { renders++; done({ imageSource: '' }); },
+    renderMermaidSvgForTheme: (text, theme, done) => { renders++; done({ imageSource: '' }); },
+  });
+  const blocks = [block({ kind: 'math', text: 'invalid math' }), block({ kind: 'mermaid', text: 'invalid diagram' })];
+  prepareNativeMermaidBlocks(blocks, 'light', () => {});
+  prepareNativeMermaidBlocks(blocks, 'light', () => {});
+  assert.equal(renders, 2);
+  assert.equal(blocks[0].kind, 'data-text');
+  assert.equal(blocks[0].text, 'invalid math');
+  assert.equal(blocks[1].mermaidRenderFailed, true);
+});
+
+for (const platform of ['APP-ANDROID', 'APP-HARMONY']) {
+  test(platform + ' message retry saves final snapshot and never overwrites a newer write', () => {
+    const timers = [];
+    const writes = [];
+    const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
+      setTimeout: fn => timers.push(fn),
+      saveAndroidMessageInBackground: (key, value, done) => writes.push({ value, done }),
+      requestSnapshotWork: (request, done) => writes.push({ value: request.message, done: ok => done({ ok }) }),
+    }, ['APP', platform]);
+    const manager = new StorageManager();
+    const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
+    manager.updateStreamingMessage(msg);
+    writes[0].done(false);
+    timers.shift()();
+    assert.equal(writes.length, 2);
+    assert.equal(writes[1].value.renderSnapshot, msg.renderSnapshot);
+    writes[1].done(false);
+    manager.updateStreamingMessage({ ...msg, body: 'new' });
+    timers.shift()();
+    assert.equal(writes.length, 3);
+    assert.equal(writes[2].value.body, 'new');
+    writes[2].done(true);
+  });
 }
 
 test('restart restores final blocks without invoking parsing and prevents an overlapping rebuild', async () => {

@@ -52,6 +52,8 @@ type LibmarkStreamEntry = {
 	restored: boolean
 	restoring: boolean
 	savingVersion: number
+	saveRetryCount: number
+	saveRetryTimer: number
 	message: MsgItem | null
 	save: ((message: MsgItem) => void) | null
 }
@@ -98,6 +100,7 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 		pendingDone: false,
 		preparationQueued: false,
 		done: false, settled: false, restored: false, restoring: false, savingVersion: -1,
+		saveRetryCount: 0, saveRetryTimer: 0,
 		message: null, save: null
 	}
 	streamEntries.set(msgId, entry)
@@ -123,7 +126,9 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	if (!entry.textBlocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
 		(block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? '')) &&
 		(block.kind != 'math' || block.svgSource.length > 0 || (block.math?.src ?? '').length > 0) &&
-		(block.kind != 'mermaid' || (block.mermaidImageSource ?? '').length > 0))) return
+		(block.kind != 'mermaid' || block.mermaidRenderFailed == true || (block.mermaidImageSource ?? '').length > 0))) return
+	if (entry.saveRetryTimer != 0) { clearTimeout(entry.saveRetryTimer); entry.saveRetryTimer = 0 }
+	entry.saveRetryCount = 0
 	const version = entry.preparationVersion
 	const body = message.body
 	const theme = presentationTheme
@@ -131,13 +136,24 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	entry.savingVersion = version
 	const snapshot: RenderSnapshot = { version: RENDER_SNAPSHOT_VERSION, bodyKey: '', theme: theme,
 		width: width, citations: (message.search?.sources ?? []).map((source) => source.id).join(','), assets: [], blocks: cloneBlocks(entry.textBlocks) }
+	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version && message.body == body && presentationTheme == theme && presentationWidth == width
+	const attempt = () => {
+	if (!isCurrent()) return
 	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
-		if (streamEntries.get(entry.messageId) != entry || entry.preparationVersion != version || message.body != body || presentationTheme != theme) return
+		if (!isCurrent()) return
 		const stored = result['snapshot'] as RenderSnapshot | null
-		if (stored == null) { entry.savingVersion = -1; return }
+		if (stored == null) {
+			if (entry.saveRetryCount < 3) {
+				entry.saveRetryCount++
+				entry.saveRetryTimer = setTimeout(() => { entry.saveRetryTimer = 0; attempt() }, 1000 * entry.saveRetryCount)
+			} else console.error('[render-snapshot] asset save exhausted: ' + entry.messageId)
+			return
+		}
 		message.renderSnapshot = stored
 		entry.save?.(message)
 	})
+	}
+	attempt()
 	// #endif
 }
 
@@ -508,8 +524,9 @@ export function libmarkStreamReset(msgId: string): void {
 }
 
 export function libmarkStreamRelease(msgId: string): void {
-	// #ifdef APP-ANDROID
 	const entry = streamEntries.get(msgId)
+	if (entry != null && entry.saveRetryTimer != 0) clearTimeout(entry.saveRetryTimer)
+	// #ifdef APP-ANDROID
 	if (entry != null) releaseAndroidPresentation(entry.workerId)
 	// #endif
 	releaseCodeHighlightSessions(msgId)
