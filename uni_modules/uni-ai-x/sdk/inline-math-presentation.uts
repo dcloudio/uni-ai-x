@@ -1,5 +1,8 @@
 import proxyWeb from './proxy-web.uts'
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
+// #ifdef APP-ANDROID
+import { prepareAndroidSvgSource } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
 
 type InlineMathImage = { source: string, width: number, height: number }
 type ImageCallback = (image: InlineMathImage) => void
@@ -48,15 +51,18 @@ export function prepareNativeInlineMathBlocks(messageId: string, blocks: Markdow
 			proxyWeb.callMethod({ action: 'rasterizeInlineMath', source: source, theme: theme }, (result: UTSJSONObject) => {
 				if (proxyWeb.getGeneration() != epoch) return
 				pending.delete(key)
-				const image: InlineMathImage = {
-					source: (result['imageDataURL'] as string | null) ?? '',
-					width: (result['width'] as number | null) ?? 0,
-					height: (result['height'] as number | null) ?? 0
+				const dataURL = (result['imageDataURL'] as string | null) ?? ''
+				if (dataURL.length == 0) return
+				const publish = (source: string, _cacheable: boolean) => {
+					const image: InlineMathImage = { source, width: (result['width'] as number | null) ?? 0, height: (result['height'] as number | null) ?? 0 }
+					if (image.source.length == 0) return
+					if (images.size >= 64) images.clear()
+					images.set(key, image)
+					listeners.forEach((callback: ImageCallback) => { callback(image) })
 				}
-				if (image.source.length == 0) return
-				if (images.size >= 64) images.clear()
-				images.set(key, image)
-				listeners.forEach((callback: ImageCallback) => { callback(image) })
+				// #ifdef APP-ANDROID
+				prepareAndroidSvgSource(dataURL, publish)
+				// #endif
 			})
 		}
 	}

@@ -59,7 +59,7 @@ function initializeCache() {
 	const directory = new File(UTSAndroid.convert2AbsFullPath(uni.env.CACHE_PATH + '/ai-svg-cache/'))
 	const files = directory.listFiles()
 	if (files != null) for (const file of files) {
-		if (/^\d+-\d+\.svg$/.test(file.getName()) && !protectedFiles.has(file.getAbsolutePath())) file.delete()
+		if (/^\d+-\d+\.(svg|png)$/.test(file.getName()) && !protectedFiles.has(file.getAbsolutePath())) file.delete()
 	}
 	initialized = true
 }
@@ -119,12 +119,15 @@ export function prepareAndroidSvgSource(dataURL: string, callback: (source: stri
 		try {
 			initializeCache()
 			const svgPrefix = 'data:image/svg+xml;base64,'
-			if (dataURL.startsWith(svgPrefix)) {
+			const pngPrefix = 'data:image/png;base64,'
+			if (dataURL.startsWith(svgPrefix) || dataURL.startsWith(pngPrefix)) {
 				const directory = new File(UTSAndroid.convert2AbsFullPath(uni.env.CACHE_PATH + '/ai-svg-cache/'))
 				directory.mkdirs()
-				const file = new File(directory, Date.now().toString() + '-' + (++fileSequence).toString() + '.svg')
+				const isPng = dataURL.startsWith(pngPrefix)
+				const prefix = isPng ? pngPrefix : svgPrefix
+				const file = new File(directory, Date.now().toString() + '-' + (++fileSequence).toString() + (isPng ? '.png' : '.svg'))
 				const output = new FileOutputStream(file)
-				try { output.write(Base64.decode(dataURL.substring(svgPrefix.length), Base64.DEFAULT)) }
+				try { output.write(Base64.decode(dataURL.substring(prefix.length), Base64.DEFAULT)) }
 				finally { output.close() }
 				source = file.getAbsolutePath()
 			}

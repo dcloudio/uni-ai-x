@@ -10,6 +10,7 @@ function setup(flags) {
   let generation = 0;
   const { prepareNativeInlineMathBlocks: prepare } = loadUts('uni_modules/uni-ai-x/sdk/inline-math-presentation.uts', ['prepareNativeInlineMathBlocks'], {
     proxyWeb: { getGeneration: () => generation, callMethod: (request, callback) => calls.push({ request, callback }) },
+    prepareAndroidSvgSource: (dataURL, callback) => callback(dataURL, true),
   }, flags);
   return { calls, prepare, release: () => generation++ };
 }
