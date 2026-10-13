@@ -54,7 +54,7 @@
 	.uni-ai-msg-html-table-content {
 		align-self: flex-start;
 		flex-shrink: 0;
-		/* #ifdef WEB */
+		/* #ifdef WEB || MP-WEIXIN */
 		min-width: 100%;
 		/* #endif */
 	}
