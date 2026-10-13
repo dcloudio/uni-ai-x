@@ -37,9 +37,9 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 				}
 			if (block.kind == 'math') {
 				block.svgSource = result.imageSource
-				block.svgWidth = result.width
-				block.svgHeight = result.height
 			} else block.mermaidImageSource = result.imageSource
+			block.svgWidth = result.width
+			block.svgHeight = result.height
 			changed()
 		}
 		if (block.kind == 'math') renderMathSvgForTheme(block.text.trim(), theme, receive)

@@ -150,7 +150,7 @@
         let width = activeImageWidth.value
         if (activeImageHref.value.length == 0 && pendingBuffer.value == 0) width = buffer0Width.value
         if (activeImageHref.value.length == 0 && pendingBuffer.value == 1) width = buffer1Width.value
-        if (width <= 0) width = props.width ?? sourceContentWidthValue.value
+        if (width <= 0) width = (props.svgWidth ?? 0) > 0 ? props.svgWidth! : ((props.width ?? 0) > 0 ? props.width! : sourceContentWidthValue.value)
         return Math.max(1, Math.ceil(width)).toString() + 'px'
     })
 
@@ -158,7 +158,7 @@
         let height = activeImageHeight.value
         if (activeImageHref.value.length == 0 && pendingBuffer.value == 0) height = buffer0Height.value
         if (activeImageHref.value.length == 0 && pendingBuffer.value == 1) height = buffer1Height.value
-        if (height <= 0) height = props.height ?? Math.max(44, (props.text ?? '').split('\n').length * 22)
+        if (height <= 0) height = (props.svgHeight ?? 0) > 0 ? props.svgHeight! : ((props.height ?? 0) > 0 ? props.height! : Math.max(44, (props.text ?? '').split('\n').length * 22))
         return Math.max(1, Math.ceil(height)).toString() + 'px'
     })
 

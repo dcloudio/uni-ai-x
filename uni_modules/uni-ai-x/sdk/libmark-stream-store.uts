@@ -126,6 +126,7 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	if (!entry.textBlocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
 		(block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? '')) &&
 		(block.kind != 'math' || block.svgSource.length > 0 || (block.math?.src ?? '').length > 0) &&
+		((block.kind != 'image' && block.kind != 'mermaid') || block.mermaidRenderFailed == true || (block.svgWidth > 0 && block.svgHeight > 0)) &&
 		(block.kind != 'mermaid' || block.mermaidRenderFailed == true || (block.mermaidImageSource ?? '').length > 0))) return
 	if (entry.saveRetryTimer != 0) { clearTimeout(entry.saveRetryTimer); entry.saveRetryTimer = 0 }
 	entry.saveRetryCount = 0

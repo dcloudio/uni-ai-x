@@ -1,0 +1,6 @@
+// Message rows have 45px padding on each side; chart borders consume another 2px.
+export function messageImageStyle(sourceWidth: number, sourceHeight: number, windowWidth: number, inset: number = 0): string {
+	const width = Math.max(1, Math.min(windowWidth > 0 ? windowWidth : 360, 800) - 90 - inset)
+	const height = sourceWidth > 0 && sourceHeight > 0 ? width * sourceHeight / sourceWidth : 120
+	return 'width:100%;height:' + height.toString() + 'px;'
+}

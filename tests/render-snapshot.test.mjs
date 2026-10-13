@@ -71,6 +71,37 @@ test('invalid version, changed source, partial blocks, missing files and travers
   assert.equal(api.restoreRenderAssets(snapshot([block({ svgSource: 'uni-ai-asset://../secret' })]), 'hello'), null);
 });
 
+test('image snapshots preserve intrinsic dimensions and reject old dimensionless image blocks', () => {
+  const api = files();
+  const image = block({ kind: 'mermaid', mermaidImageSource: 'data:image/png;base64,aGVsbG8=', svgWidth: 640, svgHeight: 320 });
+  const stored = api.persistRenderAssets('sized', snapshot([image]));
+  const restored = api.restoreRenderAssets(stored, 'hello');
+  assert.equal(restored.blocks[0].svgWidth, 640);
+  assert.equal(restored.blocks[0].svgHeight, 320);
+  assert.equal(api.restoreRenderAssets(snapshot([block({ kind: 'mermaid', mermaidImageSource: '/old.png' })]), 'hello'), null);
+  assert.equal(api.restoreRenderAssets(snapshot([block({ kind: 'image', svgSource: '/old.svg' })]), 'hello'), null);
+});
+
+test('message image layout reserves the same proportional height independent of image loading', () => {
+  const { messageImageStyle } = loadUts('uni_modules/uni-ai-x/sdk/image-layout.uts', ['messageImageStyle']);
+  assert.equal(messageImageStyle(640, 320, 390), 'width:100%;height:150px;');
+  assert.equal(messageImageStyle(640, 320, 390, 2), 'width:100%;height:149px;');
+  assert.equal(messageImageStyle(640, 320, 1200), 'width:100%;height:355px;');
+  assert.equal(messageImageStyle(640, 320, 0), 'width:100%;height:135px;');
+});
+
+test('WebView generated Mermaid retains dimensions before notifying persistence', () => {
+  const { prepareNativeMermaidBlocks } = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
+    renderMermaidSvgForTheme: (text, theme, done) => done({ imageSource: '/chart.png', width: 640, height: 320 }),
+  });
+  const chart = block({ kind: 'mermaid', text: 'gantt' });
+  prepareNativeMermaidBlocks([chart], 'light', () => {
+    assert.equal(chart.svgWidth, 640);
+    assert.equal(chart.svgHeight, 320);
+  });
+  assert.equal(chart.mermaidImageSource, '/chart.png');
+});
+
 function store() {
   const timers = new Map();
   let timerId = 0;

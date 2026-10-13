@@ -29,7 +29,7 @@
 			:source-identity="part.block.math?.sourceIdentity" :source-text="part.block.math?.sourceText"
 			:href="part.block.math?.src ?? ''" :width="part.block.math?.width ?? 0" :height="part.block.math?.height ?? 0" :render-theme="uiTheme"
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
-		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="widthFix" style="width:100%;" />
+		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="aspectFit" :style="blockImageStyle(part.block)" />
 		<text v-else-if="part.block != null && part.block.kind == 'data-text'" class="msg-root-plain-text">{{part.block.text}}</text>
 		<uni-ai-libmark-html v-else-if="part.block != null && part.block.kind == 'html'"
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
@@ -49,6 +49,13 @@
 <script lang="uts" setup>
 	import {uniAi, MsgItem, messageToolBarVisible, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+	import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
+	import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+	onMounted(() => { updateMathLayout(uni.getWindowInfo().windowWidth) })
+	function blockImageStyle(block: MarkdownTextRenderBlock): string {
+		return messageImageStyle(block.svgWidth, block.svgHeight,
+			mathWindowWidth.value > 0 ? mathWindowWidth.value : uni.getWindowInfo().windowWidth)
+	}
 	import msgToolBar from '@/uni_modules/uni-ai-x/components/msg-tool-bar.uvue'
 	import uniAiMsgHtmlTable from '@/uni_modules/uni-ai-x/components/uni-ai-msg-html-table/uni-ai-msg-html-table.uvue'
 	import { emptyTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'

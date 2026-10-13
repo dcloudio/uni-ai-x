@@ -28,6 +28,7 @@ export function validRenderSnapshot(snapshot: RenderSnapshot, body: string): boo
 	return snapshot.version == RENDER_SNAPSHOT_VERSION && snapshot.bodyKey == renderContentKey(body)
 		&& snapshot.blocks != null && snapshot.assets != null && snapshot.blocks.length > 0
 		&& snapshot.blocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
+			((block.kind != 'image' && block.kind != 'mermaid') || block.mermaidRenderFailed == true || (block.svgWidth > 0 && block.svgHeight > 0)) &&
 			block.kind != null && block.key != null && block.html != null && block.text != null &&
 			block.columnWidths != null && block.rowTextWidths != null && block.svgSource != null)
 }
