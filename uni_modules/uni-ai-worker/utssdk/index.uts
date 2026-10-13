@@ -3,8 +3,10 @@ export * from './interface.uts'
 export * from './stream-request.uts'
 export * from './markdown-preprocessor.uts' // Includes iOS-safe trailing-newline scanning.
 export * from './markdown-html.uts'
+export * from './render-snapshot.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
 export * from './libmark-html.uts'
+export * from './snapshot-files.uts'
 // #endif
 // #ifdef APP-ANDROID
 export * from './native-presentation.uts'

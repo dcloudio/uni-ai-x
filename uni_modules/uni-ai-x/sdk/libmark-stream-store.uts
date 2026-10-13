@@ -9,6 +9,17 @@ import { releaseCodeHighlightSessions } from './parseCode.uts'
 import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
+import type { MsgItem } from '../types.uts'
+import { RenderSnapshot, RENDER_SNAPSHOT_VERSION } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+// #ifdef APP-ANDROID || APP-HARMONY
+import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
+// #ifdef APP-HARMONY
+import { prepareTablePresentation } from './table-presentation.uts'
+import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
+import { linkSearchCitations } from './search-citations.uts'
+import { prepareLibmarkHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+// #endif
 // #ifdef APP-ANDROID
 import { prepareAndroidPresentation, releaseAndroidPresentation, completeAndroidInlineMath } from '@/uni_modules/uni-ai-worker-runtime'
 import proxyWeb from './proxy-web.uts'
@@ -36,6 +47,13 @@ type LibmarkStreamEntry = {
 	pendingOps: AiWorkerOp[]
 	pendingDone: boolean
 	preparationQueued: boolean
+	done: boolean
+	settled: boolean
+	restored: boolean
+	restoring: boolean
+	savingVersion: number
+	message: MsgItem | null
+	save: ((message: MsgItem) => void) | null
 }
 
 const streamEntries = new Map<string, LibmarkStreamEntry>()
@@ -78,7 +96,9 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 		citationIds: [],
 		pendingOps: [],
 		pendingDone: false,
-		preparationQueued: false
+		preparationQueued: false,
+		done: false, settled: false, restored: false, restoring: false, savingVersion: -1,
+		message: null, save: null
 	}
 	streamEntries.set(msgId, entry)
 	touchEntry(msgId)
@@ -91,6 +111,70 @@ function notifyEntry(entry: LibmarkStreamEntry) {
 	libmarkPresentationRevision.value = entry.presentationRevision
 	// #ifdef APP-ANDROID
 	messageRevisions.set(entry.messageId, entry.presentationRevision)
+	// #endif
+	persistCompleteEntry(entry)
+}
+
+function persistCompleteEntry(entry: LibmarkStreamEntry) {
+	// #ifdef APP-ANDROID || APP-HARMONY
+	const message = entry.message
+	if (message == null || entry.save == null || !entry.done || !entry.settled || entry.restored || entry.restoring || entry.textBlocks.length == 0) return
+	if (entry.savingVersion == entry.preparationVersion) return
+	if (!entry.textBlocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
+		(block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? '')) &&
+		(block.kind != 'math' || block.svgSource.length > 0 || (block.math?.src ?? '').length > 0) &&
+		(block.kind != 'mermaid' || (block.mermaidImageSource ?? '').length > 0))) return
+	const version = entry.preparationVersion
+	const body = message.body
+	const theme = presentationTheme
+	const width = presentationWidth
+	entry.savingVersion = version
+	const snapshot: RenderSnapshot = { version: RENDER_SNAPSHOT_VERSION, bodyKey: '', theme: theme,
+		width: width, citations: (message.search?.sources ?? []).map((source) => source.id).join(','), assets: [], blocks: cloneBlocks(entry.textBlocks) }
+	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
+		if (streamEntries.get(entry.messageId) != entry || entry.preparationVersion != version || message.body != body || presentationTheme != theme) return
+		const stored = result['snapshot'] as RenderSnapshot | null
+		if (stored == null) { entry.savingVersion = -1; return }
+		message.renderSnapshot = stored
+		entry.save?.(message)
+	})
+	// #endif
+}
+
+export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgItem) => void): Promise<void> {
+	// #ifdef APP-ANDROID || APP-HARMONY
+	if (message.from_uid != 'uni-ai') return Promise.resolve()
+	const entry = entryFor(message._id)
+	entry.message = message
+	entry.save = save
+	if (entry.restored && entry.body != message.body) rebuildRestoredEntry(entry)
+	if (entry.restoring || entry.restored || entry.preparationVersion > 0 || entry.textBlocks.length > 0) return Promise.resolve()
+	const snapshot = message.renderSnapshot
+	if (snapshot == null || snapshot.theme != presentationTheme || snapshot.width != presentationWidth ||
+		snapshot.citations != (message.search?.sources ?? []).map((source) => source.id).join(',')) return Promise.resolve()
+	entry.restoring = true
+	const body = message.body
+	entry.body = body
+	return new Promise<void>((resolve) => {
+	requestSnapshotWork({ action: 'restore', snapshot: snapshot, body: body } as UTSJSONObject, (result: UTSJSONObject) => {
+		if (streamEntries.get(message._id) != entry || message.body != body || !entry.restoring) { resolve(); return }
+		entry.restoring = false
+		const restored = result['snapshot'] as RenderSnapshot | null
+		if (restored != null && restored.theme == presentationTheme && restored.width == presentationWidth) {
+			entry.textBlocks = restored.blocks
+			entry.restored = true
+			entry.done = true
+			notifyEntry(entry)
+		} else {
+			message.renderSnapshot = undefined
+			libmarkStreamRequestRebuild(message._id, body)
+		}
+		resolve()
+	})
+	})
+	// #endif
+	// #ifndef APP-ANDROID || APP-HARMONY
+	return Promise.resolve()
 	// #endif
 }
 
@@ -109,6 +193,16 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version
 	prepareCodeBlocks(entry.messageId, blocks, (prepared: MarkdownTextRenderBlock[]) => {
 		if (!isCurrent()) return
+		entry.settled = true
+		// #ifdef APP-HARMONY
+		for (const block of prepared) {
+			if (block.kind != 'html' && block.kind != 'table') continue
+			block.html = linkMarkdownFootnotes(block.html, entry.message?.body ?? '')
+			if (entry.message?.search != null) block.html = linkSearchCitations(block.html, entry.message!.search!.sources)
+			if (block.kind == 'html') block.html = prepareLibmarkHtml(block.html, block.isComplete)
+			else block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, presentationTheme)
+		}
+		// #endif
 		entry.textBlocks = prepared
 		prepareNativeInlineMathBlocks(entry.messageId, prepared, presentationTheme, () => {
 			if (!isCurrent()) return
@@ -121,16 +215,22 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 			entry.textBlocks = prepared.slice()
 			notifyEntry(entry)
 		})
+		notifyEntry(entry)
 	}, entry.textBlocks)
 }
 
-// #ifdef APP-ANDROID
 export function libmarkStreamSetLayoutWidth(width: number) {
 	if (width <= 0 || width == presentationWidth) return
 	presentationWidth = width
-	streamEntries.forEach((entry: LibmarkStreamEntry) => { if (entry.preparationVersion > 0) prepareAndroidEntry(entry, []) })
+	streamEntries.forEach((entry: LibmarkStreamEntry) => {
+		if (entry.restored) { rebuildRestoredEntry(entry); return }
+		// #ifdef APP-ANDROID
+		if (entry.preparationVersion > 0) prepareAndroidEntry(entry, [])
+		// #endif
+	})
 }
 
+// #ifdef APP-ANDROID
 export function libmarkStreamSetContext(msgId: string, body: string, citationIds: number[]) {
 	const entry = entryFor(msgId)
 	if (entry.body == body && entry.citationIds.join(',') == citationIds.join(',')) return
@@ -140,6 +240,8 @@ export function libmarkStreamSetContext(msgId: string, body: string, citationIds
 }
 
 function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
+	if (entry.restored || entry.restoring) return
+	entry.settled = false
 	entry.preparationVersion += 1
 	for (const op of ops) entry.pendingOps.push({ op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged })
 	entry.pendingDone = entry.pendingDone || done
@@ -194,6 +296,8 @@ function sendAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: bo
 			changed.push(block)
 		}
 		entry.preparationVersion += 1
+		entry.settled = message['settled'] == true && message['body'] == entry.body &&
+			message['theme'] == presentationTheme && message['windowWidth'] == presentationWidth && !entry.preparationQueued
 		// Worker deltas reuse stable blocks. Only changed blocks need image preparation.
 		entry.textBlocks = blocks
 		const published = changed.slice()
@@ -220,13 +324,31 @@ export function libmarkStreamSetTheme(theme: string) {
 	if (presentationTheme == theme) return
 	presentationTheme = theme
 	streamEntries.forEach((entry: LibmarkStreamEntry) => {
+		if (entry.restored || entry.restoring) { rebuildRestoredEntry(entry); return }
 		// #ifdef APP-ANDROID
 		prepareAndroidEntry(entry, [])
 		// #endif
 		// #ifndef APP-ANDROID
-		refreshEntry(entry)
+		refreshEntry(entry, entry.done)
 		// #endif
 	})
+}
+
+function rebuildRestoredEntry(entry: LibmarkStreamEntry) {
+	// #ifdef APP-ANDROID
+	releaseAndroidPresentation(entry.workerId)
+	entry.workerId = entry.messageId + ':' + (++workerSequence).toString()
+	// #endif
+	entry.adapter.reset()
+	entry.restored = false
+	entry.restoring = false
+	entry.preparationVersion = 0
+	entry.savingVersion = -1
+	entry.textBlocks = emptyBlocks()
+	if (entry.message != null) {
+		entry.message!.renderSnapshot = undefined
+		libmarkStreamRequestRebuild(entry.messageId, entry.message!.body)
+	}
 }
 
 function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
@@ -256,8 +378,11 @@ function cloneBlock(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
 		codeCompleteLines: block.codeCompleteLines,
 		codeHighlightedText: block.codeHighlightedText,
 		codeHeight: block.codeHeight,
-		table: block.table,
+		table: block.table == null ? undefined : { ...block.table! },
 		mermaidImageSource: block.mermaidImageSource,
+		mermaidRenderTheme: block.mermaidRenderTheme,
+		mermaidRenderFailed: block.mermaidRenderFailed,
+		math: block.math == null ? undefined : { ...block.math! },
 		level: block.level,
 		indent: block.indent,
 		marker: block.marker,
@@ -304,6 +429,7 @@ export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[]
 export function libmarkStreamMarkComplete(msgId: string): void {
 	const entry = streamEntries.get(msgId)
 	if (entry == null) return
+	entry!.done = true
 	// #ifdef APP-ANDROID
 	prepareAndroidEntry(entry!, [], true)
 	return
@@ -332,6 +458,7 @@ export function libmarkStreamRequestRebuild(msgId: string, text: string): boolea
 	if (rebuildFailedMsgIds.indexOf(msgId) >= 0) return false
 	if (rebuildingMsgIds.indexOf(msgId) >= 0) return false
 	const existing = streamEntries.get(msgId)
+	if (existing?.restoring == true || existing?.restored == true) return false
 	if (existing != null && (existing!.textBlocks.length > 0 || existing!.preparationVersion > 0)) return false
 	rebuildingMsgIds.push(msgId)
 	// 重建会话与展示层当前主题保持一致，重建出的中间态 SVG 用同色画布
@@ -360,6 +487,7 @@ export function libmarkStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boo
 	}
 	if (ops.length == 0) return markFailed()
 	const applied = libmarkStreamApply(msgId, ops)
+	libmarkStreamMarkComplete(msgId)
 	// #ifndef APP-ANDROID
 	if (streamEntries.get(msgId)!.adapter.getBlocks().length == 0) return markFailed()
 	// #endif

@@ -3,7 +3,7 @@ import proxyWeb from './proxy-web.uts'
 import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
 // #ifndef MP-WEIXIN
-import { renderMermaidSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
+import { renderMermaidSvgForTheme, renderMathSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
 // #endif
 
 type SaveMessage = (msg: MsgItem) => void
@@ -14,18 +14,25 @@ const pending = new Map<string, string>()
 export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void) {
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
-		if (block.kind != 'mermaid' || !block.isComplete) continue
+		if ((block.kind != 'mermaid' && block.kind != 'math') || !block.isComplete) continue
 		if (block.svgSource.length > 0) {
-			block.mermaidImageSource = block.svgSource
+			if (block.kind == 'mermaid') block.mermaidImageSource = block.svgSource
 			continue
 		}
 		// #ifndef MP-WEIXIN
 		if (block.text.trim().length == 0) continue
-		renderMermaidSvgForTheme(block.text, theme, (result: ThemedSvgResult) => {
+		if ((block.mermaidImageSource ?? '').length > 0) continue
+		const receive = (result: ThemedSvgResult) => {
 			if (result.imageSource.length == 0) { block.mermaidRenderFailed = true; changed(); return }
-			block.mermaidImageSource = result.imageSource
+			if (block.kind == 'math') {
+				block.svgSource = result.imageSource
+				block.svgWidth = result.width
+				block.svgHeight = result.height
+			} else block.mermaidImageSource = result.imageSource
 			changed()
-		})
+		}
+		if (block.kind == 'math') renderMathSvgForTheme(block.text.trim(), theme, receive)
+		else renderMermaidSvgForTheme(block.text, theme, receive)
 		// #endif
 	}
 }

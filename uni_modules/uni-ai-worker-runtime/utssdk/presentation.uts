@@ -37,7 +37,7 @@ function ensureWorker() {
 		}
 		if (worker != created || failed) return
 		if (action == 'ready') {
-			if (payload['protocol'] != 8) { failPresentation('Unsupported presentation layout protocol'); return }
+			if (payload['protocol'] != 9) { failPresentation('Unsupported presentation layout protocol'); return }
 			ready = true
 			const queued = pending
 			pending = []

@@ -65,6 +65,9 @@ import {
 // #endif
 
 export * from './interface.uts'
+// #ifdef APP-ANDROID || APP-HARMONY
+export { requestSnapshotWork } from './snapshot-worker.uts'
+// #endif
 // #ifdef APP-ANDROID
 export { prepareAndroidPresentation, releaseAndroidPresentation, completeAndroidInlineMath } from './presentation.uts'
 // #endif

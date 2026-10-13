@@ -1,0 +1,46 @@
+import type { MarkdownTextRenderBlock } from './native-presentation.uts'
+
+export type RenderSnapshot = {
+	version: number
+	bodyKey: string
+	theme: string
+	width: number
+	citations: string
+	assets: string[]
+	blocks: MarkdownTextRenderBlock[]
+}
+
+export const RENDER_SNAPSHOT_VERSION = 1
+export const RENDER_ASSET_PREFIX = 'uni-ai-asset://'
+
+export function renderContentKey(value: string): string {
+	let first = 7
+	let second = 11
+	for (let i = 0; i < value.length; i++) {
+		const code = value.charCodeAt(i) ?? 0
+		first = (first * 31 + code) % 2147483647
+		second = (second * 131 + code) % 2147483629
+	}
+	return first.toString(16) + '-' + second.toString(16) + '-' + value.length.toString()
+}
+
+export function validRenderSnapshot(snapshot: RenderSnapshot, body: string): boolean {
+	return snapshot.version == RENDER_SNAPSHOT_VERSION && snapshot.bodyKey == renderContentKey(body)
+		&& snapshot.blocks != null && snapshot.assets != null && snapshot.blocks.length > 0
+		&& snapshot.blocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
+			block.kind != null && block.key != null && block.html != null && block.text != null &&
+			block.columnWidths != null && block.rowTextWidths != null && block.svgSource != null)
+}
+
+// Visit display resources only. Code/source text containing data URLs must remain untouched.
+export function mapRenderResources(blocks: MarkdownTextRenderBlock[], mapSource: (source: string) => string) {
+	const mapHtml = (html: string): string => html.replace(/(<img\b[^>]*\bsrc=["'])([^"']+)(["'])/g,
+		(_match: string, start: string, source: string, end: string, _offset: number, _input: string): string => start + mapSource(source) + end)
+	for (const block of blocks) {
+		block.html = mapHtml(block.html)
+		if (block.table != null) block.table!.html = mapHtml(block.table!.html)
+		block.svgSource = mapSource(block.svgSource)
+		if (block.math != null) block.math!.src = mapSource(block.math!.src)
+		if (block.mermaidImageSource != null) block.mermaidImageSource = mapSource(block.mermaidImageSource!)
+	}
+}

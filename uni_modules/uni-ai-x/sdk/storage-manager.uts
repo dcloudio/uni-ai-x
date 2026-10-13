@@ -1,4 +1,7 @@
 import { ChatItem, MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
+// #ifdef APP-ANDROID || APP-HARMONY
+import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
+// #endif
 // #ifdef APP-ANDROID
 import { saveAndroidMessageInBackground, invalidateAndroidMessageWrite, readAndroidChatMessages, readAndroidChatList, writeAndroidStorageBatch, mutateAndroidChatMessages } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
@@ -77,6 +80,7 @@ function snapshotMessage(message: MsgItem): MsgItem {
 		about_msg_id: message.about_msg_id, error_msg: message.error_msg,
 		img_url_list: message.img_url_list?.slice(),
 		markdownHtml: '', markdownAst: '', markdownBlocks: '', libmarkRevision: 0,
+		renderSnapshot: message.renderSnapshot,
 		stressSvgSource: message.stressSvgSource, stressSvgWidth: message.stressSvgWidth,
 		stressSvgHeight: message.stressSvgHeight,
 		search: search == null ? undefined : {
@@ -90,6 +94,13 @@ function snapshotMessage(message: MsgItem): MsgItem {
 // 存储管理类
 export class StorageManager {
 	addMessageInBackground(message: MsgItem) {
+		// #ifdef APP-HARMONY
+		removedMessages.delete(message._id)
+		removedChats.delete(message.chat_id)
+		requestSnapshotWork({ action: 'add-message', message: snapshotMessage(message) } as UTSJSONObject, (result: UTSJSONObject) => {
+			if (result['ok'] != true) console.error('[render-snapshot] add message failed: ' + message._id)
+		})
+		// #endif
 		// #ifdef APP-ANDROID
 		storageRevision++
 		const snapshot = snapshotMessage(message)
@@ -102,12 +113,19 @@ export class StorageManager {
 			else console.error('后台新增消息失败: ' + message._id)
 		})
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifndef APP-ANDROID || APP-HARMONY
 		this.addMessage(message)
 		// #endif
 	}
 
 	removeMessagesInBackground(chatId: string, ids: string[]) {
+		for (const id of ids) this.removeRenderAssets(id)
+		// #ifdef APP-HARMONY
+		for (const id of ids) removedMessages.add(id)
+		requestSnapshotWork({ action: 'remove-messages', chatId: chatId, messageIds: ids.slice() } as UTSJSONObject, (result: UTSJSONObject) => {
+			if (result['ok'] != true) console.error('[render-snapshot] remove messages failed: ' + chatId)
+		})
+		// #endif
 		// #ifdef APP-ANDROID
 		storageRevision++
 		const removed = ids.slice()
@@ -117,12 +135,18 @@ export class StorageManager {
 			else console.error('后台删除消息失败: ' + chatId)
 		})
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifndef APP-ANDROID || APP-HARMONY
 		this.removeMessages(chatId, ids)
 		// #endif
 	}
 
 	deleteChatInBackground(chatId: string) {
+		// #ifdef APP-HARMONY
+		removedChats.add(chatId)
+		requestSnapshotWork({ action: 'remove-chat', chatId: chatId } as UTSJSONObject, (result: UTSJSONObject) => {
+			if (result['ok'] != true) console.error('[render-snapshot] remove chat failed: ' + chatId)
+		})
+		// #endif
 		// #ifdef APP-ANDROID
 		storageRevision++
 		removedChats.add(chatId)
@@ -134,7 +158,7 @@ export class StorageManager {
 			else console.error('后台删除会话消息失败: ' + chatId)
 		})
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifndef APP-ANDROID || APP-HARMONY
 		this.deleteChat(chatId)
 		// #endif
 	}
@@ -167,6 +191,16 @@ export class StorageManager {
 	}
 
 	async getChatMessagesAsync(chatId: string): Promise<MsgItem[]> {
+		// #ifdef APP-HARMONY
+		return await new Promise<MsgItem[]>((resolve, reject) => {
+			requestSnapshotWork({ action: 'history', chatId: chatId } as UTSJSONObject, (result: UTSJSONObject) => {
+				if (removedChats.has(chatId)) { resolve([]); return }
+				const messages = result['messages'] as MsgItem[] | null
+				if (messages == null) { reject(new Error('读取会话消息失败')); return }
+				resolve(messages.filter((msg: MsgItem): boolean => !removedMessages.has(msg._id)))
+			})
+		})
+		// #endif
 		// #ifdef APP-ANDROID
 		const revision = storageRevision
 		const result = await new Promise<UTSJSONObject[] | null>((resolve) => { readAndroidChatMessages(chatId, resolve) })
@@ -177,12 +211,13 @@ export class StorageManager {
 			return pending == null ? message : snapshotMessage(pending)
 		})
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifndef APP-ANDROID || APP-HARMONY
 		return this.getChatMessages(chatId)
 		// #endif
 	}
 
 	updateStreamingMessage(message: MsgItem) {
+		if (removedMessages.has(message._id) || removedChats.has(message.chat_id)) return
 		// #ifdef APP-ANDROID
 		storageRevision++
 		const snapshot = snapshotMessage(message)
@@ -193,7 +228,12 @@ export class StorageManager {
 			else console.error('[uni-ai-x] Message save failed: ' + message._id)
 		})
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifdef APP-HARMONY
+		requestSnapshotWork({ action: 'save-message', message: snapshotMessage(message) } as UTSJSONObject, (result: UTSJSONObject) => {
+			if (result['ok'] != true) console.error('[render-snapshot] message write failed: ' + message._id)
+		})
+		// #endif
+		// #ifndef APP-ANDROID || APP-HARMONY
 		this.updateMessage(message)
 		// #endif
 	}
@@ -405,6 +445,8 @@ export class StorageManager {
 	 * 删除单条消息
 	 */
 	deleteMessage(msgId: string): boolean {
+		removedMessages.add(msgId)
+		this.removeRenderAssets(msgId)
 		this.invalidateMessageWrite(msgId)
 		try {
 			const key = `${STORAGE_KEYS.MSG_CONTENT_PREFIX}${msgId}`
@@ -509,6 +551,7 @@ export class StorageManager {
 	 * 删除整个会话及其所有消息
 	 */
 	deleteChat(chatId: string): boolean {
+		removedChats.add(chatId)
 		try {
 			// 获取会话的所有消息ID
 			const msgIds = this._getChatMsgIds(chatId)
@@ -535,5 +578,11 @@ export class StorageManager {
 			console.error(`删除会话 ${chatId} 失败:`, error)
 			return false
 		}
+	}
+
+	private removeRenderAssets(msgId: string) {
+		// #ifdef APP-ANDROID || APP-HARMONY
+		requestSnapshotWork({ action: 'delete', messageId: msgId } as UTSJSONObject, (_result: UTSJSONObject) => {})
+		// #endif
 	}
 }

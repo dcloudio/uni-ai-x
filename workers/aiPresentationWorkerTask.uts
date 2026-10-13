@@ -44,6 +44,7 @@ function sameDisplayBlock(a: MarkdownTextRenderBlock, b: MarkdownTextRenderBlock
 	return a.kind == b.kind && a.key == b.key && a.html == b.html && a.text == b.text &&
 		a.language == b.language && a.isComplete == b.isComplete && a.codeLines === b.codeLines &&
 		a.codeHeight == b.codeHeight && a.table === b.table && a.level == b.level &&
+		a.codeHighlightedText == b.codeHighlightedText &&
 		a.math?.sourceWidth == b.math?.sourceWidth && a.math?.sourceHeight == b.math?.sourceHeight &&
 		a.indent == b.indent && a.marker == b.marker && a.quoteDepth == b.quoteDepth &&
 		a.mermaidImageSource == b.mermaidImageSource && a.svgSource == b.svgSource &&
@@ -55,7 +56,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 	constructor() { super() }
 
 	override entry() {
-		this.postMessage({ action: 'ready', protocol: 8 } as UTSJSONObject)
+		this.postMessage({ action: 'ready', protocol: 9 } as UTSJSONObject)
 	}
 
 	override onMessage(message: any) {
@@ -225,6 +226,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 					codeHtml: codePatch.html, codeHtmlPrefix: codePatch.prefixLength,
 					codeContentHeight: (Math.max(1, lines.length) * 22).toString() + 'px',
 					codeHeight: source.codeHeight ?? '', table: source.table ?? null, math: source.math ?? null,
+					codeHighlightedText: source.codeHighlightedText ?? '',
 					level: source.level, indent: source.indent, marker: source.marker, quoteDepth: source.quoteDepth,
 					mermaidImageSource: source.mermaidImageSource ?? '',
 					mermaidRenderFailed: source.mermaidRenderFailed ?? false,
@@ -232,9 +234,12 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 				} as UTSJSONObject
 				changes.push({ index: i, block: block } as UTSJSONObject)
 			}
-			if (changes.length == 0 && prepared.length == entry.sent.length) return
+			if (changes.length == 0 && prepared.length == entry.sent.length && !entry.done) return
 			entry.sent = prepared.slice()
-			this.postMessage({ action: 'blocks', id: id, length: prepared.length, changes: changes } as UTSJSONObject)
+			const settled = entry.done && entry.pendingImages.size == 0 && prepared.every((block: MarkdownTextRenderBlock): boolean =>
+				block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? ''))
+			this.postMessage({ action: 'blocks', id: id, length: prepared.length, changes: changes, settled: settled,
+				body: entry.body, theme: entry.theme, windowWidth: entry.windowWidth } as UTSJSONObject)
 		}, previous)
 	}
 }

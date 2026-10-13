@@ -1,4 +1,5 @@
 import ReentrantLock from 'java.util.concurrent.locks.ReentrantLock'
+import { deleteRenderAssets } from '@/uni_modules/uni-ai-worker'
 
 const writeLock = new ReentrantLock()
 const generations = new Map<string, number>()
@@ -192,6 +193,7 @@ export function mutateAndroidChatMessages(chatId: string, additions: UTSJSONObje
 						if ((syncRevisions.get(key) ?? 0) > deletionVersion || (generations.get(key) ?? 0) > deletionVersion) continue
 						if (deleteAll) generations.delete(key)
 						uni.removeStorageSync(key)
+						deleteRenderAssets(id)
 						syncRevisions.delete(key)
 						removedSet.add(id)
 					}

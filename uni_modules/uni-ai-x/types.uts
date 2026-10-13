@@ -98,6 +98,8 @@ export type MessageSearch = {
 	error: string
 }
 
+import type { RenderSnapshot } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+
 export type MsgItem = {
 	_id: string
 	body: string
@@ -112,6 +114,7 @@ export type MsgItem = {
 	chat_id: string,
 	markdownHtml?: string
 	markdownBlocks?: string
+	renderSnapshot?: RenderSnapshot
 	search?: MessageSearch
 	markdownAst?: string
 	libmarkRevision?: number

@@ -1,0 +1,59 @@
+// #ifdef APP-ANDROID || APP-HARMONY
+let worker: Worker | null = null
+let ready = false
+let sequence = 0
+let pending: UTSJSONObject[] = []
+const callbacks = new Map<number, (result: UTSJSONObject) => void>()
+const timers = new Map<number, number>()
+
+@UTSJS.keepAlive
+export function requestSnapshotWork(request: UTSJSONObject, callback: (result: UTSJSONObject) => void) {
+	if (worker == null) {
+		const created = uni.createWorker('workers/aiSnapshotWorkerTask.uts')
+		worker = created
+		created.onMessage((message: any) => {
+			if (worker != created) return
+			const result = message as UTSJSONObject
+			if (result['action'] == 'ready') {
+				ready = true
+				const queue = pending
+				pending = []
+				for (const task of queue) created.postMessage(task, null)
+				return
+			}
+			const id = result['id'] as number
+			const timer = timers.get(id)
+			if (timer != null) clearTimeout(timer)
+			timers.delete(id)
+			const receive = callbacks.get(id)
+			callbacks.delete(id)
+			receive?.(result)
+		})
+		created.onError((_error: any) => {
+			if (worker != created) return
+			worker = null
+			ready = false
+			pending = []
+			const waiting: ((result: UTSJSONObject) => void)[] = []
+			callbacks.forEach((receive: (result: UTSJSONObject) => void) => { waiting.push(receive) })
+			callbacks.clear()
+			timers.forEach((timer: number) => { clearTimeout(timer) })
+			timers.clear()
+			created.terminate()
+			for (const receive of waiting) receive({ snapshot: null } as UTSJSONObject)
+		})
+	}
+	request['id'] = ++sequence
+	callbacks.set(sequence, callback)
+	const id = sequence
+	timers.set(id, setTimeout(() => {
+		const receive = callbacks.get(id)
+		callbacks.delete(id)
+		timers.delete(id)
+		pending = pending.filter((task: UTSJSONObject): boolean => task['id'] != id)
+		receive?.({ snapshot: null } as UTSJSONObject)
+	}, 30000))
+	if (ready) worker!.postMessage(request, null)
+	else pending.push(request)
+}
+// #endif

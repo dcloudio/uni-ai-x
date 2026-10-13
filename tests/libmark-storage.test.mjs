@@ -5,12 +5,13 @@ import { loadUts } from './uts-loader.mjs';
 const message = () => ({ _id: 'm', chat_id: 'c', from_uid: 'uni-ai', body: 'hello', rendered: false,
   create_time: 1, markdownHtml: '<p>old</p>', markdownAst: 'old', markdownBlocks: '[{}]', libmarkRevision: 4 });
 
-test('native storage retains source and search results, excluding transient render caches', () => {
+test('native storage retains the durable render snapshot, source and search, excluding transient caches', () => {
   const { serializeMessage } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['serializeMessage']);
-  const msg = { ...message(), search: { status: 'completed', sources: [{ id: 1, url: 'https://example.com' }] } };
+  const msg = { ...message(), renderSnapshot: { version: 1, assets: ['image.svg'], blocks: [{ html: '<p>hello</p>' }] }, search: { status: 'completed', sources: [{ id: 1, url: 'https://example.com' }] } };
   const result = JSON.parse(serializeMessage(msg));
   assert.equal(result.body, msg.body);
   assert.deepEqual(result.search, msg.search);
+  assert.deepEqual(result.renderSnapshot, msg.renderSnapshot);
   for (const key of ['markdownHtml', 'markdownAst', 'markdownBlocks']) assert.equal(result[key], '');
   assert.equal(result.libmarkRevision, 0);
   assert.equal(msg.markdownHtml, '<p>old</p>');

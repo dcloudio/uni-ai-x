@@ -1,4 +1,5 @@
 // uni-cmark 已不再支持鸿蒙平台，此文件为鸿蒙工程依赖占位：保留接口签名，不提供 cmark 能力
+export type { MarkdownToken } from '../interface.uts'
 export function initMd2html(): Promise<void> {
 	return Promise.resolve()
 }

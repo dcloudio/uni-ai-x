@@ -253,19 +253,9 @@
 			cached.libmarkRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
 		const blocks = libmarkStreamGetBlocks(msg._id)
 		if (blocks.length == 0 && msg.body.length > 0 && msg.rendered) {
+			uniAi.prepareMessagePresentation(msg)
 			libmarkStreamRequestRebuild(msg._id, msg.body)
 		}
-		// #ifndef APP-ANDROID
-		for (let i = 0; i < blocks.length; i++) {
-			const block = blocks[i]
-			const preparedHtml = block.html
-			if (block.kind == 'html' || block.kind == 'table') {
-				block.html = linkMarkdownFootnotes(block.html, msg.body)
-				if (msg.search != null) block.html = linkSearchCitations(block.html, msg.search!.sources)
-			}
-			if (block.kind == 'table' && (block.table == null || block.html != preparedHtml)) block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
-		}
-		// #endif
 		markdownBlockCache.set(msg._id, {
 			body: cacheBody, theme: theme, sources: sources, libmarkRevision: revision,
 			complete: msg.rendered, rebuildVersion: version, blocks: blocks
@@ -428,10 +418,10 @@
 							}
 						}
 					} else if (msg.body.length > 0) {
-						// #ifdef APP-ANDROID
-						appendNormalPart(aiRenderPart('plain', 'plain'))
+						// #ifdef APP-ANDROID || APP-HARMONY
+						appendNormalPart(aiRenderPart('restoring', 'restoring'))
 						// #endif
-						// #ifndef APP-ANDROID
+						// #ifndef APP-ANDROID || APP-HARMONY
 						appendNormalPart(aiRenderPart('plain', 'plain'))
 						// #endif
 					}

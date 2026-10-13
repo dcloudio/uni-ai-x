@@ -4,10 +4,11 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const ref = value => ({ value });
+const UtsNumber = Object.assign(value => Number(value), { from: value => Number(value) });
 const rich = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts', ['markdownCodeTokenToRichTextNodes']);
 const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
 const { LibmarkHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/libmark-html.uts', ['LibmarkHtmlStreamAdapter'], {
-  ...html, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
+  ...html, Number: UtsNumber, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
 });
 const converters = loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts',
   ['libmarkHtmlBlocksToTextBlocks', 'markdownHtmlBlocksToTextBlocks']);
@@ -24,6 +25,8 @@ function setup() {
   const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
     ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamGetRevision', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
       ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
+      pluginBackgroundFor: () => '#ffffff', prepareLibmarkHtml: text => text,
+      linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
     }, ['APP', 'APP-HARMONY']);
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
     ['refreshMessagePresentation', 'readMessagePresentation', 'forgetMessagePresentation'], {

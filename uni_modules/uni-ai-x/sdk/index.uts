@@ -1,6 +1,6 @@
 import { reactive, watch, nextTick, ref } from 'vue';
 // #ifdef APP-ANDROID
-import { libmarkStreamSetContext, libmarkStreamSetLayoutWidth } from './libmark-stream-store.uts'
+import { libmarkStreamSetContext } from './libmark-stream-store.uts'
 import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
@@ -22,7 +22,9 @@ import {
 	libmarkStreamSetTheme,
 	libmarkStreamMarkComplete,
 	libmarkStreamReset,
-	libmarkStreamRelease
+	libmarkStreamRelease,
+	libmarkStreamBindMessage,
+	libmarkStreamSetLayoutWidth
 } from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
 // #endif
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
@@ -281,6 +283,7 @@ class UniAi {
 			idMap[source._id] = messageId
 			const cloned: MsgItem = { ...source }
 			cloned._id = messageId
+			cloned.renderSnapshot = undefined
 			cloned.chat_id = chatId
 			cloned.create_time = createTime + index
 			cloned.rendered = true
@@ -501,13 +504,17 @@ class UniAi {
 		this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 	}
 
-	private prepareMessagePresentation(msg: MsgItem) {
+	prepareMessagePresentation(msg: MsgItem): Promise<void> {
+		// #ifdef APP-ANDROID || APP-HARMONY
+		libmarkStreamSetTheme(uiTheme.value)
+		libmarkStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
+		const restoration = libmarkStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
+		// #endif
 		// #ifdef APP-ANDROID
 		libmarkStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
 		// #endif
 		// #ifdef APP-ANDROID || APP-HARMONY
-		libmarkStreamSetTheme(uiTheme.value)
-		return
+		return restoration
 		// #endif
 		// #ifndef APP-ANDROID || APP-HARMONY
 		if ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length > 0) {
@@ -518,17 +525,20 @@ class UniAi {
 		prepareMermaidPresentation(msg, uiTheme.value, (): string => uiTheme.value,
 			(item: MsgItem) => { this.updateMsg2Storage(item) })
 		refreshMessagePresentation(msg, uiTheme.value)
+		return Promise.resolve()
 		// #endif
 	}
 
-	private loadChatMessages(chatId: string): Promise<void> {
-		// #ifdef APP-ANDROID
+	private async loadChatMessages(chatId: string): Promise<void> {
+		// #ifdef APP-ANDROID || APP-HARMONY
 		if (this.loadedChatIds.indexOf(chatId) >= 0) return Promise.resolve()
 		const pending = this.loadingChats.get(chatId)
 		if (pending != null) return pending
 		const chat = this.chat.datas.find((item) => item.id == chatId)
 		if (chat == null) return Promise.resolve()
-		const task = this.storageManager.getChatMessagesAsync(chatId).then((messages: MsgItem[]) => {
+		const task = this.storageManager.getChatMessagesAsync(chatId).then(async (messages: MsgItem[]) => {
+			if (this.chat.datas.find((item) => item.id == chatId) != chat) return
+			await Promise.all(messages.map((msg: MsgItem): Promise<void> => this.prepareMessagePresentation(msg)))
 			if (this.chat.datas.find((item) => item.id == chatId) != chat) return
 			const existing = new Set(chat.msgList.map((msg: MsgItem) => msg._id))
 			chat.msgList.unshift(...messages.filter((msg: MsgItem) => !existing.has(msg._id)))
@@ -538,11 +548,12 @@ class UniAi {
 		this.loadingChats.set(chatId, task)
 		return task
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifndef APP-ANDROID || APP-HARMONY
 		if (this.loadedChatIds.indexOf(chatId) >= 0) return Promise.resolve()
 		const chat = this.chat.datas.find((item) => item.id == chatId)
 		if (chat == null) return Promise.resolve()
 		const messages = this.storageManager.getChatMessages(chatId)
+		await Promise.all(messages.map((msg: MsgItem): Promise<void> => this.prepareMessagePresentation(msg)))
 		chat.msgList.push(...messages)
 		chat.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
 		this.loadedChatIds.push(chatId)
@@ -702,6 +713,9 @@ class UniAi {
 		this.pendingMsgSave = null
 	}
 	updateMsg2Storage(msg: MsgItem) {
+		// #ifdef APP-ANDROID || APP-HARMONY
+		libmarkStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
+		// #endif
 		// #ifdef APP-ANDROID
 		libmarkStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
 		// #endif
@@ -983,6 +997,7 @@ class UniAi {
 		return this.answerQuestion(aiMsgItem)
 	}
 	resetMsg(msg: MsgItem) {
+		msg.renderSnapshot = undefined
 		msg.search = null
 		this.answerGeneration += 1
 		// #ifdef APP-HARMONY || APP-ANDROID
@@ -1057,7 +1072,7 @@ class UniAi {
 				this.currentChat!.state = state
 				// #ifdef APP-HARMONY || APP-ANDROID
 				if (state == 'completed') {
-					// 渲染数据不落 storage：只刷新完成态，重启后由 body 重建
+					// 最终高亮和图片准备就绪后，由展示层提交完整快照。
 					libmarkStreamMarkComplete(aiMsgItem._id)
 					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
 				}

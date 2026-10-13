@@ -1,0 +1,82 @@
+import { RenderSnapshot, RENDER_ASSET_PREFIX, renderContentKey, mapRenderResources, validRenderSnapshot } from './render-snapshot.uts'
+
+// Only called from a Worker or the native IO dispatcher.
+function assetRoot(): string { return uni.env.USER_DATA_PATH + '/ai-render-assets/' }
+
+function safeAsset(path: string): boolean {
+	return /^[a-f0-9-]+\/[a-f0-9-]+\.(png|svg|jpg|webp|gif)$/.test(path)
+}
+
+export function persistRenderAssets(messageId: string, snapshot: RenderSnapshot): RenderSnapshot {
+	const result = JSON.parse<RenderSnapshot>(JSON.stringify(snapshot))!
+	const fs = uni.getFileSystemManager()
+	const directory = renderContentKey(messageId)
+	const root = assetRoot()
+	try { fs.accessSync(root + directory) } catch (_) { fs.mkdirSync(root + directory, true) }
+	const sources = new Map<string, string>()
+	const assets = new Set<string>()
+	mapRenderResources(result.blocks, (source: string): string => {
+		if (source.length == 0 || /^(https?:|\/static\/)/.test(source)) return source
+		const existing = sources.get(source)
+		if (existing != null) return existing
+		if (source.startsWith(RENDER_ASSET_PREFIX)) {
+			const path = source.substring(RENDER_ASSET_PREFIX.length)
+			if (!safeAsset(path)) throw new Error('Invalid render asset path')
+			fs.accessSync(root + path)
+			assets.add(path)
+			return source
+		}
+		const data = /^data:image\/(png|svg\+xml|jpeg|webp|gif);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(source)
+		let extension = ''
+		let encoded = ''
+		if (data != null) {
+			extension = data[1] == 'svg+xml' ? 'svg' : data[1] == 'jpeg' ? 'jpg' : (data[1] ?? 'png')
+			encoded = data[2] ?? ''
+		} else {
+			if (source.startsWith('data:')) throw new Error('Unsupported render image encoding')
+			const suffix = /\.(svg|png|jpg|jpeg|webp|gif)$/.exec(source)
+			if (suffix == null) return source
+			extension = suffix[1] == 'jpeg' ? 'jpg' : (suffix[1] ?? 'png')
+			encoded = fs.readFileSync(source, 'base64') as string
+		}
+		const path = directory + '/' + renderContentKey(encoded) + '.' + extension
+		let exists = false
+		try { fs.accessSync(root + path); exists = true } catch (_) { }
+		if (!exists) {
+			fs.writeFileSync(root + path + '.tmp', encoded, 'base64')
+			fs.renameSync(root + path + '.tmp', root + path)
+		}
+		assets.add(path)
+		const reference = RENDER_ASSET_PREFIX + path
+		sources.set(source, reference)
+		return reference
+	})
+	result.assets = []
+	assets.forEach((path: string) => { result.assets.push(path) })
+	return result
+}
+
+export function restoreRenderAssets(snapshot: RenderSnapshot, body: string): RenderSnapshot | null {
+	if (!validRenderSnapshot(snapshot, body)) return null
+	const fs = uni.getFileSystemManager()
+	const root = assetRoot()
+	try {
+		for (const path of snapshot.assets) {
+			if (!safeAsset(path)) return null
+			fs.accessSync(root + path)
+		}
+		const result = JSON.parse<RenderSnapshot>(JSON.stringify(snapshot))!
+		mapRenderResources(result.blocks, (source: string): string => {
+			if (!source.startsWith(RENDER_ASSET_PREFIX)) return source
+			const path = source.substring(RENDER_ASSET_PREFIX.length)
+			if (!safeAsset(path) || !snapshot.assets.includes(path)) throw new Error('Unlisted render asset')
+			return root + path
+		})
+		return result
+	} catch (_) { return null }
+}
+
+export function deleteRenderAssets(messageId: string) {
+	const path = assetRoot() + renderContentKey(messageId)
+	try { uni.getFileSystemManager().rmdirSync(path, true) } catch (_) { }
+}

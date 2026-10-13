@@ -1,8 +1,7 @@
 <template>
 	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''" :style="msgSegmentStyle">
 		<image v-if="isFirst" class="msg-segment-avatar" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
-		<!-- Single stateless blocks follow the recycled row; stateful and mixed blocks retain content identity. -->
-		<template v-for="part in parts" :key="parts.length == 1 && part.block != null && (part.block.kind == 'rich' || part.block.kind == 'html' || (part.block.kind == 'mermaid' && !isLibmarkPlatform)) ? 'display:' + part.block.kind : part.key">
+		<template v-for="(part, partIndex) in parts" :key="partRenderKey(part, partIndex)">
 		<uni-ai-search-status v-if="part.kind == 'search'" :msg="msg" @open="openSource" />
 		<uni-ai-search-sources v-else-if="part.kind == 'sources'" :msg="msg" @open="openSource" />
 		<image v-else-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" flatten />
@@ -36,6 +35,7 @@
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
+		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" /></view>
 		<template v-else-if="part.kind == 'empty'">
 			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
 			<text v-else-if="state == 'none'" class="msg-root-need-try" flatten>错误：未回复</text>
@@ -84,6 +84,16 @@
 	})
 	const msg = computed<MsgItem>(() => props.msg)
 	const parts = computed<AiMsgRenderPart[]>(() => props.parts)
+	function partRenderKey(part: AiMsgRenderPart, index: number): string {
+		// Android bytecode keyed replacement can leave recycled message content stale.
+		// Keep the render slot alive; branch selection and child props carry its content.
+		// #ifdef APP-ANDROID
+		return 'slot:' + index.toString()
+		// #endif
+		// #ifndef APP-ANDROID
+		return parts.value.length == 1 && part.block != null && (part.block.kind == 'rich' || part.block.kind == 'html' || (part.block.kind == 'mermaid' && !isLibmarkPlatform)) ? 'display:' + part.block.kind : part.key
+		// #endif
+	}
 	const isFirst = computed<boolean>(() => props.isFirst)
 	const emit = defineEmits<{
 		'changeThinkContent': [hideThinkContent: boolean]
