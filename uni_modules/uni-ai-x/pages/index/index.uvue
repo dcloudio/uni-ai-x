@@ -58,7 +58,12 @@
 	// #ifndef MP-WEIXIN
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	// #endif
-	const MENU_WIDTH = 260
+	
+	// 获取屏幕宽度
+	const winWidth = uni.getWindowInfo().windowWidth
+	// 是不是宽屏
+	const isWideScreen = winWidth > 960
+	const MENU_WIDTH = isWideScreen ? 260 : winWidth - 44
 
 	const translateX = ref<number>(-MENU_WIDTH)
 	const showMenu = ref<boolean>(false)
@@ -257,7 +262,8 @@
 	// #ifdef H5
 	width: calc(100% + 260px);
 	// #endif
-	transform: translateX(-260px);
+	width: 200%;
+	transform: translateX(100%);
 	height: 100%;
 	flex-direction: row;
 	background-color: var(--bg-primary);
@@ -271,6 +277,7 @@
 /* #ifdef H5 */
 @media screen and (min-device-width:960px){
 	.uni-ai-page {
+		width: calc(100% + 260px);
 		transition: transform 0.3s, width 0.3s;
 	}
 	.uni-ai-page-showMenu {
