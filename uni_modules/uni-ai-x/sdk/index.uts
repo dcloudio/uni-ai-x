@@ -589,8 +589,9 @@ class UniAi {
 		this.loadSetting()
 		this.watchSetting()
 		// #endif
-		watch(uiTheme, () => {
-			this.currentChat?.msgList.forEach((msg: MsgItem) => { this.prepareMessagePresentation(msg) })
+		watch(uiTheme, (theme: string, previousTheme: string) => {
+			if (theme == previousTheme) return
+			this.refreshCurrentChatThemedImages()
 		})
 		watch(mathWindowWidth, () => {
 			// #ifdef APP-ANDROID
@@ -600,6 +601,20 @@ class UniAi {
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { refreshMessagePresentation(msg, uiTheme.value) })
 			// #endif
 		})
+	}
+	/**
+	 * Rebuild themed math/mermaid assets once at the presentation layer.
+	 * List-item components only read the resulting image sources, so recycled
+	 * list items do not rerun parsing or image generation while scrolling.
+	 */
+	private refreshCurrentChatThemedImages(): void {
+		const messages = this.currentChat?.msgList
+		if (messages == null || messages!.length == 0) return
+		for (let index = 0; index < messages!.length; index++) {
+			const message = messages![index]
+			if (message.from_uid != 'uni-ai') continue
+			this.prepareMessagePresentation(message)
+		}
 	}
 	private buildDefaultLlm(): Llm {
 		return {

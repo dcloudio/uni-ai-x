@@ -341,11 +341,13 @@ export function libmarkStreamSetTheme(theme: string) {
 	if (presentationTheme == theme) return
 	presentationTheme = theme
 	streamEntries.forEach((entry: LibmarkStreamEntry) => {
-		if (entry.restored || entry.restoring) { rebuildRestoredEntry(entry); return }
-		// #ifdef APP-ANDROID
-		prepareAndroidEntry(entry, [])
+		// #ifdef APP-ANDROID || APP-HARMONY
+		// A theme switch invalidates every generated SVG, including entries that
+		// were already prepared. Rebuild from the source so old-theme assets are
+		// never reused by recycled list items.
+		rebuildRestoredEntry(entry)
 		// #endif
-		// #ifndef APP-ANDROID
+		// #ifndef APP-ANDROID || APP-HARMONY
 		refreshEntry(entry, entry.done)
 		// #endif
 	})
