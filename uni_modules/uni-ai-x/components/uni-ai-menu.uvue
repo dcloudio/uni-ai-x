@@ -208,6 +208,7 @@
 	.menu-box {
 		width: 260px;
 		margin-right: 0;
+		padding-right: 0;
 	}
 	.menu-box-chat-item {
 		cursor: pointer;
