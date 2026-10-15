@@ -31,6 +31,9 @@ export function requestSnapshotWork(request: UTSJSONObject, callback: (result: U
 		})
 		created.onError((_error: any) => {
 			if (worker != created) return
+			let detail = ''
+			try { detail = JSON.stringify(_error) ?? 'null' } catch (_stringifyError) { detail = 'unstringifiable' }
+			console.error('[render-snapshot] snapshot worker onError: ' + detail)
 			worker = null
 			ready = false
 			pending = []

@@ -175,30 +175,48 @@ test('failed native math becomes persistable source text and failed diagrams are
   assert.equal(blocks[1].mermaidRenderFailed, true);
 });
 
-for (const platform of ['APP-ANDROID', 'APP-HARMONY']) {
-  test(platform + ' message retry saves final snapshot and never overwrites a newer write', () => {
-    const timers = [];
-    const writes = [];
-    const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
-      setTimeout: fn => timers.push(fn),
-      saveAndroidMessageInBackground: (key, value, done) => writes.push({ value, done }),
-      requestSnapshotWork: (request, done) => writes.push({ value: request.message, done: ok => done({ ok }) }),
-    }, ['APP', platform]);
-    const manager = new StorageManager();
-    const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
-    manager.updateStreamingMessage(msg);
-    writes[0].done(false);
-    timers.shift()();
-    assert.equal(writes.length, 2);
-    assert.equal(writes[1].value.renderSnapshot, msg.renderSnapshot);
-    writes[1].done(false);
-    manager.updateStreamingMessage({ ...msg, body: 'new' });
-    timers.shift()();
-    assert.equal(writes.length, 3);
-    assert.equal(writes[2].value.body, 'new');
-    writes[2].done(true);
-  });
-}
+test('APP-ANDROID message retry saves final snapshot and never overwrites a newer write', () => {
+  const timers = [];
+  const writes = [];
+  const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
+    setTimeout: fn => timers.push(fn),
+    saveAndroidMessageInBackground: (key, value, done) => writes.push({ value, done }),
+    requestSnapshotWork: (request, done) => writes.push({ value: request.message, done: ok => done({ ok }) }),
+  }, ['APP', 'APP-ANDROID']);
+  const manager = new StorageManager();
+  const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
+  manager.updateStreamingMessage(msg);
+  writes[0].done(false);
+  timers.shift()();
+  assert.equal(writes.length, 2);
+  assert.equal(writes[1].value.renderSnapshot, msg.renderSnapshot);
+  writes[1].done(false);
+  manager.updateStreamingMessage({ ...msg, body: 'new' });
+  timers.shift()();
+  assert.equal(writes.length, 3);
+  assert.equal(writes[2].value.body, 'new');
+  writes[2].done(true);
+});
+
+test('APP-HARMONY message writes persist synchronously and keep the newest content', () => {
+  const writes = [];
+  const workerCalls = [];
+  const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
+    uni: { setStorageSync: (key, value) => writes.push({ key, value }) },
+    requestSnapshotWork: () => workerCalls.push(1),
+    deleteRenderAssets: () => workerCalls.push(1),
+  }, ['APP', 'APP-HARMONY']);
+  const manager = new StorageManager();
+  const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
+  manager.updateStreamingMessage(msg);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].key, 'uni-ai-msg-m');
+  assert.equal(JSON.parse(writes[0].value).body, 'old');
+  manager.updateStreamingMessage({ ...msg, body: 'new' });
+  assert.equal(writes.length, 2);
+  assert.equal(JSON.parse(writes[1].value).body, 'new');
+  assert.equal(workerCalls.length, 0);
+});
 
 test('restart restores final blocks without invoking parsing and prevents an overlapping rebuild', async () => {
   const api = store();

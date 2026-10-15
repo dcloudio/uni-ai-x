@@ -11,10 +11,11 @@ import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
 import type { MsgItem } from '../types.uts'
 import { RenderSnapshot, RENDER_SNAPSHOT_VERSION } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
-// #ifdef APP-ANDROID || APP-HARMONY
+// #ifdef APP-ANDROID
 import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 // #ifdef APP-HARMONY
+import { persistRenderAssets, restoreRenderAssets } from '@/uni_modules/uni-ai-worker/utssdk/snapshot-files.uts'
 import { prepareTablePresentation } from './table-presentation.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { linkSearchCitations } from './search-citations.uts'
@@ -140,6 +141,7 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version && message.body == body && presentationTheme == theme && presentationWidth == width
 	const attempt = () => {
 	if (!isCurrent()) return
+	// #ifdef APP-ANDROID
 	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (!isCurrent()) return
 		const stored = result['snapshot'] as RenderSnapshot | null
@@ -153,6 +155,21 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 		message.renderSnapshot = stored
 		entry.save?.(message)
 	})
+	// #endif
+	// #ifdef APP-HARMONY
+	let stored: RenderSnapshot | null = null
+	try { stored = persistRenderAssets(message._id, snapshot) } catch (error) { console.error('[render-snapshot] persist failed: ', error) }
+	if (!isCurrent()) return
+	if (stored == null) {
+		if (entry.saveRetryCount < 3) {
+			entry.saveRetryCount++
+			entry.saveRetryTimer = setTimeout(() => { entry.saveRetryTimer = 0; attempt() }, 1000 * entry.saveRetryCount)
+		} else console.error('[render-snapshot] asset save exhausted: ' + entry.messageId)
+		return
+	}
+	message.renderSnapshot = stored
+	entry.save?.(message)
+	// #endif
 	}
 	attempt()
 	// #endif
@@ -173,6 +190,7 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 	const body = message.body
 	entry.body = body
 	return new Promise<void>((resolve) => {
+	// #ifdef APP-ANDROID
 	requestSnapshotWork({ action: 'restore', snapshot: snapshot, body: body } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (streamEntries.get(message._id) != entry || message.body != body || !entry.restoring) { resolve(); return }
 		entry.restoring = false
@@ -188,6 +206,23 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 		}
 		resolve()
 	})
+	// #endif
+	// #ifdef APP-HARMONY
+	let restored: RenderSnapshot | null = null
+	try { restored = restoreRenderAssets(snapshot, body) } catch (_error) { restored = null }
+	if (streamEntries.get(message._id) != entry || message.body != body || !entry.restoring) { resolve(); return }
+	entry.restoring = false
+	if (restored != null && restored.theme == presentationTheme && restored.width == presentationWidth) {
+		entry.textBlocks = restored.blocks
+		entry.restored = true
+		entry.done = true
+		notifyEntry(entry)
+	} else {
+		message.renderSnapshot = undefined
+		libmarkStreamRequestRebuild(message._id, body)
+	}
+	resolve()
+	// #endif
 	})
 	// #endif
 	// #ifndef APP-ANDROID || APP-HARMONY
