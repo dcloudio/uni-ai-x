@@ -22,8 +22,7 @@ import { linkSearchCitations } from './search-citations.uts'
 import { prepareLibmarkHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 // #endif
 // #ifdef APP-ANDROID
-import { prepareAndroidPresentation, releaseAndroidPresentation, completeAndroidInlineMath } from '@/uni_modules/uni-ai-worker-runtime'
-import proxyWeb from './proxy-web.uts'
+import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
 export const libmarkPresentationRevision = ref<number>(0)
@@ -317,15 +316,6 @@ function sendAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: bo
 	} as UTSJSONObject))
 	prepareAndroidPresentation(entry.workerId, wireOps, done, presentationTheme, (message: UTSJSONObject) => {
 		if (streamEntries.get(entry.messageId) != entry) return
-		if (message['action'] == 'inline-math') {
-			const theme = message['theme'] as string
-			const source = message['source'] as string
-			proxyWeb.callMethod({ action: 'rasterizeInlineMath', source: source, theme: theme }, (result: UTSJSONObject) => {
-				if (streamEntries.get(entry.messageId) != entry || presentationTheme != theme) return
-				completeAndroidInlineMath(entry.workerId, source, theme, result)
-			})
-			return
-		}
 		if (message['action'] == 'error') {
 			notifyEntry(entry)
 			return
@@ -366,6 +356,7 @@ function sendAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: bo
 			entry.textBlocks = updated
 			notifyEntry(entry)
 		}
+		prepareNativeInlineMathBlocks(entry.messageId, changed, presentationTheme, publish)
 		prepareNativeMermaidBlocks(changed, presentationTheme, publish)
 		notifyEntry(entry)
 	}, entry.body, entry.citationIds, presentationWidth)

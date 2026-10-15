@@ -1,6 +1,5 @@
 type PresentationListener = (message: UTSJSONObject) => void
 type PresentationClient = { listener: PresentationListener }
-
 let worker: Worker | null = null
 let ready = false
 let failed = false
@@ -49,7 +48,7 @@ function ensureWorker() {
 			return
 		}
 		const client = clients.get(payload['id'] as string)
-		if (client == null || (action != 'blocks' && action != 'inline-math')) return
+		if (client == null || action != 'blocks') return
 		client.listener(payload)
 	})
 	created.onError((_error: any) => {
@@ -93,10 +92,4 @@ export function releaseAndroidPresentation(id: string) {
 	}
 	pending = pending.filter((message: UTSJSONObject): boolean => message['id'] != id)
 	if (ready && !failed) worker?.postMessage({ action: 'release', id: id } as UTSJSONObject, null)
-}
-
-export function completeAndroidInlineMath(id: string, source: string, theme: string, result: UTSJSONObject) {
-	if (!ready || failed || !clients.has(id)) return
-	worker?.postMessage({action:'inline-math-result',id:id,source:source,theme:theme,
-		image:result['imageDataURL'] ?? '',width:result['width'] ?? 0,height:result['height'] ?? 0} as UTSJSONObject, null)
 }

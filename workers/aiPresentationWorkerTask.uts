@@ -10,15 +10,6 @@ import { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from '.
 import { prepareMathSourceLayout } from '../uni_modules/uni-ai-worker/utssdk/math-layout.uts'
 import { prepareLibmarkHtml } from '../uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
-type InlineImage = { source: string, width: number, height: number }
-
-function containsDirtyImage(html: string, sources: Set<string>): boolean {
-	for (const source of sources) {
-		if (html.includes(source)) return true
-	}
-	return false
-}
-
 class PresentationEntry {
 	// Merge adjacent ordinary HTML so headings, paragraphs and lists share one RichText.
 	adapter = new LibmarkHtmlStreamAdapter(true)
@@ -35,9 +26,6 @@ class PresentationEntry {
 	noteKeys = ''
 	citationIds: number[] = []
 	contextDirty = false
-	images = new Map<string, InlineImage>()
-	pendingImages = new Set<string>()
-	dirtyImages = new Set<string>()
 }
 
 function sameDisplayBlock(a: MarkdownTextRenderBlock, b: MarkdownTextRenderBlock): boolean {
@@ -69,21 +57,6 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			return
 		}
 		const id = payload['id'] as string
-		if (action == 'inline-math-result') {
-			const target = this.entries.get(id)
-			if (target == null || target.theme != payload['theme']) return
-			const source = payload['source'] as string
-			target.pendingImages.delete(source)
-			const image = payload['image'] as string
-			if (image.length == 0) return
-			target.images.set(source, {source:image,width:payload['width'] as number,height:payload['height'] as number})
-			target.dirtyImages.add(source)
-			if (target.timer == 0) target.timer = setTimeout(() => {
-				target.timer = 0
-				try { this.prepare(id, target) } catch (error) { this.fail(id, error) }
-			}, 64)
-			return
-		}
 		if (action == 'release') {
 			const old = this.entries.get(id)
 			if (old != null && old.timer != 0) clearTimeout(old.timer)
@@ -102,9 +75,6 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			if (current.theme != theme) {
 				current.sources = []
 				current.sent = []
-				current.images.clear()
-				current.pendingImages.clear()
-				current.dirtyImages.clear()
 			}
 			current.theme = theme
 			const windowWidth = (payload['windowWidth'] as number | null) ?? 360
@@ -161,8 +131,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			const signature = (JSON.stringify(raw[i]) ?? '') + ':' + entry.done.toString()
 			sources.push(signature)
 			const postprocess = raw[i].kind == 'html' || raw[i].kind == 'table'
-			const imageDirty = postprocess && containsDirtyImage(raw[i].html, entry.dirtyImages)
-			if (i < entry.sources.length && signature == entry.sources[i] && !(postprocess && (entry.contextDirty || imageDirty))) {
+			if (i < entry.sources.length && signature == entry.sources[i] && !(postprocess && entry.contextDirty)) {
 				blocks.push(entry.blocks[i])
 				continue
 			}
@@ -179,23 +148,6 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 				block.html = linkMarkdownFootnotes(block.html, entry.body, entry.notes)
 				block.html = linkSearchCitations(block.html, entry.citationIds)
 				const tags = block.html.match(/<img\b[^>]*>/g) ?? []
-				for (const tag of tags) {
-					if (tag == null) continue
-					if (!/class="[^"]*\bmath\b[^"]*"/.test(tag)) continue
-					const match = tag.match(/src="(data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+)"/)
-					if (match == null) continue
-					const source = match[1] ?? ''
-					if (source.length == 0) continue
-					const image = entry.images.get(source)
-					if (image != null) {
-						const replacement = tag.replace(source,image.source).replace(/\s(?:width|height)="[^"]*"/g,'')
-							.replace(/\s*\/?\s*>$/, ' width="'+image.width.toString()+'" height="'+image.height.toString()+'">')
-						block.html = block.html.split(tag).join(replacement)
-					} else if (!entry.pendingImages.has(source)) {
-						entry.pendingImages.add(source)
-						this.postMessage({action:'inline-math',id:id,source:source,theme:entry.theme} as UTSJSONObject)
-					}
-				}
 			}
 			if (block.kind == 'html') block.html = prepareLibmarkHtml(block.html, block.isComplete)
 			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, entry.theme)
@@ -203,7 +155,6 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 		}
 		const previous = entry.blocks
 		entry.contextDirty = false
-		entry.dirtyImages.clear()
 		entry.sources = sources
 		prepareCodeBlocks(id, blocks, (prepared: MarkdownTextRenderBlock[]) => {
 			if (this.entries.get(id) != entry || entry.version != version) return
@@ -236,7 +187,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 			}
 			if (changes.length == 0 && prepared.length == entry.sent.length && !entry.done) return
 			entry.sent = prepared.slice()
-			const settled = entry.done && entry.pendingImages.size == 0 && prepared.every((block: MarkdownTextRenderBlock): boolean =>
+			const settled = entry.done && prepared.every((block: MarkdownTextRenderBlock): boolean =>
 				block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? ''))
 			this.postMessage({ action: 'blocks', id: id, length: prepared.length, changes: changes, settled: settled,
 				body: entry.body, theme: entry.theme, windowWidth: entry.windowWidth } as UTSJSONObject)

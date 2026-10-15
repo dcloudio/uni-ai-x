@@ -69,7 +69,7 @@ export * from './interface.uts'
 export { requestSnapshotWork } from './snapshot-worker.uts'
 // #endif
 // #ifdef APP-ANDROID
-export { prepareAndroidPresentation, releaseAndroidPresentation, completeAndroidInlineMath } from './presentation.uts'
+export { prepareAndroidPresentation, releaseAndroidPresentation } from './presentation.uts'
 // #endif
 
 // #ifndef MP-WEIXIN

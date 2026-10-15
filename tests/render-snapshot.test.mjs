@@ -119,7 +119,7 @@ function store() {
       requestAiWorkerMarkdownRebuild: () => parses++,
       prepareAndroidPresentation: (id, ops, done, theme, callback) => preparations.push({ id, ops, done, theme, callback }),
       releaseAndroidPresentation() {}, releaseCodeHighlightSessions() {},
-      prepareNativeMermaidBlocks() {}, pluginBackgroundFor: () => '#fff',
+      prepareNativeMermaidBlocks() {}, prepareNativeInlineMathBlocks() {}, pluginBackgroundFor: () => '#fff',
     });
   return { ...api, work, preparations, parses: () => parses, tick: () => {
     const callbacks = [...timers.values()]; timers.clear(); callbacks.forEach(fn => fn());
