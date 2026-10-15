@@ -302,7 +302,7 @@ class RequestAiRunner {
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		if (getCustomProvider(llm.provider) == null) {
 			this.requestRemoteAiInWorker(messages, llm, chat_id)
 			return
@@ -334,7 +334,7 @@ class RequestAiRunner {
 			// 错误已由 onError 回调上报，这里兜住 reject，避免产生 Uncaught (in promise)
 		})
 	}
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	private async requestRemoteAiInWorker(messages: RequestAiCoMessage[], llm: Llm, chat_id: string) {
 		const requestVersion = this.workerRequestVersion + 1
 		this.workerRequestVersion = requestVersion

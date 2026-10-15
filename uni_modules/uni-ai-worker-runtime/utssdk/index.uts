@@ -136,7 +136,7 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.url = options.url
 	message.authorization = options.authorization
 	message.bodyJson = options.bodyJson
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	message.body = options.body ?? null
 	// #endif
 	message.renderInterval = options.renderInterval ?? 300

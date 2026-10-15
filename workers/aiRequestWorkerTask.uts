@@ -24,7 +24,7 @@ import {
 // #ifdef APP-HARMONY || APP-ANDROID
 import { LibmarkSourceTail } from './libmark-source-tail.uts'
 // #endif
-// #ifdef APP-ANDROID
+// #ifdef APP-ANDROID || APP-HARMONY
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
 // #endif
 
@@ -59,7 +59,7 @@ function readEsString(message: ESObject, key: string): string {
 // #endif
 
 export class AiRequestWorkerTask extends WorkerTaskImpl {
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	private streamRequest: WorkerStreamRequest | null = null
 	// #endif
 	private renderTimer: number = 0
@@ -147,7 +147,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			return
 		}
 		// #endif
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		if (action == 'start') {
 			this.startRequest(payload)
 			return
@@ -380,7 +380,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 	// #endif
 
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	private feedLibmarkContent(contentDelta: string): void {
 		if (this.finished || contentDelta.length == 0) return
 		if (this.processLibmarkContent(contentDelta)) this.flushLibmarkOps()
@@ -412,7 +412,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	private startRequest(payload: UTSJSONObject) {
 		const requestVersion = readMessageNumber(payload, 'requestVersion')
 		const url = readMessageString(payload, 'url')
@@ -479,7 +479,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	private handleSseEvent(data: string) {
 		if (this.finished) return
 		let raw: UTSJSONObject
@@ -514,7 +514,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		this.feedLibmarkContent(contentDelta)
 		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
@@ -546,7 +546,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = true
 		if (!this.content.endsWith('\n')) this.content += '\n'
 		this.publishSnapshot(true)
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		this.streamRequest = null
 		// #endif
 	}
@@ -671,7 +671,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.destroyLibmarkSession()
 		this.resetLibmarkProtocol()
 		// #endif
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		// #endif
@@ -718,7 +718,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.destroyLibmarkSession()
 		this.resetLibmarkProtocol()
 		// #endif
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		// #endif
