@@ -104,9 +104,7 @@
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 
 .menu-box {
-	width: 50%;
-	margin-right: -44px;
-	padding-right: 44px;
+	width: calc(50% - 44px);
 	height: 100%;
 	display: flex;
 	flex-direction: column;
@@ -207,8 +205,6 @@
 @media screen and (min-device-width:960px){
 	.menu-box {
 		width: 260px;
-		margin-right: 0;
-		padding-right: 0;
 	}
 	.menu-box-chat-item {
 		cursor: pointer;

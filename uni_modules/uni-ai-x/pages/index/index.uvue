@@ -2,9 +2,10 @@
 	<view class="uni-ai-page-root">
 		<view class="uni-ai-page uni-theme-root" ref="uni-ai-page"
 			:class="showMenu ? 'uni-ai-page-showMenu' : ''"
-			:style="{transform: `translateX(${translateX}px)`}">
+			>
 			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
-			<uni-ai-chat :show-menu="showMenu" :translate-x="translateX" @change-menu="changeMenu" @close-menu="closeMenu" @source="openSource"></uni-ai-chat>
+			<uni-ai-chat :show-menu="showMenu" @change-menu="changeMenu" @close-menu="closeMenu" @source="openSource"></uni-ai-chat>
+			<view class="uni-ai-menu-mask" :class="showMenu ? 'uni-ai-menu-mask-show' : ''" @click="closeMenu"></view>
 			<fps v-if="showFps" />
 			<!-- #ifndef MP-WEIXIN -->
 			<web-view v-if="showProxyWeb" class="uni-ai-proxy-web" id="proxy-web"
@@ -59,14 +60,8 @@
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 	// #endif
 	
-	// 获取屏幕宽度
-	const winWidth = uni.getWindowInfo().windowWidth
-	// 是不是宽屏
-	const isWideScreen = winWidth > 960
-	const MENU_WIDTH = isWideScreen ? 260 : winWidth - 44
-
-	const translateX = ref<number>(-MENU_WIDTH)
 	const showMenu = ref<boolean>(false)
+	// 仅供聊天组件判断遮罩状态
 	const showFps: boolean = false
 	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null)
 	onBackPress((): boolean => {
@@ -79,7 +74,6 @@
 
 	const setMenu = (show: boolean) => {
 		showMenu.value = show
-		translateX.value = show ? 0 : -MENU_WIDTH
 	}
 
 	const changeMenu = () => {
@@ -258,30 +252,52 @@
 }
 
 .uni-ai-page {
-	position: absolute;	
-	// #ifdef H5
-	width: calc(100% + 260px);
-	// #endif
+	position: absolute;
+	top: 0;
+	right: 0;
+	justify-content: flex-end;
 	width: 200%;
-	transform: translateX(100%);
 	height: 100%;
 	flex-direction: row;
 	background-color: var(--bg-primary);
+	transform: translateX(0);
 	transition: transform 0.3s;
 }
 
 .uni-ai-page-showMenu {
-	transform: translateX(0) !important;
+	transform: translateX(calc(50% - 44px));
+}
+
+.uni-ai-menu-mask {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 50%;
+	height: 100%;
+	z-index: 30;
+	background-color: rgba(0, 0, 0, 0.3);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 1s;
+}
+
+.uni-ai-menu-mask-show {
+	opacity: 1;
+	pointer-events: auto;
 }
 
 /* #ifdef H5 */
 @media screen and (min-device-width:960px){
 	.uni-ai-page {
 		width: calc(100% + 260px);
-		transition: transform 0.3s, width 0.3s;
 	}
+	.uni-ai-page { transition: transform 0.3s, width 0.3s; }
 	.uni-ai-page-showMenu {
-		width: 100%;
+		transform: translateX(0) !important;
+		width: calc(100%) !important;
+	}
+	.uni-ai-menu-mask {
+		display: none;
 	}
 }
 /* #endif */
