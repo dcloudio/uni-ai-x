@@ -101,11 +101,72 @@ function earlierSpecial(current: HtmlSpecialBlock | null, candidate: HtmlSpecial
 	return candidate.start < current.start ? candidate : current
 }
 
+// 文本流容器：svg 落在这些未闭合容器内时属于行内图形（如公式），不能提取为独立块。
+const TEXT_CONTAINER_TAGS = ['p', 'div', 'li', 'ul', 'ol', 'blockquote', 'td', 'th', 'table',
+	'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+
+const TAG_NAME_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'
+
+function isTextContainerTag(name: string): boolean {
+	for (let i = 0; i < TEXT_CONTAINER_TAGS.length; i++) {
+		if (TEXT_CONTAINER_TAGS[i] == name) return true
+	}
+	return false
+}
+
+// 判断 svg 起点前是否存在未闭合的文本容器标签：片段内结构自洽（稳定块交付），
+// 顶层 mermaid svg 前只有完整闭合的块级标签，行内公式的 svg 则嵌在 <p> 等容器内。
+function isTopLevelSvgStart(source: string, svgStart: number): boolean {
+	let depth = 0
+	let cursor = 0
+	while (cursor < svgStart) {
+		const start = source.indexOf('<', cursor)
+		if (start < 0 || start >= svgStart) break
+		if (source.indexOf('<!--', start) == start) {
+			const commentEnd = source.indexOf('-->', start + 4)
+			cursor = commentEnd < 0 ? svgStart : commentEnd + 3
+			continue
+		}
+		let nameEnd = start + 1
+		const isClose = source.charAt(nameEnd) == '/'
+		if (isClose) nameEnd++
+		const nameStart = nameEnd
+		while (nameEnd < svgStart) {
+			if (TAG_NAME_CHARS.indexOf(source.charAt(nameEnd)) < 0) break
+			nameEnd++
+		}
+		const tagEnd = source.indexOf('>', start)
+		if (tagEnd < 0 || tagEnd >= svgStart) break
+		cursor = tagEnd + 1
+		const name = source.substring(nameStart, nameEnd).toLowerCase()
+		if (name.length == 0) continue
+		if (isClose) {
+			if (isTextContainerTag(name) && depth > 0) depth--
+			continue
+		}
+		if (source.charAt(tagEnd - 1) == '/') continue
+		if (isTextContainerTag(name)) depth++
+	}
+	return depth == 0
+}
+
+// 在片段内查找顶层 svg；容器内（行内公式）的 svg 跳过，继续向后找。
+function findTopLevelSvg(source: string, fromIndex: number): HtmlSpecialBlock | null {
+	let cursor = fromIndex
+	while (cursor < source.length) {
+		const svg = findClosedSpecial(source, 'svg', 'svg', cursor)
+		if (svg == null) return null
+		if (isTopLevelSvgStart(source, svg.start)) return svg
+		cursor = svg.end
+	}
+	return null
+}
+
 function findNextSpecial(source: string, fromIndex: number): HtmlSpecialBlock | null {
 	let block = null as HtmlSpecialBlock | null
 	block = earlierSpecial(block, findClosedSpecial(source, 'table', 'table', fromIndex))
 	block = earlierSpecial(block, findClosedSpecial(source, 'pre', 'code', fromIndex))
-	block = earlierSpecial(block, findClosedSpecial(source, 'svg', 'svg', fromIndex))
+	block = earlierSpecial(block, findTopLevelSvg(source, fromIndex))
 	return block
 }
 

@@ -8,7 +8,7 @@ const pure = loadUts('uni_modules/uni-ai-worker/utssdk/render-snapshot.uts',
 const block = (extra = {}) => ({ kind: 'html', key: 'html-1', html: '<p>hello</p>', text: '',
   isComplete: true, language: '', columnWidths: [], rowTextWidths: [], codeTokens: [],
   level: 0, indent: 0, marker: '', quoteDepth: 0, svgSource: '', svgWidth: 0, svgHeight: 0, ...extra });
-const snapshot = blocks => ({ version: 1, bodyKey: pure.renderContentKey('hello'), theme: 'light',
+const snapshot = blocks => ({ version: pure.RENDER_SNAPSHOT_VERSION, bodyKey: pure.renderContentKey('hello'), theme: 'light',
   width: 360, citations: '', assets: [], blocks });
 
 function files() {

@@ -10,7 +10,8 @@ export type RenderSnapshot = {
 	blocks: MarkdownTextRenderBlock[]
 }
 
-export const RENDER_SNAPSHOT_VERSION = 1
+// v2：行内公式改为内联 <svg> 交付后，v1 快照可能把公式误存为独立 image 块，失效重建。
+export const RENDER_SNAPSHOT_VERSION = 2
 export const RENDER_ASSET_PREFIX = 'uni-ai-asset://'
 
 export function renderContentKey(value: string): string {
