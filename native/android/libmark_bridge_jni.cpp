@@ -626,7 +626,7 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
   math_text_font.style_flags = LIBMARK_FONT_STYLE_NORMAL;
   libmark_math_options_v1 math_options{};
   math_options.struct_size = sizeof(math_options);
-  math_options.inline_output = LIBMARK_MATH_INLINE_OUTPUT_IMAGE;
+  math_options.inline_output = LIBMARK_MATH_INLINE_OUTPUT_SVG;
   math_options.background_color = {(const uint8_t *)background_text.data(),
                                    background_text.size()};
   math_options.color_scheme = color_scheme;
