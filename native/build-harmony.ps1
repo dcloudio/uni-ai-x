@@ -1,16 +1,16 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-  编译 libmark_bridge.so 并打包 libmark.har 到 UTS 插件目录。
+  编译 libuni-ai-md_bridge.so 并打包 uni-ai-md.har 到 UTS 插件目录。
 
 .DESCRIPTION
   构建过程只使用本项目目录内的内容：
     native/harmony/            桥接库源码、CMake 工程和 HAR 骨架
-    native/include/            libmark 公开头文件快照
-    native/prebuilt/<abi>/     预编译的 libmark-full.so（不提交到 git）
+    native/include/            uni-ai-md 公开头文件快照
+    native/prebuilt/<abi>/     预编译的 libuni-ai-md.so（不提交到 git）
   缺少预编译库时按 native/README.md 的构建准备步骤先准备。
 
-  HAR 同时打包 arm64-v8a 与 x86_64（模拟器）两种 ABI 的桥接库和 libmark-full.so，
+  HAR 同时打包 arm64-v8a 与 x86_64（模拟器）两种 ABI 的桥接库和 libuni-ai-md.so，
   与 UTS 插件 app-harmony 的 deviceArchs 保持一致。
 
   需要 DevEco Studio 的 HarmonyOS Native SDK；可通过环境变量
@@ -23,8 +23,8 @@ $ErrorActionPreference = 'Stop'
 
 $nativeDir = $PSScriptRoot
 $projectDir = Split-Path -Parent $nativeDir
-$harDir = Join-Path $projectDir 'uni_modules/libmark/utssdk/app-harmony/libs'
-$harPath = Join-Path $harDir 'libmark.har'
+$harDir = Join-Path $projectDir 'uni_modules/uni-ai-md/utssdk/app-harmony/libs'
+$harPath = Join-Path $harDir 'uni-ai-md.har'
 $stageDir = Join-Path $nativeDir 'build/stage'
 
 # HAR 覆盖的 ABI：真机 arm64-v8a、模拟器 x86_64。
@@ -36,12 +36,12 @@ function Write-Fail([string]$message) {
 }
 
 foreach ($abi in $abis) {
-  $prebuiltLib = Join-Path $nativeDir "prebuilt/$abi/libmark-full.so"
+  $prebuiltLib = Join-Path $nativeDir "prebuilt/$abi/libuni-ai-md.so"
   if (Test-Path $prebuiltLib) { continue }
   Write-Fail @"
-缺少 native/prebuilt/$abi/libmark-full.so。
+缺少 native/prebuilt/$abi/libuni-ai-md.so。
 构建准备步骤（详见 native/README.md）：
-  1. 在 libmark 仓库根目录执行: pwsh -File scripts/build-ohos.ps1
+  1. 在 uni-ai-md 仓库根目录执行: pwsh -File scripts/build-ohos.ps1
   2. 执行: pwsh -File native/prepare-lib.ps1
 "@
 }
@@ -86,10 +86,10 @@ foreach ($abi in $abis) {
     "-DOHOS_NATIVE_ROOT=$ohosNative"
   if ($LASTEXITCODE -ne 0) { Write-Fail "$abi CMake 配置失败" }
 
-  & $cmake --build $buildDir --target libmark_bridge --parallel
-  if ($LASTEXITCODE -ne 0) { Write-Fail "$abi libmark_bridge 编译失败" }
+  & $cmake --build $buildDir --target uni_ai_md_bridge --parallel
+  if ($LASTEXITCODE -ne 0) { Write-Fail "$abi uni_ai_md_bridge 编译失败" }
 
-  $bridgeSo = Join-Path $buildDir "libs/$abi/libmark_bridge.so"
+  $bridgeSo = Join-Path $buildDir "libs/$abi/libuni-ai-md_bridge.so"
   if (-not (Test-Path $bridgeSo)) { Write-Fail "未生成 $bridgeSo" }
   $bridgeLibs += @{ Abi = $abi; Bridge = $bridgeSo }
 }
@@ -101,7 +101,7 @@ foreach ($bridgeLib in $bridgeLibs) {
   $libsDir = Join-Path $packageDir "libs/$($bridgeLib.Abi)"
   New-Item -ItemType Directory -Force -Path $libsDir | Out-Null
   Copy-Item $bridgeLib.Bridge $libsDir
-  Copy-Item (Join-Path $nativeDir "prebuilt/$($bridgeLib.Abi)/libmark-full.so") $libsDir
+  Copy-Item (Join-Path $nativeDir "prebuilt/$($bridgeLib.Abi)/libuni-ai-md.so") $libsDir
 }
 
 New-Item -ItemType Directory -Force -Path $harDir | Out-Null
@@ -109,7 +109,7 @@ if (Test-Path $harPath) { Remove-Item -Force $harPath }
 # 在输出目录内用相对文件名调用 tar：msys/gnu tar 会把带盘符的绝对路径当作远端主机。
 Push-Location $harDir
 try {
-  & tar -czf 'libmark.har' -C $stageDir package
+  & tar -czf 'uni-ai-md.har' -C $stageDir package
   if ($LASTEXITCODE -ne 0) { Write-Fail 'HAR 打包失败' }
 } finally {
   Pop-Location
@@ -118,7 +118,7 @@ try {
 $readelf = Join-Path $ohosNative 'llvm/bin/llvm-readelf.exe'
 if (Test-Path $readelf) {
   foreach ($bridgeLib in $bridgeLibs) {
-    Write-Host "libmark_bridge.so ($($bridgeLib.Abi)) NEEDED:"
+    Write-Host "libuni-ai-md_bridge.so ($($bridgeLib.Abi)) NEEDED:"
     & $readelf -d $bridgeLib.Bridge | Select-String 'NEEDED' |
       ForEach-Object { $_.Line.Trim() }
   }

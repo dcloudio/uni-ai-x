@@ -1,6 +1,6 @@
 {
   "minApiLevel": "9",
   "dependencies": {
-    "libmark": "./libs/libmark.har"
+    "uni-ai-md": "./libs/uni-ai-md.har"
   }
 }

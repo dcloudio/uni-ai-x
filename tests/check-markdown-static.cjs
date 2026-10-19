@@ -7,7 +7,7 @@ if (!pluginRoot) throw new Error('Set HBUILDERX_PLUGINS to the HBuilderX plugins
 const ts = require(path.join(pluginRoot, 'uniapp-uts-v1/node_modules/@dcloudio/uni-uts-v1/lib/typescript/lib/typescript.js'));
 const vue = require(path.join(pluginRoot, 'uniapp-cli-vite/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js'));
 const { preprocess } = require(path.join(pluginRoot, 'uniapp-cli-vite/node_modules/@dcloudio/uni-cli-shared/lib/preprocess'));
-const files = execFileSync('rg', ['--files','uni_modules/uni-ai-x','uni_modules/uni-ai-worker','uni_modules/uni-ai-worker-runtime','uni_modules/libmark','workers','demo/markdown','uni_modules/uni-highlight/utssdk']).toString().trim().split('\n').filter(f=>/\.(uts|uvue|ets)$/.test(f));
+const files = execFileSync('rg', ['--files','uni_modules/uni-ai-x','uni_modules/uni-ai-worker','uni_modules/uni-ai-worker-runtime','uni_modules/uni-ai-md','workers','demo/markdown','uni_modules/uni-highlight/utssdk']).toString().trim().split('\n').filter(f=>/\.(uts|uvue|ets)$/.test(f));
 let errors=0;
 for (const platform of ['APP-ANDROID','APP-HARMONY','APP-IOS','WEB','MP-WEIXIN']) for (const file of files) {
   const source=fs.readFileSync(file,'utf8');

@@ -23,7 +23,7 @@ import {
 // #endif
 // #ifdef APP-HARMONY || APP-ANDROID
 import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
-import { OP_RESET } from '@/uni_modules/libmark/utssdk/interface.uts'
+import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
 import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
 // #endif
 

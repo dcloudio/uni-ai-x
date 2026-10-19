@@ -1,28 +1,28 @@
-package uts.sdk.modules.libmark
+package uts.sdk.modules.uniAiMd
 
 import android.os.LocaleList
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Android 平台 libmark 桥接包装类。
+ * Android 平台 uni-ai-md 桥接包装类。
  *
- * JNI 实现在 native/android/libmark_bridge_jni.cpp，事件以 JSON 字符串返回，字段与
- * UTS 的 LibmarkEvent/LibmarkOp 一致；没有事件时返回 null。
+ * JNI 实现在 native/android/uni_ai_md_bridge_jni.cpp，事件以 JSON 字符串返回，字段与
+ * UTS 的 UniAiMdEvent/UniAiMdOp 一致；没有事件时返回 null。
  *
  * 会话句柄在 UTS/JS 侧只是一个自增 id：UTS 的 `object` 参数在 Android 桥上是
  * UTSJSONObject，Kotlin 实例穿不过 JS 边界，所以裸指针留在本类里，UTS 只传 id。
  */
-object LibmarkBridge {
-    /** id -> libmark 会话指针；id 从 1 开始，0 表示无效。 */
+object UniAiMdBridge {
+    /** id -> uni-ai-md 会话指针；id 从 1 开始，0 表示无效。 */
     private val sessions = ConcurrentHashMap<Int, Long>()
     private var nextSessionId = 0
 
     init {
         // System.loadLibrary 会自行补 lib 前缀和 .so 后缀，所以这里传的是去掉前缀的名字：
-        // "mark-full" -> libmark-full.so，"mark_bridge" -> libmark_bridge.so。
-        // libmark_bridge.so 以 libmark-full.so 为 NEEDED 依赖，先显式加载它，缺失时报错更直观。
-        System.loadLibrary("mark-full")
-        System.loadLibrary("mark_bridge")
+        // "uni-ai-md" -> libuni-ai-md.so，"uni-ai-md_bridge" -> libuni-ai-md_bridge.so。
+        // libuni-ai-md_bridge.so 以 libuni-ai-md.so 为 NEEDED 依赖，先显式加载它，缺失时报错更直观。
+        System.loadLibrary("uni-ai-md")
+        System.loadLibrary("uni-ai-md_bridge")
     }
 
     /**
@@ -33,7 +33,7 @@ object LibmarkBridge {
     fun createSession(mode: String?, languageTags: String?, darkMode: Boolean?, background: String?): Int {
         val pointer = nativeCreateSession(mode, composeLocales(languageTags), darkMode == true, background)
         if (pointer == 0L) {
-            throw IllegalStateException("libmark session creation failed")
+            throw IllegalStateException("uni-ai-md session creation failed")
         }
         nextSessionId += 1
         sessions[nextSessionId] = pointer
@@ -50,12 +50,12 @@ object LibmarkBridge {
     }
 
     fun feedChunk(id: Int, chunk: String): String? {
-        val pointer = sessions[id] ?: throw IllegalStateException("invalid libmark session handle")
+        val pointer = sessions[id] ?: throw IllegalStateException("invalid uni-ai-md session handle")
         return nativeFeedChunk(pointer, chunk)
     }
 
     fun finishSession(id: Int): String? {
-        val pointer = sessions[id] ?: throw IllegalStateException("invalid libmark session handle")
+        val pointer = sessions[id] ?: throw IllegalStateException("invalid uni-ai-md session handle")
         return nativeFinishSession(pointer)
     }
 

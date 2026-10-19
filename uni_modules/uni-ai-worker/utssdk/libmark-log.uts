@@ -1,6 +1,6 @@
-// 块事件日志：libmark 下发的 html / data / ast 载荷都按同一套格式打印到控制台，
-// 前缀 [libmark] 便于过滤。模块内只有纯函数，格式与 libmark 的 uni-app-x demo 一致。
-import { OP_APPEND, OP_TAIL, OP_COMMIT, OP_RESET } from '../../libmark/utssdk/interface.uts'
+// 块事件日志：uni-ai-md 下发的 html / data / ast 载荷都按同一套格式打印到控制台，
+// 前缀 [uni-ai-md] 便于过滤。模块内只有纯函数，格式与 uni-ai-md 的 uni-app-x demo 一致。
+import { OP_APPEND, OP_TAIL, OP_COMMIT, OP_RESET } from '../../uni-ai-md/utssdk/interface.uts'
 
 // 单行日志上限：超过则截断保留头部并附上原始长度。
 const LOG_LINE_LIMIT: number = 400
@@ -64,7 +64,7 @@ function padLogLine(line: string): string {
 	return line + padding
 }
 
-// JSON 日志格式化的解析状态：在 libmark 输出的紧凑 JSON 上按字符扫描，
+// JSON 日志格式化的解析状态：在 uni-ai-md 输出的紧凑 JSON 上按字符扫描，
 // 不构造对象，避免日志内容受 schema 字段变化影响。
 class LogFormatState {
 	text: string = ''
@@ -188,7 +188,7 @@ function logEmitArray(state: LogFormatState, depth: number): void {
 	}
 }
 
-// 展开成 [libmark]<缩进><key>: <value> 形式的日志行。顶级属性缩进一级（两个空格），
+// 展开成 [uni-ai-md]<缩进><key>: <value> 形式的日志行。顶级属性缩进一级（两个空格），
 // 嵌套层级与数组元素在此基础上继续叠加。
 function formatJsonLogLines(payload: string): string[] {
 	const state = new LogFormatState()
@@ -245,7 +245,7 @@ function opKindName(op: number): string {
  *
  * 流式期间每个未闭合块的 tail 事件都携带整块全量载荷，主线程逐条格式化并
  * `console.log` 会长时间占用 UI 线程，典型表现为「先渲染几行后长时间卡顿，
- * 再一次性刷出大量内容」。仅在排查 libmark 块事件时临时置为 true。
+ * 再一次性刷出大量内容」。仅在排查 uni-ai-md 块事件时临时置为 true。
  */
 export const libmarkBlockLogEnabled: boolean = false
 
@@ -260,12 +260,12 @@ export function logBlockPayload(kind: string, payload: string, index: number,
 	op: number, unchanged: boolean): void {
 	if (!libmarkBlockLogEnabled) return
 	const compact = truncateDataUris(payload)
-	console.log(padLogLine(`[libmark]BLOCK ${opKindName(op)} [${kind}] #${index}` +
+	console.log(padLogLine(`[uni-ai-md]BLOCK ${opKindName(op)} [${kind}] #${index}` +
 		(unchanged ? ' (unchanged)' : '')))
 	// 内容未变的提交不再重复打印内容。
 	if (unchanged) return
 	const lines = formatBlockLogLines(kind, compact)
 	for (let i = 0; i < lines.length; i++) {
-		console.log(padLogLine(`[libmark]${limitLogLine(lines[i])}`))
+		console.log(padLogLine(`[uni-ai-md]${limitLogLine(lines[i])}`))
 	}
 }

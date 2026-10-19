@@ -19,7 +19,7 @@
     "dependencies": [
       "uni-ai-worker",
       "uni-cmark",
-      "libmark"
+      "uni-ai-md"
     ]
   }
 }

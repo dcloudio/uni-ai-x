@@ -1,16 +1,21 @@
-import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
+// #ifdef APP-ANDROID
+import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
+// #endif
+// #ifndef APP-ANDROID
+import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
+// #endif
 
 // Keep native block boundaries; preview only the unconsumed source of a confirmed tail.
 export class LibmarkSourceTail {
 	private line: string = ''
-	private tail: LibmarkOp | null = null
+	private tail: UniAiMdOp | null = null
 	private previewVisible: boolean = false
 	private fence: string = ''
 	private indent: number = 0
 	private pendingSource: string = ''
 	private visibleSource: string = ''
 
-	feed(chunk: string, event: LibmarkEvent | null): LibmarkEvent | null {
+	feed(chunk: string, event: UniAiMdEvent | null): UniAiMdEvent | null {
 		// #ifdef APP-ANDROID
 		return this.feedConfirmedTail(chunk, event)
 		// #endif
@@ -24,22 +29,22 @@ export class LibmarkSourceTail {
 		// #endif
 	}
 
-	finish(event: LibmarkEvent | null): LibmarkEvent | null {
+	finish(event: UniAiMdEvent | null): UniAiMdEvent | null {
 		this.pendingSource = ''
 		return this.withSource(event, '')
 	}
 
-	private withSource(event: LibmarkEvent | null, source: string): LibmarkEvent | null {
+	private withSource(event: UniAiMdEvent | null, source: string): UniAiMdEvent | null {
 		if (source == this.visibleSource) return event
 		this.visibleSource = source
-		const ops = event == null ? [] as LibmarkOp[] : event.ops.slice()
-		const preview: LibmarkOp = { op: 2, kind: 'source', index: -1, unchanged: false, content: source }
+		const ops = event == null ? [] as UniAiMdOp[] : event.ops.slice()
+		const preview: UniAiMdOp = { op: 2, kind: 'source', index: -1, unchanged: false, content: source }
 		ops.push(preview)
-		const result: LibmarkEvent = { ops: ops }
+		const result: UniAiMdEvent = { ops: ops }
 		return result
 	}
 
-	private feedConfirmedTail(chunk: string, event: LibmarkEvent | null): LibmarkEvent | null {
+	private feedConfirmedTail(chunk: string, event: UniAiMdEvent | null): UniAiMdEvent | null {
 		const combined = this.line + chunk
 		const newline = combined.lastIndexOf('\n')
 		if (newline >= 0) {
@@ -64,7 +69,7 @@ export class LibmarkSourceTail {
 			}
 		}
 		this.line = newline >= 0 ? combined.slice(newline + 1) : combined
-		const ops = event == null ? [] as LibmarkOp[] : event.ops.slice()
+		const ops = event == null ? [] as UniAiMdOp[] : event.ops.slice()
 		for (let i = 0; i < ops.length; i++) {
 			const op = ops[i]
 			this.tail = null
@@ -92,9 +97,9 @@ export class LibmarkSourceTail {
 				pending = pending.replace(/\$\$?[ \t]*$/, '').replace(/\\\]?[ \t]*$/, '')
 			} else if (/^ {0,3}(`+|~+)\s*$/.test(pending)) pending = ''
 			data['source'] = source + pending
-			const preview: LibmarkOp = { op: 2, kind: 'data', index: tail.index, unchanged: false, content: JSON.stringify(data) }
+			const preview: UniAiMdOp = { op: 2, kind: 'data', index: tail.index, unchanged: false, content: JSON.stringify(data) }
 			ops.push(preview)
-			const result: LibmarkEvent = { ops: ops }
+			const result: UniAiMdEvent = { ops: ops }
 			return result
 		}
 		if (this.fence.length == 0) return event
@@ -112,13 +117,13 @@ export class LibmarkSourceTail {
 		} else {
 			const end = tail.content.indexOf('</code>')
 			const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-			const preview: LibmarkOp = { op: 2, kind: 'html', index: tail.index, unchanged: false,
+			const preview: UniAiMdOp = { op: 2, kind: 'html', index: tail.index, unchanged: false,
 				content: tail.content.slice(0, end) + escaped + tail.content.slice(end) }
 			ops.push(preview)
 			this.previewVisible = true
 		}
 		if (ops.length == 0) return null
-		const result: LibmarkEvent = { ops: ops }
+		const result: UniAiMdEvent = { ops: ops }
 		return result
 	}
 }

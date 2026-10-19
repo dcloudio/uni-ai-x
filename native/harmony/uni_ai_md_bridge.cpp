@@ -1,9 +1,9 @@
-#include "libmark_bridge.h"
+#include "uni_ai_md_bridge.h"
 
-#include "libmark/core.h"
-#include "libmark/plugin.h"
-#include "libmark/render.h"
-#include "libmark/session.h"
+#include "uni-ai-md/core.h"
+#include "uni-ai-md/plugin.h"
+#include "uni-ai-md/render.h"
+#include "uni-ai-md/session.h"
 #include "math_plugin.h"
 #include "mermaid_plugin.h"
 
@@ -14,7 +14,7 @@
 #include <vector>
 
 /*
- * bridge 把 libmark 事件转换为块级操作交给 ArkTS：BLOCK 追加新块，tail 事件
+ * bridge 把 uni-ai-md 事件转换为块级操作交给 ArkTS：BLOCK 追加新块，tail 事件
  * 更新当前未闭合块，RESET 清空块列表。未闭合 HTML 块在 bridge 内完成前缀 patch；
  * DATA 与 AST 块每次都是完整快照，直接整段替换。操作带顶层块序号，便于宿主把
  * HTML、DATA、AST 三种通道的块对齐到同一槽位。
@@ -45,18 +45,18 @@ const uint32_t kOpCommit = 3;
 const uint32_t kOpReset = 4;
 
 struct BridgeSession {
-  libmark_runtime *runtime = nullptr;
-  libmark_session *session = nullptr;
+  uni_ai_md_runtime *runtime = nullptr;
+  uni_ai_md_session *session = nullptr;
   BridgeSegment tail;
   bool has_tail = false;
   std::vector<BridgeOp> ops;
   bool callback_error = false;
 };
 
-static int OnEvent(const libmark_event *event, void *user_data) {
+static int OnEvent(const uni_ai_md_event *event, void *user_data) {
   auto *state = static_cast<BridgeSession *>(user_data);
   if (!state || !event) return 1;
-  if (event->type == LIBMARK_EVENT_RESET) {
+  if (event->type == UNI_AI_MD_EVENT_RESET) {
     state->tail = BridgeSegment();
     state->has_tail = false;
     state->ops.clear();
@@ -65,9 +65,9 @@ static int OnEvent(const libmark_event *event, void *user_data) {
     state->ops.push_back(std::move(op));
     return 0;
   }
-  if (event->type != LIBMARK_EVENT_BLOCK &&
-      event->type != LIBMARK_EVENT_TAIL_BLOCK_PARTIAL &&
-      event->type != LIBMARK_EVENT_TAIL_BLOCK_COMPLETE) {
+  if (event->type != UNI_AI_MD_EVENT_BLOCK &&
+      event->type != UNI_AI_MD_EVENT_TAIL_BLOCK_PARTIAL &&
+      event->type != UNI_AI_MD_EVENT_TAIL_BLOCK_COMPLETE) {
     return 0;
   }
   std::string payload;
@@ -75,13 +75,13 @@ static int OnEvent(const libmark_event *event, void *user_data) {
     if (event->spans[i].data && event->spans[i].size)
       payload.append(reinterpret_cast<const char *>(event->spans[i].data), event->spans[i].size);
   }
-  const BridgeKind kind = event->content_type == LIBMARK_CONTENT_DATA
+  const BridgeKind kind = event->content_type == UNI_AI_MD_CONTENT_DATA
                               ? kKindData
-                              : (event->content_type == LIBMARK_CONTENT_AST
+                              : (event->content_type == UNI_AI_MD_CONTENT_AST
                                      ? kKindAst
                                      : kKindHtml);
   const bool unchanged = payload.empty() && event->retain_tail_bytes != 0;
-  if (event->type == LIBMARK_EVENT_BLOCK) {
+  if (event->type == UNI_AI_MD_EVENT_BLOCK) {
     if (payload.empty()) return 0;
     BridgeOp op;
     op.op = kOpAppend;
@@ -109,13 +109,13 @@ static int OnEvent(const libmark_event *event, void *user_data) {
     state->tail.kind = kind;
     state->has_tail = true;
     BridgeOp op;
-    op.op = event->type == LIBMARK_EVENT_TAIL_BLOCK_COMPLETE ? kOpCommit : kOpTail;
+    op.op = event->type == UNI_AI_MD_EVENT_TAIL_BLOCK_COMPLETE ? kOpCommit : kOpTail;
     op.kind = kind;
     op.index = event->top_level_block_index;
     op.unchanged = unchanged;
     op.text = state->tail.text;
     state->ops.push_back(std::move(op));
-    if (event->type == LIBMARK_EVENT_TAIL_BLOCK_COMPLETE) {
+    if (event->type == UNI_AI_MD_EVENT_TAIL_BLOCK_COMPLETE) {
       state->tail = BridgeSegment();
       state->has_tail = false;
     }
@@ -125,8 +125,8 @@ static int OnEvent(const libmark_event *event, void *user_data) {
 
 static void CleanupSession(BridgeSession *state) {
   if (!state) return;
-  if (state->session) libmark_session_destroy(state->session);
-  if (state->runtime) libmark_runtime_destroy(state->runtime);
+  if (state->session) uni_ai_md_session_destroy(state->session);
+  if (state->runtime) uni_ai_md_runtime_destroy(state->runtime);
   state->session = nullptr;
   state->runtime = nullptr;
 }
@@ -185,9 +185,9 @@ static bool ReadWholeFile(const char *path, std::vector<uint8_t> *out) {
 /* 候选列表里第一个能完整读出的字体；集合字体（ttc/otc）按语言偏好选 face。 */
 static uint32_t SelectFace(const std::vector<uint8_t> &bytes, const std::string &language_tags) {
   uint32_t face_index = 0;
-  const libmark_string_view tags{(const uint8_t *)language_tags.data(), language_tags.size()};
-  if (libmark_render_select_face(bytes.data(), bytes.size(), tags, &face_index) !=
-      LIBMARK_STATUS_OK)
+  const uni_ai_md_string_view tags{(const uint8_t *)language_tags.data(), language_tags.size()};
+  if (uni_ai_md_render_select_face(bytes.data(), bytes.size(), tags, &face_index) !=
+      UNI_AI_MD_STATUS_OK)
     return 0;
   return face_index;
 }
@@ -331,14 +331,14 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
   napi_value args[4] = {nullptr, nullptr, nullptr, nullptr};
   napi_value self;
   if (napi_get_cb_info(env, info, &argc, args, &self, nullptr) != napi_ok) {
-    return Throw(env, "libmark session creation failed");
+    return Throw(env, "uni-ai-md session creation failed");
   }
   const std::string mode = ReadUtf8Arg(env, args[0]);
   const std::string locale_text = ReadUtf8Arg(env, args[1]);
   const bool dark_mode = ReadBoolArg(env, args[2]);
   const std::string background = NormalizePluginBackground(ReadUtf8Arg(env, args[3]));
-  const libmark_color_scheme color_scheme =
-      dark_mode ? LIBMARK_COLOR_SCHEME_DARK : LIBMARK_COLOR_SCHEME_LIGHT;
+  const uni_ai_md_color_scheme color_scheme =
+      dark_mode ? UNI_AI_MD_COLOR_SCHEME_DARK : UNI_AI_MD_COLOR_SCHEME_LIGHT;
   const bool ast_only = mode == "ast";
   auto *state = new BridgeSession();
   /*
@@ -349,31 +349,31 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
   LoadedFont font;
   const bool has_font = LoadSystemFont(locale_text, &font);
   static const char kMermaidFontId[] = "mermaid-text";
-  static const libmark_font_coverage_v1 font_coverage = {
-      sizeof(libmark_font_coverage_v1), 0, UINT32_C(0x10ffff)};
-  libmark_font_descriptor_v1 font_descriptor{};
+  static const uni_ai_md_font_coverage_v1 font_coverage = {
+      sizeof(uni_ai_md_font_coverage_v1), 0, UINT32_C(0x10ffff)};
+  uni_ai_md_font_descriptor_v1 font_descriptor{};
   if (has_font) {
     font_descriptor.struct_size = sizeof(font_descriptor);
     font_descriptor.stable_id = {(const uint8_t *)kMermaidFontId, sizeof(kMermaidFontId) - 1};
     font_descriptor.source.struct_size = sizeof(font_descriptor.source);
     font_descriptor.source.bytes = font.bytes.data();
     font_descriptor.source.size = font.bytes.size();
-    font_descriptor.source.ownership = LIBMARK_FONT_SOURCE_BORROWED;
+    font_descriptor.source.ownership = UNI_AI_MD_FONT_SOURCE_BORROWED;
     font_descriptor.face_index = font.face_index;
-    font_descriptor.style_flags = LIBMARK_FONT_STYLE_NORMAL;
+    font_descriptor.style_flags = UNI_AI_MD_FONT_STYLE_NORMAL;
     font_descriptor.coverage = &font_coverage;
     font_descriptor.coverage_count = 1;
     font_descriptor.coverage_stride = sizeof(font_coverage);
     Sha256(font.bytes.data(), font.bytes.size(), font_descriptor.content_identity);
   }
-  libmark_mermaid_font_v1 mermaid_font{};
+  uni_ai_md_mermaid_font_v1 mermaid_font{};
   mermaid_font.struct_size = sizeof(mermaid_font);
   mermaid_font.font_id = {(const uint8_t *)kMermaidFontId, sizeof(kMermaidFontId) - 1};
-  mermaid_font.style_flags = LIBMARK_FONT_STYLE_NORMAL;
-  mermaid_font.role = LIBMARK_MERMAID_FONT_TEXT;
-  libmark_mermaid_options_v1 mermaid_options{};
+  mermaid_font.style_flags = UNI_AI_MD_FONT_STYLE_NORMAL;
+  mermaid_font.role = UNI_AI_MD_MERMAID_FONT_TEXT;
+  uni_ai_md_mermaid_options_v1 mermaid_options{};
   mermaid_options.struct_size = sizeof(mermaid_options);
-  mermaid_options.block_output = LIBMARK_MERMAID_BLOCK_OUTPUT_SVG;
+  mermaid_options.block_output = UNI_AI_MD_MERMAID_BLOCK_OUTPUT_SVG;
   mermaid_options.max_nodes = 1000;
   mermaid_options.max_subgraph_depth = 32;
   mermaid_options.max_label_bytes = 50000;
@@ -386,13 +386,13 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
     mermaid_options.font_count = 1;
     mermaid_options.font_stride = sizeof(mermaid_font);
   }
-  libmark_plugin_registration_options registration{};
+  uni_ai_md_plugin_registration_options registration{};
   registration.struct_size = sizeof(registration);
-  registration.flags = LIBMARK_PLUGIN_REGISTRATION_PROGRESSIVE;
-  if (libmark_runtime_create(nullptr, &state->runtime) != LIBMARK_STATUS_OK ||
-      libmark_runtime_register_render(state->runtime, libmark_render_module_entry_v1()) != LIBMARK_STATUS_OK) {
+  registration.flags = UNI_AI_MD_PLUGIN_REGISTRATION_PROGRESSIVE;
+  if (uni_ai_md_runtime_create(nullptr, &state->runtime) != UNI_AI_MD_STATUS_OK ||
+      uni_ai_md_runtime_register_render(state->runtime, uni_ai_md_render_module_entry_v1()) != UNI_AI_MD_STATUS_OK) {
     DestroySession(state);
-    return Throw(env, "libmark runtime initialization failed");
+    return Throw(env, "uni-ai-md runtime initialization failed");
   }
   /*
    * 字体注册是可选能力：系统字体读不到、格式不支持或身份校验失败时都不能让整个
@@ -402,24 +402,24 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
   bool font_registered = false;
   if (has_font)
     font_registered =
-        libmark_runtime_register_font(state->runtime, &font_descriptor) == LIBMARK_STATUS_OK;
+        uni_ai_md_runtime_register_font(state->runtime, &font_descriptor) == UNI_AI_MD_STATUS_OK;
   if (!font_registered) {
     mermaid_options.fonts = nullptr;
     mermaid_options.font_count = 0;
   }
-  if (libmark_runtime_register_plugin(state->runtime, libmark_math_plugin_entry_v1(), &registration) != LIBMARK_STATUS_OK ||
-      libmark_runtime_register_plugin(state->runtime, libmark_mermaid_plugin_entry_v1(), nullptr) != LIBMARK_STATUS_OK ||
-      libmark_runtime_seal(state->runtime) != LIBMARK_STATUS_OK) {
+  if (uni_ai_md_runtime_register_plugin(state->runtime, uni_ai_md_math_plugin_entry_v1(), &registration) != UNI_AI_MD_STATUS_OK ||
+      uni_ai_md_runtime_register_plugin(state->runtime, uni_ai_md_mermaid_plugin_entry_v1(), nullptr) != UNI_AI_MD_STATUS_OK ||
+      uni_ai_md_runtime_seal(state->runtime) != UNI_AI_MD_STATUS_OK) {
     DestroySession(state);
-    return Throw(env, "libmark runtime initialization failed");
+    return Throw(env, "uni-ai-md runtime initialization failed");
   }
-  libmark_math_text_font_v1 math_text_font{};
+  uni_ai_md_math_text_font_v1 math_text_font{};
   math_text_font.struct_size = sizeof(math_text_font);
   math_text_font.font_id = mermaid_font.font_id;
-  math_text_font.style_flags = LIBMARK_FONT_STYLE_NORMAL;
-  libmark_math_options_v1 math_options{};
+  math_text_font.style_flags = UNI_AI_MD_FONT_STYLE_NORMAL;
+  uni_ai_md_math_options_v1 math_options{};
   math_options.struct_size = sizeof(math_options);
-  math_options.inline_output = LIBMARK_MATH_INLINE_OUTPUT_IMAGE;
+  math_options.inline_output = UNI_AI_MD_MATH_INLINE_OUTPUT_IMAGE;
   math_options.background_color = {(const uint8_t *)background.data(), background.size()};
   math_options.color_scheme = color_scheme;
   if (font_registered) {
@@ -427,34 +427,34 @@ static napi_value CreateSession(napi_env env, napi_callback_info info) {
     math_options.text_font_count = 1;
     math_options.text_font_stride = sizeof(math_text_font);
   }
-  libmark_plugin_session_config configs[2]{};
+  uni_ai_md_plugin_session_config configs[2]{};
   configs[0].struct_size = sizeof(configs[0]);
-  configs[0].plugin_id = {(const uint8_t *)"org.libmark.math", 16};
+  configs[0].plugin_id = {(const uint8_t *)"org.uni-ai-md.math", 18};
   configs[0].options = &math_options;
   configs[0].options_size = sizeof(math_options);
   configs[1].struct_size = sizeof(configs[1]);
   configs[1].plugin_id = {(const uint8_t *)"mermaid", 7};
   configs[1].options = &mermaid_options;
   configs[1].options_size = sizeof(mermaid_options);
-  libmark_session_options options{};
+  uni_ai_md_session_options options{};
   options.struct_size = sizeof(options);
   /*
    * AST 模式只交付 AST 通道，并打开节点 payload，让插件（公式、流程图）的渲染载荷
    * 随 AST 节点交付；HTML 模式保持默认的 HTML + DATA，不写插件 payload。
    */
   options.flags = ast_only
-                      ? (LIBMARK_SESSION_FLAG_DELIVER_AST |
-                         LIBMARK_SESSION_FLAG_AST_PAYLOAD)
+                      ? (UNI_AI_MD_SESSION_FLAG_DELIVER_AST |
+                         UNI_AI_MD_SESSION_FLAG_AST_PAYLOAD)
                       : 0;
-  options.delivery_mode = LIBMARK_DELIVERY_PROGRESSIVE;
+  options.delivery_mode = UNI_AI_MD_DELIVERY_PROGRESSIVE;
   options.event_callback = OnEvent;
   options.event_user_data = state;
   options.plugins = configs;
   options.plugin_count = 2;
   options.plugin_stride = sizeof(configs[0]);
-  if (libmark_session_create(state->runtime, &options, &state->session) != LIBMARK_STATUS_OK) {
+  if (uni_ai_md_session_create(state->runtime, &options, &state->session) != UNI_AI_MD_STATUS_OK) {
     DestroySession(state);
-    return Throw(env, "libmark session creation failed");
+    return Throw(env, "uni-ai-md session creation failed");
   }
   napi_value external;
   napi_create_external(env, state, [](napi_env, void *data, void *) { DestroySession(static_cast<BridgeSession *>(data)); }, nullptr, &external);
@@ -504,8 +504,8 @@ static napi_value FeedChunk(napi_env env, napi_callback_info info) {
   std::string chunk(size, '\0');
   napi_get_value_string_utf8(env, args[1], chunk.data(), size + 1, &size);
   state->ops.clear();
-  auto status = libmark_session_feed(state->session, reinterpret_cast<const uint8_t *>(chunk.data()), size);
-  if (status != LIBMARK_STATUS_OK) return Throw(env, "libmark feed failed");
+  auto status = uni_ai_md_session_feed(state->session, reinterpret_cast<const uint8_t *>(chunk.data()), size);
+  if (status != UNI_AI_MD_STATUS_OK) return Throw(env, "uni-ai-md feed failed");
   if (!state->ops.empty()) return MakeEvent(env, state);
   napi_value undefined; napi_get_undefined(env, &undefined); return undefined;
 }
@@ -514,7 +514,7 @@ static napi_value FinishSession(napi_env env, napi_callback_info info) {
   napi_value args[1]; BridgeSession *state = nullptr;
   if (!GetArgs(env, info, 1, args, &state)) return Throw(env, "invalid session handle");
   state->ops.clear();
-  if (libmark_session_finish(state->session) != LIBMARK_STATUS_OK) return Throw(env, "libmark finish failed");
+  if (uni_ai_md_session_finish(state->session) != UNI_AI_MD_STATUS_OK) return Throw(env, "uni-ai-md finish failed");
   if (!state->ops.empty()) return MakeEvent(env, state);
   napi_value undefined; napi_get_undefined(env, &undefined); return undefined;
 }
@@ -528,7 +528,7 @@ static napi_value DestroySessionJs(napi_env env, napi_callback_info info) {
   return undefined;
 }
 
-napi_value LibmarkBridgeInit(napi_env env, napi_value exports) {
+napi_value UniAiMdBridgeInit(napi_env env, napi_value exports) {
   napi_property_descriptor props[] = {
     {"createSession", nullptr, CreateSession, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"feedChunk", nullptr, FeedChunk, nullptr, nullptr, nullptr, napi_default, nullptr},
@@ -544,11 +544,11 @@ static napi_module g_module = {
   .nm_version = 1,
   .nm_flags = 0,
   .nm_filename = nullptr,
-  .nm_register_func = LibmarkBridgeInit,
-  .nm_modname = "libmark_bridge",
+  .nm_register_func = UniAiMdBridgeInit,
+  .nm_modname = "libuni-ai-md_bridge",
   .nm_priv = nullptr,
   .reserved = {0},
 };
 EXTERN_C_END
 
-extern "C" __attribute__((constructor)) void RegisterLibmarkBridge(void) { napi_module_register(&g_module); }
+extern "C" __attribute__((constructor)) void RegisterUniAiMdBridge(void) { napi_module_register(&g_module); }

@@ -3,7 +3,7 @@
  * kind 为 html/data/ast；index 是该事件对应的顶层块序号，三种通道按同一序号对齐。
  * unchanged 为 true 表示这次 tail 提交的内容没有变化（content 是原内容，不是新载荷）。
  */
-export interface LibmarkOp {
+export interface UniAiMdOp {
   op: number;
   kind: string;
   content: string;
@@ -11,8 +11,8 @@ export interface LibmarkOp {
   unchanged: boolean;
 }
 
-export interface LibmarkNativeEvent {
-  ops: LibmarkOp[];
+export interface UniAiMdNativeEvent {
+  ops: UniAiMdOp[];
 }
 
 /**
@@ -21,8 +21,8 @@ export interface LibmarkNativeEvent {
  * 集合字体的 face。
  */
 export const createSession: (mode?: string, languageTags?: string) => object;
-export const feedChunk: (handle: object, chunk: string) => LibmarkNativeEvent | undefined;
-export const finishSession: (handle: object) => LibmarkNativeEvent | undefined;
+export const feedChunk: (handle: object, chunk: string) => UniAiMdNativeEvent | undefined;
+export const finishSession: (handle: object) => UniAiMdNativeEvent | undefined;
 export const destroySession: (handle: object) => void;
 
 declare const bridge: {

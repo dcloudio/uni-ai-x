@@ -1,13 +1,13 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-  编译 libmark_bridge.so（Android JNI）并把桥接库与 libmark-full.so 放进 UTS 插件目录。
+  编译 libuni-ai-md_bridge.so（Android JNI）并把桥接库与 libuni-ai-md.so 放进 UTS 插件目录。
 
 .DESCRIPTION
   构建过程只使用本项目目录内的内容：
     native/android/                      JNI 桥接源码与 CMake 工程
-    native/include/                      libmark 公开头文件快照
-    native/prebuilt/android-arm64-v8a/   Android 版 libmark-full.so（不提交到 git）
+    native/include/                      uni-ai-md 公开头文件快照
+    native/prebuilt/android-arm64-v8a/   Android 版 libuni-ai-md.so（不提交到 git）
   缺少预编译库时按 README 的构建准备步骤先准备。
 
   需要 Android NDK：优先使用环境变量 ANDROID_NDK_HOME，未设置时在
@@ -23,10 +23,10 @@ $nativeDir = $PSScriptRoot
 $projectDir = Split-Path -Parent $nativeDir
 $targetAbi = 'arm64-v8a'
 $targetPlatform = 'android-24'
-$prebuiltLib = Join-Path $nativeDir 'prebuilt/android-arm64-v8a/libmark-full.so'
+$prebuiltLib = Join-Path $nativeDir 'prebuilt/android-arm64-v8a/libuni-ai-md.so'
 # uts 插件把 libs/<abi>/ 作为 jniLibs 源目录，so 必须落在 ABI 子目录里；
-# 平铺在 libs/ 下会被 Gradle 当成“名字叫 libmark-full.so 的 ABI”而打包失败。
-$pluginLibsDir = Join-Path $projectDir "uni_modules/libmark/utssdk/app-android/libs/$targetAbi"
+# 平铺在 libs/ 下会被 Gradle 当成“名字叫 libuni-ai-md.so 的 ABI”而打包失败。
+$pluginLibsDir = Join-Path $projectDir "uni_modules/uni-ai-md/utssdk/app-android/libs/$targetAbi"
 $buildDir = Join-Path $nativeDir 'build/android'
 
 function Write-Fail([string]$message) {
@@ -36,9 +36,9 @@ function Write-Fail([string]$message) {
 
 if (-not (Test-Path $prebuiltLib)) {
   Write-Fail @"
-缺少 native/prebuilt/android-arm64-v8a/libmark-full.so。
+缺少 native/prebuilt/android-arm64-v8a/libuni-ai-md.so。
 构建准备步骤（详见 native/README.md）：
-  1. 在 libmark 仓库根目录执行: pwsh -File scripts/build-android.ps1
+  1. 在 uni-ai-md 仓库根目录执行: pwsh -File scripts/build-android.ps1
   2. 执行: pwsh -File native/prepare-lib.ps1 -Platform android
 "@
 }
@@ -86,10 +86,10 @@ Write-Host "使用 Android NDK: $ndk"
   -DCMAKE_BUILD_TYPE=Release
 if ($LASTEXITCODE -ne 0) { Write-Fail 'CMake 配置失败' }
 
-& "$cmakeBin/cmake.exe" --build $buildDir --target libmark_bridge --parallel 1
-if ($LASTEXITCODE -ne 0) { Write-Fail 'libmark_bridge 编译失败' }
+& "$cmakeBin/cmake.exe" --build $buildDir --target uni_ai_md_bridge --parallel 1
+if ($LASTEXITCODE -ne 0) { Write-Fail 'uni_ai_md_bridge 编译失败' }
 
-$bridgeSo = Join-Path $buildDir "libs/$targetAbi/libmark_bridge.so"
+$bridgeSo = Join-Path $buildDir "libs/$targetAbi/libuni-ai-md_bridge.so"
 if (-not (Test-Path $bridgeSo)) { Write-Fail "未生成 $bridgeSo" }
 
 New-Item -ItemType Directory -Force -Path $pluginLibsDir | Out-Null
@@ -98,8 +98,8 @@ Copy-Item -Force $prebuiltLib $pluginLibsDir
 
 $readElf = Join-Path $ndk 'toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-readelf.exe'
 if (Test-Path $readElf) {
-  Write-Host 'libmark_bridge.so NEEDED:'
+  Write-Host 'libuni-ai-md_bridge.so NEEDED:'
   & $readElf -d $bridgeSo | Select-String 'NEEDED' | ForEach-Object { $_.Line.Trim() }
 }
 
-Write-Host "已生成 $(Join-Path $pluginLibsDir 'libmark_bridge.so') 与 libmark-full.so" -ForegroundColor Green
+Write-Host "已生成 $(Join-Path $pluginLibsDir 'libuni-ai-md_bridge.so') 与 libuni-ai-md.so" -ForegroundColor Green

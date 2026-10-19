@@ -1,7 +1,17 @@
-import bridge from 'libmark_bridge.so'
-import type { LibmarkEvent } from '../interface.uts'
+import bridge from 'libuni-ai-md_bridge.so'
 
-export type { LibmarkEvent, LibmarkOp } from '../interface.uts'
+// 平台入口内直接定义类型：仅放在 interface.uts 的类型不会参与本平台编译。
+export type UniAiMdOp = {
+	op: number
+	kind: string
+	content: string
+	index: number
+	unchanged: boolean
+}
+
+export type UniAiMdEvent = {
+	ops: UniAiMdOp[]
+}
 
 /**
  * 创建一个 progressive session。
@@ -17,14 +27,23 @@ export function createSession(mode?: string, languageTags?: string, darkMode?: b
 	return bridge.createSession(mode, languageTags, darkMode, background)
 }
 
-export function feedChunk(handle: object, chunk: string): LibmarkEvent | undefined {
-	return bridge.feedChunk(handle, chunk) as LibmarkEvent | undefined
+/**
+ * 提交一段 Markdown chunk，返回本次产生的块级操作集合；
+ * 没有事件产生时返回 undefined。
+ */
+export function feedChunk(handle: object, chunk: string): UniAiMdEvent | undefined {
+	return bridge.feedChunk(handle, chunk) as UniAiMdEvent | undefined
 }
 
-export function finishSession(handle: object): LibmarkEvent | undefined {
-	return bridge.finishSession(handle) as LibmarkEvent | undefined
+/**
+ * 结束 session，返回收尾的块级操作集合；
+ * 没有事件产生时返回 undefined。
+ */
+export function finishSession(handle: object): UniAiMdEvent | undefined {
+	return bridge.finishSession(handle) as UniAiMdEvent | undefined
 }
 
+/** 销毁 session 及其 runtime。 */
 export function destroySession(handle: object): void {
 	bridge.destroySession(handle)
 }

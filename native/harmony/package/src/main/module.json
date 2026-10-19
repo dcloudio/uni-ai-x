@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.libmark.native",
+    "bundleName": "com.uni-ai-md.native",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "minAPIVersion": 50000017,
@@ -12,10 +12,10 @@
     "bundleType": "app"
   },
   "module": {
-    "name": "libmark",
+    "name": "uni-ai-md",
     "type": "har",
     "deviceTypes": ["default"],
-    "packageName": "libmark",
+    "packageName": "uni-ai-md",
     "installationFree": false,
     "virtualMachine": "ark12.0.6.0",
     "compileMode": "esmodule",

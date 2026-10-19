@@ -1,6 +1,6 @@
 // #ifdef APP-ANDROID
-import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-android/index.uts'
-import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
+import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
+import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
 // #endif
 // #ifdef APP-IOS
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
@@ -12,8 +12,8 @@ import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cma
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
 // #endif
 // #ifdef APP-HARMONY
-import { createSession, feedChunk, finishSession, destroySession } from '../uni_modules/libmark/utssdk/app-harmony/index.uts'
-import type { LibmarkEvent, LibmarkOp } from '../uni_modules/libmark/utssdk/interface.uts'
+import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
+import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
 import { AiWorkerState, LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
 // #endif
 import {
@@ -83,7 +83,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// 由主线程按当前主题随启动消息传入。
 	private libmarkDarkMode: boolean = false
 	private libmarkBackground: string = ''
-	private libmarkPendingOps: LibmarkOp[] = []
+	private libmarkPendingOps: UniAiMdOp[] = []
 	private libmarkPendingOpOffset: number = 0
 	private libmarkPendingContent: string = ''
 	private libmarkCompletionPending: boolean = false
@@ -172,15 +172,15 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		return false
 	}
 
-	private appendLibmarkOps(event: LibmarkEvent | null | undefined): void {
+	private appendUniAiMdOps(event: UniAiMdEvent | null | undefined): void {
 		if (event == null) return
-		const ops = (event as LibmarkEvent).ops
+		const ops = (event as UniAiMdEvent).ops
 		for (let i = 0; i < ops.length; i++) {
 			this.libmarkPendingOps.push(ops[i])
 		}
 	}
 
-	private flushLibmarkOps(): void {
+	private flushUniAiMdOps(): void {
 		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return
 		// #ifdef APP-HARMONY
 		const batch = createOpBatch(this.requestVersion)
@@ -210,7 +210,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			ops: ops
 		} as UTSJSONObject)
 		// #endif
-		this.libmarkPendingOps = [] as LibmarkOp[]
+		this.libmarkPendingOps = [] as UniAiMdOp[]
 		this.libmarkPendingOpOffset = 0
 	}
 
@@ -227,7 +227,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				const newline = contentDelta.indexOf('\n', start)
 				const end = newline < 0 ? contentDelta.length : newline + 1
 				const chunk = contentDelta.slice(start, end)
-				this.appendLibmarkOps(this.sourceTail.feed(chunk, feedChunk(session, chunk) ?? null))
+				this.appendUniAiMdOps(this.sourceTail.feed(chunk, feedChunk(session, chunk) ?? null))
 				start = end
 			}
 			return true
@@ -239,12 +239,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private pumpLibmark() {
 		if (this.finished) return
-		this.flushLibmarkOps()
+		this.flushUniAiMdOps()
 		if (this.libmarkPendingContent.length > 0) {
 			const content = this.libmarkPendingContent
 			this.libmarkPendingContent = ''
 			if (this.processLibmarkContent(content) == false) return
-			this.flushLibmarkOps()
+			this.flushUniAiMdOps()
 		}
 		if (!this.libmarkCompletionPending) return
 		if (!this.libmarkFinishCalled) {
@@ -252,14 +252,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			const session = this.libmarkSession
 			if (session != null) {
 				try {
-					this.appendLibmarkOps(this.sourceTail.finish(finishSession(session) ?? null))
+					this.appendUniAiMdOps(this.sourceTail.finish(finishSession(session) ?? null))
 				} catch {
 					this.failLibmark('libmark_finish_failed', 'libmark 完成解析失败')
 					return
 				}
 				this.destroyLibmarkSession()
 			}
-			this.flushLibmarkOps()
+			this.flushUniAiMdOps()
 			if (this.finished) return
 		}
 		this.finished = true
@@ -318,7 +318,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private resetLibmarkProtocol() {
-		this.libmarkPendingOps = [] as LibmarkOp[]
+		this.libmarkPendingOps = [] as UniAiMdOp[]
 		this.libmarkPendingOpOffset = 0
 		this.libmarkPendingContent = ''
 		this.libmarkCompletionPending = false
@@ -356,9 +356,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.postRebuildOps(msgId, ops)
 	}
 
-	private appendRebuildOps(target: UTSJSONObject[], event: LibmarkEvent | null | undefined) {
+	private appendRebuildOps(target: UTSJSONObject[], event: UniAiMdEvent | null | undefined) {
 		if (event == null) return
-		const eventOps = (event as LibmarkEvent).ops
+		const eventOps = (event as UniAiMdEvent).ops
 		for (let i = 0; i < eventOps.length; i++) {
 			const op = eventOps[i]
 			target.push({
@@ -383,7 +383,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// #ifdef APP-ANDROID || APP-HARMONY
 	private feedLibmarkContent(contentDelta: string): void {
 		if (this.finished || contentDelta.length == 0) return
-		if (this.processLibmarkContent(contentDelta)) this.flushLibmarkOps()
+		if (this.processLibmarkContent(contentDelta)) this.flushUniAiMdOps()
 	}
 	// #endif
 	// #endif

@@ -1,22 +1,22 @@
 /*
- * Android JNI 桥接：把 libmark 统一输出事件转换为块级操作，交给 UTS 插件的 Kotlin 包装类。
+ * Android JNI 桥接：把 uni-ai-md 统一输出事件转换为块级操作，交给 UTS 插件的 Kotlin 包装类。
  *
- * 与 HarmonyOS 的 N-API 桥（native/harmony/libmark_bridge.cpp）保持同一份事件语义：
+ * 与 HarmonyOS 的 N-API 桥（native/harmony/uni_ai_md_bridge.cpp）保持同一份事件语义：
  * BLOCK 追加新块，tail 事件更新当前未闭合块，RESET 清空块列表；未闭合 HTML 块在桥内完成
  * 前缀 patch，DATA 与 AST 每次都是完整快照。操作带顶层块序号，便于宿主把 HTML、DATA、AST
  * 三种通道对齐到同一槽位。
  *
- * 事件以 JSON 字符串跨 JNI 传递，字段与 UTS 侧的 LibmarkEvent/LibmarkOp 一致：
+ * 事件以 JSON 字符串跨 JNI 传递，字段与 UTS 侧的 UniAiMdEvent/UniAiMdOp 一致：
  *   {"ops":[{"op":1,"kind":"html","content":"...","index":0,"unchanged":false}]}
  * 没有事件时返回 null，UTS 侧归一为 undefined。
  */
 
 #include <jni.h>
 
-#include "libmark/core.h"
-#include "libmark/plugin.h"
-#include "libmark/render.h"
-#include "libmark/session.h"
+#include "uni-ai-md/core.h"
+#include "uni-ai-md/plugin.h"
+#include "uni-ai-md/render.h"
+#include "uni-ai-md/session.h"
 #include "math_plugin.h"
 #include "mermaid_plugin.h"
 
@@ -56,17 +56,17 @@ const uint32_t kOpCommit = 3;
 const uint32_t kOpReset = 4;
 
 struct BridgeSession {
-  libmark_runtime *runtime = nullptr;
-  libmark_session *session = nullptr;
+  uni_ai_md_runtime *runtime = nullptr;
+  uni_ai_md_session *session = nullptr;
   BridgeSegment tail;
   bool has_tail = false;
   std::vector<BridgeOp> ops;
 };
 
-int OnEvent(const libmark_event *event, void *user_data) {
+int OnEvent(const uni_ai_md_event *event, void *user_data) {
   auto *state = static_cast<BridgeSession *>(user_data);
   if (!state || !event) return 1;
-  if (event->type == LIBMARK_EVENT_RESET) {
+  if (event->type == UNI_AI_MD_EVENT_RESET) {
     state->tail = BridgeSegment();
     state->has_tail = false;
     state->ops.clear();
@@ -75,9 +75,9 @@ int OnEvent(const libmark_event *event, void *user_data) {
     state->ops.push_back(std::move(op));
     return 0;
   }
-  if (event->type != LIBMARK_EVENT_BLOCK &&
-      event->type != LIBMARK_EVENT_TAIL_BLOCK_PARTIAL &&
-      event->type != LIBMARK_EVENT_TAIL_BLOCK_COMPLETE) {
+  if (event->type != UNI_AI_MD_EVENT_BLOCK &&
+      event->type != UNI_AI_MD_EVENT_TAIL_BLOCK_PARTIAL &&
+      event->type != UNI_AI_MD_EVENT_TAIL_BLOCK_COMPLETE) {
     return 0;
   }
   std::string payload;
@@ -85,13 +85,13 @@ int OnEvent(const libmark_event *event, void *user_data) {
     if (event->spans[i].data && event->spans[i].size)
       payload.append(reinterpret_cast<const char *>(event->spans[i].data), event->spans[i].size);
   }
-  const BridgeKind kind = event->content_type == LIBMARK_CONTENT_DATA
+  const BridgeKind kind = event->content_type == UNI_AI_MD_CONTENT_DATA
                               ? kKindData
-                              : (event->content_type == LIBMARK_CONTENT_AST
+                              : (event->content_type == UNI_AI_MD_CONTENT_AST
                                      ? kKindAst
                                      : kKindHtml);
   const bool unchanged = payload.empty() && event->retain_tail_bytes != 0;
-  if (event->type == LIBMARK_EVENT_BLOCK) {
+  if (event->type == UNI_AI_MD_EVENT_BLOCK) {
     if (payload.empty()) return 0;
     BridgeOp op;
     op.op = kOpAppend;
@@ -119,13 +119,13 @@ int OnEvent(const libmark_event *event, void *user_data) {
     state->tail.kind = kind;
     state->has_tail = true;
     BridgeOp op;
-    op.op = event->type == LIBMARK_EVENT_TAIL_BLOCK_COMPLETE ? kOpCommit : kOpTail;
+    op.op = event->type == UNI_AI_MD_EVENT_TAIL_BLOCK_COMPLETE ? kOpCommit : kOpTail;
     op.kind = kind;
     op.index = event->top_level_block_index;
     op.unchanged = unchanged;
     op.text = state->tail.text;
     state->ops.push_back(std::move(op));
-    if (event->type == LIBMARK_EVENT_TAIL_BLOCK_COMPLETE) {
+    if (event->type == UNI_AI_MD_EVENT_TAIL_BLOCK_COMPLETE) {
       state->tail = BridgeSegment();
       state->has_tail = false;
     }
@@ -135,8 +135,8 @@ int OnEvent(const libmark_event *event, void *user_data) {
 
 void CleanupSession(BridgeSession *state) {
   if (!state) return;
-  if (state->session) libmark_session_destroy(state->session);
-  if (state->runtime) libmark_runtime_destroy(state->runtime);
+  if (state->session) uni_ai_md_session_destroy(state->session);
+  if (state->runtime) uni_ai_md_runtime_destroy(state->runtime);
   state->session = nullptr;
   state->runtime = nullptr;
 }
@@ -197,7 +197,7 @@ std::string MakeEventJson(const BridgeSession &state) {
 
 /*
  * Java/Kotlin 字符串是 UTF-16，直接 GetStringUTFChars 会把非 BMP 字符编成 CESU-8。
- * 这里显式做 UTF-16 → UTF-8，保证 emoji 等四字节字符交给 libmark 时仍是合法 UTF-8。
+ * 这里显式做 UTF-16 → UTF-8，保证 emoji 等四字节字符交给 uni-ai-md 时仍是合法 UTF-8。
  */
 std::string ToUtf8(JNIEnv *env, jstring value) {
   if (!value) return {};
@@ -340,7 +340,7 @@ bool ReadWholeFile(const char *path, std::vector<uint8_t> *out) {
 /*
  * AFontMatcher 是 Android 10（API 29）才引入的符号，而桥接库按 android-24 构建，
  * 因此用 dlsym 取符号：拿到了就交给系统字体引擎按语言解析「文件 + 集合内 face
- * 序号」，拿不到就退回候选字体列表 + libmark_render_select_face。
+ * 序号」，拿不到就退回候选字体列表 + uni_ai_md_render_select_face。
  */
 struct PlatformFontApi {
   bool available = false;
@@ -411,16 +411,16 @@ bool LoadPlatformFont(const std::string &language_tags, LoadedFont *out) {
 
 uint32_t SelectFace(const std::vector<uint8_t> &bytes, const std::string &language_tags) {
   uint32_t face_index = 0;
-  const libmark_string_view tags{(const uint8_t *)language_tags.data(), language_tags.size()};
-  if (libmark_render_select_face(bytes.data(), bytes.size(), tags, &face_index) !=
-      LIBMARK_STATUS_OK)
+  const uni_ai_md_string_view tags{(const uint8_t *)language_tags.data(), language_tags.size()};
+  if (uni_ai_md_render_select_face(bytes.data(), bytes.size(), tags, &face_index) !=
+      UNI_AI_MD_STATUS_OK)
     return 0;
   return face_index;
 }
 
 /*
  * 先让系统字体引擎按语言优先级解析，失败再按候选列表顺序取第一个能完整读出的
- * 字体，并用 libmark_render_select_face 在集合字体里选面。
+ * 字体，并用 uni_ai_md_render_select_face 在集合字体里选面。
  */
 bool LoadSystemFont(const std::string &language_tags, LoadedFont *out) {
   if (LoadPlatformFont(language_tags, out)) return true;
@@ -538,8 +538,8 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
   const std::string mode_text = ToUtf8(env, mode);
   const std::string locale_text = ToUtf8(env, locales);
   const std::string background_text = NormalizePluginBackground(ToUtf8(env, background));
-  const libmark_color_scheme color_scheme =
-      dark_mode == JNI_TRUE ? LIBMARK_COLOR_SCHEME_DARK : LIBMARK_COLOR_SCHEME_LIGHT;
+  const uni_ai_md_color_scheme color_scheme =
+      dark_mode == JNI_TRUE ? UNI_AI_MD_COLOR_SCHEME_DARK : UNI_AI_MD_COLOR_SCHEME_LIGHT;
   const bool ast_only = mode_text == "ast";
   auto *state = new BridgeSession();
   /*
@@ -550,31 +550,31 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
   LoadedFont font;
   const bool has_font = LoadSystemFont(locale_text, &font);
   static const char kMermaidFontId[] = "mermaid-text";
-  static const libmark_font_coverage_v1 font_coverage = {
-      sizeof(libmark_font_coverage_v1), 0, UINT32_C(0x10ffff)};
-  libmark_font_descriptor_v1 font_descriptor{};
+  static const uni_ai_md_font_coverage_v1 font_coverage = {
+      sizeof(uni_ai_md_font_coverage_v1), 0, UINT32_C(0x10ffff)};
+  uni_ai_md_font_descriptor_v1 font_descriptor{};
   if (has_font) {
     font_descriptor.struct_size = sizeof(font_descriptor);
     font_descriptor.stable_id = {(const uint8_t *)kMermaidFontId, sizeof(kMermaidFontId) - 1};
     font_descriptor.source.struct_size = sizeof(font_descriptor.source);
     font_descriptor.source.bytes = font.bytes.data();
     font_descriptor.source.size = font.bytes.size();
-    font_descriptor.source.ownership = LIBMARK_FONT_SOURCE_BORROWED;
+    font_descriptor.source.ownership = UNI_AI_MD_FONT_SOURCE_BORROWED;
     font_descriptor.face_index = font.face_index;
-    font_descriptor.style_flags = LIBMARK_FONT_STYLE_NORMAL;
+    font_descriptor.style_flags = UNI_AI_MD_FONT_STYLE_NORMAL;
     font_descriptor.coverage = &font_coverage;
     font_descriptor.coverage_count = 1;
     font_descriptor.coverage_stride = sizeof(font_coverage);
     Sha256(font.bytes.data(), font.bytes.size(), font_descriptor.content_identity);
   }
-  libmark_mermaid_font_v1 mermaid_font{};
+  uni_ai_md_mermaid_font_v1 mermaid_font{};
   mermaid_font.struct_size = sizeof(mermaid_font);
   mermaid_font.font_id = {(const uint8_t *)kMermaidFontId, sizeof(kMermaidFontId) - 1};
-  mermaid_font.style_flags = LIBMARK_FONT_STYLE_NORMAL;
-  mermaid_font.role = LIBMARK_MERMAID_FONT_TEXT;
-  libmark_mermaid_options_v1 mermaid_options{};
+  mermaid_font.style_flags = UNI_AI_MD_FONT_STYLE_NORMAL;
+  mermaid_font.role = UNI_AI_MD_MERMAID_FONT_TEXT;
+  uni_ai_md_mermaid_options_v1 mermaid_options{};
   mermaid_options.struct_size = sizeof(mermaid_options);
-  mermaid_options.block_output = LIBMARK_MERMAID_BLOCK_OUTPUT_SVG;
+  mermaid_options.block_output = UNI_AI_MD_MERMAID_BLOCK_OUTPUT_SVG;
   mermaid_options.max_nodes = 1000;
   mermaid_options.max_subgraph_depth = 32;
   mermaid_options.max_label_bytes = 50000;
@@ -588,14 +588,14 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
     mermaid_options.font_count = 1;
     mermaid_options.font_stride = sizeof(mermaid_font);
   }
-  libmark_plugin_registration_options registration{};
+  uni_ai_md_plugin_registration_options registration{};
   registration.struct_size = sizeof(registration);
-  registration.flags = LIBMARK_PLUGIN_REGISTRATION_PROGRESSIVE;
-  if (libmark_runtime_create(nullptr, &state->runtime) != LIBMARK_STATUS_OK ||
-      libmark_runtime_register_render(state->runtime, libmark_render_module_entry_v1()) !=
-          LIBMARK_STATUS_OK) {
+  registration.flags = UNI_AI_MD_PLUGIN_REGISTRATION_PROGRESSIVE;
+  if (uni_ai_md_runtime_create(nullptr, &state->runtime) != UNI_AI_MD_STATUS_OK ||
+      uni_ai_md_runtime_register_render(state->runtime, uni_ai_md_render_module_entry_v1()) !=
+          UNI_AI_MD_STATUS_OK) {
     DestroySession(state);
-    ThrowIllegalState(env, "libmark runtime initialization failed");
+    ThrowIllegalState(env, "uni-ai-md runtime initialization failed");
     return 0;
   }
   /*
@@ -606,27 +606,27 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
   bool font_registered = false;
   if (has_font)
     font_registered =
-        libmark_runtime_register_font(state->runtime, &font_descriptor) == LIBMARK_STATUS_OK;
+        uni_ai_md_runtime_register_font(state->runtime, &font_descriptor) == UNI_AI_MD_STATUS_OK;
   if (!font_registered) {
     mermaid_options.fonts = nullptr;
     mermaid_options.font_count = 0;
   }
-  if (libmark_runtime_register_plugin(state->runtime, libmark_math_plugin_entry_v1(),
-                                     &registration) != LIBMARK_STATUS_OK ||
-      libmark_runtime_register_plugin(state->runtime, libmark_mermaid_plugin_entry_v1(),
-                                     nullptr) != LIBMARK_STATUS_OK ||
-      libmark_runtime_seal(state->runtime) != LIBMARK_STATUS_OK) {
+  if (uni_ai_md_runtime_register_plugin(state->runtime, uni_ai_md_math_plugin_entry_v1(),
+                                     &registration) != UNI_AI_MD_STATUS_OK ||
+      uni_ai_md_runtime_register_plugin(state->runtime, uni_ai_md_mermaid_plugin_entry_v1(),
+                                     nullptr) != UNI_AI_MD_STATUS_OK ||
+      uni_ai_md_runtime_seal(state->runtime) != UNI_AI_MD_STATUS_OK) {
     DestroySession(state);
-    ThrowIllegalState(env, "libmark runtime initialization failed");
+    ThrowIllegalState(env, "uni-ai-md runtime initialization failed");
     return 0;
   }
-  libmark_math_text_font_v1 math_text_font{};
+  uni_ai_md_math_text_font_v1 math_text_font{};
   math_text_font.struct_size = sizeof(math_text_font);
   math_text_font.font_id = mermaid_font.font_id;
-  math_text_font.style_flags = LIBMARK_FONT_STYLE_NORMAL;
-  libmark_math_options_v1 math_options{};
+  math_text_font.style_flags = UNI_AI_MD_FONT_STYLE_NORMAL;
+  uni_ai_md_math_options_v1 math_options{};
   math_options.struct_size = sizeof(math_options);
-  math_options.inline_output = LIBMARK_MATH_INLINE_OUTPUT_SVG;
+  math_options.inline_output = UNI_AI_MD_MATH_INLINE_OUTPUT_SVG;
   math_options.background_color = {(const uint8_t *)background_text.data(),
                                    background_text.size()};
   math_options.color_scheme = color_scheme;
@@ -635,36 +635,36 @@ jlong CreateSession(JNIEnv *env, jobject /*unused*/, jstring mode, jstring local
     math_options.text_font_count = 1;
     math_options.text_font_stride = sizeof(math_text_font);
   }
-  libmark_plugin_session_config configs[2]{};
+  uni_ai_md_plugin_session_config configs[2]{};
   configs[0].struct_size = sizeof(configs[0]);
-  configs[0].plugin_id = {(const uint8_t *)"org.libmark.math", 16};
+  configs[0].plugin_id = {(const uint8_t *)"org.uni-ai-md.math", 18};
   configs[0].options = &math_options;
   configs[0].options_size = sizeof(math_options);
   configs[1].struct_size = sizeof(configs[1]);
   configs[1].plugin_id = {(const uint8_t *)"mermaid", 7};
   configs[1].options = &mermaid_options;
   configs[1].options_size = sizeof(mermaid_options);
-  libmark_session_options options{};
+  uni_ai_md_session_options options{};
   options.struct_size = sizeof(options);
-  options.flags = ast_only ? (LIBMARK_SESSION_FLAG_DELIVER_AST | LIBMARK_SESSION_FLAG_AST_PAYLOAD)
+  options.flags = ast_only ? (UNI_AI_MD_SESSION_FLAG_DELIVER_AST | UNI_AI_MD_SESSION_FLAG_AST_PAYLOAD)
                            : 0;
-  options.delivery_mode = LIBMARK_DELIVERY_PROGRESSIVE;
+  options.delivery_mode = UNI_AI_MD_DELIVERY_PROGRESSIVE;
   options.event_callback = OnEvent;
   options.event_user_data = state;
   options.plugins = configs;
   options.plugin_count = 2;
   options.plugin_stride = sizeof(configs[0]);
-  if (libmark_session_create(state->runtime, &options, &state->session) != LIBMARK_STATUS_OK) {
+  if (uni_ai_md_session_create(state->runtime, &options, &state->session) != UNI_AI_MD_STATUS_OK) {
     DestroySession(state);
-    ThrowIllegalState(env, "libmark session creation failed");
+    ThrowIllegalState(env, "uni-ai-md session creation failed");
     return 0;
   }
   return static_cast<jlong>(reinterpret_cast<uintptr_t>(state));
 }
 
-jstring CollectEvent(JNIEnv *env, BridgeSession *state, libmark_status status) {
-  if (status != LIBMARK_STATUS_OK) {
-    ThrowIllegalState(env, "libmark session step failed");
+jstring CollectEvent(JNIEnv *env, BridgeSession *state, uni_ai_md_status status) {
+  if (status != UNI_AI_MD_STATUS_OK) {
+    ThrowIllegalState(env, "uni-ai-md session step failed");
     return nullptr;
   }
   if (state->ops.empty()) return nullptr;
@@ -675,12 +675,12 @@ jstring CollectEvent(JNIEnv *env, BridgeSession *state, libmark_status status) {
 jstring FeedChunk(JNIEnv *env, jobject /*unused*/, jlong handle, jstring chunk) {
   BridgeSession *state = ToSession(handle);
   if (!state || !state->session) {
-    ThrowIllegalState(env, "invalid libmark session handle");
+    ThrowIllegalState(env, "invalid uni-ai-md session handle");
     return nullptr;
   }
   const std::string chunk_text = ToUtf8(env, chunk);
   state->ops.clear();
-  const libmark_status status = libmark_session_feed(
+  const uni_ai_md_status status = uni_ai_md_session_feed(
       state->session, reinterpret_cast<const uint8_t *>(chunk_text.data()), chunk_text.size());
   return CollectEvent(env, state, status);
 }
@@ -688,11 +688,11 @@ jstring FeedChunk(JNIEnv *env, jobject /*unused*/, jlong handle, jstring chunk) 
 jstring FinishSession(JNIEnv *env, jobject /*unused*/, jlong handle) {
   BridgeSession *state = ToSession(handle);
   if (!state || !state->session) {
-    ThrowIllegalState(env, "invalid libmark session handle");
+    ThrowIllegalState(env, "invalid uni-ai-md session handle");
     return nullptr;
   }
   state->ops.clear();
-  return CollectEvent(env, state, libmark_session_finish(state->session));
+  return CollectEvent(env, state, uni_ai_md_session_finish(state->session));
 }
 
 void DestroySession(JNIEnv *env, jobject /*unused*/, jlong handle) {
@@ -705,7 +705,7 @@ void DestroySession(JNIEnv *env, jobject /*unused*/, jlong handle) {
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_uts_sdk_modules_libmark_LibmarkBridge_nativeCreateSession(JNIEnv *env, jobject thiz,
+Java_uts_sdk_modules_uniAiMd_UniAiMdBridge_nativeCreateSession(JNIEnv *env, jobject thiz,
                                                                jstring mode, jstring locales,
                                                                jboolean dark_mode,
                                                                jstring background) {
@@ -713,19 +713,19 @@ Java_uts_sdk_modules_libmark_LibmarkBridge_nativeCreateSession(JNIEnv *env, jobj
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_uts_sdk_modules_libmark_LibmarkBridge_nativeFeedChunk(JNIEnv *env, jobject thiz, jlong handle,
+Java_uts_sdk_modules_uniAiMd_UniAiMdBridge_nativeFeedChunk(JNIEnv *env, jobject thiz, jlong handle,
                                                            jstring chunk) {
   return FeedChunk(env, thiz, handle, chunk);
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_uts_sdk_modules_libmark_LibmarkBridge_nativeFinishSession(JNIEnv *env, jobject thiz,
+Java_uts_sdk_modules_uniAiMd_UniAiMdBridge_nativeFinishSession(JNIEnv *env, jobject thiz,
                                                                jlong handle) {
   return FinishSession(env, thiz, handle);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_uts_sdk_modules_libmark_LibmarkBridge_nativeDestroySession(JNIEnv *env, jobject thiz,
+Java_uts_sdk_modules_uniAiMd_UniAiMdBridge_nativeDestroySession(JNIEnv *env, jobject thiz,
                                                                 jlong handle) {
   DestroySession(env, thiz, handle);
 }

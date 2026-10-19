@@ -1,11 +1,22 @@
-import type { LibmarkEvent } from '../interface.uts'
+// 平台入口内直接定义类型：仅放在 interface.uts 的类型不会参与本平台 Kotlin 编译。
+export type UniAiMdOp = {
+	op: number
+	kind: string
+	content: string
+	index: number
+	unchanged: boolean
+}
+
+export type UniAiMdEvent = {
+	ops: UniAiMdOp[]
+}
 
 /**
- * libmark UTS 插件 Android 实现。
+ * uni-ai-md UTS 插件 Android 实现。
  *
  * 事件语义与 app-harmony 一致：桥接库内部完成 runtime 创建、render/math 注册、seal 和
  * session 创建，每次 feed/finish 返回一组块级操作；没有事件时返回 null。
- * 原生实现见 native/android/libmark_bridge_jni.cpp，Kotlin 包装类与本文件同包。
+ * 原生实现见 native/android/uni_ai_md_bridge_jni.cpp，Kotlin 包装类与本文件同包。
  */
 
 /**
@@ -19,39 +30,39 @@ import type { LibmarkEvent } from '../interface.uts'
  */
 export function createSession(mode?: string, languageTags?: string, darkMode?: boolean,
 	background?: string): object {
-	return { id: LibmarkBridge.createSession(mode, languageTags, darkMode, background) } as object
+	return { id: UniAiMdBridge.createSession(mode, languageTags, darkMode, background) } as object
 }
 
 /** 提交一段 Markdown chunk，返回本次产生的块级操作集合；没有事件时返回 null。 */
-export function feedChunk(handle: object, chunk: string): LibmarkEvent | null {
-	const payload = LibmarkBridge.feedChunk(readSessionId(handle), chunk)
+export function feedChunk(handle: object, chunk: string): UniAiMdEvent | null {
+	const payload = UniAiMdBridge.feedChunk(readSessionId(handle), chunk)
 	return toEvent(payload)
 }
 
 /** 结束 session，返回收尾的块级操作集合；没有事件时返回 null。 */
-export function finishSession(handle: object): LibmarkEvent | null {
-	const payload = LibmarkBridge.finishSession(readSessionId(handle))
+export function finishSession(handle: object): UniAiMdEvent | null {
+	const payload = UniAiMdBridge.finishSession(readSessionId(handle))
 	return toEvent(payload)
 }
 
 /** 销毁 session 及其 runtime。 */
 export function destroySession(handle: object): void {
-	LibmarkBridge.destroySession(readSessionId(handle))
+	UniAiMdBridge.destroySession(readSessionId(handle))
 }
 
 /** 从会话句柄对象里取出会话 id（Kotlin 侧按 Int 接收）。 */
 function readSessionId(handle: object): Int {
 	const id = (handle as UTSJSONObject).getNumber('id')
 	if (id == null) {
-		throw new Error('invalid libmark session handle')
+		throw new Error('invalid uni-ai-md session handle')
 	}
 	return id.toInt()
 }
 
 /** 桥接库返回块级操作的 JSON 快照，空载荷表示本次没有事件。 */
-function toEvent(payload: string | null): LibmarkEvent | null {
+function toEvent(payload: string | null): UniAiMdEvent | null {
 	if (payload == null || payload.length == 0) return null
-	const event = JSON.parse<LibmarkEvent>(payload)
+	const event = JSON.parse<UniAiMdEvent>(payload)
 	if (event == null || event.ops.length == 0) return null
 	return event
 }

@@ -1,24 +1,24 @@
 {
-  "name": "libmark",
+  "name": "uni-ai-md",
   "version": "1.0.0",
-  "description": "libmark Markdown renderer native library for HarmonyOS",
+  "description": "uni-ai-md Markdown renderer native library for HarmonyOS",
   "main": "index.ets",
-  "author": "libmark",
+  "author": "uni-ai-md",
   "license": "MIT",
   "compatibleSdkVersion": 17,
   "compatibleSdkType": "HarmonyOS",
   "nativeComponents": [
     {
-      "name": "libmark-full.so",
+      "name": "libuni-ai-md.so",
       "compatibleSdkVersion": 17,
       "compatibleSdkType": "HarmonyOS",
       "linkLibraries": []
     },
     {
-      "name": "libmark_bridge.so",
+      "name": "libuni-ai-md_bridge.so",
       "compatibleSdkVersion": 17,
       "compatibleSdkType": "HarmonyOS",
-      "linkLibraries": ["libmark-full.so"]
+      "linkLibraries": ["libuni-ai-md.so"]
     }
   ]
 }
