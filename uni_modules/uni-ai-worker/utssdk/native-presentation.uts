@@ -43,13 +43,16 @@ export type MarkdownTextRenderBlock = {
 
 // Pure conversion shared by the page fallback and the Android presentation Worker.
 export function nativeRenderBlock(block: LibmarkHtmlRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
-	return {
+	const result: MarkdownTextRenderBlock = {
 		kind: block.kind, key: block.key, html: block.html, text: block.text,
 		language: block.language, isComplete: isDone || block.isComplete,
 		columnWidths: block.columnWidths, rowTextWidths: block.rowTextWidths,
-		codeTokens: [], codeCompleteLines: block.codeCompleteLines,
+		codeTokens: [] as MarkdownToken[][], codeCompleteLines: block.codeCompleteLines ?? 0,
 		level: 0, indent: 0, marker: '', quoteDepth: 0,
-		mermaidImageSource: '', mermaidRenderTheme: '',
+		mermaidImageSource: '', mermaidRenderTheme: '', mermaidRenderFailed: null,
+		codeHeight: null, codeLines: null, codeHtml: null, codeContentHeight: null,
+		codeHighlightedText: null, table: null, math: null,
 		svgSource: block.svgSource, svgWidth: block.svgWidth, svgHeight: block.svgHeight
 	}
+	return result
 }

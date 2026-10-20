@@ -26,11 +26,11 @@ function codeNodeHtml(node: UTSJSONObject): string {
 
 export function buildCodeLineHtml(text: string, language: string, tokens: MarkdownToken[][]): string {
 	// 原生 rich-text 会折叠空块，用占位空格保留空行；源码仍保存在 line.text。
-	const token: MarkdownToken = {
-		type: 'code_block', lang: language,
-		text: text.length == 0 ? '\u00A0' : text,
-		codeTokens: text.length == 0 ? [] as MarkdownToken[][] : tokens
-	}
+	const token: MarkdownToken = {} as MarkdownToken
+	token.type = 'code_block'
+	token.lang = language
+	token.text = text.length == 0 ? '\u00A0' : text
+	token.codeTokens = text.length == 0 ? [] as MarkdownToken[][] : tokens
 	const nodes = markdownCodeTokenToRichTextNodes(token)
 	let html = ''
 	for (let i = 0; i < nodes.length; i++) html += codeNodeHtml(nodes[i])
@@ -76,6 +76,7 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 				codeHeight: block.codeHeight, codeHtml: block.codeHtml, codeContentHeight: block.codeContentHeight,
 				level: block.level, indent: block.indent, marker: block.marker, quoteDepth: block.quoteDepth,
 				mermaidImageSource: block.mermaidImageSource, mermaidRenderTheme: block.mermaidRenderTheme,
+				mermaidRenderFailed: block.mermaidRenderFailed,
 				table: block.table, math: block.math,
 				svgSource: block.svgSource, svgWidth: block.svgWidth, svgHeight: block.svgHeight
 			} as MarkdownTextRenderBlock : block

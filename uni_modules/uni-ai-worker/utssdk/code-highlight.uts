@@ -174,7 +174,7 @@ function parseIncrementalCode(callback: ParseCodeTextCallBack, messageId: string
 			return
 		}
 		try {
-			await new Promise<void>((resolve, reject) => initUniCodeHighlighter(() => { resolve() }, (message: string) => reject(new Error(message))))
+			await new Promise<void>((resolve, reject): void => initUniCodeHighlighter((): void => { resolve() }, (message: string): void => { reject(new Error(message)) }))
 			const sourceLines = source.split('\n')
 			let appendOnly = sourceLines.length >= active.source.length
 			for (let i = 0; appendOnly && i < active.source.length; i++) {
