@@ -8,7 +8,7 @@
 		<template v-else-if="part.kind == 'think'">
 			<view class="msg-segment-think-content">
 				<view class="msg-root-think-content-header" @click.stop="changeThinkContent">
-					<text class="msg-root-think-content-title" flatten>深度思考 &nbsp;</text>
+					<text class="msg-root-think-content-title" flatten>深度思考</text>
 					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
 				</view>
 				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
@@ -183,6 +183,7 @@
 
 .msg-root-think-content-title {
 	color: var(--text-tertiary);
+	margin-right: 4px;
 }
 
 .msg-root-think-content-text-box {
