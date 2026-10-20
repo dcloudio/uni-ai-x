@@ -1,5 +1,7 @@
 import type { LibmarkHtmlRenderBlock } from './libmark-html.uts'
+// #ifdef APP-ANDROID || APP-HARMONY
 import type { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+// #endif
 import type { TablePresentation } from './table-presentation.uts'
 
 export type CodePresentationLine = { text: string, html: string }
@@ -13,7 +15,12 @@ export type MarkdownTextRenderBlock = {
 	isComplete: boolean
 	columnWidths: number[]
 	rowTextWidths: number[][]
+	// #ifdef APP-ANDROID || APP-HARMONY
 	codeTokens: MarkdownToken[][]
+	// #endif
+	// #ifndef APP-ANDROID || APP-HARMONY
+	codeTokens: any[][]
+	// #endif
 	level: number
 	indent: number
 	marker: string

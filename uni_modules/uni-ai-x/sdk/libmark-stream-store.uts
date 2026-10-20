@@ -10,7 +10,9 @@ import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-p
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
 import type { MsgItem } from '../types.uts'
+// #ifdef APP-ANDROID || APP-HARMONY
 import { RenderSnapshot, RENDER_SNAPSHOT_VERSION } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+// #endif
 // #ifdef APP-ANDROID
 import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif

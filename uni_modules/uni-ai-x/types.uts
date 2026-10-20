@@ -98,7 +98,9 @@ export type MessageSearch = {
 	error: string
 }
 
+// #ifdef APP-ANDROID || APP-HARMONY
 import type { RenderSnapshot } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+// #endif
 
 export type MsgItem = {
 	_id: string
@@ -114,7 +116,9 @@ export type MsgItem = {
 	chat_id: string,
 	markdownHtml?: string
 	markdownBlocks?: string
+	// #ifdef APP-ANDROID || APP-HARMONY
 	renderSnapshot?: RenderSnapshot
+	// #endif
 	search?: MessageSearch
 	markdownAst?: string
 	libmarkRevision?: number

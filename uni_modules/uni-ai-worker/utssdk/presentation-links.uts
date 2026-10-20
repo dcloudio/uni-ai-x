@@ -35,11 +35,21 @@ export function linkMarkdownFootnotes(html: string, markdown: string, preparedNo
 	if (html.indexOf('>^') < 0) return html
 	const notes = preparedNotes ?? markdownFootnotes(markdown)
 	if (notes.size == 0) return html
-	return html.replace(/<a\s+href="[^"]*"[^>]*>\^([^<]+)<\/a>/g, (match: string, label: string, _offset: number, _input: string): string => {
-		if (!notes.has(label)) return match
-		const target = '#uni-ai-footnote-' + encodeURIComponent(label)
-		return '<a href="' + target + '">[' + label + ']</a>'
-	})
+	let result = ''
+	let cursor = 0
+	while (cursor < html.length) {
+		const marker = html.indexOf('>^', cursor)
+		if (marker < 0) { result += html.slice(cursor); break }
+		const close = html.indexOf('</a>', marker + 2)
+		if (close < 0) { result += html.slice(cursor); break }
+		const label = html.slice(marker + 2, close)
+		const open = html.lastIndexOf('<a', marker)
+		result += html.slice(cursor, open)
+		if (notes.has(label)) result += '<a href="#uni-ai-footnote-' + encodeURIComponent(label) + '">[' + label + ']</a>'
+		else result += html.slice(open, close + 4)
+		cursor = close + 4
+	}
+	return result
 }
 
 const CITATION_PREFIX = '#uni-ai-source-'
@@ -51,11 +61,20 @@ export function citationNumber(href: string): number {
 }
 
 function linkTextReferences(text: string, sources: number[]): string {
-	return text.replace(/\[([1-9][0-9]*)\]/g, (match: string, value: string, _offset: number, _input: string): string => {
-		const id = parseInt(value)
-		if (!sources.includes(id)) return match
-		return '<a href="' + CITATION_PREFIX + value + '" style="color:#5082c8;font-size:12px;">' + match + '</a>'
-	})
+	let result = ''
+	let cursor = 0
+	while (cursor < text.length) {
+		const open = text.indexOf('[', cursor)
+		if (open < 0) { result += text.slice(cursor); break }
+		const close = text.indexOf(']', open + 1)
+		if (close < 0) { result += text.slice(cursor); break }
+		const value = text.slice(open + 1, close)
+		const match = text.slice(open, close + 1)
+		if (/^[1-9][0-9]*$/.test(value) && sources.includes(parseInt(value))) result += '<a href="' + CITATION_PREFIX + value + '" style="color:#5082c8;font-size:12px;">' + match + '</a>'
+		else result += text.slice(cursor, close + 1)
+		cursor = close + 1
+	}
+	return result
 }
 
 // Scan HTML tokens, transforming text only. Quoted attributes and code/link contents stay intact.

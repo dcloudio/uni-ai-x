@@ -1,3 +1,4 @@
+// #ifdef APP-ANDROID || APP-HARMONY
 import type { MarkdownTextRenderBlock } from './native-presentation.uts'
 
 export type RenderSnapshot = {
@@ -13,6 +14,7 @@ export type RenderSnapshot = {
 // v2：行内公式改为内联 <svg> 交付后，v1 快照可能把公式误存为独立 image 块，失效重建。
 export const RENDER_SNAPSHOT_VERSION = 2
 export const RENDER_ASSET_PREFIX = 'uni-ai-asset://'
+type RenderSourceMapper = (source: string) => string
 
 export function renderContentKey(value: string): string {
 	let first = 7
@@ -35,14 +37,36 @@ export function validRenderSnapshot(snapshot: RenderSnapshot, body: string): boo
 }
 
 // Visit display resources only. Code/source text containing data URLs must remain untouched.
-export function mapRenderResources(blocks: MarkdownTextRenderBlock[], mapSource: (source: string) => string) {
-	const mapHtml = (html: string): string => html.replace(/(<img\b[^>]*\bsrc=["'])([^"']+)(["'])/g,
-		(_match: string, start: string, source: string, end: string, _offset: number, _input: string): string => start + mapSource(source) + end)
+function mapRenderHtml(html: string, mapSource: RenderSourceMapper): string {
+		let result = ''
+		let cursor = 0
+		while (cursor < html.length) {
+			const image = html.indexOf('<img', cursor)
+			if (image < 0) { result += html.slice(cursor); break }
+			result += html.slice(cursor, image)
+			const tagEnd = html.indexOf('>', image + 4)
+			if (tagEnd < 0) { result += html.slice(image); break }
+			const tag = html.slice(image, tagEnd + 1)
+			const doubleSrc = tag.indexOf('src="')
+			const singleSrc = tag.indexOf("src='")
+			let srcStart = doubleSrc >= 0 ? doubleSrc + 5 : singleSrc >= 0 ? singleSrc + 5 : -1
+			if (srcStart < 0) { result += tag; cursor = tagEnd + 1; continue }
+			const quote = tag.charAt(srcStart - 1)
+			const srcEnd = tag.indexOf(quote, srcStart)
+			if (srcEnd < 0) { result += tag; cursor = tagEnd + 1; continue }
+			result += tag.slice(0, srcStart) + mapSource(tag.slice(srcStart, srcEnd)) + tag.slice(srcEnd)
+			cursor = tagEnd + 1
+		}
+		return result
+	}
+
+export function mapRenderResources(blocks: MarkdownTextRenderBlock[], mapSource: RenderSourceMapper) {
 	for (const block of blocks) {
-		block.html = mapHtml(block.html)
-		if (block.table != null) block.table!.html = mapHtml(block.table!.html)
+		block.html = mapRenderHtml(block.html, mapSource)
+		if (block.table != null) block.table!.html = mapRenderHtml(block.table!.html, mapSource)
 		block.svgSource = mapSource(block.svgSource)
 		if (block.math != null) block.math!.src = mapSource(block.math!.src)
 		if (block.mermaidImageSource != null) block.mermaidImageSource = mapSource(block.mermaidImageSource!)
 	}
 }
+// #endif

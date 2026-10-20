@@ -15,7 +15,7 @@ export function persistRenderAssets(messageId: string, snapshot: RenderSnapshot)
 	try { fs.accessSync(root + directory) } catch (_) { fs.mkdirSync(root + directory, true) }
 	const sources = new Map<string, string>()
 	const assets = new Set<string>()
-	mapRenderResources(result.blocks, (source: string): string => {
+	mapRenderResources(result.blocks, (source: string) => {
 		if (source.length == 0 || /^(https?:|\/static\/)/.test(source)) return source
 		const existing = sources.get(source)
 		if (existing != null) return existing
@@ -66,7 +66,7 @@ export function restoreRenderAssets(snapshot: RenderSnapshot, body: string): Ren
 			fs.accessSync(root + path)
 		}
 		const result = JSON.parse<RenderSnapshot>(JSON.stringify(snapshot))!
-		mapRenderResources(result.blocks, (source: string): string => {
+		mapRenderResources(result.blocks, (source: string) => {
 			if (!source.startsWith(RENDER_ASSET_PREFIX)) return source
 			const path = source.substring(RENDER_ASSET_PREFIX.length)
 			if (!safeAsset(path) || !snapshot.assets.includes(path)) throw new Error('Unlisted render asset')
