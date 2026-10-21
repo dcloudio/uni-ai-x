@@ -11,7 +11,7 @@ import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
 import type { MsgItem } from '../types.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
-import { RenderSnapshot, RENDER_SNAPSHOT_VERSION } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+import { RenderSnapshot, RENDER_SNAPSHOT_VERSION, renderContentKey } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
 // #endif
 // #ifdef APP-ANDROID
 import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
@@ -124,12 +124,14 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	// #ifdef APP-ANDROID || APP-HARMONY
 	const message = entry.message
 	if (message == null || entry.save == null || !entry.done || !entry.settled || entry.restored || entry.restoring || entry.textBlocks.length == 0) return
-	if (entry.savingVersion == entry.preparationVersion) return
+	if (entry.savingVersion == entry.preparationVersion && message.renderSnapshot != null) return
 	if (!entry.textBlocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
 		(block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? '')) &&
 		(block.kind != 'math' || block.svgSource.length > 0 || (block.math?.src ?? '').length > 0) &&
 		((block.kind != 'image' && block.kind != 'mermaid') || block.mermaidRenderFailed == true || (block.svgWidth > 0 && block.svgHeight > 0)) &&
-		(block.kind != 'mermaid' || block.mermaidRenderFailed == true || (block.mermaidImageSource ?? '').length > 0))) return
+		(block.kind != 'mermaid' || block.mermaidRenderFailed == true || (block.mermaidImageSource ?? '').length > 0))) {
+		return
+	}
 	if (entry.saveRetryTimer != 0) { clearTimeout(entry.saveRetryTimer); entry.saveRetryTimer = 0 }
 	entry.saveRetryCount = 0
 	const version = entry.preparationVersion
@@ -137,11 +139,15 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	const theme = presentationTheme
 	const width = presentationWidth
 	entry.savingVersion = version
-	const snapshot: RenderSnapshot = { version: RENDER_SNAPSHOT_VERSION, bodyKey: '', theme: theme,
+	const snapshot: RenderSnapshot = { version: RENDER_SNAPSHOT_VERSION, bodyKey: renderContentKey(body), theme: theme,
 		width: width, citations: (message.search?.sources ?? []).map((source) => source.id).join(','), assets: [], blocks: cloneBlocks(entry.textBlocks) }
 	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version && message.body == body && presentationTheme == theme && presentationWidth == width
 	const attempt = () => {
-	if (!isCurrent()) return
+	if (!isCurrent()) {
+		if (entry.savingVersion == version) entry.savingVersion = -1
+		if (entry.saveRetryTimer == 0) entry.saveRetryTimer = setTimeout(() => { entry.saveRetryTimer = 0; persistCompleteEntry(entry) }, 120)
+		return
+	}
 	// #ifdef APP-ANDROID
 	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (!isCurrent()) return
@@ -185,8 +191,13 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 	if (entry.restored && entry.body != message.body) rebuildRestoredEntry(entry)
 	if (entry.restoring || entry.restored || entry.preparationVersion > 0 || entry.textBlocks.length > 0) return Promise.resolve()
 	const snapshot = message.renderSnapshot
-	if (snapshot == null || snapshot.theme != presentationTheme || snapshot.width != presentationWidth ||
-		snapshot.citations != (message.search?.sources ?? []).map((source) => source.id).join(',')) return Promise.resolve()
+	entry.body = message.body
+	const snapshotMatchesContext = snapshot != null && snapshot.theme == presentationTheme && snapshot.width == presentationWidth &&
+		snapshot.citations == (message.search?.sources ?? []).map((source) => source.id).join(',')
+	if (!snapshotMatchesContext) {
+		libmarkStreamRequestRebuild(message._id, message.body)
+		return Promise.resolve()
+	}
 	entry.restoring = true
 	const body = message.body
 	entry.body = body
