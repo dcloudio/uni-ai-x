@@ -72,7 +72,7 @@
     })
 
     const showMathSource = computed<boolean>(() => {
-        return !mathImageModeLatched.value || mathImageLoadFailed.value
+		return (props.isClose ?? 0) != 1 || !mathImageModeLatched.value || mathImageLoadFailed.value
     })
 
     const mathBackgroundColor = computed<string>(() => {
@@ -256,6 +256,15 @@
 	    function syncMathImageTheme() {
 	        const mathText = props.sourceText ?? (props.text ?? '').trim()
 	        const svgSource = props.svgSource ?? ''
+	        const isClosed = (props.isClose ?? 0) == 1
+	        if (!isClosed) {
+	            mathRenderRequestKey = ''
+	            mathWasClosed = false
+	            mathImageModeLatched.value = false
+	            mathImageLoadFailed.value = false
+	            resetMathImages()
+	            return
+	        }
 	        const sourceKey = props.sourceIdentity ?? (mathText + '\n' + svgSource + '\n' + (props.svgWidth ?? 0).toString()
 	            + '\n' + (props.svgHeight ?? 0).toString())
 	        if (mathSourceKey != sourceKey) {
@@ -263,7 +272,6 @@
 	            mathImageLoadFailed.value = false
 	            resetMathImages()
 	        }
-	        const isClosed = (props.isClose ?? 0) == 1
 	        if (svgSource.length > 0 && !isClosed) {
 	            mathWasClosed = false
 	            mathImageModeLatched.value = false
