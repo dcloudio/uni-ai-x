@@ -3,13 +3,13 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
-const { LibmarkHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/libmark-html.uts', ['LibmarkHtmlStreamAdapter'], {
+const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts', ['UniAiMdHtmlStreamAdapter'], {
   ...html, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
 });
 const op = (op, content, kind, index) => ({ op, content, kind, index, unchanged: false });
 
 test('Gantt native SVG absorbs the paired DATA envelope instead of rendering twice', () => {
-  const adapter = new LibmarkHtmlStreamAdapter();
+  const adapter = new UniAiMdHtmlStreamAdapter();
   const source = 'gantt\n  title Project delivery\n  section Development\n  Requirements :a1, 2026-10-01, 2d';
   const svg = '<svg width="320" height="140"><text>gantt</text></svg>';
   adapter.applyOps([

@@ -33,7 +33,7 @@ function migrateLegacyMessage(message: MsgItem): MsgItem {
 
 function serializeMessage(message: MsgItem): string {
 	// #ifdef APP-ANDROID || APP-HARMONY
-	const stored: MsgItem = { ...message, markdownHtml: '', markdownAst: '', markdownBlocks: '', libmarkRevision: 0 }
+	const stored: MsgItem = { ...message, markdownHtml: '', markdownAst: '', markdownBlocks: '', uniAiMdRevision: 0 }
 	return JSON.stringify(stored)
 	// #endif
 	// #ifndef APP-ANDROID || APP-HARMONY
@@ -80,7 +80,7 @@ function snapshotMessage(message: MsgItem): MsgItem {
 		rendered: message.rendered, thinkContent: message.thinkContent,
 		about_msg_id: message.about_msg_id, error_msg: message.error_msg,
 		img_url_list: message.img_url_list?.slice(),
-		markdownHtml: '', markdownAst: '', markdownBlocks: '', libmarkRevision: 0,
+		markdownHtml: '', markdownAst: '', markdownBlocks: '', uniAiMdRevision: 0,
 		renderSnapshot: message.renderSnapshot,
 		stressSvgSource: message.stressSvgSource, stressSvgWidth: message.stressSvgWidth,
 		stressSvgHeight: message.stressSvgHeight,
@@ -468,7 +468,7 @@ export class StorageManager {
 				// #ifdef APP-HARMONY || APP-ANDROID
 				// 原生渲染数据不落 storage：清掉历史遗留的 AST/HTML 字段（内存立即生效），
 				// 保留 body 即可在渲染时重建
-				msg.libmarkRevision = 0
+				msg.uniAiMdRevision = 0
 				if (msg.from_uid == 'uni-ai' && msg.body.length > 0) msg.rendered = true
 				if (msg.body.length > 0 && ((msg.markdownAst ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || (msg.markdownBlocks ?? '').length > 0)) {
 					msg.markdownAst = ''

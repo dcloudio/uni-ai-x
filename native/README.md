@@ -40,8 +40,8 @@ mermaid（流程图 / 时序图 / 甘特图 / 状态图）的 SVG 背景在桥�
 
 ## 构建准备
 
-需要本机存在 uni-ai-md 源码仓库（默认取相邻的 `../../libmark`，也可用 `-RepoRoot` 或
-`UNI_AI_MD_REPO` 指定）。
+需要本机存在 uni-ai-md 源码仓库，并且必须通过 `-RepoRoot` 或 `UNI_AI_MD_REPO`
+环境变量明确指定仓库根目录；未指定时脚本报错退出。
 
 ### HarmonyOS
 

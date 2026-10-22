@@ -7,11 +7,11 @@ const ref = value => ({ value });
 const UtsNumber = Object.assign(value => Number(value), { from: value => Number(value) });
 const rich = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts', ['markdownCodeTokenToRichTextNodes']);
 const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
-const { LibmarkHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/libmark-html.uts', ['LibmarkHtmlStreamAdapter'], {
+const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts', ['UniAiMdHtmlStreamAdapter'], {
   ...html, Number: UtsNumber, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
 });
 const converters = loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts',
-  ['libmarkHtmlBlocksToTextBlocks', 'markdownHtmlBlocksToTextBlocks']);
+  ['uniAiMdHtmlBlocksToTextBlocks', 'markdownHtmlBlocksToTextBlocks']);
 
 function setup() {
   const requests = [];
@@ -22,10 +22,10 @@ function setup() {
   const mermaid = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
     ref, renderMermaidSvgForTheme: (text, theme, callback) => diagrams.push({ text, theme, callback }),
   });
-  const store = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
-    ['libmarkStreamApply', 'libmarkStreamGetBlocks', 'libmarkStreamGetRevision', 'libmarkStreamRelease', 'libmarkStreamApplyRebuild', 'libmarkStreamRequestRebuild', 'libmarkStreamSetTheme'], {
-      ref, ...code, ...mermaid, ...converters, LibmarkHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
-      pluginBackgroundFor: () => '#ffffff', prepareLibmarkHtml: text => text,
+  const store = loadUts('uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
+    ['uniAiMdStreamApply', 'uniAiMdStreamGetBlocks', 'uniAiMdStreamGetRevision', 'uniAiMdStreamRelease', 'uniAiMdStreamApplyRebuild', 'uniAiMdStreamRequestRebuild', 'uniAiMdStreamSetTheme'], {
+      ref, ...code, ...mermaid, ...converters, UniAiMdHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
+      pluginBackgroundFor: () => '#ffffff', prepareUniAiMdHtml: text => text,
       linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
     }, ['APP', 'APP-HARMONY']);
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
@@ -50,29 +50,29 @@ const lineHtml = block => block.codeLines.map(line => line.html).join('');
 
 test('presentation revisions change only for the message receiving source or asynchronous results', () => {
   const api = setup();
-  api.libmarkStreamApply('history', [codeOp('old')]);
+  api.uniAiMdStreamApply('history', [codeOp('old')]);
   finish(api.requests[0]);
-  const revision = api.libmarkStreamGetRevision('history');
-  api.libmarkStreamApply('live', [codeOp('new')]);
-  const plainRevision = api.libmarkStreamGetRevision('live');
+  const revision = api.uniAiMdStreamGetRevision('history');
+  api.uniAiMdStreamApply('live', [codeOp('new')]);
+  const plainRevision = api.uniAiMdStreamGetRevision('live');
   finish(api.requests[1]);
-  assert.equal(api.libmarkStreamGetRevision('history'), revision);
-  assert.ok(api.libmarkStreamGetRevision('live') > plainRevision);
-  api.libmarkStreamRelease('history');
-  assert.equal(api.libmarkStreamGetRevision('history'), 0);
-  api.libmarkStreamApply('history', [codeOp('recreated')]);
-  assert.ok(api.libmarkStreamGetRevision('history') > revision);
+  assert.equal(api.uniAiMdStreamGetRevision('history'), revision);
+  assert.ok(api.uniAiMdStreamGetRevision('live') > plainRevision);
+  api.uniAiMdStreamRelease('history');
+  assert.equal(api.uniAiMdStreamGetRevision('history'), 0);
+  api.uniAiMdStreamApply('history', [codeOp('recreated')]);
+  assert.ok(api.uniAiMdStreamGetRevision('history') > revision);
 });
 
 test('native snapshots expose source immediately and replace it with highlighted HTML', () => {
   const api = setup();
-  api.libmarkStreamApply('m', [codeOp('const value = 1;')]);
-  assert.equal(api.libmarkStreamGetBlocks('m').length, 1);
-  const plain = lineHtml(api.libmarkStreamGetBlocks('m')[0]);
+  api.uniAiMdStreamApply('m', [codeOp('const value = 1;')]);
+  assert.equal(api.uniAiMdStreamGetBlocks('m').length, 1);
+  const plain = lineHtml(api.uniAiMdStreamGetBlocks('m')[0]);
   assert.ok(plain.includes('const'));
   assert.ok(plain.includes('value'));
   finish(api.requests[0]);
-  const block = api.libmarkStreamGetBlocks('m')[0];
+  const block = api.uniAiMdStreamGetBlocks('m')[0];
   assert.ok(lineHtml(block).includes('color:'));
   assert.notEqual(lineHtml(block), plain);
   assert.ok(lineHtml(block).includes('const'));
@@ -81,16 +81,16 @@ test('native snapshots expose source immediately and replace it with highlighted
 
 test('newer native source and released messages reject delayed highlights', () => {
   const api = setup();
-  api.libmarkStreamApply('m', [{ ...codeOp('old'), op: 2 }]);
-  api.libmarkStreamApply('m', [{ ...codeOp('new'), op: 2 }]);
-  assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
-  assert.ok(lineHtml(api.libmarkStreamGetBlocks('m')[0]).includes('new'));
+  api.uniAiMdStreamApply('m', [{ ...codeOp('old'), op: 2 }]);
+  api.uniAiMdStreamApply('m', [{ ...codeOp('new'), op: 2 }]);
+  assert.equal(api.uniAiMdStreamGetBlocks('m')[0].text, 'new');
+  assert.ok(lineHtml(api.uniAiMdStreamGetBlocks('m')[0]).includes('new'));
   assert.equal(api.requests.length, 0);
-  assert.equal(api.libmarkStreamGetBlocks('m')[0].text, 'new');
-  api.libmarkStreamApply('m', [codeOp('deleted')]);
-  api.libmarkStreamRelease('m');
+  assert.equal(api.uniAiMdStreamGetBlocks('m')[0].text, 'new');
+  api.uniAiMdStreamApply('m', [codeOp('deleted')]);
+  api.uniAiMdStreamRelease('m');
   finish(api.requests[0]);
-  assert.equal(api.libmarkStreamGetBlocks('m').length, 0);
+  assert.equal(api.uniAiMdStreamGetBlocks('m').length, 0);
 });
 
 test('unfinished line stays plain through every append and highlights on completion', () => {
@@ -109,20 +109,20 @@ test('unfinished line stays plain through every append and highlights on complet
 
 test('newline highlights its completed line while the next streaming line stays plain', () => {
   const api = setup();
-  api.libmarkStreamApply('m', [{ ...codeOp('first'), op: 2 }]);
+  api.uniAiMdStreamApply('m', [{ ...codeOp('first'), op: 2 }]);
   assert.equal(api.requests.length, 0);
-  api.libmarkStreamApply('m', [{ ...codeOp('first\n'), op: 2 }]);
+  api.uniAiMdStreamApply('m', [{ ...codeOp('first\n'), op: 2 }]);
   assert.equal(api.requests.length, 1);
   finish(api.requests[0]);
-  const first = api.libmarkStreamGetBlocks('m')[0].codeLines[0];
+  const first = api.uniAiMdStreamGetBlocks('m')[0].codeLines[0];
   for (const tail of ['s', 'se', 'second']) {
-    api.libmarkStreamApply('m', [{ ...codeOp('first\n' + tail), op: 2 }]);
-    const rows = api.libmarkStreamGetBlocks('m')[0].codeLines;
+    api.uniAiMdStreamApply('m', [{ ...codeOp('first\n' + tail), op: 2 }]);
+    const rows = api.uniAiMdStreamGetBlocks('m')[0].codeLines;
     assert.equal(rows[0], first);
     assert.ok(!rows[1].html.includes('<span'));
     assert.equal(api.requests.length, 1);
   }
-  api.libmarkStreamApply('m', [{ ...codeOp('first\nsecond\n'), op: 2 }]);
+  api.uniAiMdStreamApply('m', [{ ...codeOp('first\nsecond\n'), op: 2 }]);
   assert.equal(api.requests.length, 2);
   assert.equal(api.requests[1].text, 'first\nsecond');
 });
@@ -155,23 +155,23 @@ test('legacy platforms publish streaming source immediately and reuse completed 
 
 test('historical native code can finish asynchronous preparation without triggering another rebuild', () => {
   const api = setup();
-  assert.equal(api.libmarkStreamRequestRebuild('m', 'code'), true);
-  assert.equal(api.libmarkStreamApplyRebuild('m', [codeOp('history')]), true);
-  assert.equal(api.libmarkStreamRequestRebuild('m', 'code'), false);
+  assert.equal(api.uniAiMdStreamRequestRebuild('m', 'code'), true);
+  assert.equal(api.uniAiMdStreamApplyRebuild('m', [codeOp('history')]), true);
+  assert.equal(api.uniAiMdStreamRequestRebuild('m', 'code'), false);
   finish(api.requests[0]);
-  assert.ok(lineHtml(api.libmarkStreamGetBlocks('m')[0]).length > 0);
+  assert.ok(lineHtml(api.uniAiMdStreamGetBlocks('m')[0]).length > 0);
 });
 
 test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid presentation', () => {
   const api = setup();
   const svg = '<svg width="100" height="50"><text>A</text></svg>';
-  api.libmarkStreamApply('m', [op(JSON.stringify({ type: 'mermaid', source: 'graph TD; A-->B', svg }), 'data')]);
-  assert.ok(api.libmarkStreamGetBlocks('m')[0].mermaidImageSource.startsWith('data:'));
+  api.uniAiMdStreamApply('m', [op(JSON.stringify({ type: 'mermaid', source: 'graph TD; A-->B', svg }), 'data')]);
+  assert.ok(api.uniAiMdStreamGetBlocks('m')[0].mermaidImageSource.startsWith('data:'));
   assert.equal(api.diagrams.length, 0);
-  api.libmarkStreamApply('g', [op(JSON.stringify({ type: 'mermaid', source: 'gantt\n title Plan' }), 'data')]);
+  api.uniAiMdStreamApply('g', [op(JSON.stringify({ type: 'mermaid', source: 'gantt\n title Plan' }), 'data')]);
   assert.equal(api.diagrams.length, 1);
   api.diagrams[0].callback({ imageSource: '/gantt.svg' });
-  assert.equal(api.libmarkStreamGetBlocks('g')[0].mermaidImageSource, '/gantt.svg');
+  assert.equal(api.uniAiMdStreamGetBlocks('g')[0].mermaidImageSource, '/gantt.svg');
 });
 
 test('code view only displays prepared HTML and Mermaid retains its original source inset', () => {

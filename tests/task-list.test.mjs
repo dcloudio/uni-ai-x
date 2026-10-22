@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
-const { prepareLibmarkHtml, prepareMarkdownHtml } = loadUts(
+const { prepareUniAiMdHtml, prepareMarkdownHtml } = loadUts(
   'uni_modules/uni-ai-worker/utssdk/markdown-html.uts',
-  ['prepareLibmarkHtml', 'prepareMarkdownHtml'],
+  ['prepareUniAiMdHtml', 'prepareMarkdownHtml'],
 );
 const checkbox = '<input type="checkbox" checked disabled>';
 
-for (const prepare of [prepareLibmarkHtml, prepareMarkdownHtml]) {
+for (const prepare of [prepareUniAiMdHtml, prepareMarkdownHtml]) {
   test(`${prepare.name}: nested task markers replace bullets at every level`, () => {
     const html = prepare(`<ul><li>${checkbox}parent<ul><li>${checkbox}child<ul><li>${checkbox}leaf</li></ul></li></ul></li></ul>`, true);
     const items = html.match(/<li\b[^>]*>/g);

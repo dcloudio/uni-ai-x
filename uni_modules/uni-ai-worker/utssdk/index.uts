@@ -5,7 +5,7 @@ export * from './markdown-preprocessor.uts' // Includes iOS-safe trailing-newlin
 export * from './markdown-html.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
 export * from './render-snapshot.uts'
-export * from './libmark-html.uts'
+export * from './uni-ai-md-html.uts'
 export * from './snapshot-files.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY

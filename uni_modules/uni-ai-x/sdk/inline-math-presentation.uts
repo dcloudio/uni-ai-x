@@ -1,8 +1,8 @@
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
 import { prepareHarmonySvgImageSource } from './harmony-svg-workaround.uts'
 
-// Harmony 的 rich-text 接收本地 SVG 文件路径：把 libmark 输出的公式 SVG data URL
-// 落盘并把 src 替换为文件路径。Android 由 libmark 直接交付内联 <svg>，不走这里。
+// Harmony 的 rich-text 接收本地 SVG 文件路径：把 uni-ai-md 输出的公式 SVG data URL
+// 落盘并把 src 替换为文件路径。Android 由 uni-ai-md 直接交付内联 <svg>，不走这里。
 export function prepareNativeInlineMathBlocks(messageId: string, blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void) {
 	// #ifdef APP-HARMONY
 	for (let index = 0; index < blocks.length; index++) {

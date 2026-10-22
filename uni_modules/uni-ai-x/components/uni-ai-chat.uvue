@@ -51,12 +51,12 @@
 	import { linkMarkdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
 	// #ifdef APP-HARMONY || APP-ANDROID
 	import {
-		libmarkStreamApplyRebuild,
-		libmarkPresentationRevision,
-		libmarkStreamGetRevision,
-		libmarkStreamGetBlocks,
-		libmarkStreamRequestRebuild
-	} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+		uniAiMdStreamApplyRebuild,
+		uniAiMdPresentationRevision,
+		uniAiMdStreamGetRevision,
+		uniAiMdStreamGetBlocks,
+		uniAiMdStreamRequestRebuild
+	} from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
 	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-worker-runtime'
 	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-worker-runtime'
 	// #endif
@@ -134,7 +134,7 @@
 		body: string
 		theme: string
 		sources: string
-		libmarkRevision: number
+		uniAiMdRevision: number
 		complete: boolean
 		rebuildVersion: number
 		blocks: MarkdownTextRenderBlock[]
@@ -159,9 +159,9 @@
 	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID
-	// Worker 重建完成回调：应用 ops 后驱动重算（页面环境无法调用 libmark，重建统一在 Worker 执行）
+	// Worker 重建完成回调：应用 ops 后驱动重算（页面环境无法调用 uni-ai-md，重建统一在 Worker 执行）
 	const onRebuildResult = (result: AiWorkerRebuildResult) => {
-		if (libmarkStreamApplyRebuild(result.msgId, result.ops)) {
+		if (uniAiMdStreamApplyRebuild(result.msgId, result.ops)) {
 			rebuildVersion.value += 1
 			scheduleRebuildScroll()
 		}
@@ -226,8 +226,8 @@
 		return readMessagePresentation(msg._id)
 		// #endif
 		// #ifdef APP-HARMONY || APP-ANDROID
-		const revision = msg.libmarkRevision ?? 0
-			const version = libmarkStreamGetRevision(msg._id)
+		const revision = msg.uniAiMdRevision ?? 0
+			const version = uniAiMdStreamGetRevision(msg._id)
 		const theme = uiTheme.value
 		// Android presentation revisions already represent visible content; raw body changes alone must not rebuild rows.
 		// #ifdef APP-ANDROID
@@ -244,14 +244,14 @@
 		// #endif
 		const cached = markdownBlockCache.get(msg._id)
 		if (cached != null && cached.body == cacheBody && cached.theme == theme && cached.sources == sources &&
-			cached.libmarkRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
-		const blocks = libmarkStreamGetBlocks(msg._id)
+			cached.uniAiMdRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
+		const blocks = uniAiMdStreamGetBlocks(msg._id)
 		if (blocks.length == 0 && msg.body.length > 0 && msg.rendered) {
 			uniAi.prepareMessagePresentation(msg)
-			libmarkStreamRequestRebuild(msg._id, msg.body)
+			uniAiMdStreamRequestRebuild(msg._id, msg.body)
 		}
 		markdownBlockCache.set(msg._id, {
-			body: cacheBody, theme: theme, sources: sources, libmarkRevision: revision,
+			body: cacheBody, theme: theme, sources: sources, uniAiMdRevision: revision,
 			complete: msg.rendered, rebuildVersion: version, blocks: blocks
 		} as MarkdownBlockCache)
 		return blocks
@@ -452,7 +452,7 @@
 	const messageComputations = new Map<string, { msg: MsgItem, rows: ComputedRef<ChatRenderItem[]> }>()
 	const renderItemList = computed<ChatRenderItem[]>(() => {
 		// #ifdef APP-HARMONY
-		libmarkPresentationRevision.value
+		uniAiMdPresentationRevision.value
 		rebuildVersion.value
 		// #endif
 		const items: ChatRenderItem[] = []
@@ -641,14 +641,14 @@
 			body: msg?.body ?? '',
 			// #endif
 			// #ifdef APP-ANDROID
-			presentation: msg != null ? libmarkStreamGetRevision(msg._id) : 0,
+			presentation: msg != null ? uniAiMdStreamGetRevision(msg._id) : 0,
 			// #endif
 			html: msg?.markdownHtml ?? '',
 			think: msg?.thinkContent ?? '',
 			error: msg?.error_msg ?? '',
 			rendered: msg?.rendered ?? false,
 			// #ifndef APP-ANDROID
-			libmarkRevision: msg?.libmarkRevision ?? 0,
+			uniAiMdRevision: msg?.uniAiMdRevision ?? 0,
 			rebuildVersion: rebuildVersion.value,
 			// #endif
 			state: state.value,

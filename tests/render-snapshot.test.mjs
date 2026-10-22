@@ -108,13 +108,13 @@ function store() {
   const work = [];
   const preparations = [];
   let parses = 0;
-  const api = loadUts('uni_modules/uni-ai-x/sdk/libmark-stream-store.uts',
-    ['libmarkStreamBindMessage', 'libmarkStreamMarkComplete', 'libmarkStreamApply', 'libmarkStreamGetBlocks',
-      'libmarkStreamRequestRebuild', 'libmarkStreamRelease', 'libmarkStreamSetTheme'], {
+  const api = loadUts('uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
+    ['uniAiMdStreamBindMessage', 'uniAiMdStreamMarkComplete', 'uniAiMdStreamApply', 'uniAiMdStreamGetBlocks',
+      'uniAiMdStreamRequestRebuild', 'uniAiMdStreamRelease', 'uniAiMdStreamSetTheme'], {
       ref: value => ({ value }), reactive: value => value, ...pure,
       setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
       clearTimeout: id => timers.delete(id),
-      LibmarkHtmlStreamAdapter: class { reset() {} },
+      UniAiMdHtmlStreamAdapter: class { reset() {} },
       requestSnapshotWork: (request, callback) => work.push({ request, callback }),
       requestAiWorkerMarkdownRebuild: () => parses++,
       prepareAndroidPresentation: (id, ops, done, theme, callback) => preparations.push({ id, ops, done, theme, callback }),
@@ -130,8 +130,8 @@ test('failed diagram terminal state persists and asset errors retry without furt
   const api = store();
   let saved = 0;
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
-  await api.libmarkStreamBindMessage(msg, () => saved++);
-  api.libmarkStreamMarkComplete('m');
+  await api.uniAiMdStreamBindMessage(msg, () => saved++);
+  api.uniAiMdStreamMarkComplete('m');
   await Promise.resolve();
   const failed = block({ kind: 'mermaid', mermaidRenderFailed: true, mermaidImageSource: '' });
   api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
@@ -148,13 +148,13 @@ test('failed diagram terminal state persists and asset errors retry without furt
 test('asset retries stop after three retries and are cancelled when a message is released', async () => {
   for (const release of [false, true]) {
     const api = store();
-    await api.libmarkStreamBindMessage({ _id: 'm', from_uid: 'uni-ai', body: 'hello' }, () => {});
-    api.libmarkStreamMarkComplete('m');
+    await api.uniAiMdStreamBindMessage({ _id: 'm', from_uid: 'uni-ai', body: 'hello' }, () => {});
+    api.uniAiMdStreamMarkComplete('m');
     await Promise.resolve();
     api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
       changes: [{ index: 0, block: block() }] });
     api.work[0].callback({ snapshot: null });
-    if (release) api.libmarkStreamRelease('m');
+    if (release) api.uniAiMdStreamRelease('m');
     for (let i = 0; i < 5; i++) { api.tick(); api.work.at(-1).callback({ snapshot: null }); }
     assert.equal(api.work.length, release ? 1 : 4);
   }
@@ -221,12 +221,12 @@ test('APP-HARMONY message writes persist synchronously and keep the newest conte
 test('restart restores final blocks without invoking parsing and prevents an overlapping rebuild', async () => {
   const api = store();
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello', renderSnapshot: snapshot([block()]) };
-  const task = api.libmarkStreamBindMessage(msg, () => assert.fail('restore must not save again'));
-  assert.equal(api.libmarkStreamRequestRebuild('m', 'hello'), false);
+  const task = api.uniAiMdStreamBindMessage(msg, () => assert.fail('restore must not save again'));
+  assert.equal(api.uniAiMdStreamRequestRebuild('m', 'hello'), false);
   api.work[0].callback({ snapshot: msg.renderSnapshot });
   await task;
-  assert.equal(api.libmarkStreamGetBlocks('m')[0].html, '<p>hello</p>');
-  assert.equal(api.libmarkStreamRequestRebuild('m', 'hello'), false);
+  assert.equal(api.uniAiMdStreamGetBlocks('m')[0].html, '<p>hello</p>');
+  assert.equal(api.uniAiMdStreamRequestRebuild('m', 'hello'), false);
   assert.equal(api.parses(), 0);
   assert.equal(api.preparations.length, 0);
 });
@@ -235,8 +235,8 @@ test('only settled final blocks are saved and deleting the message rejects a lat
   const api = store();
   let saves = 0;
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
-  await api.libmarkStreamBindMessage(msg, () => saves++);
-  api.libmarkStreamMarkComplete('m');
+  await api.uniAiMdStreamBindMessage(msg, () => saves++);
+  api.uniAiMdStreamMarkComplete('m');
   await Promise.resolve();
   const callback = api.preparations[0].callback;
   callback({ action: 'blocks', length: 1, settled: false,
@@ -244,7 +244,7 @@ test('only settled final blocks are saved and deleting the message rejects a lat
   assert.equal(api.work.length, 0);
   callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360, changes: [] });
   assert.equal(api.work.length, 1);
-  api.libmarkStreamRelease('m');
+  api.uniAiMdStreamRelease('m');
   api.work[0].callback({ snapshot: snapshot([block()]) });
   assert.equal(saves, 0);
   assert.equal(msg.renderSnapshot, undefined);
@@ -254,8 +254,8 @@ test('a completed stream stores the full snapshot on its original message', asyn
   const api = store();
   const saves = [];
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
-  await api.libmarkStreamBindMessage(msg, value => saves.push(value));
-  api.libmarkStreamMarkComplete('m');
+  await api.uniAiMdStreamBindMessage(msg, value => saves.push(value));
+  api.uniAiMdStreamMarkComplete('m');
   await Promise.resolve();
   const callback = api.preparations[0].callback;
   const response = { action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
@@ -273,12 +273,12 @@ test('a completed stream stores the full snapshot on its original message', asyn
 test('failed cache validation falls back to one deduplicated rebuild', async () => {
   const api = store();
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello', renderSnapshot: snapshot([block()]) };
-  const task = api.libmarkStreamBindMessage(msg, () => {});
+  const task = api.uniAiMdStreamBindMessage(msg, () => {});
   api.work[0].callback({ snapshot: null });
   await task;
   assert.equal(api.parses(), 1);
   assert.equal(msg.renderSnapshot, undefined);
-  assert.equal(api.libmarkStreamRequestRebuild('m', 'hello'), false);
+  assert.equal(api.uniAiMdStreamRequestRebuild('m', 'hello'), false);
 });
 
 test('background message writes, history and deletion preserve FIFO order and release assets', () => {

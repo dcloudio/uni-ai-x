@@ -3,7 +3,7 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const message = () => ({ _id: 'm', chat_id: 'c', from_uid: 'uni-ai', body: 'hello', rendered: false,
-  create_time: 1, markdownHtml: '<p>old</p>', markdownAst: 'old', markdownBlocks: '[{}]', libmarkRevision: 4 });
+  create_time: 1, markdownHtml: '<p>old</p>', markdownAst: 'old', markdownBlocks: '[{}]', uniAiMdRevision: 4 });
 
 test('native storage retains the durable render snapshot, source and search, excluding transient caches', () => {
   const { serializeMessage } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['serializeMessage']);
@@ -13,7 +13,7 @@ test('native storage retains the durable render snapshot, source and search, exc
   assert.deepEqual(result.search, msg.search);
   assert.deepEqual(result.renderSnapshot, msg.renderSnapshot);
   for (const key of ['markdownHtml', 'markdownAst', 'markdownBlocks']) assert.equal(result[key], '');
-  assert.equal(result.libmarkRevision, 0);
+  assert.equal(result.uniAiMdRevision, 0);
   assert.equal(msg.markdownHtml, '<p>old</p>');
 });
 
@@ -24,7 +24,7 @@ test('interrupted historical native replies become eligible for Worker rebuild',
   });
   const msg = new StorageManager().getChatMessages('c')[0];
   assert.equal(msg.rendered, true);
-  assert.equal(msg.libmarkRevision, 0);
+  assert.equal(msg.uniAiMdRevision, 0);
   assert.equal(msg.body, 'hello');
   assert.equal(msg.markdownBlocks, '');
 });

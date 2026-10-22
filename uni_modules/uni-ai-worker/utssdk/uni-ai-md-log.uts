@@ -247,7 +247,7 @@ function opKindName(op: number): string {
  * `console.log` 会长时间占用 UI 线程，典型表现为「先渲染几行后长时间卡顿，
  * 再一次性刷出大量内容」。仅在排查 uni-ai-md 块事件时临时置为 true。
  */
-export const libmarkBlockLogEnabled: boolean = false
+export const uniAiMdBlockLogEnabled: boolean = false
 
 /**
  * 每个收到的块事件都写进日志：先输出一行 block 包装信息
@@ -258,7 +258,7 @@ export const libmarkBlockLogEnabled: boolean = false
  */
 export function logBlockPayload(kind: string, payload: string, index: number,
 	op: number, unchanged: boolean): void {
-	if (!libmarkBlockLogEnabled) return
+	if (!uniAiMdBlockLogEnabled) return
 	const compact = truncateDataUris(payload)
 	console.log(padLogLine(`[uni-ai-md]BLOCK ${opKindName(op)} [${kind}] #${index}` +
 		(unchanged ? ' (unchanged)' : '')))

@@ -1,7 +1,7 @@
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-worker-runtime'
-import { LibmarkHtmlStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
-import { libmarkHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
+import { UniAiMdHtmlStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
+import { uniAiMdHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import { ref, reactive } from 'vue'
 import { prepareCodeBlocks } from './code-presentation.uts'
@@ -21,13 +21,13 @@ import { persistRenderAssets, restoreRenderAssets } from '@/uni_modules/uni-ai-w
 import { prepareTablePresentation } from './table-presentation.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { linkSearchCitations } from './search-citations.uts'
-import { prepareLibmarkHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { prepareUniAiMdHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 // #endif
 // #ifdef APP-ANDROID
 import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
-export const libmarkPresentationRevision = ref<number>(0)
+export const uniAiMdPresentationRevision = ref<number>(0)
 // #ifdef APP-ANDROID
 const messageRevisions = reactive(new Map<string, number>())
 // #endif
@@ -37,12 +37,12 @@ let presentationWidth = 360
 // 内存中保留的渲染条目上限：超出后按最近访问顺序淘汰最久未访问的条目
 const STREAM_ENTRY_LIMIT = 200
 
-type LibmarkStreamEntry = {
+type UniAiMdStreamEntry = {
 	messageId: string
 	workerId: string
 	preparationVersion: number
 	presentationRevision: number
-	adapter: LibmarkHtmlStreamAdapter
+	adapter: UniAiMdHtmlStreamAdapter
 	textBlocks: MarkdownTextRenderBlock[]
 	body: string
 	citationIds: number[]
@@ -60,7 +60,7 @@ type LibmarkStreamEntry = {
 	save: ((message: MsgItem) => void) | null
 }
 
-const streamEntries = new Map<string, LibmarkStreamEntry>()
+const streamEntries = new Map<string, UniAiMdStreamEntry>()
 let workerSequence = 0
 // 最近访问顺序（末尾最新），用于 LRU 淘汰
 const streamEntryOrder = [] as string[]
@@ -75,7 +75,7 @@ function evictEntriesIfNeeded(): void {
 	while (streamEntryOrder.length > STREAM_ENTRY_LIMIT) {
 		const oldest = streamEntryOrder.shift()
 		if (oldest == null) break
-		libmarkStreamRelease(oldest!)
+		uniAiMdStreamRelease(oldest!)
 	}
 }
 
@@ -83,18 +83,18 @@ function emptyBlocks(): MarkdownTextRenderBlock[] {
 	return [] as MarkdownTextRenderBlock[]
 }
 
-function entryFor(msgId: string): LibmarkStreamEntry {
+function entryFor(msgId: string): UniAiMdStreamEntry {
 	const existing = streamEntries.get(msgId)
 	if (existing != null) {
 		touchEntry(msgId)
 		return existing!
 	}
-	const entry: LibmarkStreamEntry = {
+	const entry: UniAiMdStreamEntry = {
 		messageId: msgId,
 		workerId: msgId + ':' + (++workerSequence).toString(),
 		preparationVersion: 0,
 		presentationRevision: 0,
-		adapter: new LibmarkHtmlStreamAdapter(),
+		adapter: new UniAiMdHtmlStreamAdapter(),
 		textBlocks: emptyBlocks(),
 		body: '',
 		citationIds: [],
@@ -111,16 +111,16 @@ function entryFor(msgId: string): LibmarkStreamEntry {
 	return entry
 }
 
-function notifyEntry(entry: LibmarkStreamEntry) {
-	entry.presentationRevision = libmarkPresentationRevision.value + 1
-	libmarkPresentationRevision.value = entry.presentationRevision
+function notifyEntry(entry: UniAiMdStreamEntry) {
+	entry.presentationRevision = uniAiMdPresentationRevision.value + 1
+	uniAiMdPresentationRevision.value = entry.presentationRevision
 	// #ifdef APP-ANDROID
 	messageRevisions.set(entry.messageId, entry.presentationRevision)
 	// #endif
 	persistCompleteEntry(entry)
 }
 
-function persistCompleteEntry(entry: LibmarkStreamEntry) {
+function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 	// #ifdef APP-ANDROID || APP-HARMONY
 	const message = entry.message
 	if (message == null || entry.save == null || !entry.done || !entry.settled || entry.restored || entry.restoring || entry.textBlocks.length == 0) return
@@ -182,7 +182,7 @@ function persistCompleteEntry(entry: LibmarkStreamEntry) {
 	// #endif
 }
 
-export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgItem) => void): Promise<void> {
+export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgItem) => void): Promise<void> {
 	// #ifdef APP-ANDROID || APP-HARMONY
 	if (message.from_uid != 'uni-ai') return Promise.resolve()
 	const entry = entryFor(message._id)
@@ -195,7 +195,7 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 	const snapshotMatchesContext = snapshot != null && snapshot.theme == presentationTheme && snapshot.width == presentationWidth &&
 		snapshot.citations == (message.search?.sources ?? []).map((source) => source.id).join(',')
 	if (!snapshotMatchesContext) {
-		libmarkStreamRequestRebuild(message._id, message.body)
+		uniAiMdStreamRequestRebuild(message._id, message.body)
 		return Promise.resolve()
 	}
 	entry.restoring = true
@@ -214,7 +214,7 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 			notifyEntry(entry)
 		} else {
 			message.renderSnapshot = undefined
-			libmarkStreamRequestRebuild(message._id, body)
+			uniAiMdStreamRequestRebuild(message._id, body)
 		}
 		resolve()
 	})
@@ -231,7 +231,7 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 		notifyEntry(entry)
 	} else {
 		message.renderSnapshot = undefined
-		libmarkStreamRequestRebuild(message._id, body)
+		uniAiMdStreamRequestRebuild(message._id, body)
 	}
 	resolve()
 	// #endif
@@ -242,7 +242,7 @@ export function libmarkStreamBindMessage(message: MsgItem, save: (message: MsgIt
 	// #endif
 }
 
-export function libmarkStreamGetRevision(msgId: string): number {
+export function uniAiMdStreamGetRevision(msgId: string): number {
 	// #ifdef APP-ANDROID
 	return messageRevisions.get(msgId) ?? 0
 	// #endif
@@ -251,9 +251,9 @@ export function libmarkStreamGetRevision(msgId: string): number {
 	// #endif
 }
 
-function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void {
+function refreshEntry(entry: UniAiMdStreamEntry, isDone: boolean = false): void {
 	const version = ++entry.preparationVersion
-	const blocks = libmarkHtmlBlocksToTextBlocks(entry.adapter.getBlocks(), isDone)
+	const blocks = uniAiMdHtmlBlocksToTextBlocks(entry.adapter.getBlocks(), isDone)
 	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version
 	prepareCodeBlocks(entry.messageId, blocks, (prepared: MarkdownTextRenderBlock[]) => {
 		if (!isCurrent()) return
@@ -263,7 +263,7 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 			if (block.kind != 'html' && block.kind != 'table') continue
 			block.html = linkMarkdownFootnotes(block.html, entry.message?.body ?? '')
 			if (entry.message?.search != null) block.html = linkSearchCitations(block.html, entry.message!.search!.sources)
-			if (block.kind == 'html') block.html = prepareLibmarkHtml(block.html, block.isComplete)
+			if (block.kind == 'html') block.html = prepareUniAiMdHtml(block.html, block.isComplete)
 			else block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, presentationTheme)
 		}
 		// #endif
@@ -283,10 +283,10 @@ function refreshEntry(entry: LibmarkStreamEntry, isDone: boolean = false): void 
 	}, entry.textBlocks)
 }
 
-export function libmarkStreamSetLayoutWidth(width: number) {
+export function uniAiMdStreamSetLayoutWidth(width: number) {
 	if (width <= 0 || width == presentationWidth) return
 	presentationWidth = width
-	streamEntries.forEach((entry: LibmarkStreamEntry) => {
+	streamEntries.forEach((entry: UniAiMdStreamEntry) => {
 		if (entry.restored) { rebuildRestoredEntry(entry); return }
 		// #ifdef APP-ANDROID
 		if (entry.preparationVersion > 0) prepareAndroidEntry(entry, [])
@@ -295,7 +295,7 @@ export function libmarkStreamSetLayoutWidth(width: number) {
 }
 
 // #ifdef APP-ANDROID
-export function libmarkStreamSetContext(msgId: string, body: string, citationIds: number[]) {
+export function uniAiMdStreamSetContext(msgId: string, body: string, citationIds: number[]) {
 	const entry = entryFor(msgId)
 	if (entry.body == body && entry.citationIds.join(',') == citationIds.join(',')) return
 	entry.body = body
@@ -303,7 +303,7 @@ export function libmarkStreamSetContext(msgId: string, body: string, citationIds
 	if (entry.preparationVersion > 0) prepareAndroidEntry(entry, [])
 }
 
-function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
+function prepareAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
 	if (entry.restored || entry.restoring) return
 	entry.settled = false
 	entry.preparationVersion += 1
@@ -323,7 +323,7 @@ function prepareAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done:
 	})
 }
 
-function sendAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: boolean) {
+function sendAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: boolean) {
 	const wireOps = ops.map((op: AiWorkerOp): UTSJSONObject => ({
 		op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged
 	} as UTSJSONObject))
@@ -375,10 +375,10 @@ function sendAndroidEntry(entry: LibmarkStreamEntry, ops: AiWorkerOp[], done: bo
 }
 // #endif
 
-export function libmarkStreamSetTheme(theme: string) {
+export function uniAiMdStreamSetTheme(theme: string) {
 	if (presentationTheme == theme) return
 	presentationTheme = theme
-	streamEntries.forEach((entry: LibmarkStreamEntry) => {
+	streamEntries.forEach((entry: UniAiMdStreamEntry) => {
 		// #ifdef APP-ANDROID || APP-HARMONY
 		// A theme switch invalidates every generated SVG, including entries that
 		// were already prepared. Rebuild from the source so old-theme assets are
@@ -391,7 +391,7 @@ export function libmarkStreamSetTheme(theme: string) {
 	})
 }
 
-function rebuildRestoredEntry(entry: LibmarkStreamEntry) {
+function rebuildRestoredEntry(entry: UniAiMdStreamEntry) {
 	// #ifdef APP-ANDROID
 	releaseAndroidPresentation(entry.workerId)
 	entry.workerId = entry.messageId + ':' + (++workerSequence).toString()
@@ -404,7 +404,7 @@ function rebuildRestoredEntry(entry: LibmarkStreamEntry) {
 	entry.textBlocks = emptyBlocks()
 	if (entry.message != null) {
 		entry.message!.renderSnapshot = undefined
-		libmarkStreamRequestRebuild(entry.messageId, entry.message!.body)
+		uniAiMdStreamRequestRebuild(entry.messageId, entry.message!.body)
 	}
 }
 
@@ -456,7 +456,7 @@ function cloneBlocks(blocks: MarkdownTextRenderBlock[]): MarkdownTextRenderBlock
 	return result
 }
 
-export function libmarkStreamApply(msgId: string, ops: AiWorkerOp[]): boolean {
+export function uniAiMdStreamApply(msgId: string, ops: AiWorkerOp[]): boolean {
 	if (ops.length == 0) return false
 	const entry = entryFor(msgId)
 	// #ifdef APP-ANDROID
@@ -470,7 +470,7 @@ export function libmarkStreamApply(msgId: string, ops: AiWorkerOp[]): boolean {
 	// #endif
 }
 
-export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[] {
+export function uniAiMdStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[] {
 	const entry = streamEntries.get(msgId)
 	if (entry == null) return emptyBlocks()
 	touchEntry(msgId)
@@ -483,7 +483,7 @@ export function libmarkStreamGetBlocks(msgId: string): MarkdownTextRenderBlock[]
 }
 
 // 仅刷新完成态（不序列化 AST），用于流式结束后的 UI 收尾
-export function libmarkStreamMarkComplete(msgId: string): void {
+export function uniAiMdStreamMarkComplete(msgId: string): void {
 	const entry = streamEntries.get(msgId)
 	if (entry == null) return
 	entry!.done = true
@@ -505,11 +505,11 @@ const rebuildFailedMsgIds = [] as string[]
 // #endif
 
 /**
- * 请求 Worker 用 libmark 从消息原文（body）重建渲染 ops（重启/中断后的恢复路径）。
- * 页面运行环境无法调用 libmark 原生插件，统一由 Worker 解析，
- * 解析结果通过 setAiWorkerRebuildListener 的监听器回调，再调用 libmarkStreamApplyRebuild 应用。
+ * 请求 Worker 用 uni-ai-md 从消息原文（body）重建渲染 ops（重启/中断后的恢复路径）。
+ * 页面运行环境无法调用 uni-ai-md 原生插件，统一由 Worker 解析，
+ * 解析结果通过 setAiWorkerRebuildListener 的监听器回调，再调用 uniAiMdStreamApplyRebuild 应用。
  */
-export function libmarkStreamRequestRebuild(msgId: string, text: string): boolean {
+export function uniAiMdStreamRequestRebuild(msgId: string, text: string): boolean {
 	// #ifdef APP-HARMONY || APP-ANDROID
 	if (text.length == 0) return false
 	if (rebuildFailedMsgIds.indexOf(msgId) >= 0) return false
@@ -533,7 +533,7 @@ export function libmarkStreamRequestRebuild(msgId: string, text: string): boolea
 /**
  * 应用 Worker 回传的重建 ops；ops 为空或应用后无 blocks 均视为重建失败，本次会话不再重试。
  */
-export function libmarkStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boolean {
+export function uniAiMdStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boolean {
 	// #ifdef APP-HARMONY || APP-ANDROID
 	const index = rebuildingMsgIds.indexOf(msgId)
 	if (index < 0) return false
@@ -543,8 +543,8 @@ export function libmarkStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boo
 		return false
 	}
 	if (ops.length == 0) return markFailed()
-	const applied = libmarkStreamApply(msgId, ops)
-	libmarkStreamMarkComplete(msgId)
+	const applied = uniAiMdStreamApply(msgId, ops)
+	uniAiMdStreamMarkComplete(msgId)
 	// #ifndef APP-ANDROID
 	if (streamEntries.get(msgId)!.adapter.getBlocks().length == 0) return markFailed()
 	// #endif
@@ -557,14 +557,14 @@ export function libmarkStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boo
 	// #endif
 }
 
-export function libmarkStreamReset(msgId: string): void {
-	libmarkStreamRelease(msgId)
+export function uniAiMdStreamReset(msgId: string): void {
+	uniAiMdStreamRelease(msgId)
 	const entry = entryFor(msgId)
 	entry.adapter.reset()
 	entry.textBlocks = emptyBlocks()
 }
 
-export function libmarkStreamRelease(msgId: string): void {
+export function uniAiMdStreamRelease(msgId: string): void {
 	const entry = streamEntries.get(msgId)
 	if (entry != null && entry.saveRetryTimer != 0) clearTimeout(entry.saveRetryTimer)
 	// #ifdef APP-ANDROID
@@ -585,8 +585,8 @@ export function libmarkStreamRelease(msgId: string): void {
 	// #endif
 }
 
-export function releaseAllLibmarkStreams(): void {
+export function releaseAllUniAiMdStreams(): void {
 	const ids: string[] = []
-	streamEntries.forEach((entry: LibmarkStreamEntry) => { ids.push(entry.messageId) })
-	for (let i = 0; i < ids.length; i++) libmarkStreamRelease(ids[i])
+	streamEntries.forEach((entry: UniAiMdStreamEntry) => { ids.push(entry.messageId) })
+	for (let i = 0; i < ids.length; i++) uniAiMdStreamRelease(ids[i])
 }

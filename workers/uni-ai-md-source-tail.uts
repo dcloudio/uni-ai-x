@@ -6,7 +6,7 @@ import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app
 // #endif
 
 // Keep native block boundaries; preview only the unconsumed source of a confirmed tail.
-export class LibmarkSourceTail {
+export class UniAiMdSourceTail {
 	private line: string = ''
 	private tail: UniAiMdOp | null = null
 	private previewVisible: boolean = false

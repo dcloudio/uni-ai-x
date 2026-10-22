@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg.uvue', import.meta.url), 'utf8');
 const expression = source.match(/<template v-for="part in parts" :key="([^"]+)"/)[1];
-const key = new Function('parts', 'part', 'isLibmarkPlatform = false', `return ${expression}`);
+const key = new Function('parts', 'part', 'isUniAiMdPlatform = false', `return ${expression}`);
 const part = (kind, id) => ({ key: id, block: { kind, key: id } });
 
 test('single image and rich-text rows preserve display identity when rebound', () => {

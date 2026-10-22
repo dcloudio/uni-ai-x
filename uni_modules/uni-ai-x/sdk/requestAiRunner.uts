@@ -22,7 +22,7 @@ import {
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
-import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
+import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-log.uts'
 // #endif
 
 export type RequestAiRunnerCallbacks = {
@@ -45,7 +45,7 @@ export type RequestAiStartOptions = {
 	chat_id: string,
 	// 是否在回答成功结束后自动更新会话标题（仅会话首条提问时传 true，避免每轮都消耗模型 RPM）
 	updateTitleAfterDone ?: boolean,
-	// libmark 解析会话的配色：darkMode 决定插件默认前景色，background 是画布底色；
+	// uni-ai-md 解析会话的配色：darkMode 决定插件默认前景色，background 是画布底色；
 	// 只影响原生解析产出的中间态 SVG，最终绘制仍由展示层按主题重渲染。
 	darkMode ?: boolean,
 	background ?: string
@@ -119,7 +119,7 @@ class RequestAiRunner {
 	private workerRequestVersion: number = 0
 	private workerSnapshotVersion: number = 0
 	private workerActive: boolean = false
-	// 本次请求的 libmark 解析配色，由 start 的 options 提供，随 worker 启动消息透传
+	// 本次请求的 uni-ai-md 解析配色，由 start 的 options 提供，随 worker 启动消息透传
 	private pluginDarkMode: boolean = false
 	private pluginBackground: string = ''
 	private finishRequested: boolean = false
@@ -398,7 +398,7 @@ class RequestAiRunner {
 			}
 		}
 		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
-		this.pollLibmarkState(requestVersion)
+		this.pollUniAiMdState(requestVersion)
 		return
 		// #endif
 		// #ifndef APP-HARMONY
@@ -472,7 +472,7 @@ class RequestAiRunner {
 	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID
-	private pollLibmarkState(requestVersion: number): void {
+	private pollUniAiMdState(requestVersion: number): void {
 		const state = readAiWorkerState()
 		if (state == null) return
 		if (readSnapshotNumber(state, 'requestVersion') != requestVersion) return

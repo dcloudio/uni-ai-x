@@ -4,7 +4,7 @@ import {
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { TablePresentation, prepareTablePresentation } from './table-presentation.uts'
 import { MathPresentation, buildMathPresentation } from './math-presentation.uts'
-import type { LibmarkHtmlRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
+import type { UniAiMdHtmlRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
 
 export type CodePresentationLine = {
 	text: string
@@ -91,7 +91,7 @@ function legacyHtmlBlockToText(block: MarkdownHtmlBlock): MarkdownTextRenderBloc
 	return renderBlock
 }
 
-export function libmarkHtmlBlocksToTextBlocks(blocks: LibmarkHtmlRenderBlock[],
+export function uniAiMdHtmlBlocksToTextBlocks(blocks: UniAiMdHtmlRenderBlock[],
 	isDone: boolean = false): MarkdownTextRenderBlock[] {
 	const result = [] as MarkdownTextRenderBlock[]
 	for (let index = 0; index < blocks.length; index++) {

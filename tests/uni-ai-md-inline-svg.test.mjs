@@ -3,7 +3,7 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
-const { LibmarkHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/libmark-html.uts', ['LibmarkHtmlStreamAdapter'], {
+const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts', ['UniAiMdHtmlStreamAdapter'], {
   ...html, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
 });
 const op = (op, content, kind, index) => ({ op, content, kind, index, unchanged: false });
@@ -12,7 +12,7 @@ const formulaSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="62" height="1
 const mermaidSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="140" viewBox="0 0 320 140"><path d="M0 0h320v140H0z"/></svg>';
 
 test('inline formula svg stays inside the html block', () => {
-  const adapter = new LibmarkHtmlStreamAdapter();
+  const adapter = new UniAiMdHtmlStreamAdapter();
   adapter.applyOps([op(1, `<p>爱因斯坦的质能方程：${formulaSvg}</p>`, 'html', 3)]);
   const blocks = adapter.getBlocks();
   assert.equal(blocks.length, 1);
@@ -21,7 +21,7 @@ test('inline formula svg stays inside the html block', () => {
 });
 
 test('top-level svg following a closed block is still extracted as an image block', () => {
-  const adapter = new LibmarkHtmlStreamAdapter();
+  const adapter = new UniAiMdHtmlStreamAdapter();
   adapter.applyOps([op(1, `<h3>第二种：时序图（sequence）</h3>\n${mermaidSvg}`, 'html', 7)]);
   const blocks = adapter.getBlocks();
   assert.equal(blocks.length, 2);
@@ -33,7 +33,7 @@ test('top-level svg following a closed block is still extracted as an image bloc
 });
 
 test('inline formula svg is skipped while the later top-level svg is extracted', () => {
-  const adapter = new LibmarkHtmlStreamAdapter();
+  const adapter = new UniAiMdHtmlStreamAdapter();
   adapter.applyOps([op(1, `<p>公式：${formulaSvg}</p>\n${mermaidSvg}`, 'html', 5)]);
   const blocks = adapter.getBlocks();
   assert.equal(blocks.length, 2);
@@ -44,7 +44,7 @@ test('inline formula svg is skipped while the later top-level svg is extracted',
 });
 
 test('standalone svg from the fragment start remains an image block', () => {
-  const adapter = new LibmarkHtmlStreamAdapter();
+  const adapter = new UniAiMdHtmlStreamAdapter();
   adapter.applyOps([op(1, mermaidSvg, 'html', 9)]);
   const blocks = adapter.getBlocks();
   assert.equal(blocks.length, 1);
@@ -52,7 +52,7 @@ test('standalone svg from the fragment start remains an image block', () => {
 });
 
 test('committed html with inline svg keeps a single html block', () => {
-  const adapter = new LibmarkHtmlStreamAdapter();
+  const adapter = new UniAiMdHtmlStreamAdapter();
   adapter.applyOps([op(3, `<p>勾股定理：${formulaSvg}</p>`, 'html', 2)]);
   const blocks = adapter.getBlocks();
   assert.equal(blocks.length, 1);

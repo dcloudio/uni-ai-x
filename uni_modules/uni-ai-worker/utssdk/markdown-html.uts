@@ -589,10 +589,10 @@ export function prepareMarkdownHtml(html: string, isDone: boolean = false): stri
 	return result
 }
 
-// libmark 输出流专用预处理：在富文本基础样式上补充段落 / 引用 / 表格 / 链接 / 图片的
+// uni-ai-md 输出流专用预处理：在富文本基础样式上补充段落 / 引用 / 表格 / 链接 / 图片的
 // 中性色样式。表格不参与列宽占位符处理：未闭合表格由 rich-text 自然布局，
 // 闭合后由表格组件按 prepareMarkdownTable 独立处理。
-export function prepareLibmarkHtml(html: string, isDone: boolean = false): string {
+export function prepareUniAiMdHtml(html: string, isDone: boolean = false): string {
 	let result = prepareRichMarkdownHtml(html, isDone)
 	result = styleOpenTags(result, 'p', 'margin:4px 0;')
 	result = styleOpenTags(result, 'blockquote', 'margin:6px 0;padding-left:10px;border-left:3px solid rgba(127,127,127,0.38);')

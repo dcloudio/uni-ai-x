@@ -6,13 +6,13 @@
 .DESCRIPTION
   构建准备步骤：先在 uni-ai-md 源码仓库根目录执行对应平台的构建脚本，再运行本脚本；
   harmony 对应 scripts/build-ohos.ps1，android 对应 scripts/build-android.ps1。
-  仓库根目录优先取 -RepoRoot，其次取 UNI_AI_MD_REPO 环境变量，未指定时
-  默认取与本项目相邻的 ../../libmark。同步内容与复制产物均不提交到 git。
+  仓库根目录必须通过 -RepoRoot 或 UNI_AI_MD_REPO 环境变量明确指定，
+  未指定时报错退出。同步内容与复制产物均不提交到 git。
 
 .EXAMPLE
-  pwsh -File native/prepare-lib.ps1
-  pwsh -File native/prepare-lib.ps1 -Platform android
-  pwsh -File native/prepare-lib.ps1 -RepoRoot D:\dev\dcloud\libmark
+  pwsh -File native/prepare-lib.ps1 -RepoRoot D:\dev\uni-ai-md
+  pwsh -File native/prepare-lib.ps1 -Platform android -RepoRoot D:\dev\uni-ai-md
+  $env:UNI_AI_MD_REPO = 'D:\dev\uni-ai-md'; pwsh -File native/prepare-lib.ps1
 #>
 param(
   [string]$RepoRoot = '',
@@ -28,7 +28,8 @@ if ($RepoRoot) {
 } elseif ($env:UNI_AI_MD_REPO) {
   $RepoRoot = (Resolve-Path $env:UNI_AI_MD_REPO).Path
 } else {
-  $RepoRoot = (Resolve-Path (Join-Path $nativeDir '../../libmark')).Path
+  Write-Host '错误: 未指定 uni-ai-md 源码仓库，请设置 UNI_AI_MD_REPO 环境变量或传入 -RepoRoot' -ForegroundColor Red
+  exit 1
 }
 
 # HarmonyOS 与 Android 共用 dist/full/<config> 会互相覆盖，构建脚本按平台写到子目录。

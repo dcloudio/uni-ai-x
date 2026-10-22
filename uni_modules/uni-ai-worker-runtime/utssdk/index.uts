@@ -23,9 +23,9 @@ import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.ut
 // #ifdef APP-HARMONY
 import {
 	AiWorkerState,
-	LibmarkChunk,
-	LibmarkOpBatch,
-	LibmarkOpEntry,
+	UniAiMdChunk,
+	UniAiMdOpBatch,
+	UniAiMdOpEntry,
 	batchCount,
 	batchOp,
 	batchRequestVersion,
@@ -34,9 +34,9 @@ import {
 
 export {
 	AiWorkerState,
-	LibmarkChunk,
-	LibmarkOpBatch,
-	LibmarkOpEntry,
+	UniAiMdChunk,
+	UniAiMdOpBatch,
+	UniAiMdOpEntry,
 	createOpBatch
 }
 
@@ -47,8 +47,8 @@ type SendablePostMessageOptions = {
 // #endif
 
 // #ifdef APP-HARMONY || APP-ANDROID
-let pendingLibmarkOps = [] as AiWorkerOp[]
-let latestLibmarkState: UTSJSONObject | null = null
+let pendingUniAiMdOps = [] as AiWorkerOp[]
+let latestUniAiMdState: UTSJSONObject | null = null
 // Worker 未就绪时排队的重建请求、待监听器消费的重建结果
 let pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
 let pendingRebuildResults = [] as AiWorkerRebuildResult[]
@@ -110,7 +110,7 @@ function notifyDataListener(): void {
 	}
 }
 
-// 应用语言用于 libmark 文本字体的语言偏好（BCP-47，如 zh-Hans）；读取失败或平台不支持时退回 null
+// 应用语言用于 uni-ai-md 文本字体的语言偏好（BCP-47，如 zh-Hans）；读取失败或平台不支持时退回 null
 let appLanguageResolved = false
 let appLanguageCache: string | null = null
 function resolveAppLanguage(): string | null {
@@ -150,8 +150,8 @@ function postStart(options: AiWorkerStartOptions): void {
 function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	if (worker == null || !workerReady) return
 	// #ifdef APP-HARMONY || APP-ANDROID
-	pendingLibmarkOps = [] as AiWorkerOp[]
-	latestLibmarkState = null
+	pendingUniAiMdOps = [] as AiWorkerOp[]
+	latestUniAiMdState = null
 	// #endif
 	worker!.postMessage({
 		action: 'start-markdown',
@@ -175,7 +175,7 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 
 function postMarkdownChunk(requestVersion: number, content: string, reasoningContent: string): void {
 	// #ifdef APP-HARMONY
-	const chunk = new LibmarkChunk()
+	const chunk = new UniAiMdChunk()
 	chunk.requestVersion = requestVersion
 	chunk.content = content
 	chunk.reasoningContent = reasoningContent
@@ -198,12 +198,12 @@ function postMarkdownComplete(requestVersion: number): void {
 }
 
 // #ifdef APP-HARMONY
-function receiveLibmarkOpBatch(batch: LibmarkOpBatch): void {
+function receiveUniAiMdOpBatch(batch: UniAiMdOpBatch): void {
 	if (batchRequestVersion(batch) != currentRequestVersion) return
 	const count = batchCount(batch)
 	for (let i = 0; i < count; i++) {
 		const entry = batchOp(batch, i)
-		pendingLibmarkOps.push({
+		pendingUniAiMdOps.push({
 			op: entry.op,
 			kind: entry.kind,
 			content: entry.content,
@@ -215,13 +215,13 @@ function receiveLibmarkOpBatch(batch: LibmarkOpBatch): void {
 // #endif
 
 // #ifdef APP-ANDROID
-function receiveLibmarkOpBatchObject(message: UTSJSONObject): void {
+function receiveUniAiMdOpBatchObject(message: UTSJSONObject): void {
 	if (readMessageNumber(message, 'requestVersion') != currentRequestVersion) return
 	const ops = message['ops'] as UTSJSONObject[] | null
 	if (ops == null) return
 	for (let i = 0; i < ops.length; i++) {
 		const entry = ops[i]
-		pendingLibmarkOps.push({
+		pendingUniAiMdOps.push({
 			op: readMessageNumber(entry, 'op'),
 			kind: readMessageString(entry, 'kind'),
 			content: readMessageString(entry, 'content'),
@@ -305,22 +305,22 @@ function createWorkerNow(generation: number): void {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
 		// #ifdef APP-HARMONY || APP-ANDROID
-		if (readMessageString(result, 'tag') == 'libmark-op-batch') {
+		if (readMessageString(result, 'tag') == 'uni-ai-md-op-batch') {
 			// #ifdef APP-HARMONY
-			receiveLibmarkOpBatch(message as LibmarkOpBatch)
+			receiveUniAiMdOpBatch(message as UniAiMdOpBatch)
 			// #endif
 			// #ifdef APP-ANDROID
-			receiveLibmarkOpBatchObject(result)
+			receiveUniAiMdOpBatchObject(result)
 			// #endif
 			notifyDataListener()
 			return
 		}
 		if (readMessageString(result, 'tag') == 'ai-worker-state') {
-			latestLibmarkState = result
+			latestUniAiMdState = result
 			notifyDataListener()
 			return
 		}
-		if (readMessageString(result, 'tag') == 'libmark-rebuild-ops') {
+		if (readMessageString(result, 'tag') == 'uni-ai-md-rebuild-ops') {
 			receiveRebuildResult(result)
 			return
 		}
@@ -367,7 +367,7 @@ function createWorkerNow(generation: number): void {
 	worker!.onError((_error: any) => {
 		if (generation != runtimeGeneration) return
 		// #ifdef APP-HARMONY || APP-ANDROID
-		latestLibmarkState = {
+		latestUniAiMdState = {
 			tag: 'ai-worker-state',
 			requestVersion: currentRequestVersion,
 			snapshotVersion: 0,
@@ -463,8 +463,8 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	pendingMarkdownReasoning = ''
 	pendingMarkdownComplete = false
 	// #ifdef APP-HARMONY || APP-ANDROID
-	pendingLibmarkOps = [] as AiWorkerOp[]
-	latestLibmarkState = null
+	pendingUniAiMdOps = [] as AiWorkerOp[]
+	latestUniAiMdState = null
 	currentRequestVersion = 0
 	// #endif
 	if (worker == null || !workerReady) return
@@ -487,8 +487,8 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	latestSnapshotJson = ''
 	currentRequestVersion = 0
 	// #ifdef APP-HARMONY || APP-ANDROID
-	pendingLibmarkOps = [] as AiWorkerOp[]
-	latestLibmarkState = null
+	pendingUniAiMdOps = [] as AiWorkerOp[]
+	latestUniAiMdState = null
 	pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
 	pendingRebuildResults = [] as AiWorkerRebuildResult[]
 	// #endif
@@ -778,7 +778,7 @@ export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 
 export const readAiWorkerState: ReadAiWorkerState = function (): UTSJSONObject | null {
 	// #ifdef APP-HARMONY || APP-ANDROID
-	return latestLibmarkState
+	return latestUniAiMdState
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
@@ -796,8 +796,8 @@ export function setAiWorkerDataListener(listener: AiWorkerDataListener | null): 
 
 export const takeAiWorkerOps: () => AiWorkerOp[] = function (): AiWorkerOp[] {
 	// #ifdef APP-HARMONY || APP-ANDROID
-	const result = pendingLibmarkOps
-	pendingLibmarkOps = [] as AiWorkerOp[]
+	const result = pendingUniAiMdOps
+	pendingUniAiMdOps = [] as AiWorkerOp[]
 	return result
 	// #endif
 	// #ifndef APP-HARMONY
@@ -807,7 +807,7 @@ export const takeAiWorkerOps: () => AiWorkerOp[] = function (): AiWorkerOp[] {
 	// #endif
 }
 
-export const isLibmarkOpsSupported: () => boolean = function (): boolean {
+export const isUniAiMdOpsSupported: () => boolean = function (): boolean {
 	// #ifdef APP-HARMONY || APP-ANDROID
 	return true
 	// #endif

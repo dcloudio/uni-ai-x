@@ -85,7 +85,7 @@ export function readAndroidChatMessages(chatId: string, callback: (messages: UTS
 				message['markdownHtml'] = ''
 				message['markdownAst'] = ''
 				message['markdownBlocks'] = ''
-				message['libmarkRevision'] = 0
+				message['uniAiMdRevision'] = 0
 				if (message['from_uid'] == 'uni-ai' && ((message['body'] as string | null) ?? '').length > 0) message['rendered'] = true
 				messages.push(message)
 				if (legacy) {

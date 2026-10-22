@@ -24,7 +24,7 @@ import {
 // #ifdef APP-HARMONY || APP-ANDROID
 import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
 import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
-import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/libmark-log.uts'
+import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-log.uts'
 // #endif
 
 const DEMO_RENDER_INTERVAL = 300
@@ -164,7 +164,7 @@ export default class MarkdownDemoRunner {
 			}
 		}
 		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
-		this.pollLibmarkState()
+		this.pollUniAiMdState()
 		return
 		// #endif
 		// #ifndef APP-HARMONY
@@ -220,7 +220,7 @@ export default class MarkdownDemoRunner {
 	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID
-	private pollLibmarkState() {
+	private pollUniAiMdState() {
 		const state = readAiWorkerState()
 		if (state == null) return
 		if (readSnapshotNumber(state, 'requestVersion') != this.requestVersion) return

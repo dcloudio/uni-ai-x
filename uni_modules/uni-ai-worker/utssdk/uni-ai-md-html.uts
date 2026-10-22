@@ -7,13 +7,13 @@ import {
 } from './markdown-html.uts'
 
 /**
- * libmark HTML/DATA 流渲染条目。
+ * uni-ai-md HTML/DATA 流渲染条目。
  *
  * 适配器按块级操作维护渲染条目：连续普通 HTML 合并为一条（kind = 'html'），
  * 闭合后的代码块 / 表格 / mermaid 内联 SVG 以及 DATA 信封分别产出专用条目；
  * 当前未闭合块单独成条（HTML 预览或代码预览），闭合后按内容类型归位。
  */
-export type LibmarkHtmlRenderBlock = {
+export type UniAiMdHtmlRenderBlock = {
 	kind: string
 	key: string
 	html: string
@@ -46,7 +46,7 @@ type SvgSize = {
 	height: number
 }
 
-type LibmarkDataEnvelope = {
+type UniAiMdDataEnvelope = {
 	type?: string
 	status?: string
 	source?: string
@@ -221,30 +221,30 @@ function readSvgSize(svg: string): SvgSize {
 	}
 }
 
-// 把 libmark 输出的明文 SVG 原样转成图片源，内容不做改写；
-// 解码器兼容性由 libmark 生成阶段保证（Mobile SVG Profile）
+// 把 uni-ai-md 输出的明文 SVG 原样转成图片源，内容不做改写；
+// 解码器兼容性由 uni-ai-md 生成阶段保证（Mobile SVG Profile）
 function svgToImageSource(svg: string): string {
 	const bytes = new TextEncoder().encode(svg)
 	const base64 = uni.arrayBufferToBase64(bytes.buffer as ArrayBuffer)
 	return SVG_DATA_URI_PREFIX + base64
 }
 
-function parseEnvelope(payload: string): LibmarkDataEnvelope | null {
+function parseEnvelope(payload: string): UniAiMdDataEnvelope | null {
 	try {
-		return JSON.parse<LibmarkDataEnvelope>(payload) as LibmarkDataEnvelope
+		return JSON.parse<UniAiMdDataEnvelope>(payload) as UniAiMdDataEnvelope
 	} catch (_error) {
 		return null
 	}
 }
 
-export class LibmarkHtmlStreamAdapter {
+export class UniAiMdHtmlStreamAdapter {
 	private mergeHtml: boolean
 	constructor(mergeHtml: boolean = true) { this.mergeHtml = mergeHtml }
-	private entries: LibmarkHtmlRenderBlock[] = []
+	private entries: UniAiMdHtmlRenderBlock[] = []
 	private tailKind: string = ''
 	private tailContent: string = ''
 	private tailIndex: number = -1
-	private blocks: LibmarkHtmlRenderBlock[] = []
+	private blocks: UniAiMdHtmlRenderBlock[] = []
 	private dirty: boolean = true
 	private pendingSource: string = ''
 
@@ -301,11 +301,11 @@ export class LibmarkHtmlStreamAdapter {
 		this.dirty = true
 	}
 
-	getBlocks(): LibmarkHtmlRenderBlock[] {
+	getBlocks(): UniAiMdHtmlRenderBlock[] {
 		if (this.dirty) {
 			const result = this.entries.slice()
 			if (this.tailContent.length > 0) {
-				const key = 'libmark-e' + result.length.toString()
+				const key = 'uni-ai-md-e' + result.length.toString()
 				if (this.tailKind == 'data') {
 					result.push(this.buildDataEntry(parseEnvelope(this.tailContent), this.tailContent, this.tailIndex, key))
 				} else if (isCodeTail(this.tailContent)) {
@@ -346,7 +346,7 @@ export class LibmarkHtmlStreamAdapter {
 				}
 			}
 			if (this.pendingSource.length > 0) {
-				const entry = this.newEntry('data-text', 'libmark-source-tail')
+				const entry = this.newEntry('data-text', 'uni-ai-md-source-tail')
 				entry.text = this.pendingSource
 				entry.isComplete = false
 				result.push(entry)
@@ -359,9 +359,9 @@ export class LibmarkHtmlStreamAdapter {
 
 	reset(): void {
 		this.pendingSource = ''
-		this.entries = [] as LibmarkHtmlRenderBlock[]
+		this.entries = [] as UniAiMdHtmlRenderBlock[]
 		this.clearTail()
-		this.blocks = [] as LibmarkHtmlRenderBlock[]
+		this.blocks = [] as UniAiMdHtmlRenderBlock[]
 		this.dirty = true
 	}
 
@@ -386,10 +386,10 @@ export class LibmarkHtmlStreamAdapter {
 		this.clearTail()
 	}
 
-	private newEntry(kind: string, key: string = ''): LibmarkHtmlRenderBlock {
+	private newEntry(kind: string, key: string = ''): UniAiMdHtmlRenderBlock {
 		return {
 			kind: kind,
-			key: key.length > 0 ? key : 'libmark-e' + this.entries.length.toString(),
+			key: key.length > 0 ? key : 'uni-ai-md-e' + this.entries.length.toString(),
 			html: '',
 			text: '',
 			language: '',
@@ -557,8 +557,8 @@ export class LibmarkHtmlStreamAdapter {
 		return fallback
 	}
 
-	private buildDataEntry(envelope: LibmarkDataEnvelope | null, content: string,
-		index: number, key: string): LibmarkHtmlRenderBlock {
+	private buildDataEntry(envelope: UniAiMdDataEnvelope | null, content: string,
+		index: number, key: string): UniAiMdHtmlRenderBlock {
 		if (envelope != null && envelope.type == 'math') {
 			const entry = this.newEntry('math', key)
 			entry.text = envelope.source ?? ''

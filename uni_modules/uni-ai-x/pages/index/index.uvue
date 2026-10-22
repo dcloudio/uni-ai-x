@@ -26,7 +26,7 @@
 	import { updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	import { clearCodeHighlightCache, releaseCodeHighlightSessions } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 	// #ifdef APP-ANDROID
-	import { releaseAllLibmarkStreams } from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	import { releaseAllUniAiMdStreams } from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
 	// #endif
 	import { MsgItem, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
 	import uniAiSourceSheet from '@/uni_modules/uni-ai-x/components/uni-ai-source-sheet.uvue'
@@ -121,7 +121,7 @@
 
 	onUnmounted(() => {
 		// #ifdef APP-ANDROID
-		releaseAllLibmarkStreams()
+		releaseAllUniAiMdStreams()
 		// #endif
 		clearCodeHighlightCache(true)
 		uniAi.offOpenSetting(openModelPopup)

@@ -1,23 +1,23 @@
 <template>
-	<rich-text :disable-split-screen-render="true" :user-select="true" class="uni-ai-libmark-html-block" :style="richTextStyle"
+	<rich-text :disable-split-screen-render="true" :user-select="true" class="uni-ai-md-html-block" :style="richTextStyle"
 		:nodes="nodes" mode="native" @itemclick="onItemClick"></rich-text>
 </template>
 
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 	// #ifndef APP-ANDROID || APP-HARMONY
-	import { prepareLibmarkHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { prepareUniAiMdHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 	// #endif
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
 	const emit = defineEmits<{ 'citation': [id: number], 'footnote': [href: string] }>()
 
-	type UniAiLibmarkHtmlProps = {
+	type UniAiMdHtmlProps = {
 		html?: string
 		isComplete?: boolean
 	}
 
-	const props = withDefaults(defineProps<UniAiLibmarkHtmlProps>(), {
+	const props = withDefaults(defineProps<UniAiMdHtmlProps>(), {
 		html: '',
 		isComplete: false
 	})
@@ -29,7 +29,7 @@
 		// #endif
 		// #ifndef APP-ANDROID || APP-HARMONY
 		if (props.html.length == 0) return ''
-		return prepareLibmarkHtml(props.html, props.isComplete)
+		return prepareUniAiMdHtml(props.html, props.isComplete)
 		// #endif
 	})
 
@@ -56,7 +56,7 @@
 </script>
 
 <style lang="scss">
-	.uni-ai-libmark-html-block {
+	.uni-ai-md-html-block {
 		width: 100%;
 		margin: 2px 0;
 	}

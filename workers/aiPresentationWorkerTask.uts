@@ -1,5 +1,5 @@
 // #ifdef APP-ANDROID
-import { LibmarkHtmlStreamAdapter } from '../uni_modules/uni-ai-worker/utssdk/libmark-html.uts'
+import { UniAiMdHtmlStreamAdapter } from '../uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
 import { nativeRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
 import type { AiWorkerOp } from '../uni_modules/uni-ai-worker/utssdk/interface.uts'
 import type { MarkdownTextRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
@@ -8,11 +8,11 @@ import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../uni_m
 import { prepareTablePresentation } from '../uni_modules/uni-ai-worker/utssdk/table-presentation.uts'
 import { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from '../uni_modules/uni-ai-worker/utssdk/presentation-links.uts'
 import { prepareMathSourceLayout } from '../uni_modules/uni-ai-worker/utssdk/math-layout.uts'
-import { prepareLibmarkHtml } from '../uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { prepareUniAiMdHtml } from '../uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 
 class PresentationEntry {
 	// Merge adjacent ordinary HTML so headings, paragraphs and lists share one RichText.
-	adapter = new LibmarkHtmlStreamAdapter(true)
+	adapter = new UniAiMdHtmlStreamAdapter(true)
 	blocks: MarkdownTextRenderBlock[] = []
 	sources: string[] = []
 	sent: MarkdownTextRenderBlock[] = []
@@ -149,7 +149,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 				block.html = linkSearchCitations(block.html, entry.citationIds)
 				const tags = block.html.match(/<img\b[^>]*>/g) ?? []
 			}
-			if (block.kind == 'html') block.html = prepareLibmarkHtml(block.html, block.isComplete)
+			if (block.kind == 'html') block.html = prepareUniAiMdHtml(block.html, block.isComplete)
 			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, entry.theme)
 			blocks.push(block)
 		}

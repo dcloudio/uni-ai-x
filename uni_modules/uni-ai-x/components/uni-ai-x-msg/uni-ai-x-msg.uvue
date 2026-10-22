@@ -31,7 +31,7 @@
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
 		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="aspectFit" :style="blockImageStyle(part.block)" />
 		<text v-else-if="part.block != null && part.block.kind == 'data-text'" class="msg-root-plain-text">{{part.block.text}}</text>
-		<uni-ai-libmark-html v-else-if="part.block != null && part.block.kind == 'html'"
+		<uni-ai-md-html v-else-if="part.block != null && part.block.kind == 'html'"
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
@@ -62,16 +62,16 @@
 	import uniAiMsgCode from '@/uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue'
 	import uniAiMsgMermaid from '@/uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue'
 	import uniAiMsgMath from '@/uni_modules/uni-ai-x/components/uni-ai-msg-math/uni-ai-msg-math.uvue'
-	import uniAiLibmarkHtml from '@/uni_modules/uni-ai-x/components/uni-ai-libmark-html/uni-ai-libmark-html.uvue'
+	import uniAiMdHtml from '@/uni_modules/uni-ai-x/components/uni-ai-md-html/uni-ai-md-html.uvue'
 	import uniAiMdText from '@/uni_modules/uni-ai-x/components/uni-ai-md-text.uvue'
 	import { footnoteLabel, markdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
 	import uniAiSearchStatus from '@/uni_modules/uni-ai-x/components/uni-ai-search-status.uvue'
 	import uniAiSearchSources from '@/uni_modules/uni-ai-x/components/uni-ai-search-sources.uvue'
 	// #ifdef APP-ANDROID || APP-HARMONY
-	const isLibmarkPlatform = true
+	const isUniAiMdPlatform = true
 	// #endif
 	// #ifndef APP-ANDROID || APP-HARMONY
-	const isLibmarkPlatform = false
+	const isUniAiMdPlatform = false
 	// #endif
 
 	type UniAiXMsgProps = {
@@ -98,7 +98,7 @@
 		return 'slot:' + index.toString()
 		// #endif
 		// #ifndef APP-ANDROID
-		return parts.value.length == 1 && part.block != null && (part.block.kind == 'rich' || part.block.kind == 'html' || (part.block.kind == 'mermaid' && !isLibmarkPlatform)) ? 'display:' + part.block.kind : part.key
+		return parts.value.length == 1 && part.block != null && (part.block.kind == 'rich' || part.block.kind == 'html' || (part.block.kind == 'mermaid' && !isUniAiMdPlatform)) ? 'display:' + part.block.kind : part.key
 		// #endif
 	}
 	const isFirst = computed<boolean>(() => props.isFirst)

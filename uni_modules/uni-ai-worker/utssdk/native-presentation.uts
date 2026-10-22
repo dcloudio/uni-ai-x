@@ -1,4 +1,4 @@
-import type { LibmarkHtmlRenderBlock } from './libmark-html.uts'
+import type { UniAiMdHtmlRenderBlock } from './uni-ai-md-html.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
 import type { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 // #endif
@@ -42,7 +42,7 @@ export type MarkdownTextRenderBlock = {
 }
 
 // Pure conversion shared by the page fallback and the Android presentation Worker.
-export function nativeRenderBlock(block: LibmarkHtmlRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
+export function nativeRenderBlock(block: UniAiMdHtmlRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
 	const result: MarkdownTextRenderBlock = {
 		kind: block.kind, key: block.key, html: block.html, text: block.text,
 		language: block.language, isComplete: isDone || block.isComplete,

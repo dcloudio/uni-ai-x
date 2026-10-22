@@ -53,7 +53,7 @@ export class AiSnapshotWorkerTask extends WorkerTaskImpl {
 					if (raw.length == 0) continue
 					const value = JSON.parse<UTSJSONObject>(raw)
 					if (value == null) continue
-					value['libmarkRevision'] = 0
+					value['uniAiMdRevision'] = 0
 					if (value['from_uid'] == 'uni-ai' && ((value['body'] as string | null) ?? '').length > 0) value['rendered'] = true
 					const search = value['search'] as UTSJSONObject | null
 					if (search?.['status'] == 'searching') search!['status'] = 'cancelled'

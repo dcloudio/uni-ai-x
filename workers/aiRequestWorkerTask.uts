@@ -14,7 +14,7 @@ import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cma
 // #ifdef APP-HARMONY
 import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
-import { AiWorkerState, LibmarkChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
+import { AiWorkerState, UniAiMdChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
 // #endif
 import {
 	MarkdownPreprocessor,
@@ -22,7 +22,7 @@ import {
 	buildMarkdownHtmlBlocks
 } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
 // #ifdef APP-HARMONY || APP-ANDROID
-import { LibmarkSourceTail } from './libmark-source-tail.uts'
+import { UniAiMdSourceTail } from './uni-ai-md-source-tail.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
@@ -77,17 +77,17 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private finished: boolean = false
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
 	// #ifdef APP-HARMONY || APP-ANDROID
-	private libmarkSession: object | null = null
-	private libmarkLanguage: string | null = null
-	// 解析会话的配色：darkMode 决定 libmark 插件默认前景色，background 是画布底色；
+	private uniAiMdSession: object | null = null
+	private uniAiMdLanguage: string | null = null
+	// 解析会话的配色：darkMode 决定 uni-ai-md 插件默认前景色，background 是画布底色；
 	// 由主线程按当前主题随启动消息传入。
-	private libmarkDarkMode: boolean = false
-	private libmarkBackground: string = ''
-	private libmarkPendingOps: UniAiMdOp[] = []
-	private libmarkPendingOpOffset: number = 0
-	private libmarkPendingContent: string = ''
-	private libmarkCompletionPending: boolean = false
-	private libmarkFinishCalled: boolean = false
+	private uniAiMdDarkMode: boolean = false
+	private uniAiMdBackground: string = ''
+	private uniAiMdPendingOps: UniAiMdOp[] = []
+	private uniAiMdPendingOpOffset: number = 0
+	private uniAiMdPendingContent: string = ''
+	private uniAiMdCompletionPending: boolean = false
+	private uniAiMdFinishCalled: boolean = false
 	// #endif
 
 	constructor() {
@@ -117,8 +117,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	override onMessage(message: any) {
 		// #ifdef APP-HARMONY
 		const messageTag = readEsString(message as ESObject, 'tag')
-		if (messageTag == 'libmark-chunk') {
-			this.handleLibmarkChunk(message as ESObject)
+		if (messageTag == 'uni-ai-md-chunk') {
+			this.handleUniAiMdChunk(message as ESObject)
 			return
 		}
 		// #endif
@@ -157,18 +157,18 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID
-	private ensureLibmarkSession(): boolean {
-		if (this.libmarkSession != null) return true
+	private ensureUniAiMdSession(): boolean {
+		if (this.uniAiMdSession != null) return true
 		try {
 			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派；
 			// 语言用主线程传入的应用语言，为空时由桥接按设备语言兜底挑集合字体的 face；
 			// 配色（深浅色与画布底色）用主线程按当前主题传入的值
-			this.libmarkSession = createSession('html', this.libmarkLanguage,
-				this.libmarkDarkMode, this.libmarkBackground)
-			if (this.libmarkSession != null) return true
+			this.uniAiMdSession = createSession('html', this.uniAiMdLanguage,
+				this.uniAiMdDarkMode, this.uniAiMdBackground)
+			if (this.uniAiMdSession != null) return true
 		} catch {
 		}
-		this.failLibmark('libmark_session_create_failed', 'libmark 会话创建失败')
+		this.failUniAiMd('uni_ai_md_session_create_failed', 'uni-ai-md 会话创建失败')
 		return false
 	}
 
@@ -176,25 +176,25 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (event == null) return
 		const ops = (event as UniAiMdEvent).ops
 		for (let i = 0; i < ops.length; i++) {
-			this.libmarkPendingOps.push(ops[i])
+			this.uniAiMdPendingOps.push(ops[i])
 		}
 	}
 
 	private flushUniAiMdOps(): void {
-		if (this.libmarkPendingOpOffset >= this.libmarkPendingOps.length) return
+		if (this.uniAiMdPendingOpOffset >= this.uniAiMdPendingOps.length) return
 		// #ifdef APP-HARMONY
 		const batch = createOpBatch(this.requestVersion)
-		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
-			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
+		while (this.uniAiMdPendingOpOffset < this.uniAiMdPendingOps.length) {
+			const op = this.uniAiMdPendingOps[this.uniAiMdPendingOpOffset]
 			batch.pushOp(op.op, op.kind, op.content, op.index, op.unchanged)
-			this.libmarkPendingOpOffset += 1
+			this.uniAiMdPendingOpOffset += 1
 		}
 		this.postMessage(batch, { harmonySendable: true } as WorkerPostMessageOptions)
 		// #endif
 		// #ifdef APP-ANDROID
 		const ops = [] as UTSJSONObject[]
-		while (this.libmarkPendingOpOffset < this.libmarkPendingOps.length) {
-			const op = this.libmarkPendingOps[this.libmarkPendingOpOffset]
+		while (this.uniAiMdPendingOpOffset < this.uniAiMdPendingOps.length) {
+			const op = this.uniAiMdPendingOps[this.uniAiMdPendingOpOffset]
 			ops.push({
 				op: op.op,
 				kind: op.kind,
@@ -202,25 +202,25 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				index: op.index,
 				unchanged: op.unchanged
 			} as UTSJSONObject)
-			this.libmarkPendingOpOffset += 1
+			this.uniAiMdPendingOpOffset += 1
 		}
 		this.postMessage({
-			tag: 'libmark-op-batch',
+			tag: 'uni-ai-md-op-batch',
 			requestVersion: this.requestVersion,
 			ops: ops
 		} as UTSJSONObject)
 		// #endif
-		this.libmarkPendingOps = [] as UniAiMdOp[]
-		this.libmarkPendingOpOffset = 0
+		this.uniAiMdPendingOps = [] as UniAiMdOp[]
+		this.uniAiMdPendingOpOffset = 0
 	}
 
-	private sourceTail = new LibmarkSourceTail()
+	private sourceTail = new UniAiMdSourceTail()
 
-	private processLibmarkContent(contentDelta: string): boolean {
+	private processUniAiMdContent(contentDelta: string): boolean {
 		if (contentDelta.length == 0) return true
-		if (this.ensureLibmarkSession() == false) return false
+		if (this.ensureUniAiMdSession() == false) return false
 		try {
-			const session = this.libmarkSession
+			const session = this.uniAiMdSession
 			if (session == null) return false
 			let start: number = 0
 			while (start < contentDelta.length) {
@@ -232,46 +232,46 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			}
 			return true
 		} catch {
-			this.failLibmark('libmark_feed_failed', 'libmark 解析失败')
+			this.failUniAiMd('uni_ai_md_feed_failed', 'uni-ai-md 解析失败')
 			return false
 		}
 	}
 
-	private pumpLibmark() {
+	private pumpUniAiMd() {
 		if (this.finished) return
 		this.flushUniAiMdOps()
-		if (this.libmarkPendingContent.length > 0) {
-			const content = this.libmarkPendingContent
-			this.libmarkPendingContent = ''
-			if (this.processLibmarkContent(content) == false) return
+		if (this.uniAiMdPendingContent.length > 0) {
+			const content = this.uniAiMdPendingContent
+			this.uniAiMdPendingContent = ''
+			if (this.processUniAiMdContent(content) == false) return
 			this.flushUniAiMdOps()
 		}
-		if (!this.libmarkCompletionPending) return
-		if (!this.libmarkFinishCalled) {
-			this.libmarkFinishCalled = true
-			const session = this.libmarkSession
+		if (!this.uniAiMdCompletionPending) return
+		if (!this.uniAiMdFinishCalled) {
+			this.uniAiMdFinishCalled = true
+			const session = this.uniAiMdSession
 			if (session != null) {
 				try {
 					this.appendUniAiMdOps(this.sourceTail.finish(finishSession(session) ?? null))
 				} catch {
-					this.failLibmark('libmark_finish_failed', 'libmark 完成解析失败')
+					this.failUniAiMd('uni_ai_md_finish_failed', 'uni-ai-md 完成解析失败')
 					return
 				}
-				this.destroyLibmarkSession()
+				this.destroyUniAiMdSession()
 			}
 			this.flushUniAiMdOps()
 			if (this.finished) return
 		}
 		this.finished = true
-		this.postMessage({ phase: 'libmark-complete', requestVersion: this.requestVersion } as UTSJSONObject)
+		this.postMessage({ phase: 'uni-ai-md-complete', requestVersion: this.requestVersion } as UTSJSONObject)
 		if (!this.content.endsWith('\n')) this.content += '\n'
 		this.publishSnapshot(true)
 	}
 
 	// #ifdef APP-HARMONY
-	private handleLibmarkChunk(message: ESObject) {
-		if (this.finished || this.libmarkCompletionPending) return
-		const chunk = message as LibmarkChunk
+	private handleUniAiMdChunk(message: ESObject) {
+		if (this.finished || this.uniAiMdCompletionPending) return
+		const chunk = message as UniAiMdChunk
 		if (chunk.requestVersion != this.requestVersion) return
 		const contentDelta = chunk.content
 		const reasoningDelta = chunk.reasoningContent
@@ -282,23 +282,23 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
 		if (contentDelta.length > 0) {
-			if (this.libmarkPendingOps.length > 0) {
-				this.libmarkPendingContent += contentDelta
-			} else if (this.processLibmarkContent(contentDelta) == false) return
+			if (this.uniAiMdPendingOps.length > 0) {
+				this.uniAiMdPendingContent += contentDelta
+			} else if (this.processUniAiMdContent(contentDelta) == false) return
 		}
-		this.pumpLibmark()
+		this.pumpUniAiMd()
 		this.scheduleHtmlSnapshot()
 	}
 	// #endif
 
-	private failLibmark(code: string, message: string) {
+	private failUniAiMd(code: string, message: string) {
 		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
-		this.destroyLibmarkSession()
-		this.resetLibmarkProtocol()
+		this.destroyUniAiMdSession()
+		this.resetUniAiMdProtocol()
 		this.postMessage({
-			phase: 'libmark-error',
+			phase: 'uni-ai-md-error',
 			requestVersion: this.requestVersion,
 			errCode: code,
 			errMsg: message
@@ -306,9 +306,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.publishErrorSnapshot(code, message)
 	}
 
-	private destroyLibmarkSession() {
-		const session = this.libmarkSession
-		this.libmarkSession = null
+	private destroyUniAiMdSession() {
+		const session = this.uniAiMdSession
+		this.uniAiMdSession = null
 		if (session == null) return
 		try {
 			destroySession(session)
@@ -317,12 +317,12 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 	}
 
-	private resetLibmarkProtocol() {
-		this.libmarkPendingOps = [] as UniAiMdOp[]
-		this.libmarkPendingOpOffset = 0
-		this.libmarkPendingContent = ''
-		this.libmarkCompletionPending = false
-		this.libmarkFinishCalled = false
+	private resetUniAiMdProtocol() {
+		this.uniAiMdPendingOps = [] as UniAiMdOp[]
+		this.uniAiMdPendingOpOffset = 0
+		this.uniAiMdPendingContent = ''
+		this.uniAiMdCompletionPending = false
+		this.uniAiMdFinishCalled = false
 	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID
@@ -373,7 +373,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private postRebuildOps(msgId: string, ops: UTSJSONObject[]) {
 		this.postMessage({
-			tag: 'libmark-rebuild-ops',
+			tag: 'uni-ai-md-rebuild-ops',
 			msgId: msgId,
 			ops: ops
 		} as UTSJSONObject)
@@ -381,9 +381,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// #endif
 
 	// #ifdef APP-ANDROID || APP-HARMONY
-	private feedLibmarkContent(contentDelta: string): void {
+	private feedUniAiMdContent(contentDelta: string): void {
 		if (this.finished || contentDelta.length == 0) return
-		if (this.processLibmarkContent(contentDelta)) this.flushUniAiMdOps()
+		if (this.processUniAiMdContent(contentDelta)) this.flushUniAiMdOps()
 	}
 	// #endif
 	// #endif
@@ -404,11 +404,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.libmarkLanguage = null
-		this.libmarkDarkMode = false
-		this.libmarkBackground = ''
-		this.sourceTail = new LibmarkSourceTail()
-		this.resetLibmarkProtocol()
+		this.uniAiMdLanguage = null
+		this.uniAiMdDarkMode = false
+		this.uniAiMdBackground = ''
+		this.sourceTail = new UniAiMdSourceTail()
+		this.resetUniAiMdProtocol()
 		// #endif
 	}
 
@@ -432,9 +432,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			return
 		}
 		const language = readMessageString(payload, 'language')
-		this.libmarkLanguage = language.length > 0 ? language : null
-		this.libmarkDarkMode = (payload['darkMode'] as boolean | null) ?? false
-		this.libmarkBackground = readMessageString(payload, 'background')
+		this.uniAiMdLanguage = language.length > 0 ? language : null
+		this.uniAiMdDarkMode = (payload['darkMode'] as boolean | null) ?? false
+		this.uniAiMdBackground = readMessageString(payload, 'background')
 
 		this.streamRequest = new WorkerStreamRequest(
 			(data: string) => { this.handleSseEvent(data) },
@@ -455,9 +455,9 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
 		// #ifdef APP-HARMONY || APP-ANDROID
 		const language = readMessageString(payload, 'language')
-		this.libmarkLanguage = language.length > 0 ? language : null
-		this.libmarkDarkMode = (payload['darkMode'] as boolean | null) ?? false
-		this.libmarkBackground = readMessageString(payload, 'background')
+		this.uniAiMdLanguage = language.length > 0 ? language : null
+		this.uniAiMdDarkMode = (payload['darkMode'] as boolean | null) ?? false
+		this.uniAiMdBackground = readMessageString(payload, 'background')
 		// #endif
 		if (requestVersion <= 0) {
 			this.fail('invalid_markdown_request', 'Worker Markdown 请求参数不完整')
@@ -474,7 +474,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.networkChunkCount += 1
 		this.receivedBytes += contentDelta.length + reasoningDelta.length
 		// #ifdef APP-ANDROID
-		this.feedLibmarkContent(contentDelta)
+		this.feedUniAiMdContent(contentDelta)
 		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
@@ -515,7 +515,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
 		// #ifdef APP-ANDROID || APP-HARMONY
-		this.feedLibmarkContent(contentDelta)
+		this.feedUniAiMdContent(contentDelta)
 		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
@@ -539,8 +539,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.libmarkCompletionPending = true
-		this.pumpLibmark()
+		this.uniAiMdCompletionPending = true
+		this.pumpUniAiMd()
 		return
 		// #endif
 		this.finished = true
@@ -552,8 +552,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID
-	// 鸿蒙/Android 不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 libmark ops 驱动
-	private publishLibmarkState(phase: string, errCode: string = '', errMsg: string = ''): void {
+	// 鸿蒙/Android 不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 uni-ai-md ops 驱动
+	private publishUniAiMdState(phase: string, errCode: string = '', errMsg: string = ''): void {
 		this.snapshotVersion += 1
 		// #ifdef APP-HARMONY
 		const state = new AiWorkerState()
@@ -593,7 +593,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
 		if (this.content.length == 0 && this.reasoningContent.length == 0 && !isDone) return
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.publishLibmarkState(isDone ? 'complete' : 'snapshot')
+		this.publishUniAiMdState(isDone ? 'complete' : 'snapshot')
 		return
 		// #endif
 		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
@@ -668,8 +668,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.destroyLibmarkSession()
-		this.resetLibmarkProtocol()
+		this.destroyUniAiMdSession()
+		this.resetUniAiMdProtocol()
 		// #endif
 		// #ifdef APP-ANDROID || APP-HARMONY
 		this.streamRequest?.abort()
@@ -680,7 +680,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 
 	private publishErrorSnapshot(code: string, message: string) {
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.publishLibmarkState('error', code, message)
+		this.publishUniAiMdState('error', code, message)
 		return
 		// #endif
 		this.snapshotVersion += 1
@@ -715,8 +715,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.renderTimer = 0
 		this.finished = true
 		// #ifdef APP-HARMONY || APP-ANDROID
-		this.destroyLibmarkSession()
-		this.resetLibmarkProtocol()
+		this.destroyUniAiMdSession()
+		this.resetUniAiMdProtocol()
 		// #endif
 		// #ifdef APP-ANDROID || APP-HARMONY
 		this.streamRequest?.abort()

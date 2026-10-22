@@ -121,7 +121,7 @@ export type MsgItem = {
 	// #endif
 	search?: MessageSearch
 	markdownAst?: string
-	libmarkRevision?: number
+	uniAiMdRevision?: number
 	stressSvgSource?: string
 	stressSvgWidth?: number
 	stressSvgHeight?: number

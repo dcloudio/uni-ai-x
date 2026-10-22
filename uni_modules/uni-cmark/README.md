@@ -1,7 +1,7 @@
 # uni-cmark
 
 `uni-cmark` 使用固定版本的 cmark-gfm 内核将 Markdown 直接转换为 HTML 或结构化
-JSON AST，支持 uni-app x 的 iOS、Web 和微信小程序。Android、鸿蒙改用 libmark。
+JSON AST，支持 uni-app x 的 iOS、Web 和微信小程序。Android、鸿蒙改用 uni-ai-md。
 
 ```uts
 import {
@@ -60,7 +60,7 @@ WASM 文件。
 
 ## 本地调整记录（2026-09-23）
 
-本项目 Android/鸿蒙平台的 Markdown 解析已切换为 libmark 流式解析，因此移除本插件对
+本项目 Android/鸿蒙平台的 Markdown 解析已切换为 uni-ai-md 流式解析，因此移除本插件对
 Android/鸿蒙的 cmark 支持：
 
 - 删除 Android 运行时实现 `utssdk/app-android/`（含 `libcmarkhtml.so` 与 Kotlin 桥）及构建脚本 `native/build-android.sh`

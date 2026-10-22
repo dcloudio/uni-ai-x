@@ -1,4 +1,4 @@
-// libmark 原生插件（mermaid / math）的画布底色。
+// uni-ai-md 原生插件（mermaid / math）的画布底色。
 //
 // 与展示层 webview 重渲染、消息卡片的底色保持一致（proxy-web.html 的
 // renderMermaid / mathSvgRender 用同一组取值），浅色 #ffffff、深色 #25282c；

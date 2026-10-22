@@ -1,8 +1,8 @@
 import { collections } from '@kit.ArkTS';
 
 @Sendable
-export class LibmarkOpEntry {
-	tag: string = 'libmark-op';
+export class UniAiMdOpEntry {
+	tag: string = 'uni-ai-md-op';
 	requestVersion: number = 0;
 	op: number = 0;
 	kind: string = '';
@@ -12,13 +12,13 @@ export class LibmarkOpEntry {
 }
 
 @Sendable
-export class LibmarkOpBatch {
-	tag: string = 'libmark-op-batch';
+export class UniAiMdOpBatch {
+	tag: string = 'uni-ai-md-op-batch';
 	requestVersion: number = 0;
-	ops: collections.Array<LibmarkOpEntry> = new collections.Array<LibmarkOpEntry>();
+	ops: collections.Array<UniAiMdOpEntry> = new collections.Array<UniAiMdOpEntry>();
 
 	pushOp(op: number, kind: string, content: string, index: number, unchanged: boolean): void {
-		const entry = new LibmarkOpEntry();
+		const entry = new UniAiMdOpEntry();
 		entry.requestVersion = this.requestVersion;
 		entry.op = op;
 		entry.kind = kind;
@@ -30,8 +30,8 @@ export class LibmarkOpBatch {
 }
 
 @Sendable
-export class LibmarkChunk {
-	tag: string = 'libmark-chunk';
+export class UniAiMdChunk {
+	tag: string = 'uni-ai-md-chunk';
 	requestVersion: number = 0;
 	content: string = '';
 	reasoningContent: string = '';
@@ -53,20 +53,20 @@ export class AiWorkerState {
 	errMsg: string = '';
 }
 
-export function createOpBatch(requestVersion: number): LibmarkOpBatch {
-	const batch = new LibmarkOpBatch();
+export function createOpBatch(requestVersion: number): UniAiMdOpBatch {
+	const batch = new UniAiMdOpBatch();
 	batch.requestVersion = requestVersion;
 	return batch;
 }
 
-export function batchRequestVersion(batch: LibmarkOpBatch): number {
+export function batchRequestVersion(batch: UniAiMdOpBatch): number {
 	return batch.requestVersion;
 }
 
-export function batchCount(batch: LibmarkOpBatch): number {
+export function batchCount(batch: UniAiMdOpBatch): number {
 	return batch.ops.length;
 }
 
-export function batchOp(batch: LibmarkOpBatch, index: number): LibmarkOpEntry {
+export function batchOp(batch: UniAiMdOpBatch, index: number): UniAiMdOpEntry {
 	return batch.ops[index];
 }

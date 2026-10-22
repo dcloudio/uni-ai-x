@@ -9,12 +9,12 @@
   native/include/。本脚本由 prepare-lib.ps1 固定调用；构建过程（build-harmony.ps1）
   只读取项目内内容。
 
-  仓库根目录优先取 -RepoRoot，其次取 UNI_AI_MD_REPO 环境变量，未指定时
-  默认取与本项目相邻的 ../../libmark。
+  仓库根目录必须通过 -RepoRoot 或 UNI_AI_MD_REPO 环境变量明确指定，
+  未指定时报错退出。
 
 .EXAMPLE
-  pwsh -File native/sync-include.ps1
-  pwsh -File native/sync-include.ps1 -RepoRoot D:\dev\dcloud\libmark
+  pwsh -File native/sync-include.ps1 -RepoRoot D:\dev\uni-ai-md
+  $env:UNI_AI_MD_REPO = 'D:\dev\uni-ai-md'; pwsh -File native/sync-include.ps1
 #>
 param(
   [string]$RepoRoot = ''
@@ -28,7 +28,8 @@ if ($RepoRoot) {
 } elseif ($env:UNI_AI_MD_REPO) {
   $RepoRoot = (Resolve-Path $env:UNI_AI_MD_REPO).Path
 } else {
-  $RepoRoot = (Resolve-Path (Join-Path $nativeDir '../../libmark')).Path
+  Write-Host '错误: 未指定 uni-ai-md 源码仓库，请设置 UNI_AI_MD_REPO 环境变量或传入 -RepoRoot' -ForegroundColor Red
+  exit 1
 }
 
 $sourceInclude = Join-Path $RepoRoot 'include/uni-ai-md'

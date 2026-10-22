@@ -1,6 +1,6 @@
 import { reactive, watch, nextTick, ref } from 'vue';
 // #ifdef APP-ANDROID
-import { libmarkStreamSetContext } from './libmark-stream-store.uts'
+import { uniAiMdStreamSetContext } from './uni-ai-md-stream-store.uts'
 import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
@@ -18,14 +18,14 @@ import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/inde
 // #ifdef APP-HARMONY || APP-ANDROID
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
 import {
-	libmarkStreamApply,
-	libmarkStreamSetTheme,
-	libmarkStreamMarkComplete,
-	libmarkStreamReset,
-	libmarkStreamRelease,
-	libmarkStreamBindMessage,
-	libmarkStreamSetLayoutWidth
-} from '@/uni_modules/uni-ai-x/sdk/libmark-stream-store.uts'
+	uniAiMdStreamApply,
+	uniAiMdStreamSetTheme,
+	uniAiMdStreamMarkComplete,
+	uniAiMdStreamReset,
+	uniAiMdStreamRelease,
+	uniAiMdStreamBindMessage,
+	uniAiMdStreamSetLayoutWidth
+} from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
 // #endif
 export { registerCustomProvider, isCustomProvider, providerSupportsTitleUpdate } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 let requestAiRunner: AiRequestRunnerHandle | null = null
@@ -443,7 +443,7 @@ class UniAi {
 		if (this.chat.activeId == chatId && deletingChat?.state == 'processing') this.abortRequest()
 		// #ifdef APP-HARMONY || APP-ANDROID
 		if (deletingChat != null) {
-			for (let i = 0; i < deletingChat.msgList.length; i++) libmarkStreamRelease(deletingChat.msgList[i]._id)
+			for (let i = 0; i < deletingChat.msgList.length; i++) uniAiMdStreamRelease(deletingChat.msgList[i]._id)
 		}
 		// #endif
 		// 如果只有一个，删之前需要先创建一个并设置为选中，否则会照成无选中会话导致崩溃
@@ -480,7 +480,7 @@ class UniAi {
 		// #ifdef APP-HARMONY || APP-ANDROID
 		for (let chatIndex = 0; chatIndex < this.chat.datas.length; chatIndex++) {
 			const msgList = this.chat.datas[chatIndex].msgList
-			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) libmarkStreamRelease(msgList[msgIndex]._id)
+			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) uniAiMdStreamRelease(msgList[msgIndex]._id)
 		}
 		// #endif
 		for (let index = 0; index < chatIds.length; index++) this.storageManager.deleteChatInBackground(chatIds[index])
@@ -506,12 +506,12 @@ class UniAi {
 
 	prepareMessagePresentation(msg: MsgItem): Promise<void> {
 		// #ifdef APP-ANDROID || APP-HARMONY
-		libmarkStreamSetTheme(uiTheme.value)
-		libmarkStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
-		const restoration = libmarkStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
+		uniAiMdStreamSetTheme(uiTheme.value)
+		uniAiMdStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
+		const restoration = uniAiMdStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
 		// #endif
 		// #ifdef APP-ANDROID
-		libmarkStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
+		uniAiMdStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
 		// #endif
 		// #ifdef APP-ANDROID || APP-HARMONY
 		return restoration
@@ -574,7 +574,7 @@ class UniAi {
 	constructor() {
 		initUiTheme()
 		// #ifdef APP-ANDROID
-		libmarkStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
+		uniAiMdStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
 		this.storageLoading = true
 		this.storageReady = this.loadDataFromNewStorage()
 		// #endif
@@ -595,7 +595,7 @@ class UniAi {
 		})
 		watch(mathWindowWidth, () => {
 			// #ifdef APP-ANDROID
-			libmarkStreamSetLayoutWidth(mathWindowWidth.value)
+			uniAiMdStreamSetLayoutWidth(mathWindowWidth.value)
 			// #endif
 			// #ifndef APP-ANDROID
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { refreshMessagePresentation(msg, uiTheme.value) })
@@ -729,10 +729,10 @@ class UniAi {
 	}
 	updateMsg2Storage(msg: MsgItem) {
 		// #ifdef APP-ANDROID || APP-HARMONY
-		libmarkStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
+		uniAiMdStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
 		// #endif
 		// #ifdef APP-ANDROID
-		libmarkStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
+		uniAiMdStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
 		// #endif
 		// #ifndef APP-ANDROID || APP-HARMONY
 		refreshMessagePresentation(msg, uiTheme.value)
@@ -882,7 +882,7 @@ class UniAi {
 			}
 			forgetMessagePresentation(msgId)
 			// #ifdef APP-HARMONY || APP-ANDROID
-			libmarkStreamRelease(msgId)
+			uniAiMdStreamRelease(msgId)
 			// #endif
 			msgList.splice(index, 1)
 			this.storageManager.removeMessagesInBackground(this.currentChat!.id, [msgId] as string[])
@@ -931,7 +931,7 @@ class UniAi {
 		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
 		this.clearPendingMsgSave()
 		// #ifdef APP-HARMONY || APP-ANDROID
-		for (let i = index; i < msgList.length; i++) libmarkStreamRelease(msgList[i]._id)
+		for (let i = index; i < msgList.length; i++) uniAiMdStreamRelease(msgList[i]._id)
 		// #endif
 		msgList.splice(index, msgList.length - index)
 		this.storageManager.removeMessagesInBackground(chat.id, removedIds)
@@ -1016,7 +1016,7 @@ class UniAi {
 		msg.search = null
 		this.answerGeneration += 1
 		// #ifdef APP-HARMONY || APP-ANDROID
-		libmarkStreamReset(msg._id)
+		uniAiMdStreamReset(msg._id)
 		// #endif
 		msg.body = ''
 		msg.rendered = false
@@ -1025,7 +1025,7 @@ class UniAi {
 		msg.markdownHtml = ''
 		msg.markdownAst = ''
 		msg.markdownBlocks = ''
-		msg.libmarkRevision = 0
+		msg.uniAiMdRevision = 0
 		this.flushMsg2Storage(msg)
 	}
 	
@@ -1053,8 +1053,8 @@ class UniAi {
 			// #ifdef APP-HARMONY || APP-ANDROID
 			onMarkdownAstDelta: (ops: AiWorkerOp[]) => {
 				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
-				if (libmarkStreamApply(aiMsgItem._id, ops)) {
-					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
+				if (uniAiMdStreamApply(aiMsgItem._id, ops)) {
+					aiMsgItem.uniAiMdRevision = (aiMsgItem.uniAiMdRevision ?? 0) + 1
 					this.updateMsg2Storage(aiMsgItem)
 				}
 			},
@@ -1088,8 +1088,8 @@ class UniAi {
 				// #ifdef APP-HARMONY || APP-ANDROID
 				if (state == 'completed') {
 					// 最终高亮和图片准备就绪后，由展示层提交完整快照。
-					libmarkStreamMarkComplete(aiMsgItem._id)
-					aiMsgItem.libmarkRevision = (aiMsgItem.libmarkRevision ?? 0) + 1
+					uniAiMdStreamMarkComplete(aiMsgItem._id)
+					aiMsgItem.uniAiMdRevision = (aiMsgItem.uniAiMdRevision ?? 0) + 1
 				}
 				// #endif
 				if (state == 'stop') {
@@ -1132,7 +1132,7 @@ class UniAi {
 			llm: this.llm as Llm,
 			chat_id: this.currentChat!.id,
 			updateTitleAfterDone: userMsgCount == 1,
-			// libmark 解析会话随当前主题配色，中间态 SVG 与展示层最终渲染保持一致
+			// uni-ai-md 解析会话随当前主题配色，中间态 SVG 与展示层最终渲染保持一致
 			darkMode: uiTheme.value == 'dark',
 			background: pluginBackgroundFor(uiTheme.value)
 		})
