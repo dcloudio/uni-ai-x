@@ -45,7 +45,7 @@ export type MarkdownTextRenderBlock = {
 export function nativeRenderBlock(block: UniAiMdHtmlRenderBlock, isDone: boolean): MarkdownTextRenderBlock {
 	const result: MarkdownTextRenderBlock = {
 		kind: block.kind, key: block.key, html: block.html, text: block.text,
-		language: block.language, isComplete: isDone || block.isComplete,
+		language: block.language, isComplete: block.kind == 'mermaid' ? block.isComplete : (isDone || block.isComplete),
 		columnWidths: block.columnWidths, rowTextWidths: block.rowTextWidths,
 		codeTokens: [] as MarkdownToken[][], codeCompleteLines: block.codeCompleteLines ?? 0,
 		level: 0, indent: 0, marker: '', quoteDepth: 0,

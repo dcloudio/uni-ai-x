@@ -10,6 +10,7 @@ const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['cod
 const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts', ['UniAiMdHtmlStreamAdapter'], {
   ...html, Number: UtsNumber, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
 });
+const { nativeRenderBlock } = loadUts('uni_modules/uni-ai-worker/utssdk/native-presentation.uts', ['nativeRenderBlock']);
 const converters = loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts',
   ['uniAiMdHtmlBlocksToTextBlocks', 'markdownHtmlBlocksToTextBlocks']);
 
@@ -46,6 +47,17 @@ const codeBlock = text => ({
   kind: 'code', key: 'code-0', text, language: 'js', isComplete: true, html: '',
   codeTokens: [], columnWidths: [], rowTextWidths: [],
 });
+
+test('message completion does not complete a still-streaming Mermaid block', () => {
+  const block = {
+    kind: 'mermaid', key: 'mermaid-0', html: '', text: 'graph TD\nA -->', language: 'mermaid',
+    isComplete: false, columnWidths: [], rowTextWidths: [], svgSource: '', svgWidth: 0, svgHeight: 0,
+  };
+  assert.equal(nativeRenderBlock(block, true).isComplete, false);
+  assert.equal(nativeRenderBlock({ ...block, isComplete: true, svgSource: 'data:image/svg+xml,...' }, true).isComplete, true);
+  assert.equal(nativeRenderBlock({ ...block, kind: 'code' }, true).isComplete, true);
+});
+
 const lineHtml = block => block.codeLines.map(line => line.html).join('');
 
 test('presentation revisions change only for the message receiving source or asynchronous results', () => {
@@ -230,4 +242,21 @@ test('streaming append preserves highlighted prefix lines and updates only the c
   assert.equal(visible[0].codeLines[0], first);
   assert.equal(visible[0].codeLines[1], second);
   assert.ok(visible[0].codeLines[2].html.includes('color:'));
+});
+
+test('streaming snapshots retain highlighted complete lines while the next line grows', () => {
+  const api = setup();
+  let visible;
+  const firstSnapshot = { ...codeBlock('first\n'), isComplete: false, codeCompleteLines: 1 };
+  api.prepareCodeBlocks('m', [firstSnapshot], blocks => { visible = blocks; });
+  finish(api.requests[0]);
+  const highlighted = visible[0].codeLines[0];
+  assert.ok(highlighted.html.includes('color:'));
+
+  for (const text of ['first\ns', 'first\nse', 'first\nsecond']) {
+    api.prepareCodeBlocks('m', [{ ...codeBlock(text), isComplete: false, codeCompleteLines: 1 }], blocks => { visible = blocks; }, visible);
+    assert.equal(visible[0].codeLines[0], highlighted);
+    assert.ok(visible[0].codeLines[0].html.includes('color:'));
+    assert.ok(!visible[0].codeLines[1].html.includes('<span'));
+  }
 });

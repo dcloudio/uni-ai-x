@@ -1,5 +1,5 @@
 // #ifdef APP-ANDROID
-import { UniAiMdHtmlStreamAdapter } from '../uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
+import { UniAiMdHtmlStreamAdapter, UniAiMdHtmlRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
 import { nativeRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
 import type { AiWorkerOp } from '../uni_modules/uni-ai-worker/utssdk/interface.uts'
 import type { MarkdownTextRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'

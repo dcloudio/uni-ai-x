@@ -436,6 +436,7 @@ export class UniAiMdHtmlStreamAdapter {
 			const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code')
 			entry.text = parts.text
 			entry.language = parts.language
+			if (parts.language == 'mermaid') entry.isComplete = false
 			entry.blockIndex = index
 			this.entries.push(entry)
 			return
@@ -477,6 +478,7 @@ export class UniAiMdHtmlStreamAdapter {
 			const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code')
 			entry.text = parts.text
 			entry.language = parts.language
+			if (parts.language == 'mermaid') entry.isComplete = false
 			entry.blockIndex = index
 			this.entries.push(entry)
 		} else if (tag == 'table') {

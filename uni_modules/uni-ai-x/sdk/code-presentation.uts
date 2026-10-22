@@ -75,12 +75,11 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		}))
 	}
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
-		if (!block.isComplete) block.codeTokens = [] as MarkdownToken[][]
 		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
 		const oldLines = old?.codeLines ?? [] as CodePresentationLine[]
 		const oldHighlighted = old?.codeHighlightedText ?? ''
 		block.codeHighlightedText = block.text == oldHighlighted || block.text.startsWith(oldHighlighted + '\n') ? oldHighlighted : ''
-		if (block.codeHighlightedText.length > 0) block.codeTokens = old?.codeTokens ?? [] as MarkdownToken[][]
+		block.codeTokens = block.codeHighlightedText.length > 0 ? old?.codeTokens ?? [] as MarkdownToken[][] : [] as MarkdownToken[][]
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const lines = [] as CodePresentationLine[]
 		let samePrefix = true
@@ -96,7 +95,16 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		block.codeLines = lines
 		block.codeHeight = (Math.max(1, texts.length) * 22 + 16).toString() + 'px'
 	})
-	publish()
+	let waitForHighlight = false
+	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
+		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
+		if (old == null) return
+		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
+		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
+		const completedText = texts.slice(0, count).join('\n')
+		if (!block.isComplete && completedText.length > 0 && completedText != block.codeHighlightedText) waitForHighlight = true
+	})
+	if (!waitForHighlight) publish()
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
@@ -106,6 +114,7 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const unchangedCount = completedText.startsWith(block.codeHighlightedText + '\n') ? highlightedCount : 0
 		requestCachedCodeText((result: ParseCodeTextRes) => {
 			if (result.error != null) return
+			if (block.text.replace(/\r\n/g, '\n').split('\n').slice(0, count).join('\n') != completedText) return
 			block.codeTokens = result.lines
 			block.codeHighlightedText = completedText
 			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()
