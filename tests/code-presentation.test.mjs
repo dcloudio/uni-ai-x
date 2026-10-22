@@ -27,6 +27,7 @@ function setup() {
     ['uniAiMdStreamApply', 'uniAiMdStreamGetBlocks', 'uniAiMdStreamGetRevision', 'uniAiMdStreamRelease', 'uniAiMdStreamApplyRebuild', 'uniAiMdStreamRequestRebuild', 'uniAiMdStreamSetTheme'], {
       ref, ...code, ...mermaid, ...converters, UniAiMdHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
       pluginBackgroundFor: () => '#ffffff', prepareUniAiMdHtml: text => text,
+      prepareHarmonySvgImageSource: (source, _cacheable, callback) => callback(source, false),
       linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
     }, ['APP', 'APP-HARMONY']);
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
@@ -126,17 +127,19 @@ test('newline highlights its completed line while the next streaming line stays 
   api.uniAiMdStreamApply('m', [{ ...codeOp('first\n'), op: 2 }]);
   assert.equal(api.requests.length, 1);
   finish(api.requests[0]);
-  const first = api.uniAiMdStreamGetBlocks('m')[0].codeLines[0];
+  const firstBlock = api.uniAiMdStreamGetBlocks('m')[0];
+  const first = firstBlock.codeLines[0];
   for (const tail of ['s', 'se', 'second']) {
     api.uniAiMdStreamApply('m', [{ ...codeOp('first\n' + tail), op: 2 }]);
-    const rows = api.uniAiMdStreamGetBlocks('m')[0].codeLines;
-    assert.equal(rows[0], first);
-    assert.ok(!rows[1].html.includes('<span'));
+    const current = api.uniAiMdStreamGetBlocks('m')[0];
+    assert.equal(current.codeLines[0], first);
     assert.equal(api.requests.length, 1);
   }
   api.uniAiMdStreamApply('m', [{ ...codeOp('first\nsecond\n'), op: 2 }]);
   assert.equal(api.requests.length, 2);
   assert.equal(api.requests[1].text, 'first\nsecond');
+  finish(api.requests[1]);
+  assert.equal(api.uniAiMdStreamGetBlocks('m')[0].text, 'first\nsecond');
 });
 
 test('failed highlighting publishes escaped original code instead of blocking the snapshot', () => {
@@ -186,13 +189,13 @@ test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid 
   assert.equal(api.uniAiMdStreamGetBlocks('g')[0].mermaidImageSource, '/gantt.svg');
 });
 
-test('code view only displays prepared HTML and Mermaid retains its original source inset', () => {
+test('code view keeps one rich-text node with prepared HTML and Mermaid retains its original source inset', () => {
   const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
   assert.match(source, /:nodes="preparedHtml"/);
+  assert.match(source, /const preparedHtml = computed/);
   assert.doesNotMatch(source, /preparedLines/);
   assert.equal((source.match(/<rich-text\b/g) ?? []).length, 1);
-  assert.doesNotMatch(source, /<rich-text\b[^>]*\bv-for=/);
   const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
   assert.match(mermaid, /margin-left: 15px/);
 });
@@ -257,6 +260,31 @@ test('streaming snapshots retain highlighted complete lines while the next line 
     api.prepareCodeBlocks('m', [{ ...codeBlock(text), isComplete: false, codeCompleteLines: 1 }], blocks => { visible = blocks; }, visible);
     assert.equal(visible[0].codeLines[0], highlighted);
     assert.ok(visible[0].codeLines[0].html.includes('color:'));
-    assert.ok(!visible[0].codeLines[1].html.includes('<span'));
+    assert.equal(visible[0].text, text);
   }
+});
+
+test('highlighted line keeps receiving same-line suffix without creating a new line', () => {
+  const api = setup();
+  let visible;
+  api.prepareCodeBlocks('m', [{ ...codeBlock('first'), isComplete: false, codeCompleteLines: 1 }], blocks => { visible = blocks; });
+  finish(api.requests[0]);
+  const highlighted = visible[0].codeLines[0].html;
+  api.prepareCodeBlocks('m', [{ ...codeBlock('first continued'), isComplete: false, codeCompleteLines: 1 }], blocks => { visible = blocks; }, visible);
+  assert.equal(visible[0].codeLines.length, 1);
+  assert.match(visible[0].codeLines[0].html, new RegExp(highlighted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('</pre>', '')));
+  assert.match(visible[0].codeHtml, /continued/);
+  assert.equal((visible[0].codeHtml.match(/<pre/g) ?? []).length, 1);
+});
+
+test('late highlight callbacks from older stream snapshots cannot replace newer source', () => {
+  const api = setup();
+  let visible;
+  api.prepareCodeBlocks('m', [{ ...codeBlock('first\nsecond'), isComplete: false, codeCompleteLines: 1 }], blocks => { visible = blocks; });
+  const oldRequest = api.requests[0];
+  api.prepareCodeBlocks('m', [{ ...codeBlock('first\nsecond!'), isComplete: false, codeCompleteLines: 1 }], blocks => { visible = blocks; }, visible);
+  assert.equal(visible[0].text, 'first\nsecond!');
+  finish(oldRequest);
+  assert.equal(visible[0].text, 'first\nsecond!');
+  assert.ok(!visible[0].codeLines[1].html.includes('second</span>'));
 });

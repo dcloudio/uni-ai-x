@@ -51,6 +51,8 @@ const contentWidthStyle = computed((): string => {
 	// #endif
 })
 
+const preparedHtml = computed<string>(() => props.preparedHtml)
+
 
 function copyCode() {
 	uni.setClipboardData({

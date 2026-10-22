@@ -37,6 +37,13 @@ function buildCodeLineHtml(text: string, language: string, tokens: MarkdownToken
 	return html
 }
 
+function appendCodeLineSuffix(html: string, suffix: string): string {
+	if (suffix.length == 0) return html
+	const close = html.lastIndexOf('</pre>')
+	if (close >= 0) return html.slice(0, close) + escapeCodeHtml(suffix) + html.slice(close)
+	return html + escapeCodeHtml(suffix)
+}
+
 // Reuse complete line boundaries when preparing a new immutable HTML snapshot.
 function prepareCodeHtml(block: MarkdownTextRenderBlock, old: MarkdownTextRenderBlock | null) {
 	const lines = block.codeLines ?? []
@@ -59,11 +66,21 @@ function prepareCodeHtml(block: MarkdownTextRenderBlock, old: MarkdownTextRender
 }
 
 // Publish source immediately; highlighting replaces the same blocks asynchronously.
+const codePreparationRevisions = new Map<string, number>()
+
 export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderBlock[],
 	ready: (blocks: MarkdownTextRenderBlock[]) => void, previous: MarkdownTextRenderBlock[] = []) {
 	const codeBlocks = blocks.filter((block: MarkdownTextRenderBlock): boolean => block.kind == 'code')
 	const htmlSnapshots = new Map<string, MarkdownTextRenderBlock>()
 	for (let i = 0; i < previous.length; i++) htmlSnapshots.set(previous[i].key, previous[i])
+	const requestRevisions = new Map<string, number>()
+	for (let i = 0; i < codeBlocks.length; i++) {
+		const block = codeBlocks[i]
+		const key = messageId + '\u001f' + block.key
+		const nextRevision = (codePreparationRevisions.get(key) ?? 0) + 1
+		codePreparationRevisions.set(key, nextRevision)
+		requestRevisions.set(block.key, nextRevision)
+	}
 	const publish = () => {
 		// Snapshot identity must change for row caches; unchanged line objects stay shared.
 		ready(blocks.map((block: MarkdownTextRenderBlock): MarkdownTextRenderBlock => {
@@ -78,7 +95,7 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
 		const oldLines = old?.codeLines ?? [] as CodePresentationLine[]
 		const oldHighlighted = old?.codeHighlightedText ?? ''
-		block.codeHighlightedText = block.text == oldHighlighted || block.text.startsWith(oldHighlighted + '\n') ? oldHighlighted : ''
+		block.codeHighlightedText = block.text.startsWith(oldHighlighted) ? oldHighlighted : ''
 		block.codeTokens = block.codeHighlightedText.length > 0 ? old?.codeTokens ?? [] as MarkdownToken[][] : [] as MarkdownToken[][]
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const lines = [] as CodePresentationLine[]
@@ -87,6 +104,13 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 			if (i >= oldLines.length || oldLines[i].text != texts[i]) samePrefix = false
 			if (samePrefix) {
 				lines.push(oldLines[i])
+			} else if (i < oldLines.length && oldHighlighted.length > 0 &&
+				oldHighlighted.startsWith(texts.slice(0, i).join('\n') + (i > 0 ? '\n' : '')) &&
+				oldHighlighted.split('\n').length == i + 1 &&
+				texts[i].startsWith(oldHighlighted.split('\n')[i])) {
+				const stableText = oldHighlighted.split('\n')[i]
+				const suffix = texts[i].slice(stableText.length)
+				lines.push({ text: texts[i], html: appendCodeLineSuffix(oldLines[i].html, suffix) })
 			} else {
 				const tokens = i < block.codeTokens.length ? [block.codeTokens[i]] : [] as MarkdownToken[][]
 				lines.push({ text: texts[i], html: buildCodeLineHtml(texts[i], block.language, tokens) })
@@ -95,16 +119,7 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		block.codeLines = lines
 		block.codeHeight = (Math.max(1, texts.length) * 22 + 16).toString() + 'px'
 	})
-	let waitForHighlight = false
-	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
-		const old = previous.find((item: MarkdownTextRenderBlock): boolean => item.key == block.key && item.language == block.language)
-		if (old == null) return
-		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
-		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
-		const completedText = texts.slice(0, count).join('\n')
-		if (!block.isComplete && completedText.length > 0 && completedText != block.codeHighlightedText) waitForHighlight = true
-	})
-	if (!waitForHighlight) publish()
+	publish()
 	codeBlocks.forEach((block: MarkdownTextRenderBlock) => {
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
@@ -112,8 +127,12 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		if (completedText.length == 0 || completedText == block.codeHighlightedText) return
 		const highlightedCount = block.codeHighlightedText.length == 0 ? 0 : block.codeHighlightedText.split('\n').length
 		const unchangedCount = completedText.startsWith(block.codeHighlightedText + '\n') ? highlightedCount : 0
+		const requestRevision = requestRevisions.get(block.key) ?? 0
+		const requestText = block.text
 		requestCachedCodeText((result: ParseCodeTextRes) => {
 			if (result.error != null) return
+			const revisionKey = messageId + '\u001f' + block.key
+			if (codePreparationRevisions.get(revisionKey) != requestRevision || block.text != requestText) return
 			if (block.text.replace(/\r\n/g, '\n').split('\n').slice(0, count).join('\n') != completedText) return
 			block.codeTokens = result.lines
 			block.codeHighlightedText = completedText

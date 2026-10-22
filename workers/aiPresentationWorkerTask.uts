@@ -2,7 +2,7 @@
 import { UniAiMdHtmlStreamAdapter, UniAiMdHtmlRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
 import { nativeRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
 import type { AiWorkerOp } from '../uni_modules/uni-ai-worker/utssdk/interface.uts'
-import type { MarkdownTextRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
+import type { MarkdownTextRenderBlock, CodePresentationLine } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
 import { prepareCodeBlocks, buildCodeHtmlPatch } from '../uni_modules/uni-ai-worker/utssdk/code-presentation.uts'
 import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../uni_modules/uni-ai-worker/utssdk/code-highlight.uts'
 import { prepareTablePresentation } from '../uni_modules/uni-ai-worker/utssdk/table-presentation.uts'
@@ -173,7 +173,9 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 					kind: source.kind, key: source.key, html: source.html, text: source.text,
 					language: source.language, isComplete: source.isComplete,
 					columnWidths: source.columnWidths, rowTextWidths: source.rowTextWidths,
-					codeTokens: [] as UTSJSONObject[][], codeLines: [] as UTSJSONObject[],
+					codeTokens: [] as UTSJSONObject[][], codeLines: lines.map((line: CodePresentationLine): UTSJSONObject => ({
+						text: line.text, html: line.html
+					} as UTSJSONObject)),
 					codeHtml: codePatch.html, codeHtmlPrefix: codePatch.prefixLength,
 					codeContentHeight: (Math.max(1, lines.length) * 22).toString() + 'px',
 					codeHeight: source.codeHeight ?? '', table: source.table ?? null, math: source.math ?? null,
