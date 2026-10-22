@@ -13,7 +13,7 @@
   "engines": {
     "HBuilderX": "^3.1.0",
     "uni-app": "",
-    "uni-app-x": "^5.26"
+    "uni-app-x": "^5.33"
   },
   "dcloudext": {
     "type": "unicloud-template-page",
@@ -36,12 +36,13 @@
     "npmurl": "",
     "darkmode": "x",
     "i18n": "x",
-    "widescreen": "√"
+    "widescreen": "√",
+    "vapor": "x"
   },
   "uni_modules": {
     "dependencies": [
-		"uni-ai-worker",
-		"uni-ai-worker-runtime"
+      "uni-ai-worker",
+      "uni-ai-worker-runtime"
     ],
     "encrypt": [],
     "platforms": {
@@ -90,16 +91,16 @@
           },
           "app": {
             "android": {
-                "extVersion": "",
-                "minVersion": "21"
+              "extVersion": "",
+              "minVersion": "21"
             },
             "ios": "√",
             "harmony": "√"
           },
           "mp": {
             "weixin": {
-                "extVersion": "1.0.2",
-                "minVersion": ""
+              "extVersion": "1.0.2",
+              "minVersion": ""
             }
           }
         }
