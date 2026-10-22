@@ -22,6 +22,10 @@ let svgCacheDirectoryWaiters = [] as ((ready: boolean) => void)[]
 let svgCacheFileSequence = 0
 let svgStartupCleanupFinished = false
 const svgFilesCreatedDuringCleanup = new Set<string>()
+const svgSourceFiles = new Map<string, string>()
+const svgSourceOrder = [] as string[]
+const pendingSvgWrites = new Map<string, SvgImageSourceCallback[]>()
+const SVG_SOURCE_CACHE_LIMIT = 128
 
 // Only startup orphans can be removed: current-run snapshots may still own file paths.
 export function cleanupPreviousSvgFiles(protectedSources: string[]) {
@@ -142,10 +146,34 @@ export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boo
 		callback(dataURL, true)
 		return
 	}
+	const cachedPath = svgSourceFiles.get(dataURL)
+	if (cachedPath != null) {
+		callback(cachedPath, true)
+		return
+	}
+	const waiting = pendingSvgWrites.get(dataURL)
+	if (waiting != null) {
+		waiting.push(callback)
+		return
+	}
+	pendingSvgWrites.set(dataURL, [callback])
+	const finishWrite = (source: string, cacheable: boolean) => {
+		if (cacheable && source != dataURL) {
+			svgSourceFiles.set(dataURL, source)
+			svgSourceOrder.push(dataURL)
+			while (svgSourceOrder.length > SVG_SOURCE_CACHE_LIMIT) {
+				const oldest = svgSourceOrder.shift()
+				if (oldest != null) svgSourceFiles.delete(oldest)
+			}
+		}
+		const callbacks = pendingSvgWrites.get(dataURL) ?? [] as SvgImageSourceCallback[]
+		pendingSvgWrites.delete(dataURL)
+		for (let index = 0; index < callbacks.length; index++) callbacks[index](source, cacheable)
+	}
 
 	ensureSvgCacheDirectory((ready: boolean) => {
 		if (!ready) {
-			callback(dataURL, false)
+			finishWrite(dataURL, false)
 			return
 		}
 		svgCacheFileSequence += 1
@@ -158,17 +186,17 @@ export function prepareHarmonySvgImageSource(dataURL: string, useFileSource: boo
 			data: dataURL.substring(SVG_DATA_URL_PREFIX.length),
 			encoding: 'base64',
 			success: () => {
-				callback(filePath, true)
+				finishWrite(filePath, true)
 			},
 			fail: (error) => {
 				console.error('[SvgCache] write cache file failed: ' + error.errMsg)
-				callback(dataURL, false)
+				finishWrite(dataURL, false)
 			}
 		})
 		// #endif
 		// #ifndef APP-HARMONY
 		// #ifndef APP-ANDROID
-		callback(dataURL, false)
+		finishWrite(dataURL, false)
 		// #endif
 		// #endif
 	})

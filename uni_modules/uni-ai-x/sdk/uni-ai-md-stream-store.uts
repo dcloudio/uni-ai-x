@@ -8,6 +8,9 @@ import { prepareCodeBlocks } from './code-presentation.uts'
 import { releaseCodeHighlightSessions } from './parseCode.uts'
 import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
+// #ifdef APP-HARMONY
+import { prepareHarmonySvgImageSource } from './harmony-svg-workaround.uts'
+// #endif
 import { pluginBackgroundFor } from './plugin-theme.uts'
 import type { MsgItem } from '../types.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
@@ -257,6 +260,50 @@ function refreshEntry(entry: UniAiMdStreamEntry, isDone: boolean = false): void 
 	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version
 	prepareCodeBlocks(entry.messageId, blocks, (prepared: MarkdownTextRenderBlock[]) => {
 		if (!isCurrent()) return
+		// Harmony's image component renders SVG data URIs as bitmaps. Persist native
+		// SVG sources first so streamed blocks use the same file-path rendering as
+		// restored snapshots.
+		// #ifdef APP-HARMONY
+		prepareStreamSvgFiles(prepared, () => {
+			if (!isCurrent()) return
+			finishRefreshEntry(entry, prepared, isCurrent)
+		})
+		// #endif
+		// #ifndef APP-HARMONY
+		finishRefreshEntry(entry, prepared, isCurrent)
+		// #endif
+	}, entry.textBlocks)
+}
+
+// #ifdef APP-HARMONY
+function prepareStreamSvgFiles(blocks: MarkdownTextRenderBlock[], done: () => void) {
+	let pending = 0
+	let finished = false
+	const complete = () => {
+		if (finished || pending > 0) return
+		finished = true
+		done()
+	}
+	const prepare = (source: string, replace: (localSource: string) => void) => {
+		if (!source.startsWith('data:image/svg+xml;base64,')) return
+		pending++
+		prepareHarmonySvgImageSource(source, true, (localSource: string, _cacheable: boolean) => {
+			if (localSource != source && localSource.length > 0) replace(localSource)
+			pending--
+			complete()
+		})
+	}
+	for (const block of blocks) {
+		prepare(block.svgSource, (source: string) => { block.svgSource = source })
+		prepare(block.mermaidImageSource ?? '', (source: string) => { block.mermaidImageSource = source })
+		if (block.math != null) prepare(block.math!.src, (source: string) => { block.math!.src = source })
+	}
+	complete()
+}
+// #endif
+
+function finishRefreshEntry(entry: LibmarkStreamEntry, prepared: MarkdownTextRenderBlock[], isCurrent: () => boolean) {
+	if (!isCurrent()) return
 		entry.settled = true
 		// #ifdef APP-HARMONY
 		for (const block of prepared) {
@@ -280,8 +327,7 @@ function refreshEntry(entry: UniAiMdStreamEntry, isDone: boolean = false): void 
 			notifyEntry(entry)
 		})
 		notifyEntry(entry)
-	}, entry.textBlocks)
-}
+	}
 
 export function uniAiMdStreamSetLayoutWidth(width: number) {
 	if (width <= 0 || width == presentationWidth) return
