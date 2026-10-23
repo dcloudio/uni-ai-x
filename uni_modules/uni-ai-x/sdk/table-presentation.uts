@@ -16,8 +16,8 @@ export function prepareTablePresentation(html: string, columnWidths: number[], r
 	return {
 		height: height,
 		html: applyMarkdownTableTheme(applyMarkdownTableColumnWidths(html, columnWidths), theme),
-		containerStyle: 'width:100%;margin-top:6px;margin-bottom:6px;box-sizing:border-box;border-top-width:1px;border-right-width:1px;border-bottom-width:0;border-left-width:1px;border-style:solid;border-color:' + colors.border + ';background-color:' + colors.background + ';',
-		scrollStyle: 'width:100%;height:' + height + ';box-sizing:border-box;flex-direction:row;background-color:' + colors.background + ';',
-		richTextStyle: 'height:' + height + ';align-self:flex-start;flex-shrink:0;font-size:14px;line-height:22px;color:' + colors.text + ';background-color:' + colors.background + ';'
+		containerStyle: 'width:100%;margin-top:6px;margin-bottom:6px;box-sizing:border-box;border-top-width:1px;border-right-width:1px;border-bottom-width:0;border-left-width:1px;border-style:solid;border-color:' + colors.border + ';',
+		scrollStyle: 'width:100%;height:' + height + ';box-sizing:border-box;flex-direction:row;',
+		richTextStyle: 'height:' + height + ';align-self:flex-start;flex-shrink:0;font-size:14px;line-height:22px;color:' + colors.text + ';'
 	} as TablePresentation
 }

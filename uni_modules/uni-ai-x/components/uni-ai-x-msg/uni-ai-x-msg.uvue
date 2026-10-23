@@ -127,10 +127,7 @@
 		return messageToolBarVisible.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
 	})
 
-	const msgSegmentStyle = computed<string>(() => {
-		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-		return 'width:100%;min-height:0;box-sizing:border-box;padding-left:45px;padding-right:45px;background-color:' + backgroundColor + ';'
-	})
+	const msgSegmentStyle = 'width:100%;min-height:0;box-sizing:border-box;padding-left:45px;padding-right:45px;'
 
 	const changeThinkContent = () => {
 		hideThinkContent.value = !hideThinkContent.value
@@ -144,7 +141,6 @@
 	.msg-segment {
 		width: 100%;
 		min-height: 0;
-		background-color: var(--bg-primary);
 		padding: 0 45px;
 		/* #ifdef WEB */
 		user-select: text;
