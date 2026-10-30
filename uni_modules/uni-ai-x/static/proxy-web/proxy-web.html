@@ -89,6 +89,12 @@
           svgDataURL(svgText) {
             return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
           }
+          hasInvalidMermaidSvg(svgText, width, height) {
+            if (typeof svgText !== 'string' || svgText.length === 0) return true;
+            if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return true;
+            if (/(?:NaN|Infinity)/.test(svgText)) return true;
+            return /aria-roledescription=["']error["']/.test(svgText);
+          }
           parseSvgLength(value, em = 16, ex = 8) {
             if (!value) return null;
             const match = value.trim().match(/^([+-]?(?:\d+\.?\d*|\.\d+))(px|em|ex)?$/i);
@@ -272,6 +278,20 @@
                 iosCoreSvgCompatibility,
                 harmonyWorkaround
               });
+              if (this.hasInvalidMermaidSvg(normalized.svgText, normalized.width, normalized.height)) {
+                this.postMessage({
+                  action: "renderMermaid_callback_" + requestId,
+                  param: {
+                    imageDataURL: '',
+                    hasTextElements: false,
+                    width: 0,
+                    height: 0,
+                    theme: renderTheme,
+                    error: 'Mermaid returned invalid SVG geometry'
+                  }
+                });
+                return { svg: '', imageDataURL: '' };
+              }
               let imageDataURL = this.svgDataURL(normalized.svgText);
               this.postMessage({
                 action: "renderMermaid_callback_" + requestId,
