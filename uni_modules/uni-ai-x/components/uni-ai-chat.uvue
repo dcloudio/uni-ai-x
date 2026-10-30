@@ -11,7 +11,7 @@
 						<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
 					</view>
 				</view>
-				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="initialScrollBottom" :scroll-anchoring="true" :scroll-top="scrollTop" id="msg-list"
+				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="initialScrollBottom" :scroll-anchoring="true" :scroll-top="scrollTop" :scroll-into-view="scrollIntoViewId" id="msg-list"
 					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="onMsgListTouchEnd"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
@@ -92,6 +92,14 @@
 	const scrollTop = ref<number>(0)
 	const initialScrollBottom = ref<boolean>(false)
 	const bottomAnchorId = ref<string>('last-msg-a')
+	const scrollIntoViewId = computed<string>(() => {
+		// #ifdef APP-HARMONY
+		return bottomAnchorId.value
+		// #endif
+		// #ifndef APP-HARMONY
+		return ''
+		// #endif
+	})
 	const scrollInBottom = ref<boolean>(true)
 	const showScrollToBottom = ref<boolean>(false)
 	const scrollWithAnimation = ref<boolean>(false)
@@ -140,7 +148,7 @@
 		rebuildScrollTimer = setTimeout(() => {
 			rebuildScrollTimer = 0
 			rebuildScrollPending = false
-			if (!scrollInBottom.value || scrollTouch.value) return
+			if (!autoToLastMsg || scrollTouch.value) return
 			scrollToLastMsg(false)
 		}, 60)
 	}
@@ -588,7 +596,12 @@
 		initialScrollBottom.value = msgList.value.length > 0
 		messageRowCache.clear()
 		rowCache.clear()
+		// #ifdef APP-HARMONY
+		autoToLastMsg = msgList.value.length > 0
+		// #endif
+		// #ifndef APP-HARMONY
 		autoToLastMsg = false
+		// #endif
 		scrollWithAnimation.value = false
 		scrollTop.value = 0
 		scrollInBottom.value = true
@@ -596,14 +609,25 @@
 		showScrollToBottom.value = false
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
-			if (msgList.value.length > 0) updateScrollInBottom()
+			if (msgList.value.length > 0) {
+				// #ifdef APP-HARMONY
+				scrollToLastMsg(false)
+				// #endif
+				updateScrollInBottom()
+			}
 		})
 	}, { deep: true, immediate: true })
 
-	watch((): number => msgList.value.length, () => {
+	watch((): number => msgList.value.length, (length: number, previousLength: number) => {
 		if (msgList.value.length == 0) {
 			resetScrollStateForEmptyChat()
 		}
+		// #ifdef APP-HARMONY
+		if (previousLength == 0 && length > 0) {
+			autoToLastMsg = true
+			nextTick(() => { scrollToLastMsg(false) })
+		}
+		// #endif
 		const activeIds = new Set<string>()
 		msgList.value.forEach((msg: MsgItem) => { activeIds.add(msg._id) })
 		messageRowCache.forEach((cached: MessageRowCache, id: string) => {
@@ -665,7 +689,9 @@
 		if (viewDisposed || chatId != chatActiveId.value) return
 		// #endif
 		setIsInScrollBottom()
+		// #ifndef APP-HARMONY
 		lockAutoToLastMsg()
+		// #endif
 		if (!scrollTouch.value && autoToLastMsg) {
 			// #ifndef APP-ANDROID
 			await nextTick()
