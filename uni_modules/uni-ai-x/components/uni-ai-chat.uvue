@@ -114,7 +114,6 @@
 	let showScrollToBottomTimer = 0
 	let mouseScrollTimer = 0
 	let mouseScroll = false
-	let needSetLockAutoToLastMsg = true
 	const hasInputExtension = getChatInputExtension() != null
 	
 	const state = computed<string>(() => {
@@ -639,23 +638,6 @@
 		})
 	})
 	
-	const lockAutoToLastMsg = () => {
-		// #ifndef MP-WEIXIN
-		if (!needSetLockAutoToLastMsg) return
-		const lastMsgFirstItem = renderItemList.value.find((item: ChatRenderItem): boolean => {
-			return item.isAi && item.isFirst && item.msg._id == lastMsg.value?._id
-		})
-		if (lastMsgFirstItem == null) return
-		const lastMsgEl: UniElement | null = uni.getElementById(lastMsgFirstItem.id)
-		const scrollList: UniElement | null = uni.getElementById('msg-list')
-		if (lastMsgEl == null || scrollList == null) return 
-		if (msgList.value.length < 3 || scrollList.offsetHeight < lastMsgEl.offsetHeight) {
-			autoToLastMsg = false
-			needSetLockAutoToLastMsg = false
-		}
-		// #endif
-	}
-	
 	let scrollUpdateQueued = false
 	let viewDisposed = false
 	watch(() => {
@@ -689,9 +671,6 @@
 		if (viewDisposed || chatId != chatActiveId.value) return
 		// #endif
 		setIsInScrollBottom()
-		// #ifndef APP-HARMONY
-		lockAutoToLastMsg()
-		// #endif
 		if (!scrollTouch.value && autoToLastMsg) {
 			// #ifndef APP-ANDROID
 			await nextTick()
@@ -808,7 +787,6 @@
 	}
 	const beforeRequestAi = () => {
 		autoToLastMsg = true
-		needSetLockAutoToLastMsg = true
 		scrollToLastMsg(false)
 	}
 	
