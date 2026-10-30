@@ -4,6 +4,9 @@ import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-h
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
 // #ifndef MP-WEIXIN
 import { renderMermaidSvgForTheme, renderMathSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
+// #ifdef APP-ANDROID
+import { prepareHarmonySvgImageSource } from './harmony-svg-workaround.uts'
+// #endif
 // #endif
 
 type SaveMessage = (msg: MsgItem) => void
@@ -14,9 +17,26 @@ const pending = new Map<string, string>()
 export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void) {
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
-		if ((block.kind != 'mermaid' && block.kind != 'math') || !block.isComplete) continue
+		if (block.kind != 'mermaid' && block.kind != 'math') continue
+		// If native parsing has not produced SVG yet, try WebView once the source
+		// is large enough to be meaningful. This applies to every Mermaid type.
+		const earlyMermaidFallback = block.kind == 'mermaid' && block.svgSource.length == 0 && block.text.trim().length >= 60
+		if (!block.isComplete && !earlyMermaidFallback) continue
 		if (block.svgSource.length > 0) {
-			if (block.kind == 'mermaid') block.mermaidImageSource = block.svgSource
+			if (block.kind == 'mermaid') {
+				// Android image does not reliably decode SVG data URLs. Use the same
+				// cache-file source as WebView generated SVGs.
+				// #ifdef APP-ANDROID
+				const nativeSvg = block.svgSource
+				prepareHarmonySvgImageSource(nativeSvg, true, (source: string, _cacheable: boolean) => {
+					block.mermaidImageSource = source
+					changed()
+				})
+				// #endif
+				// #ifndef APP-ANDROID
+				block.mermaidImageSource = block.svgSource
+				// #endif
+			}
 			continue
 		}
 		// #ifndef MP-WEIXIN
