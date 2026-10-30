@@ -1,6 +1,13 @@
 <template>
 	<view v-if="msg.search != null" class="search-status" @click="openSources">
-		<loading v-if="msg.search!.status == 'searching'" class="search-spinner" />
+		<template v-if="msg.search!.status == 'searching'">
+			<!-- #ifdef APP-HARMONY -->
+			<view class="search-spinner" />
+			<!-- #endif -->
+			<!-- #ifndef APP-HARMONY -->
+			<loading class="search-spinner" :paused="loadingPaused" />
+			<!-- #endif -->
+		</template>
 		<uni-icons v-else type="search" size="16" color="#6283a9" />
 		<text class="search-label">{{label}}</text>
 		<uni-icons v-if="msg.search!.sources.length > 0" type="right" size="14" color="#888" />
@@ -12,6 +19,8 @@
 	const props = defineProps<{ msg: MsgItem }>()
 	const emit = defineEmits<{ 'open': [id: number] }>()
 	const msg = computed<MsgItem>(() => props.msg)
+	const loadingPaused = ref<boolean>(true)
+	onMounted(() => { nextTick(() => { loadingPaused.value = false }) })
 	const label = computed<string>(() => {
 		const search = props.msg.search
 		if (search == null) return ''

@@ -27,6 +27,9 @@
 					<list-item style="height:35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
 					<!-- #endif -->
 				</list-view>
+				<!-- #ifdef APP-HARMONY -->
+				<loading v-if="showPendingLoading" class="chat-box-pending-loading" :paused="false" />
+				<!-- #endif -->
 				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
 					<add-chat-btn />
 				</view>
@@ -307,7 +310,14 @@
 		if (part.kind == 'think') return RENDER_ITEM_TYPE_AI_THINK
 		if (part.kind == 'plain') return RENDER_ITEM_TYPE_AI_PLAIN
 		if (part.kind == 'error') return RENDER_ITEM_TYPE_AI_ERROR
-		if (part.kind == 'empty') return RENDER_ITEM_TYPE_AI_EMPTY
+		if (part.kind == 'empty') {
+			// #ifdef APP-HARMONY
+			return RENDER_ITEM_TYPE_AI_NORMAL
+			// #endif
+			// #ifndef APP-HARMONY
+			return RENDER_ITEM_TYPE_AI_EMPTY
+			// #endif
+		}
 		return RENDER_ITEM_TYPE_AI_NORMAL
 	}
 
@@ -459,6 +469,13 @@
 	const lastMsg = computed<MsgItem | null>(() => {
 		return uniAi.lastAiMsg
 	})
+
+	// #ifdef APP-HARMONY
+	const showPendingLoading = computed<boolean>(() => {
+		const msg = lastMsg.value
+		return state.value == 'processing' && msg != null && msg.body.length == 0 && (msg.thinkContent ?? '').length == 0
+	})
+	// #endif
 	
 	const chatActiveId = computed<string>(() => {
 		return uniAi.chat.activeId
@@ -831,6 +848,16 @@
 .chat-box-msg-list {
 	flex: 1;
 	margin-bottom: 140px;
+}
+
+.chat-box-pending-loading {
+	position: absolute;
+	bottom: 180px;
+	left: 45px;
+	width: 16px;
+	height: 16px;
+	border-color: #aaaaaa;
+	z-index: 15;
 }
 
 .chat-box-add-chat {

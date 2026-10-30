@@ -35,11 +35,18 @@
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
-		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" /></view>
+		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" :paused="loadingPaused" /></view>
 		<template v-else-if="part.kind == 'empty'">
 			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
 			<text v-else-if="state == 'none'" class="msg-root-need-try" flatten>错误：未回复</text>
-			<loading v-else-if="state == 'processing' && msg.search?.status != 'searching'" class="msg-root-loging-icon" />
+			<template v-else-if="state == 'processing' && msg.search?.status != 'searching'">
+				<!-- #ifdef APP-HARMONY -->
+				<view class="msg-root-loading-placeholder" />
+				<!-- #endif -->
+				<!-- #ifndef APP-HARMONY -->
+				<loading class="msg-root-loging-icon" :paused="loadingPaused" />
+				<!-- #endif -->
+			</template>
 		</template>
 		<msg-tool-bar v-else-if="part.kind == 'toolbar' && shouldShowToolBar" :msg="msg" />
 		</template>
@@ -51,7 +58,11 @@
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
 	import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
-	onMounted(() => { updateMathLayout(uni.getWindowInfo().windowWidth) })
+	const loadingPaused = ref<boolean>(true)
+	onMounted(() => {
+		updateMathLayout(uni.getWindowInfo().windowWidth)
+		nextTick(() => { loadingPaused.value = false })
+	})
 	function blockImageStyle(block: MarkdownTextRenderBlock): string {
 		return messageImageStyle(block.svgWidth, block.svgHeight,
 			mathWindowWidth.value > 0 ? mathWindowWidth.value : uni.getWindowInfo().windowWidth)
@@ -223,6 +234,12 @@
 
 .msg-root-loging-icon {
 	border-color: #aaaaaa;
+	margin-top: 10px;
+	width: 16px;
+	height: 16px;
+}
+
+.msg-root-loading-placeholder {
 	margin-top: 10px;
 	width: 16px;
 	height: 16px;
