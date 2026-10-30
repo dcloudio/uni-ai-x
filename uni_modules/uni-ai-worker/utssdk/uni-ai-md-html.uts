@@ -307,7 +307,9 @@ export class UniAiMdHtmlStreamAdapter {
 			if (this.tailContent.length > 0) {
 				const key = 'uni-ai-md-e' + result.length.toString()
 				if (this.tailKind == 'data') {
-					result.push(this.buildDataEntry(parseEnvelope(this.tailContent), this.tailContent, this.tailIndex, key))
+					const entry = this.buildDataEntry(parseEnvelope(this.tailContent), this.tailContent, this.tailIndex, key)
+					if (entry.kind == 'mermaid') entry.isComplete = false
+					result.push(entry)
 				} else if (isCodeTail(this.tailContent)) {
 					const parts = extractCodeParts(this.tailContent)
 					const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code', key)
@@ -436,7 +438,6 @@ export class UniAiMdHtmlStreamAdapter {
 			const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code')
 			entry.text = parts.text
 			entry.language = parts.language
-			if (parts.language == 'mermaid') entry.isComplete = false
 			entry.blockIndex = index
 			this.entries.push(entry)
 			return
@@ -478,7 +479,6 @@ export class UniAiMdHtmlStreamAdapter {
 			const entry = this.newEntry(parts.language == 'mermaid' ? 'mermaid' : 'code')
 			entry.text = parts.text
 			entry.language = parts.language
-			if (parts.language == 'mermaid') entry.isComplete = false
 			entry.blockIndex = index
 			this.entries.push(entry)
 		} else if (tag == 'table') {

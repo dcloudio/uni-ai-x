@@ -18,10 +18,9 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
 		if (block.kind != 'mermaid' && block.kind != 'math') continue
-		// If native parsing has not produced SVG yet, try WebView once the source
-		// is large enough to be meaningful. This applies to every Mermaid type.
-		const earlyMermaidFallback = block.kind == 'mermaid' && block.svgSource.length == 0 && block.text.trim().length >= 60
-		if (!block.isComplete && !earlyMermaidFallback) continue
+		// Do not render a partial Mermaid block. Streaming snapshots can replace
+		// the block while its fence and diagram body are still incomplete.
+		if (!block.isComplete) continue
 		if (block.svgSource.length > 0) {
 			if (block.kind == 'mermaid') {
 				// Android image does not reliably decode SVG data URLs. Use the same

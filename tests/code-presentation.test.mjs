@@ -22,6 +22,7 @@ function setup() {
   });
   const mermaid = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
     ref, renderMermaidSvgForTheme: (text, theme, callback) => diagrams.push({ text, theme, callback }),
+    prepareHarmonySvgImageSource: (source, _cacheable, callback) => callback(source, false),
   });
   const store = loadUts('uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['uniAiMdStreamApply', 'uniAiMdStreamGetBlocks', 'uniAiMdStreamGetRevision', 'uniAiMdStreamRelease', 'uniAiMdStreamApplyRebuild', 'uniAiMdStreamRequestRebuild', 'uniAiMdStreamSetTheme'], {
