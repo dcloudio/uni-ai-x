@@ -1,10 +1,9 @@
 import { ChatItem, MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
 // #ifdef APP-ANDROID
 import { saveAndroidMessageInBackground, invalidateAndroidMessageWrite, readAndroidChatMessages, readAndroidChatList, writeAndroidStorageBatch, mutateAndroidChatMessages } from '@/uni_modules/uni-ai-worker-runtime'
-import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
-// #ifdef APP-HARMONY
-import { deleteRenderAssets } from '@/uni_modules/uni-ai-worker/utssdk/snapshot-files.uts'
+// #ifdef APP-ANDROID || APP-HARMONY
+import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
 // 存储键常量
@@ -554,11 +553,8 @@ export class StorageManager {
 	}
 
 	private removeRenderAssets(msgId: string) {
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-HARMONY
 		requestSnapshotWork({ action: 'delete', messageId: msgId } as UTSJSONObject, (_result: UTSJSONObject) => {})
-		// #endif
-		// #ifdef APP-HARMONY
-		deleteRenderAssets(msgId)
 		// #endif
 	}
 }

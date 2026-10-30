@@ -9,10 +9,20 @@ export class AiSnapshotWorkerTask extends WorkerTaskImpl {
 		// #ifdef APP-ANDROID || APP-HARMONY
 		const request = message as UTSJSONObject
 		const id = request['id'] as number
+		// #ifdef APP-HARMONY
+		const assetRoot = request['assetRoot'] as string
+		const assetDisplayRoot = request['assetDisplayRoot'] as string
+		const assetCacheRoot = request['assetCacheRoot'] as string
+		// #endif
+		// #ifndef APP-HARMONY
+		const assetRoot: string | null = null
+		const assetDisplayRoot: string | null = null
+		const assetCacheRoot: string | null = null
+		// #endif
 		try {
 			const action = request['action'] as string
 			if (action == 'delete') {
-				deleteRenderAssets(request['messageId'] as string)
+				deleteRenderAssets(request['messageId'] as string, assetRoot)
 				this.postMessage({ id: id, ok: true } as UTSJSONObject)
 				return
 			}
@@ -37,7 +47,7 @@ export class AiSnapshotWorkerTask extends WorkerTaskImpl {
 				const removed = action == 'remove-chat' ? ids : request['messageIds'] as string[]
 				for (const messageId of removed) {
 					uni.removeStorageSync('uni-ai-msg-' + messageId)
-					deleteRenderAssets(messageId)
+					deleteRenderAssets(messageId, assetRoot)
 				}
 				if (action == 'remove-chat') uni.removeStorageSync(indexKey)
 				else uni.setStorageSync(indexKey, JSON.stringify(ids.filter((messageId: string): boolean => !removed.includes(messageId))))
@@ -67,10 +77,13 @@ export class AiSnapshotWorkerTask extends WorkerTaskImpl {
 			const body = request['body'] as string
 			if (action == 'persist') {
 				snapshot.bodyKey = renderContentKey(body)
-				const stored = persistRenderAssets(request['messageId'] as string, snapshot)
+				const stored = persistRenderAssets(request['messageId'] as string, snapshot, assetRoot, assetCacheRoot)
+				if (stored.assets.length > 0) console.info('[render-snapshot] assets saved: message=' + (request['messageId'] as string) + ' count=' + stored.assets.length)
 				this.postMessage({ id: id, snapshot: stored } as UTSJSONObject)
 			} else {
-				this.postMessage({ id: id, snapshot: restoreRenderAssets(snapshot, body) } as UTSJSONObject)
+				const restored = restoreRenderAssets(snapshot, body, assetRoot, assetDisplayRoot)
+				if (restored != null && restored.assets.length > 0) console.info('[render-snapshot] assets restored: count=' + restored.assets.length)
+				this.postMessage({ id: id, snapshot: restored } as UTSJSONObject)
 			}
 		} catch (error) {
 			console.error('[render-snapshot] ' + error)

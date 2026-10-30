@@ -1,17 +1,37 @@
 import { RenderSnapshot, RENDER_ASSET_PREFIX, renderContentKey, mapRenderResources, validRenderSnapshot } from './render-snapshot.uts'
+// #ifdef APP-HARMONY
+import { harmonyRenderAssetFileSystem } from './snapshot-files-harmony.uts'
+// #endif
 
 // Only called from a Worker or the native IO dispatcher.
-function assetRoot(): string { return uni.env.USER_DATA_PATH + '/ai-render-assets/' }
+function assetRoot(root: string | null = null): string {
+	if (root != null && root.length > 0) return root
+	// #ifdef APP-HARMONY
+	throw new Error('Missing Harmony render asset root')
+	// #endif
+	// #ifndef APP-HARMONY
+	return uni.env.USER_DATA_PATH + '/ai-render-assets/'
+	// #endif
+}
+
+function assetFileSystem(cacheRoot: string | null = null) {
+	// #ifdef APP-HARMONY
+	return harmonyRenderAssetFileSystem(cacheRoot)
+	// #endif
+	// #ifndef APP-HARMONY
+	return uni.getFileSystemManager()
+	// #endif
+}
 
 function safeAsset(path: string): boolean {
 	return /^[a-f0-9-]+\/[a-f0-9-]+\.(png|svg|jpg|webp|gif)$/.test(path)
 }
 
-export function persistRenderAssets(messageId: string, snapshot: RenderSnapshot): RenderSnapshot {
+export function persistRenderAssets(messageId: string, snapshot: RenderSnapshot, rootPath: string | null = null, cacheRoot: string | null = null): RenderSnapshot {
 	const result = JSON.parse<RenderSnapshot>(JSON.stringify(snapshot))!
-	const fs = uni.getFileSystemManager()
+	const fs = assetFileSystem(cacheRoot)
 	const directory = renderContentKey(messageId)
-	const root = assetRoot()
+	const root = assetRoot(rootPath)
 	try { fs.accessSync(root + directory) } catch (_) { fs.mkdirSync(root + directory, true) }
 	const sources = new Map<string, string>()
 	const assets = new Set<string>()
@@ -56,10 +76,10 @@ export function persistRenderAssets(messageId: string, snapshot: RenderSnapshot)
 	return result
 }
 
-export function restoreRenderAssets(snapshot: RenderSnapshot, body: string): RenderSnapshot | null {
+export function restoreRenderAssets(snapshot: RenderSnapshot, body: string, rootPath: string | null = null, displayRoot: string | null = null): RenderSnapshot | null {
 	if (!validRenderSnapshot(snapshot, body)) return null
-	const fs = uni.getFileSystemManager()
-	const root = assetRoot()
+	const fs = assetFileSystem()
+	const root = assetRoot(rootPath)
 	try {
 		for (const path of snapshot.assets) {
 			if (!safeAsset(path)) return null
@@ -70,13 +90,13 @@ export function restoreRenderAssets(snapshot: RenderSnapshot, body: string): Ren
 			if (!source.startsWith(RENDER_ASSET_PREFIX)) return source
 			const path = source.substring(RENDER_ASSET_PREFIX.length)
 			if (!safeAsset(path) || !snapshot.assets.includes(path)) throw new Error('Unlisted render asset')
-			return root + path
+			return (displayRoot ?? root) + path
 		})
 		return result
 	} catch (_) { return null }
 }
 
-export function deleteRenderAssets(messageId: string) {
-	const path = assetRoot() + renderContentKey(messageId)
-	try { uni.getFileSystemManager().rmdirSync(path, true) } catch (_) { }
+export function deleteRenderAssets(messageId: string, rootPath: string | null = null) {
+	const path = assetRoot(rootPath) + renderContentKey(messageId)
+	try { assetFileSystem().rmdirSync(path, true) } catch (_) { }
 }

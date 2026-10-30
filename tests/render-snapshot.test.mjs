@@ -134,7 +134,7 @@ test('failed diagram terminal state persists and asset errors retry without furt
   api.uniAiMdStreamMarkComplete('m');
   await Promise.resolve();
   const failed = block({ kind: 'mermaid', mermaidRenderFailed: true, mermaidImageSource: '' });
-  api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
+  api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: 'hello', theme: 'light', windowWidth: 360,
     changes: [{ index: 0, block: failed }] });
   assert.equal(api.work.length, 1);
   api.work[0].callback({ snapshot: null });
@@ -151,7 +151,7 @@ test('asset retries stop after three retries and are cancelled when a message is
     await api.uniAiMdStreamBindMessage({ _id: 'm', from_uid: 'uni-ai', body: 'hello' }, () => {});
     api.uniAiMdStreamMarkComplete('m');
     await Promise.resolve();
-    api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
+    api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: 'hello', theme: 'light', windowWidth: 360,
       changes: [{ index: 0, block: block() }] });
     api.work[0].callback({ snapshot: null });
     if (release) api.uniAiMdStreamRelease('m');
@@ -202,9 +202,8 @@ test('APP-HARMONY message writes persist synchronously and keep the newest conte
   const writes = [];
   const workerCalls = [];
   const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
-    uni: { setStorageSync: (key, value) => writes.push({ key, value }) },
-    requestSnapshotWork: () => workerCalls.push(1),
-    deleteRenderAssets: () => workerCalls.push(1),
+    uni: { setStorageSync: (key, value) => writes.push({ key, value }), removeStorageSync() {} },
+    requestSnapshotWork: request => workerCalls.push(request),
   }, ['APP', 'APP-HARMONY']);
   const manager = new StorageManager();
   const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
@@ -216,6 +215,41 @@ test('APP-HARMONY message writes persist synchronously and keep the newest conte
   assert.equal(writes.length, 2);
   assert.equal(JSON.parse(writes[1].value).body, 'new');
   assert.equal(workerCalls.length, 0);
+  manager.deleteMessage('m');
+  assert.equal(workerCalls[0].action, 'delete');
+});
+
+test('APP-HARMONY render assets persist and restore through the snapshot worker', async () => {
+  const work = [];
+  const saves = [];
+  const { persistCompleteEntry, streamEntries, uniAiMdStreamBindMessage, uniAiMdStreamGetBlocks } = loadUts(
+    'uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
+    ['persistCompleteEntry', 'streamEntries', 'uniAiMdStreamBindMessage', 'uniAiMdStreamGetBlocks'], {
+      ref: value => ({ value }), reactive: value => value, ...pure,
+      requestSnapshotWork: (request, callback) => work.push({ request, callback }),
+      UniAiMdHtmlStreamAdapter: class { reset() {} },
+    }, ['APP', 'APP-HARMONY']);
+  const message = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
+  streamEntries.set('m', {
+    messageId: 'm', message, save: value => saves.push(value), textBlocks: [block()],
+    done: true, settled: true, restored: false, restoring: false, preparationVersion: 1,
+    savingVersion: -1, saveRetryTimer: 0, saveRetryCount: 0,
+  });
+  persistCompleteEntry(streamEntries.get('m'));
+  assert.equal(work[0].request.action, 'persist');
+  assert.equal(saves.length, 0);
+  const stored = snapshot([block()]);
+  work[0].callback({ snapshot: stored });
+  assert.equal(saves[0], message);
+  assert.equal(message.renderSnapshot, stored);
+
+  const restoredMessage = { ...message, _id: 'restored' };
+  const restore = uniAiMdStreamBindMessage(restoredMessage, () => assert.fail('restore should not save'));
+  assert.equal(work[1].request.action, 'restore');
+  assert.equal(uniAiMdStreamGetBlocks('restored').length, 0);
+  work[1].callback({ snapshot: stored });
+  await restore;
+  assert.equal(uniAiMdStreamGetBlocks('restored')[0].html, '<p>hello</p>');
 });
 
 test('restart restores final blocks without invoking parsing and prevents an overlapping rebuild', async () => {
@@ -242,7 +276,7 @@ test('only settled final blocks are saved and deleting the message rejects a lat
   callback({ action: 'blocks', length: 1, settled: false,
     changes: [{ index: 0, block: block({ codeHtmlPrefix: 0 }) }] });
   assert.equal(api.work.length, 0);
-  callback({ action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360, changes: [] });
+  callback({ action: 'blocks', length: 1, settled: true, body: 'hello', theme: 'light', windowWidth: 360, changes: [] });
   assert.equal(api.work.length, 1);
   api.uniAiMdStreamRelease('m');
   api.work[0].callback({ snapshot: snapshot([block()]) });
@@ -258,7 +292,7 @@ test('a completed stream stores the full snapshot on its original message', asyn
   api.uniAiMdStreamMarkComplete('m');
   await Promise.resolve();
   const callback = api.preparations[0].callback;
-  const response = { action: 'blocks', length: 1, settled: true, body: '', theme: 'light', windowWidth: 360,
+  const response = { action: 'blocks', length: 1, settled: true, body: 'hello', theme: 'light', windowWidth: 360,
     changes: [{ index: 0, block: block({ codeHtmlPrefix: 0 }) }] };
   callback({ ...response, theme: 'dark' });
   assert.equal(api.work.length, 0);

@@ -1,0 +1,64 @@
+// #ifdef APP-HARMONY
+import fs from '@ohos.file.fs'
+import util from '@ohos.util'
+
+const base64 = new util.Base64Helper()
+
+function openAssetFile(path: string, mode: number) {
+	try { return fs.openSync(path, mode) } catch (error) { throw new Error('open ' + path + ': ' + error) }
+}
+
+export function harmonyRenderAssetFileSystem(cacheRoot: string | null = null) {
+	const realPath = (path: string): string => {
+		if (cacheRoot != null && path.startsWith('unifile://cache/')) return (cacheRoot + '/' + path.substring('unifile://cache/'.length)).replace(/\/+/g, '/')
+		return path
+	}
+	return {
+		accessSync(path: string) {
+			if (!fs.accessSync(path)) throw new Error('Render asset missing: ' + path)
+		},
+		mkdirSync(path: string, recursive: boolean) {
+			try { fs.mkdirSync(path, recursive) } catch (error) { throw new Error('mkdir ' + path + ': ' + error) }
+		},
+		readFileSync(path: string, _encoding: string): string {
+			const local = realPath(path)
+			const file = openAssetFile(local, fs.OpenMode.READ_ONLY)
+			try {
+				const size = Number(fs.statSync(file.fd).size)
+				const buffer = new ArrayBuffer(size)
+				const output = new Uint8Array(buffer)
+				let offset = 0
+				while (offset < size) {
+					const chunk = new ArrayBuffer(size - offset)
+					const count = fs.readSync(file.fd, chunk)
+					if (count <= 0) throw new Error('Incomplete render asset read: ' + path)
+					output.set(new Uint8Array(chunk, 0, count), offset)
+					offset += count
+				}
+				return base64.encodeToStringSync(output)
+			} finally { fs.closeSync(file) }
+		},
+		writeFileSync(path: string, encoded: string, _encoding: string) {
+			const bytes = base64.decodeSync(encoded)
+			const file = openAssetFile(path, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC)
+			try {
+				let offset = 0
+				while (offset < bytes.length) {
+					const data = bytes.buffer.slice(bytes.byteOffset + offset, bytes.byteOffset + bytes.length)
+					const count = fs.writeSync(file.fd, data)
+					if (count <= 0) throw new Error('Incomplete render asset write: ' + path)
+					offset += count
+				}
+			} finally { fs.closeSync(file) }
+		},
+		renameSync(from: string, to: string) {
+			try { fs.renameSync(from, to) } catch (error) { throw new Error('rename ' + from + ': ' + error) }
+		},
+		rmdirSync(path: string, _recursive: boolean) {
+			if (!fs.accessSync(path)) return
+			for (const name of fs.listFileSync(path)) fs.unlinkSync(path + '/' + name)
+			fs.rmdirSync(path)
+		}
+	}
+}
+// #endif

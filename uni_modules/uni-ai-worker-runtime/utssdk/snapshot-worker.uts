@@ -1,4 +1,7 @@
 // #ifdef APP-ANDROID || APP-HARMONY
+// #ifdef APP-HARMONY
+import { realHarmonyAssetPath } from './app-harmony/asset-path.ets'
+// #endif
 let worker: Worker | null = null
 let ready = false
 let sequence = 0
@@ -8,6 +11,11 @@ const timers = new Map<number, number>()
 
 @UTSJS.keepAlive
 export function requestSnapshotWork(request: UTSJSONObject, callback: (result: UTSJSONObject) => void) {
+	// #ifdef APP-HARMONY
+	request['assetRoot'] = realHarmonyAssetPath(uni.env.USER_DATA_PATH + '/ai-render-assets/')
+	request['assetDisplayRoot'] = uni.env.USER_DATA_PATH + '/ai-render-assets/'
+	request['assetCacheRoot'] = realHarmonyAssetPath(uni.env.CACHE_PATH)
+	// #endif
 	if (worker == null) {
 		const created = uni.createWorker('workers/aiSnapshotWorkerTask.uts')
 		worker = created

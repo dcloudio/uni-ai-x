@@ -16,11 +16,10 @@ import type { MsgItem } from '../types.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
 import { RenderSnapshot, RENDER_SNAPSHOT_VERSION, renderContentKey } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
 // #endif
-// #ifdef APP-ANDROID
+// #ifdef APP-ANDROID || APP-HARMONY
 import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 // #ifdef APP-HARMONY
-import { persistRenderAssets, restoreRenderAssets } from '@/uni_modules/uni-ai-worker/utssdk/snapshot-files.uts'
 import { prepareTablePresentation } from './table-presentation.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { linkSearchCitations } from './search-citations.uts'
@@ -151,7 +150,7 @@ function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 		if (entry.saveRetryTimer == 0) entry.saveRetryTimer = setTimeout(() => { entry.saveRetryTimer = 0; persistCompleteEntry(entry) }, 120)
 		return
 	}
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (!isCurrent()) return
 		const stored = result['snapshot'] as RenderSnapshot | null
@@ -165,20 +164,6 @@ function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 		message.renderSnapshot = stored
 		entry.save?.(message)
 	})
-	// #endif
-	// #ifdef APP-HARMONY
-	let stored: RenderSnapshot | null = null
-	try { stored = persistRenderAssets(message._id, snapshot) } catch (error) { console.error('[render-snapshot] persist failed: ', error) }
-	if (!isCurrent()) return
-	if (stored == null) {
-		if (entry.saveRetryCount < 3) {
-			entry.saveRetryCount++
-			entry.saveRetryTimer = setTimeout(() => { entry.saveRetryTimer = 0; attempt() }, 1000 * entry.saveRetryCount)
-		} else console.error('[render-snapshot] asset save exhausted: ' + entry.messageId)
-		return
-	}
-	message.renderSnapshot = stored
-	entry.save?.(message)
 	// #endif
 	}
 	attempt()
@@ -205,7 +190,7 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 	const body = message.body
 	entry.body = body
 	return new Promise<void>((resolve) => {
-	// #ifdef APP-ANDROID
+	// #ifdef APP-ANDROID || APP-HARMONY
 	requestSnapshotWork({ action: 'restore', snapshot: snapshot, body: body } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (streamEntries.get(message._id) != entry || message.body != body || !entry.restoring) { resolve(); return }
 		entry.restoring = false
@@ -221,22 +206,6 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 		}
 		resolve()
 	})
-	// #endif
-	// #ifdef APP-HARMONY
-	let restored: RenderSnapshot | null = null
-	try { restored = restoreRenderAssets(snapshot, body) } catch (_error) { restored = null }
-	if (streamEntries.get(message._id) != entry || message.body != body || !entry.restoring) { resolve(); return }
-	entry.restoring = false
-	if (restored != null && restored.theme == presentationTheme && restored.width == presentationWidth) {
-		entry.textBlocks = restored.blocks
-		entry.restored = true
-		entry.done = true
-		notifyEntry(entry)
-	} else {
-		message.renderSnapshot = undefined
-		uniAiMdStreamRequestRebuild(message._id, body)
-	}
-	resolve()
 	// #endif
 	})
 	// #endif
