@@ -73,7 +73,7 @@ export class AiSnapshotWorkerTask extends WorkerTaskImpl {
 				this.postMessage({ id: id, messages: messages } as UTSJSONObject)
 				return
 			}
-			const snapshot = JSON.parse<RenderSnapshot>(JSON.stringify(request['snapshot']))!
+			const snapshot = request['snapshot'] as RenderSnapshot
 			const body = request['body'] as string
 			if (action == 'persist') {
 				snapshot.bodyKey = renderContentKey(body)

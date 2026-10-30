@@ -252,6 +252,57 @@ test('APP-HARMONY render assets persist and restore through the snapshot worker'
   assert.equal(uniAiMdStreamGetBlocks('restored')[0].html, '<p>hello</p>');
 });
 
+test('in-flight snapshot work is deduplicated without dropping a newer version', () => {
+  const work = [];
+  const saves = [];
+  const timers = new Map();
+  let timerId = 0;
+  const { persistCompleteEntry, streamEntries } = loadUts(
+    'uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
+    ['persistCompleteEntry', 'streamEntries'], {
+      ref: value => ({ value }), reactive: value => value, ...pure,
+      setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
+      clearTimeout: id => timers.delete(id),
+      requestSnapshotWork: (request, callback) => work.push({ request, callback }),
+      UniAiMdHtmlStreamAdapter: class { reset() {} },
+    }, ['APP', 'APP-HARMONY']);
+  const message = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
+  const entry = {
+    messageId: 'm', message, save: value => saves.push(value), textBlocks: [block()],
+    done: true, settled: true, restored: false, restoring: false, preparationVersion: 1,
+    savingVersion: -1, saveInFlightVersion: -1, saveRetryTimer: 0, saveRetryCount: 0,
+  };
+  streamEntries.set('m', entry);
+  persistCompleteEntry(entry);
+  persistCompleteEntry(entry);
+  assert.equal(work.length, 1);
+
+  entry.preparationVersion = 2;
+  entry.textBlocks = [block({ html: '<p>new</p>' })];
+  persistCompleteEntry(entry);
+  assert.equal(work.length, 2);
+  work[0].callback({ snapshot: snapshot([block()]) });
+  persistCompleteEntry(entry);
+  assert.equal(work.length, 2);
+  assert.equal(saves.length, 0);
+
+  work[1].callback({ snapshot: snapshot([block({ html: '<p>new</p>' })]) });
+  assert.equal(saves.length, 1);
+  persistCompleteEntry(entry);
+  assert.equal(work.length, 2);
+
+  message.renderSnapshot = undefined;
+  entry.preparationVersion = 3;
+  persistCompleteEntry(entry);
+  work[2].callback({ snapshot: null });
+  persistCompleteEntry(entry);
+  assert.equal(work.length, 3);
+  const retry = timers.get(entry.saveRetryTimer);
+  timers.clear();
+  retry();
+  assert.equal(work.length, 4);
+});
+
 test('restart restores final blocks without invoking parsing and prevents an overlapping rebuild', async () => {
   const api = store();
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello', renderSnapshot: snapshot([block()]) };

@@ -56,6 +56,7 @@ type UniAiMdStreamEntry = {
 	restored: boolean
 	restoring: boolean
 	savingVersion: number
+	saveInFlightVersion: number
 	saveRetryCount: number
 	saveRetryTimer: number
 	message: MsgItem | null
@@ -103,7 +104,7 @@ function entryFor(msgId: string): UniAiMdStreamEntry {
 		pendingOps: [],
 		pendingDone: false,
 		preparationQueued: false,
-		done: false, settled: false, restored: false, restoring: false, savingVersion: -1,
+		done: false, settled: false, restored: false, restoring: false, savingVersion: -1, saveInFlightVersion: -1,
 		saveRetryCount: 0, saveRetryTimer: 0,
 		message: null, save: null
 	}
@@ -126,7 +127,8 @@ function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 	// #ifdef APP-ANDROID || APP-HARMONY
 	const message = entry.message
 	if (message == null || entry.save == null || !entry.done || !entry.settled || entry.restored || entry.restoring || entry.textBlocks.length == 0) return
-	if (entry.savingVersion == entry.preparationVersion && message.renderSnapshot != null) return
+	if (entry.savingVersion == entry.preparationVersion &&
+		(message.renderSnapshot != null || entry.saveInFlightVersion == entry.preparationVersion || entry.saveRetryTimer != 0)) return
 	if (!entry.textBlocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
 		(block.kind != 'code' || block.text.replace(/\r\n/g, '\n') == (block.codeHighlightedText ?? '')) &&
 		(block.kind != 'math' || block.svgSource.length > 0 || (block.math?.src ?? '').length > 0) &&
@@ -151,7 +153,9 @@ function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 		return
 	}
 	// #ifdef APP-ANDROID || APP-HARMONY
+	entry.saveInFlightVersion = version
 	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
+		if (entry.saveInFlightVersion == version) entry.saveInFlightVersion = -1
 		if (!isCurrent()) return
 		const stored = result['snapshot'] as RenderSnapshot | null
 		if (stored == null) {
@@ -416,6 +420,7 @@ function rebuildRestoredEntry(entry: UniAiMdStreamEntry) {
 	entry.restoring = false
 	entry.preparationVersion = 0
 	entry.savingVersion = -1
+	entry.saveInFlightVersion = -1
 	entry.textBlocks = emptyBlocks()
 	if (entry.message != null) {
 		entry.message!.renderSnapshot = undefined
