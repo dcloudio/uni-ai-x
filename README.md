@@ -37,6 +37,79 @@
 4. 高级渲染与输出特性 
 支持 AI 回复内容的流式输出和原生 Markdown 格式渲染，内置高性能解析器，支持代码高亮和复杂文本结构展示
 
+Markdown 展示还支持任务列表、LaTeX 数学公式和 Mermaid 图表；宽表格可横向滚动，Android 端可直接拖选回复文字。
+
+### 与主流 AI 客户端对比
+
+以下横评聚焦 Android 和鸿蒙 App 的 Markdown 展示和流式渲染。
+
+**Android 功能对比**
+
+| 对比项 | uni-ai x | ChatGPT | Gemini | 豆包 | DeepSeek |
+|---|---|---|---|---|---|
+| 多语言代码高亮 | ✅ | ⚠️ | ❌ | ✅ | ✅ |
+| 图表展示 | ✅ | ⚠️ | ❌ | ✅ | ✅ |
+| 任务列表渲染 | ✅ | ❌ | ❌ | ✅ | ✅ |
+| 在回复页直接拖选文字 | ✅ | ✅ | ✅ | ✅ | ❌ |
+
+- ChatGPT 的图表需要手动点击触发。
+- DeepSeek 需要进入单独的选择界面才能选取回复文字。
+- uni-ai x 的代码高亮可扩展 VS Code 支持的编程语言，包括 ets、wxs、ajs、wxml 等。
+
+**鸿蒙功能对比**
+
+本次测试的五款客户端中，只有 uni-ai x 和豆包提供鸿蒙版本。
+
+| 对比项 | uni-ai x | 豆包 |
+|---|---|---|
+| 图表展示 | ✅ | ❌ |
+| 任务列表渲染 | ✅ | ❌ |
+
+**流式渲染性能**
+
+相同 Markdown 回复各测试 5 轮，uni-ai x 在 Android 和鸿蒙端的慢帧次数均最少。Android 端其他客户端的慢帧次数是 uni-ai x 的 8.09～46.61 倍，鸿蒙端豆包是 uni-ai x 的 9.97 倍。
+
+以 16.67ms 为慢帧门槛，表中次数为每轮平均值。两张表的倍数分别以该平台 uni-ai x 的慢帧次数为 1 计算。
+
+Android（小米 11 Pro）：
+
+| 应用 | 慢帧次数 | 慢帧平均耗时 | 慢帧次数倍数 |
+|---|---:|---:|---:|
+| uni-ai x | 15.2 | 28.47ms | 1 倍 |
+| DeepSeek | 123.0 | 34.40ms | 8.09 倍 |
+| Gemini | 282.4 | 51.04ms | 18.58 倍 |
+| ChatGPT | 368.4 | 34.47ms | 24.24 倍 |
+| 豆包 | 708.4 | 60.00ms | 46.61 倍 |
+
+鸿蒙（华为 nova 12）：
+
+| 应用 | 慢帧次数 | 慢帧平均耗时 | 慢帧次数倍数 |
+|---|---:|---:|---:|
+| uni-ai x | 73.4 | 51.60ms | 1 倍 |
+| 豆包 | 732.0 | 43.62ms | 9.97 倍 |
+
+测试版本、采集方法及逐轮数据详见：[uni-ai x 和ChatGPT、Gemini、豆包、DeepSeek的横评测试报告](https://mp.weixin.qq.com/s?__biz=MjM5NjExMjc4NA==&mid=2649706006&idx=1&sn=2f71ed851a04c9470de53871a4108165&chksm=bef5dee9898257ff0860c583fcfab18cb9e063b9f443380957f8a5161f730f1d64f6d45a7f3d)。
+
+**流式回复对比视频**
+
+从左至右：uni-ai x、Gemini、ChatGPT。
+
+<video src="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/uni-ai-x-pk-out.mp4" poster="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/uni-ai-x-pk-out.mp4?vframe/jpg/offset/3/w/640" style="width: 100%; max-width: 800px;" preload="none" controls></video>
+
+从左至右：uni-ai x、豆包、DeepSeek。
+
+<video src="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/uni-ai-x-pk-in.mp4" poster="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/uni-ai-x-pk-in.mp4?vframe/jpg/offset/3/w/640" style="width: 100%; max-width: 800px;" preload="none" controls></video>
+
+**长会话滚动与启动视频**
+
+长会话滚动：
+
+<video src="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/scroll.mp4" poster="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/scroll.mp4?vframe/jpg/offset/1/w/640" style="width: 100%; max-width: 400px;" preload="none" controls></video>
+
+App 启动：
+
+<video src="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/startup.mp4" poster="https://web-ext-storage.dcloud.net.cn/video/uni-ai-x/startup.mp4?vframe/jpg/offset/3/w/640" style="width: 100%; max-width: 400px;" preload="none" controls></video>
+
 各端效果如下截图，依次平台为：iOS、Android、鸿蒙<br/>
 <img width="200px" src="https://img-cdn-tx.dcloud.net.cn/stream/plugin_screens/69cf7a60-4b4d-11f0-acb4-1f9e73bd04f1_3.jpg/webp?&v=1752044804"/>
 <img width="260px" src="https://img-cdn-tx.dcloud.net.cn/stream/plugin_screens/69cf7a60-4b4d-11f0-acb4-1f9e73bd04f1_1.png/webp?&v=1752044564"/>
