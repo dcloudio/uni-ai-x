@@ -255,9 +255,17 @@ function styleOpenTags(source: string, tag: string, style: string): string {
 }
 
 function taskImageTag(checked: boolean): string {
+	// #ifdef APP-ANDROID
+	const size = '14'
+	const alignment = ''
+	// #endif
+	// #ifndef APP-ANDROID
+	const size = '16'
+	const alignment = 'vertical-align:middle;'
+	// #endif
 	const src = checked ? TASK_CHECKED_IMAGE_SRC : TASK_UNCHECKED_IMAGE_SRC
 	return '<img data-uni-ai-task="1" data-uni-ai-task-checked="' + (checked ? '1' : '0') +
-		'" src="' + src + '" width="16" height="16" style="width:16px;height:16px;vertical-align:middle;" />'
+		'" src="' + src + '" width="' + size + '" height="' + size + '" style="width:' + size + 'px;height:' + size + 'px;' + alignment + '" />'
 }
 
 function taskImageHtml(checked: boolean): string {
