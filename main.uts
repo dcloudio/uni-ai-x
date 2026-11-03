@@ -1,5 +1,8 @@
 import App from './App.uvue'
 // import '@/demo/markdown/install.uts' // 取消注释以启用 Markdown 演示模式
+import { installUniAssistant } from './uni-assistant-adapter.uts'
+
+installUniAssistant()
 
 import { createSSRApp } from 'vue'
 export function createApp() {

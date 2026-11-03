@@ -30,6 +30,12 @@ export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userin
  * 默认以第一个为默认模型
  */
 const llmModelMap = new Map<string, Provider>([
+	[
+		'Uni小助手', {
+			models: [{ modelId: 'doc-search', name: 'Uni 小助手' }],
+			baseURL: 'https://ai-assist-api-p.dcloud.net.cn/http/tbox/chatForUniAiStreamResponse'
+		}
+	],
 	// 七牛
 	[
 		'qiniu', {
