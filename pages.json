@@ -9,6 +9,7 @@
 				"disableScroll": true
 			}
 		},
+		// #ifdef APP || WEB
 		{
 			"path" : "uni_modules/uni-ai-x/pages/common/webview/webview",
 			"style" : 
@@ -16,6 +17,8 @@
 				"navigationStyle" : "custom"
 			}
 		},
+		// #endif
+		// #ifndef MP-WEIXIN
 		{
 			"path" : "uni_modules/uni-ai-x/pages/select-text/select-text",
 			"style" : 
@@ -23,6 +26,7 @@
 				"navigationBarTitleText" : "选择文本"
 			}
 		},
+		// #endif
 		// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
 		{
 			"path" : "uni_modules/uni-upgrade-center-app/pages/uni-app-x/upgrade-popup",
@@ -32,6 +36,21 @@
 		}
 		// #endif
 	],
+	// #ifdef MP-WEIXIN
+	"subPackages": [
+		{
+			"root": "uni_modules/uni-ai-x/pages/select-text",
+			"pages": [
+				{
+					"path": "select-text",
+					"style": {
+						"navigationBarTitleText": "选择文本"
+					}
+				}
+			]
+		}
+	],
+	// #endif
 	"globalStyle": {
 		"navigationBarTextStyle": "@navigationBarTextStyle",
 		"navigationBarTitleText": "uni-app x",

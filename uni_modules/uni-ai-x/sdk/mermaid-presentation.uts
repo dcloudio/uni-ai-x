@@ -1,8 +1,10 @@
 import { MsgItem } from '../types.uts'
+// #ifdef APP || WEB
 import proxyWeb from './proxy-web.uts'
+// #endif
 import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
-// #ifndef MP-WEIXIN
+// #ifdef APP || WEB
 import { renderMermaidSvgForTheme, renderMathSvgForTheme, ThemedSvgResult } from './themed-svg.uts'
 // #ifdef APP-ANDROID
 import { prepareHarmonySvgImageSource } from './harmony-svg-workaround.uts'
@@ -38,7 +40,7 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 			}
 			continue
 		}
-		// #ifndef MP-WEIXIN
+		// #ifdef APP || WEB
 			if (block.text.trim().length == 0) {
 				block.mermaidRenderFailed = true
 				if (block.kind == 'math') block.kind = 'data-text'
@@ -69,7 +71,7 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 
 // Called by message ingestion, history loading and theme changes, never by a view.
 export function prepareMermaidPresentation(msg: MsgItem, theme: string, currentTheme: CurrentTheme, save: SaveMessage) {
-	// #ifndef MP-WEIXIN
+	// #ifdef APP || WEB
 	const json = msg.markdownBlocks ?? ''
 	if (json.length == 0) return
 	let blocks: MarkdownHtmlBlock[]
