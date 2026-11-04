@@ -659,7 +659,7 @@ class UniAi {
 		} else {
 			this.setting.language = 'zh-CN'
 		}
-		const llmJson = raw.getJSON('llm')
+		const llmJson = raw['llm'] as UTSJSONObject | null
 		if (llmJson == null) return
 		const providerValue = llmJson['provider'] as string | null
 		const modelValue = llmJson['model'] as string | null
