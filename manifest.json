@@ -2,7 +2,7 @@
 	"name": "uni-ai-x",
 	"appid": "__UNI__C50103A",
 	"description": "",
-	"versionName": "3.0.3",
+	"versionName": "3.1.6",
 	"versionCode": "26092301",
 	"uni-app-x": {
 		"vapor": true,
@@ -15,7 +15,7 @@
 	/* 小程序特有相关 */
 	"mp-weixin": {
 		"darkmode": true,
-		"appid": "",
+		"appid": "wx07597007230e3702",
 		"setting": {
 			"urlCheck": false
 		},
