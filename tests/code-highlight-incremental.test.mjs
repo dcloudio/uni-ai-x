@@ -22,7 +22,7 @@ function setup() {
     }
     releaseSession(id) { released.push(id); states.delete(id); }
   }
-  const api = loadUts('uni_modules/uni-ai-x/sdk/parseCode.uts',
+  const api = loadUts('uni_modules/uni-ai-x/sdk/parseCode-textmate.uts',
     ['requestCachedCodeText', 'releaseCodeHighlightSessions', 'clearCodeHighlightCache', 'completedCodeCache', 'codeCacheWeight', 'highlightSessions'], {
       CreateHighLighter, MarkdownToken: {},
       uni: { getFileSystemManager: () => ({ readFileSync: path => readFileSync(new URL('..' + path, import.meta.url), 'utf8') }) },
