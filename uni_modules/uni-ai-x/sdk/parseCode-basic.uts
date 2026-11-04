@@ -1,0 +1,71 @@
+import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
+import basicHighlighter from '@/uni_modules/uni-highlight/utssdk/mp-weixin/basic-code-tokenizer.js'
+import { measureCodePerformance } from './code-performance.uts'
+
+export { MarkdownToken }
+export type ParseCodeTextRes = {
+	lines: MarkdownToken[][],
+	language: string,
+	error: string | null
+}
+export type ParseCodeTextCallBack = (result: ParseCodeTextRes) => void
+
+type CachedCode = { source: string, lines: MarkdownToken[][], weight: number }
+const completedCodeCache = new Map<string, CachedCode>()
+const maxCodeCacheEntries = 64
+const maxCodeCacheWeight = 2 * 1024 * 1024
+let codeCacheWeight = 0
+
+function highlight(source: string, language: string): MarkdownToken[][] {
+	return basicHighlighter.tokenizeCode(source, language) as MarkdownToken[][]
+}
+
+export function releaseCodeHighlightSessions(messageId: string, finishPending: boolean = false) {
+	const prefix = messageId + '\u001f'
+	const keys: string[] = []
+	completedCodeCache.forEach((_value: CachedCode, key: string) => {
+		if (key.startsWith(prefix)) keys.push(key)
+	})
+	for (const key of keys) removeCachedCode(key)
+}
+
+export function clearCodeHighlightCache(finishPending: boolean = false) {
+	completedCodeCache.clear()
+	codeCacheWeight = 0
+}
+
+function removeCachedCode(key: string) {
+	const cached = completedCodeCache.get(key)
+	if (cached != null) codeCacheWeight -= cached.weight
+	completedCodeCache.delete(key)
+}
+
+export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId: string,
+	blockKey: string, codeText: string, language: string): boolean {
+	const normalizedLanguage = language == 'js' ? 'javascript' : language
+	const key = messageId + '\u001f' + blockKey + '\u001f' + normalizedLanguage
+	const cached = completedCodeCache.get(key)
+	if (cached != null && cached.source == codeText) {
+		callback({ lines: cached.lines, language: normalizedLanguage, error: null })
+		return true
+	}
+	const lines = highlight(codeText, normalizedLanguage)
+	let weight = codeText.length * 2
+	for (const line of lines) for (const token of line) weight += ((token.text ?? '').length + (token.className ?? '').length) * 2 + 64
+	removeCachedCode(key)
+	completedCodeCache.set(key, { source: codeText, lines, weight })
+	codeCacheWeight += weight
+	while (completedCodeCache.size > maxCodeCacheEntries || codeCacheWeight > maxCodeCacheWeight) {
+		const oldest = completedCodeCache.keys().next().value as string
+		removeCachedCode(oldest)
+	}
+	callback({ lines, language: normalizedLanguage, error: null })
+	return false
+}
+
+export function parseCodeText(callback: ParseCodeTextCallBack, codeSource: string, language: string) {
+	const startedAt = Date.now()
+	const normalizedLanguage = language == 'js' ? 'javascript' : language
+	callback({ lines: highlight(codeSource, normalizedLanguage), language: normalizedLanguage, error: null })
+	measureCodePerformance('parseCodeText', startedAt, normalizedLanguage)
+}
