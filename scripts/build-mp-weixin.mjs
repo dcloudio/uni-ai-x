@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
-import { copyFileSync, existsSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 // basic is the default for all mini programs. For a WeChat full build, use
@@ -49,12 +49,20 @@ function publish() {
 }
 
 let staged = false
+let stagedDirectory = false
+let selectorChanged = false
+let mpApiChanged = false
 try {
   if (mode === 'full') {
+    const wasmDirectory = dirname(wasmTarget)
+    stagedDirectory = !existsSync(wasmDirectory)
+    if (stagedDirectory) mkdirSync(wasmDirectory, { recursive: true })
     copyFileSync(wasmSource, wasmTarget)
     staged = true
     writeFileSync(selectorPath, original.replace(basicSelection, fullSelection))
+    selectorChanged = true
     copyFileSync(mpFullApiPath, mpApiPath)
+    mpApiChanged = true
   }
   await publish()
   const hasWasm = existsSync(resolve(buildRoot, 'uni_modules/uni-highlight/static/_onig.wasm'))
@@ -66,14 +74,20 @@ try {
   console.log(`${mode} mini program: ${fileBytes(buildRoot)} bytes`)
 } finally {
   if (mode === 'full') {
-    if (readFileSync(mpApiPath, 'utf8') === readFileSync(mpFullApiPath, 'utf8')) writeFileSync(mpApiPath, originalMpApi)
-    else console.error('MP API changed during build; preserving the newer content')
-    const selected = original.replace(basicSelection, fullSelection)
-    if (readFileSync(selectorPath, 'utf8') === selected) writeFileSync(selectorPath, original)
-    else console.error('parseCode.uts changed during build; preserving the newer content')
+    if (mpApiChanged) {
+      if (readFileSync(mpApiPath, 'utf8') === readFileSync(mpFullApiPath, 'utf8')) writeFileSync(mpApiPath, originalMpApi)
+      else console.error('MP API changed during build; preserving the newer content')
+    }
+    if (selectorChanged) {
+      const selected = original.replace(basicSelection, fullSelection)
+      if (readFileSync(selectorPath, 'utf8') === selected) writeFileSync(selectorPath, original)
+      else console.error('parseCode.uts changed during build; preserving the newer content')
+    }
     if (staged && existsSync(wasmTarget)) {
       if (statSync(wasmTarget).size === statSync(wasmSource).size) unlinkSync(wasmTarget)
       else console.error('Staged WASM changed during build; preserving the newer file')
     }
+    const wasmDirectory = dirname(wasmTarget)
+    if (stagedDirectory && existsSync(wasmDirectory) && readdirSync(wasmDirectory).length === 0) rmdirSync(wasmDirectory)
   }
 }
