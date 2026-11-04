@@ -1,16 +1,40 @@
 <template>
-	<view class="launch-page"></view>
+	<view class="launch-page">
+		<text v-if="!loadFailed" class="launch-status">正在打开会话...</text>
+		<view v-else class="launch-error">
+			<text class="launch-status">暂时无法打开会话</text>
+			<button class="launch-retry" @click="openChat">重试</button>
+		</view>
+	</view>
 </template>
 
 <script lang="uts" setup>
-	onReady(() => {
-		uni.redirectTo({ url: '/uni_modules/uni-ai-x/pages/index/index' })
-	})
+	const loadFailed = ref(false)
+	const openChat = () => {
+		loadFailed.value = false
+		uni.redirectTo({
+			url: '/uni_modules/uni-ai-x/pages/index/index',
+			fail: () => { loadFailed.value = true }
+		})
+	}
+	onReady(openChat)
 </script>
 
 <style>
 	.launch-page {
 		flex: 1;
+		align-items: center;
+		justify-content: center;
 		background-color: #ffffff;
+	}
+	.launch-error {
+		align-items: center;
+	}
+	.launch-status {
+		color: #555555;
+		font-size: 14px;
+	}
+	.launch-retry {
+		margin-top: 16px;
 	}
 </style>

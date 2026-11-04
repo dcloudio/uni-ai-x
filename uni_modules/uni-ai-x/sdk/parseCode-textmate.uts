@@ -36,7 +36,7 @@ import { CreateHighLighterRes, ILineTokens } from '@/uni_modules/uni-highlight/u
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 // #ifdef MP-WEIXIN
-import grammarBundle from './grammar-bundle.js'
+import grammarBundle, { grammarBundleId } from './grammar-bundle.js'
 // #endif
 export { MarkdownToken }
 export type ParseCodeTextRes = {
@@ -331,10 +331,27 @@ function getTmlFile(filePaths: TmlFile[]) {
 // before loading TextMate grammars without any network request.
 function loadMiniProgramGrammars(): Promise<any> {
 	const fileManager = uni.getFileSystemManager()
-	const targetPath = uni.env.USER_DATA_PATH + '/uni-ai-x-grammars-v1'
+	const targetPath = uni.env.USER_DATA_PATH + '/uni-ai-x-grammars'
+	const versionPath = targetPath + '/.bundle-id'
 	const zipPath = targetPath + '.zip'
+	const readGrammars = () => {
+		const grammars = {}
+		grammarList.forEach((language) => {
+			const filename = language == 'javascriptReact' ? 'Javascript-react' : language
+			const content = fileManager.readFileSync(targetPath + '/' + filename + '.tmLanguage.json', 'utf-8') as string
+			grammars[language] = JSON.parse(content)
+		})
+		return grammars
+	}
 	return new Promise<any>((resolve, reject) => {
 		try {
+			if (fileManager.readFileSync(versionPath, 'utf-8') == grammarBundleId) {
+				resolve(readGrammars())
+				return
+			}
+		} catch (_) { }
+		try {
+			try { fileManager.rmdirSync(targetPath, true) } catch (_) { }
 			fileManager.mkdirSync(targetPath, true)
 			fileManager.writeFileSync(zipPath, grammarBundle, 'base64')
 			fileManager.unzip({
@@ -342,12 +359,9 @@ function loadMiniProgramGrammars(): Promise<any> {
 				targetPath,
 				success: () => {
 					try {
-						const grammars = {}
-						grammarList.forEach((language) => {
-							const filename = language == 'javascriptReact' ? 'Javascript-react' : language
-							const content = fileManager.readFileSync(targetPath + '/' + filename + '.tmLanguage.json', 'utf-8') as string
-							grammars[language] = JSON.parse(content)
-						})
+						const grammars = readGrammars()
+						fileManager.writeFileSync(versionPath, grammarBundleId, 'utf-8')
+						try { fileManager.unlinkSync(zipPath) } catch (_) { }
 						resolve(grammars)
 					} catch (error) { reject(error) }
 				},
@@ -411,6 +425,7 @@ function initUniCodeHighlighter(callBack: () => void, onError: (message: string)
 			callBack()
 		}).catch((error: any) => {
 			highlighterInitialization = null
+			console.error('[uni-ai-x] TextMate 初始化失败', error)
 			onError(error.message ?? '代码高亮初始化失败')
 		})
 		// #endif

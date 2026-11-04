@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,8 +51,24 @@ function publish() {
     const child = spawn(cli, [
       'publish', 'mp-weixin', '--project', root, '--appid', appid, '--upload', 'false'
     ], { cwd: root, stdio: 'inherit' })
-    child.on('error', rejectRun)
-    child.on('exit', code => code === 0 ? resolveRun() : rejectRun(new Error(`HBuilderX exited with ${code}`)))
+    let interrupted = false
+    const stop = () => {
+      if (interrupted) return
+      interrupted = true
+      child.kill('SIGTERM')
+      setTimeout(() => child.kill('SIGKILL'), 5000).unref()
+    }
+    const cleanup = () => {
+      process.off('SIGINT', stop)
+      process.off('SIGTERM', stop)
+    }
+    process.on('SIGINT', stop)
+    process.on('SIGTERM', stop)
+    child.on('error', error => { cleanup(); rejectRun(error) })
+    child.on('exit', code => {
+      cleanup()
+      code === 0 && !interrupted ? resolveRun() : rejectRun(new Error(`HBuilderX exited with ${code}`))
+    })
   })
 }
 
@@ -69,7 +86,9 @@ try {
     if (stagedDirectory) mkdirSync(wasmDirectory, { recursive: true })
     copyFileSync(wasmSource, wasmTarget)
     staged = true
-    grammarBundleSource = `export default '${readFileSync(grammarArchivePath).toString('base64')}'\n`
+    const archive = readFileSync(grammarArchivePath)
+    const grammarBundleId = createHash('sha256').update(archive).digest('hex').slice(0, 12)
+    grammarBundleSource = `export const grammarBundleId = '${grammarBundleId}'\nexport default '${archive.toString('base64')}'\n`
     writeFileSync(grammarBundlePath, grammarBundleSource)
     grammarBundleStaged = true
     writeFileSync(selectorPath, original.replace(basicSelection, fullSelection))
