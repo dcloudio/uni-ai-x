@@ -1,5 +1,5 @@
-// Default mini-program API. The full WeChat build temporarily replaces this
-// file with index-textmate.uts and stages its Oniguruma WASM via build-mp-weixin.mjs.
+// Default mini-program API. The WeChat mode selector replaces this file with
+// index-textmate.uts and stages its Oniguruma WASM for full mode.
 import basicHighlighter from './basic-code-tokenizer.js'
 
 export interface IToken {

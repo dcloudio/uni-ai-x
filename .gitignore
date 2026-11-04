@@ -6,6 +6,7 @@ uni_modules.config.json
 .DS_Store
 node_modules
 /unpackage/
+/scripts/.mp-weixin-mode.json
 uniCloud-alipay/database/newQuery.jql
 package-lock.json
 *.yaml

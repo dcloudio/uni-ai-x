@@ -1,11 +1,10 @@
 // All mini programs use the small tokenizer by default; App and Web keep TextMate.
-// Build WeChat basic: node scripts/build-mp-weixin.mjs basic
-// Build WeChat full TextMate: node scripts/build-mp-weixin.mjs full
-// Use the script for full mode: it switches both this export and the uni-highlight MP API,
-// stages Oniguruma WASM, compressed grammars and the chat subpackage config,
-// then restores the basic source after publishing.
+// Select WeChat basic: node scripts/select-mp-weixin-mode.mjs basic
+// Select WeChat full TextMate: node scripts/select-mp-weixin-mode.mjs full
+// The selector switches this export, the uni-highlight MP API, WASM, grammars
+// and chat subpackage config. Select basic again after publishing full mode.
 // #ifdef MP
-// The build script enables this export together with the full MP API and WASM.
+// The selector enables this export together with the full MP API and WASM.
 export * from './parseCode-basic.uts'
 // export * from './parseCode-textmate.uts'
 // #endif

@@ -1,4 +1,4 @@
-// Full mini-program API, staged as index.uts only by build-mp-weixin.mjs full.
+// Full mini-program API, staged as index.uts by select-mp-weixin-mode.mjs full.
 import * as vsctm from '../../common/uni-textmate/main';
 import onig from './onig/main.js';
 // import javascriptGrammar from '../../static/grammar/javascript.tmLanguage.json';
