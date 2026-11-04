@@ -2,7 +2,8 @@
 // Build WeChat basic: node scripts/build-mp-weixin.mjs basic
 // Build WeChat full TextMate: node scripts/build-mp-weixin.mjs full
 // Use the script for full mode: it switches both this export and the uni-highlight MP API,
-// stages Oniguruma WASM, then restores the basic source after publishing.
+// stages Oniguruma WASM, compressed grammars and the chat subpackage config,
+// then restores the basic source after publishing.
 // #ifdef MP
 // The build script enables this export together with the full MP API and WASM.
 export * from './parseCode-basic.uts'

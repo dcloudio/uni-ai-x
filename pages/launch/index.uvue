@@ -1,0 +1,16 @@
+<template>
+	<view class="launch-page"></view>
+</template>
+
+<script lang="uts" setup>
+	onReady(() => {
+		uni.redirectTo({ url: '/uni_modules/uni-ai-x/pages/index/index' })
+	})
+</script>
+
+<style>
+	.launch-page {
+		flex: 1;
+		background-color: #ffffff;
+	}
+</style>

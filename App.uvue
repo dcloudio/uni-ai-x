@@ -1,5 +1,7 @@
 <script lang="uts">
+	// #ifndef MP
 	import { installOpenClaw } from '@/uni_modules/uni-ai-x-openClaw/install.uts'
+	// #endif
 	let firstBackTime = 0
 	export default {
 		onLaunch: function () {

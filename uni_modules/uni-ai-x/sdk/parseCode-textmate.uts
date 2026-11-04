@@ -1,6 +1,6 @@
 const grammarList = ['javascript', 'python', 'typescript', 'javascriptReact', 'html', 'css', 'cpp', 'dart', 'go', 'java', 'lua', 'php', 'r', 'sql', 'json', 'jsonc', 'jsonl', 'c', 'cuda-cpp', 'xml', 'xsl']
 // Import all grammar files - start
-// #ifndef APP-ANDROID || APP-HARMONY
+// #ifndef APP-ANDROID || APP-HARMONY || MP-WEIXIN
 import javascriptGrammar from '@/static/app/uni-highlight-grammar/javascript.tmLanguage.json'
 import pythonGrammar from '@/static/app/uni-highlight-grammar/python.tmLanguage.json'
 import javascriptReactGrammar from '@/static/app/uni-highlight-grammar/Javascript-react.tmLanguage.json'
@@ -35,6 +35,9 @@ import { createHighLighter } from "@/uni_modules/uni-highlight"
 import { CreateHighLighterRes, ILineTokens } from '@/uni_modules/uni-highlight/utssdk/interface.uts'
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
+// #ifdef MP-WEIXIN
+import grammarBundle from './grammar-bundle.js'
+// #endif
 export { MarkdownToken }
 export type ParseCodeTextRes = {
 	lines: MarkdownToken[][],
@@ -323,9 +326,41 @@ function getTmlFile(filePaths: TmlFile[]) {
 	return res
 }
 
+// #ifdef MP-WEIXIN
+// The mini program can unzip user files, so stage the bundled archive there
+// before loading TextMate grammars without any network request.
+function loadMiniProgramGrammars(): Promise<any> {
+	const fileManager = uni.getFileSystemManager()
+	const targetPath = uni.env.USER_DATA_PATH + '/uni-ai-x-grammars-v1'
+	const zipPath = targetPath + '.zip'
+	return new Promise<any>((resolve, reject) => {
+		try {
+			fileManager.mkdirSync(targetPath, true)
+			fileManager.writeFileSync(zipPath, grammarBundle, 'base64')
+			fileManager.unzip({
+				zipFilePath: zipPath,
+				targetPath,
+				success: () => {
+					try {
+						const grammars = {}
+						grammarList.forEach((language) => {
+							const filename = language == 'javascriptReact' ? 'Javascript-react' : language
+							const content = fileManager.readFileSync(targetPath + '/' + filename + '.tmLanguage.json', 'utf-8') as string
+							grammars[language] = JSON.parse(content)
+						})
+						resolve(grammars)
+					} catch (error) { reject(error) }
+				},
+				fail: (error) => { reject(error) }
+			})
+		} catch (error) { reject(error) }
+	})
+}
+// #endif
+
 function initUniCodeHighlighter(callBack: () => void, onError: (message: string) => void){
 	if (uniCodeHighlighter == null) {
-		// #ifndef APP-ANDROID || APP-HARMONY
+		// #ifndef APP-ANDROID || APP-HARMONY || MP-WEIXIN
 		// 根据 grammarList 生成tmls
 		const tmls = {
 			javascript: javascriptGrammar,
@@ -366,7 +401,11 @@ function initUniCodeHighlighter(callBack: () => void, onError: (message: string)
 		callBack()
 		// #endif
 		// #ifndef APP
+		// #ifdef MP-WEIXIN
+		if (highlighterInitialization == null) highlighterInitialization = loadMiniProgramGrammars().then((grammars: any) => createHighLighter({ languages: grammars }))
+		// #else
 		if (highlighterInitialization == null) highlighterInitialization = createHighLighter({ languages: tmls })
+		// #endif
 		highlighterInitialization!.then((highlighter) => {
 			uniCodeHighlighter = highlighter
 			callBack()
