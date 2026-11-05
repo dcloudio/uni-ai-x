@@ -58,14 +58,13 @@ const llmModelMap = new Map<string, Provider>([
 				try {
 					const getTmpTokenRes = await uniAiChatCo.getTmpToken({provider: "qiniu"})
 					if (getTmpTokenRes.errCode != 0) {
-						throw new Error('获取临时token失败')
+						throw new Error('获取临时token失败: ' + getTmpTokenRes.errCode + ' ' + getTmpTokenRes.errMsg)
 					}
 					const tokenData = getTmpTokenRes['data'] as UTSJSONObject | null
 					const tmpToken = tokenData == null ? '' : (tokenData['token'] as string | null) ?? ''
 					return tmpToken
 				} catch (e: any) {
-					// const error = JSON.parse<UniCloudError>(JSON.stringify(e)) as UniCloudError
-					// console.error('uni-ai-x-co 请求失败', error, error.message)
+					console.error('uni-ai-x-co 请求失败', e?.errCode ?? '', e?.errMsg ?? e?.message ?? '')
 					throw new Error('获取临时token失败')
 				}
 				
