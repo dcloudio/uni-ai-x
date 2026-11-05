@@ -60,7 +60,8 @@ const llmModelMap = new Map<string, Provider>([
 					if (getTmpTokenRes.errCode != 0) {
 						throw new Error('获取临时token失败')
 					}
-					const tmpToken = getTmpTokenRes.getString('data.token', '')
+					const tokenData = getTmpTokenRes['data'] as UTSJSONObject | null
+					const tmpToken = tokenData == null ? '' : (tokenData['token'] as string | null) ?? ''
 					return tmpToken
 				} catch (e: any) {
 					// const error = JSON.parse<UniCloudError>(JSON.stringify(e)) as UniCloudError
@@ -104,7 +105,8 @@ const llmModelMap = new Map<string, Provider>([
 					if (getTmpTokenRes.errCode != 0) {
 						throw new Error('获取临时token失败')
 					}
-					const tmpToken = getTmpTokenRes.getString('data.token', '')
+					const tokenData = getTmpTokenRes['data'] as UTSJSONObject | null
+					const tmpToken = tokenData == null ? '' : (tokenData['token'] as string | null) ?? ''
 					return tmpToken
 				} catch (e: any) {
 					// const error = JSON.parse<UniCloudError>(JSON.stringify(e)) as UniCloudError

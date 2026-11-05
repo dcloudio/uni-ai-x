@@ -52,7 +52,7 @@ export function destroySession(handle: object): void {
 
 /** 从会话句柄对象里取出会话 id（Kotlin 侧按 Int 接收）。 */
 function readSessionId(handle: object): Int {
-	const id = (handle as UTSJSONObject).getNumber('id')
+	const id = (handle as UTSJSONObject)['id'] as number | null
 	if (id == null) {
 		throw new Error('invalid uni-ai-md session handle')
 	}
