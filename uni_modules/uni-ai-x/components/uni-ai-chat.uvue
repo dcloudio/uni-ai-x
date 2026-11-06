@@ -892,8 +892,9 @@
 .chat-box-add-chat {
 	position: absolute;
 	bottom: 150px;
-	left: 0;
-	width: 100%;
+	left: 50%;
+	margin-left: -55px;
+	width: 110px;
 	flex-direction: row;
 	justify-content: center;
 	z-index: 20;
