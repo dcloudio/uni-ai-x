@@ -4,6 +4,7 @@ export type LLMModel = {
 	// 选择界面展示的模型名，未配置时展示 modelId
 	name?: string,
 	thinking?: boolean,
+	toolCall?: boolean,
 	image?: boolean,
 	video?: boolean,
 	audio?: boolean
