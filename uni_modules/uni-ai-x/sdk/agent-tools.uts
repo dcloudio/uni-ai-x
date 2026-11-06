@@ -266,10 +266,11 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			const modelConfig = provider.models.find((entry) => entry.modelId == model)
 			const tools = modelConfig?.toolCall == true ? toolDefinitions() : [] as UTSJSONObject[]
 			const systemContent = tools.length > 0
-				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求：云端天气查询和本地日程提醒可同时出现。天气必须调用 get_weather，城市不明确时先询问。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答天气等已完成的需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
+				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求；只有用户询问天气时才调用 get_weather，用户没有要求天气时不要主动提及天气。用户要求天气但城市不明确时先询问。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答已完成的其他需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
 				: `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。`
 			history.unshift({ role: 'system', content: systemContent } as UTSJSONObject)
 			let calendarCalled = false
+			let weatherCalled = false
 			let pendingCalendar: CalendarToolConfirmation | null = null
 			for (let round = 0; round < 5; round++) {
 				const body: UTSJSONObject = {
@@ -315,7 +316,13 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					}
 					// #endif
 					const result = await executeTool(name, args)
+					if (name == 'get_weather') weatherCalled = true
 					history.push({ role: 'tool', tool_call_id: call['id'], content: result } as UTSJSONObject)
+				}
+				if (pendingCalendar != null && !weatherCalled) {
+					callbacks.onToolConfirm?.(pendingCalendar!)
+					callbacks.onDone?.({})
+					return true
 				}
 			}
 			throw new Error('工具调用轮数超过上限')
