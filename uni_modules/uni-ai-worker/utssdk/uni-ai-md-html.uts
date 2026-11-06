@@ -244,6 +244,10 @@ export class UniAiMdHtmlStreamAdapter {
 	private tailKind: string = ''
 	private tailContent: string = ''
 	private tailIndex: number = -1
+	private committedHtmlIndex: number = -1
+	private provisionalHtmlIndex: number = -1
+	private provisionalEntryCount: number = 0
+	private provisionalLastHtml: string = ''
 	private blocks: UniAiMdHtmlRenderBlock[] = []
 	private dirty: boolean = true
 	private pendingSource: string = ''
@@ -262,12 +266,23 @@ export class UniAiMdHtmlStreamAdapter {
 				applied = true
 				continue
 			}
+			if (op.kind == 'html') {
+				if (op.index <= this.committedHtmlIndex || (this.provisionalHtmlIndex >= 0 && op.index < this.provisionalHtmlIndex)) continue
+				if (this.provisionalHtmlIndex >= 0) {
+					if (op.index == this.provisionalHtmlIndex) this.discardProvisionalHtml()
+					else {
+						this.committedHtmlIndex = this.provisionalHtmlIndex
+						this.provisionalHtmlIndex = -1
+						}
+				}
+			}
 			if (op.op == 1) {
 				// 稳定块交付会替换/接续当前未闭合尾块：残留尾块按被替换处理，直接丢弃
 				this.clearTail()
 				if (op.kind == 'data') {
 					this.appendData(op.content, op.index)
 				} else {
+					if (op.kind == 'html') this.rememberProvisionalHtml(op.index)
 					this.appendHtml(op.content)
 				}
 				applied = true
@@ -283,6 +298,7 @@ export class UniAiMdHtmlStreamAdapter {
 				}
 			} else if (op.op == 3) {
 				this.commitHtml(op.content, op.index)
+				if (op.kind == 'html') this.committedHtmlIndex = op.index
 			} else {
 				this.tailKind = 'html'
 				this.tailContent = op.content
@@ -294,10 +310,10 @@ export class UniAiMdHtmlStreamAdapter {
 		return applied
 	}
 
-	// 消息完成兜底：正常流式下 finish 已提交全部尾块，此处仅防御未闭合残块
+	// HTML 的最终块可能晚于完成通知；保留尾块，等待同序号提交替换。
 	markComplete(): void {
 		this.pendingSource = ''
-		this.finalizeTail()
+		if (this.tailKind == 'data') this.finalizeTail()
 		this.dirty = true
 	}
 
@@ -363,6 +379,10 @@ export class UniAiMdHtmlStreamAdapter {
 		this.pendingSource = ''
 		this.entries = [] as UniAiMdHtmlRenderBlock[]
 		this.clearTail()
+		this.committedHtmlIndex = -1
+		this.provisionalHtmlIndex = -1
+		this.provisionalEntryCount = 0
+		this.provisionalLastHtml = ''
 		this.blocks = [] as UniAiMdHtmlRenderBlock[]
 		this.dirty = true
 	}
@@ -375,6 +395,18 @@ export class UniAiMdHtmlStreamAdapter {
 		this.tailKind = ''
 		this.tailContent = ''
 		this.tailIndex = -1
+	}
+
+	private rememberProvisionalHtml(index: number): void {
+		this.provisionalHtmlIndex = index
+		this.provisionalEntryCount = this.entries.length
+		this.provisionalLastHtml = this.entries.length > 0 ? this.entries[this.entries.length - 1].html : ''
+	}
+
+	private discardProvisionalHtml(): void {
+		this.entries = this.entries.slice(0, this.provisionalEntryCount)
+		if (this.entries.length > 0) this.entries[this.entries.length - 1].html = this.provisionalLastHtml
+		this.provisionalHtmlIndex = -1
 	}
 
 	private finalizeTail(): void {
