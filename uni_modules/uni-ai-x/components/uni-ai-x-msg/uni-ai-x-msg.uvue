@@ -149,8 +149,31 @@
 		return uniAi.lastAiMsg?._id == msg.value._id
 	})
 
+	const toolbarDelayReady = ref<boolean>(false)
+	let toolbarDelayTimer = 0
+	watch(() => msg.value._id + ':' + msg.value.rendered.toString() + ':' + state.value + ':' + isLastAiMsg.value.toString(), () => {
+		if (toolbarDelayTimer != 0) {
+			clearTimeout(toolbarDelayTimer)
+			toolbarDelayTimer = 0
+		}
+		if (!isLastAiMsg.value || state.value == 'stop') {
+			toolbarDelayReady.value = true
+			return
+		}
+		toolbarDelayReady.value = false
+		if (state.value != 'processing' && msg.value.rendered) {
+			toolbarDelayTimer = setTimeout(() => {
+				toolbarDelayTimer = 0
+				toolbarDelayReady.value = true
+			}, 2000)
+		}
+	}, { immediate: true })
+	onUnmounted(() => {
+		if (toolbarDelayTimer != 0) clearTimeout(toolbarDelayTimer)
+	})
+
 	const shouldShowToolBar = computed<boolean>(() => {
-		return msg.value.toolConfirmation == null && messageToolBarVisible.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
+		return msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
 	})
 
 	const msgSegmentStyle = 'width:100%;min-height:0;box-sizing:border-box;padding-left:45px;padding-right:45px;'
