@@ -70,7 +70,7 @@ function linkTextReferences(text: string, sources: number[]): string {
 		if (close < 0) { result += text.slice(cursor); break }
 		const value = text.slice(open + 1, close)
 		const match = text.slice(open, close + 1)
-		if (/^[1-9][0-9]*$/.test(value) && sources.includes(parseInt(value))) result += '<a href="' + CITATION_PREFIX + value + '" style="color:#5082c8;font-size:12px;">' + match + '</a>'
+		if (/^[1-9][0-9]*$/.test(value) && sources.includes(parseInt(value))) result += text.slice(cursor, open) + '<a href="' + CITATION_PREFIX + value + '" style="color:#5082c8;font-size:12px;">' + match + '</a>'
 		else result += text.slice(cursor, close + 1)
 		cursor = close + 1
 	}
