@@ -1,6 +1,7 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
-import { Chunk, CustomProviderAdapter, CustomProviderCallbacks, CalendarToolConfirmation, RequestAiCoMessage } from '@/uni_modules/uni-ai-x/types.uts'
+import { Chunk, ChunkToolCall, CustomProviderAdapter, CustomProviderCallbacks, CalendarToolConfirmation, RequestAiCoMessage } from '@/uni_modules/uni-ai-x/types.uts'
 import { registerCustomProvider } from './provider-registry.uts'
+import { SseStreamParser } from './sse.uts'
 
 type ToolEntry = {
 	name: string,
@@ -137,27 +138,72 @@ function toolDefinitions(): UTSJSONObject[] {
 	} as UTSJSONObject))
 }
 
-function requestModel(url: string, token: string, data: UTSJSONObject): Promise<UTSJSONObject> {
+function requestModel(url: string, token: string, data: UTSJSONObject, callbacks: CustomProviderCallbacks): Promise<UTSJSONObject> {
 	return new Promise<UTSJSONObject>((resolve, reject) => {
-		uni.request({
+		let settled = false
+		let chunkReceived = false
+		let content = ''
+		const calls = new Map<number, UTSJSONObject>()
+		const parser = new SseStreamParser((chunk: Chunk) => {
+			if (settled) return
+			const delta = chunk.choices?.[0]?.delta
+			if (delta == null) return
+			const text = delta.content ?? ''
+			if (text.length > 0) content += text
+			if (text.length > 0 || (delta.reasoning_content ?? '').length > 0) callbacks.onChunk?.(chunk)
+			const fragments = delta.tool_calls ?? [] as ChunkToolCall[]
+			fragments.forEach((fragment: ChunkToolCall) => {
+				const index = fragment.index
+				const call = calls.get(index) ?? { id: '', type: 'function', function: { name: '', arguments: '' } } as UTSJSONObject
+				if (fragment.id != null) call['id'] = fragment.id
+				if (fragment.type != null) call['type'] = fragment.type
+				const fn = call['function'] as UTSJSONObject
+				if (fragment.function?.name != null) fn['name'] = (fn['name'] as string) + fragment.function!.name!
+				if (fragment.function?.arguments != null) fn['arguments'] = (fn['arguments'] as string) + fragment.function!.arguments!
+				calls.set(index, call)
+			})
+		}, (error: UTSJSONObject) => {
+			if (settled) return
+			settled = true
+			reject(new Error((error['message'] as string | null) ?? '模型流式响应失败'))
+		}, () => {
+			if (settled) return
+			settled = true
+			const toolCalls: UTSJSONObject[] = []
+			Array.from(calls.keys()).sort((a, b) => a - b).forEach((index: number) => { toolCalls.push(calls.get(index)!) })
+			resolve({ choices: [{ message: { role: 'assistant', content: content, tool_calls: toolCalls } }] } as UTSJSONObject)
+		})
+		const task = uni.request({
 			url: url,
 			method: 'POST',
-			dataType: 'json',
+			dataType: 'text',
+			// @ts-ignore enableChunked is available on Web and App request tasks.
+			enableChunked: true,
 			timeout: 90000,
 			data: data,
 			header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
 			success: (response: RequestSuccess<any>) => {
 				if (response.statusCode < 200 || response.statusCode >= 300) {
-					reject(new Error('模型请求失败（HTTP ' + response.statusCode.toString() + '）'))
+					if (!settled) {
+						settled = true
+						reject(new Error('模型请求失败（HTTP ' + response.statusCode.toString() + '）'))
+					}
 					return
 				}
-				try {
-					resolve(JSON.parse<UTSJSONObject>(JSON.stringify(response.data)) as UTSJSONObject)
-				} catch (_error) {
-					reject(new Error('模型响应解析失败'))
-				}
+				const responseText = typeof response.data == 'string' ? response.data as string : ''
+					if (!chunkReceived && responseText.length > 0) parser.pushText(responseText)
+				parser.finish()
 			},
-			fail: (error: RequestFail) => reject(new Error(error.errMsg))
+			fail: (error: RequestFail) => {
+				if (settled) return
+				settled = true
+				reject(new Error(error.errMsg))
+			}
+		})
+		// @ts-ignore
+		task.onChunkReceived((chunk: RequestTaskOnChunkReceivedListenerResult) => {
+			chunkReceived = true
+			parser.push(chunk.data)
 		})
 	})
 }
@@ -216,25 +262,31 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 		try {
 			const token = await provider.getToken!()
 			const history = JSON.parse<UTSJSONObject[]>(JSON.stringify(messages)) as UTSJSONObject[]
-			const tools = toolDefinitions()
 			const now = new Date()
-			history.unshift({ role: 'system', content: `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求：云端天气查询和本地日程提醒可同时出现。天气必须调用 get_weather，城市不明确时先询问。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答天气等已完成的需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。` } as UTSJSONObject)
 			const modelConfig = provider.models.find((entry) => entry.modelId == model)
+			const tools = modelConfig?.toolCall == true ? toolDefinitions() : [] as UTSJSONObject[]
+			const systemContent = tools.length > 0
+				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求：云端天气查询和本地日程提醒可同时出现。天气必须调用 get_weather，城市不明确时先询问。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答天气等已完成的需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
+				: `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。`
+			history.unshift({ role: 'system', content: systemContent } as UTSJSONObject)
 			let calendarCalled = false
 			let pendingCalendar: CalendarToolConfirmation | null = null
 			for (let round = 0; round < 5; round++) {
 				const body: UTSJSONObject = {
-					model: model, messages: history, tools: calendarCalled ? tools.filter((tool) => ((tool['function'] as UTSJSONObject)['name'] as string) != 'create_calendar_reminder') : tools, tool_choice: 'auto', stream: false
+					model: model, messages: history, stream: true
 				} as UTSJSONObject
+				if (tools.length > 0) {
+					body['tools'] = calendarCalled ? tools.filter((tool) => ((tool['function'] as UTSJSONObject)['name'] as string) != 'create_calendar_reminder') : tools
+					body['tool_choice'] = 'auto'
+				}
 				if (modelConfig?.thinking == true) body['thinking'] = { type: thinking == false ? 'disabled' : 'enabled' }
-				const response = await requestModel(provider.baseURL!, token, body)
+				const response = await requestModel(provider.baseURL!, token, body, callbacks)
 				const choices = response['choices'] as UTSJSONObject[] | null
 				const message = choices?.[0]?.['message'] as UTSJSONObject | null
 				if (message == null) throw new Error('模型没有返回消息')
 				const calls = message['tool_calls'] as UTSJSONObject[] | null
 				if (calls == null || calls.length == 0) {
 					const content = (message['content'] as string | null) ?? ''
-					if (content.length > 0) callbacks.onChunk?.({ choices: [{ delta: { content: content } }] } as Chunk)
 					if (pendingCalendar != null) callbacks.onToolConfirm?.(pendingCalendar!)
 					callbacks.onDone?.({})
 					return true
