@@ -11,9 +11,11 @@
 						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo">
 							<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
 						</view>
-						<view v-for="item in welcomePrompts" :key="item.label" class="chat-box-welcome-demo-btn" @click="sendWelcomePrompt(item.prompt)">
-							<text class="chat-box-welcome-demo-btn-text">{{ item.label }}</text>
-						</view>
+						<template v-if="showToolExamples">
+							<view v-for="item in welcomePrompts" :key="item.label" class="chat-box-welcome-demo-btn" @click="sendWelcomePrompt(item.prompt)">
+								<text class="chat-box-welcome-demo-btn-text">{{ item.label }}</text>
+							</view>
+						</template>
 					</view>
 				</view>
 				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="initialScrollBottom" :scroll-anchoring="true" :scroll-top="scrollTop" :scroll-into-view="scrollIntoViewId" id="msg-list"
@@ -52,6 +54,7 @@
 <script lang="uts" setup>
 	import type { ComputedRef } from 'vue'
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
+	import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
 	import { prepareTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
@@ -805,6 +808,11 @@
 		{ label: '查天气', prompt: '帮我查一下北京现在的天气' },
 		{ label: '创建日程提醒', prompt: '帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒' }
 	]
+	const showToolExamples = computed<boolean>(() => {
+		if (uniAi.llm.provider != 'qiniu') return false
+		const model = llmModelMap.get('qiniu')?.models.find((item) => item.modelId == uniAi.llm.model)
+		return model?.toolCall == true
+	})
 	const sendWelcomePrompt = (prompt: string) => {
 		if (state.value == 'processing' || uniAi.currentChat == null) return
 		uniAi.sendMsg(prompt)

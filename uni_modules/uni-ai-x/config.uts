@@ -40,13 +40,13 @@ const llmModelMap = new Map<string, Provider>([
 	[
 		'qiniu', {
 			models: [
-				{ modelId: 'deepseek/deepseek-v4.1-flash', name: 'deepseek-v4.1-flash', thinking: true, image: true},
+				{ modelId: 'deepseek/deepseek-v4.1-flash', name: 'deepseek-v4.1-flash', thinking: true, toolCall: true, image: true},
 				{ modelId: 'deepseek/deepseek-v4-pro', name: "deepseek-v4-pro", thinking: true},
-				{ modelId: 'bytedance/doubao-seed-2-1-pro', name: "doubao-seed-2-1-pro", thinking: true, image: true},
-				{ modelId: 'bytedance/doubao-seed-2-1-turbo', name: "doubao-seed-2-1-turbo", thinking: true, image: true},
-				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true},
-				{ modelId: 'z-ai/glm-5.3-flash', name: "glm-5.3-flash", thinking: true, image: true},
-				{ modelId: 'minimax/minimax-m2.7', name: "minimax-m2.7", thinking: true},
+				{ modelId: 'bytedance/doubao-seed-2-1-pro', name: "doubao-seed-2-1-pro", thinking: true, toolCall: true, image: true},
+				{ modelId: 'bytedance/doubao-seed-2-1-turbo', name: "doubao-seed-2-1-turbo", thinking: true, toolCall: true, image: true},
+				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true, toolCall: true},
+				{ modelId: 'z-ai/glm-5.3-flash', name: "glm-5.3-flash", thinking: true, toolCall: true, image: true},
+				{ modelId: 'minimax/minimax-m2.7', name: "minimax-m2.7", thinking: true, toolCall: true},
 			],
 			baseURL: "https://openai.qiniu.com/v1/chat/completions",
 			webSearchURL: "https://api.qnaigc.com/v1/search/web",

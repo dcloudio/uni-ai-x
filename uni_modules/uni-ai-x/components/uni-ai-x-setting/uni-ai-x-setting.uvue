@@ -46,6 +46,7 @@
 							<text class="uni-im-setting-model-text">{{llmMode.name ?? llmMode.modelId}}</text>
 							<text class="uni-im-setting-tag" v-if="llmMode.thinking">思考</text>
 							<text class="uni-im-setting-tag" v-if="llmMode.image">图片理解</text>
+							<text class="uni-im-setting-tag" v-if="llmMode.toolCall">工具调用</text>
 						</view>
 					</view>
 				</scroll-view>
