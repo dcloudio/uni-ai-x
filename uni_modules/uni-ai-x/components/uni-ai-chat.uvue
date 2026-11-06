@@ -48,6 +48,18 @@
 			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
 			<text class="chat-box-tip" flatten>内容由ai生成，仅供参考</text>
 		</view>
+		<view v-if="pendingCalendarMessage != null" class="calendar-confirmation-overlay" @click.stop="blockCalendarOverlay">
+			<view class="calendar-confirmation-modal uni-theme-root" @click.stop="blockCalendarOverlay">
+				<text class="calendar-confirmation-title" flatten>创建日程提醒</text>
+				<text class="calendar-confirmation-detail" flatten>{{pendingCalendarMessage!.toolConfirmation!.title}}</text>
+				<text class="calendar-confirmation-detail" flatten>{{pendingCalendarMessage!.toolConfirmation!.startAt}} · {{pendingCalendarMessage!.toolConfirmation!.durationMinutes}} 分钟</text>
+				<text class="calendar-confirmation-detail" flatten>提前 {{pendingCalendarMessage!.toolConfirmation!.alarmMinutesBefore}} 分钟提醒</text>
+				<view class="calendar-confirmation-actions">
+					<button class="calendar-confirmation-button calendar-confirmation-cancel" @click="resolveCalendar(false)">取消</button>
+					<button class="calendar-confirmation-button calendar-confirmation-open" @click="resolveCalendar(true)">同意</button>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -132,6 +144,18 @@
 	const msgList = computed<MsgItem[]>(() => {
 		return uniAi.currentChat?.msgList ?? []
 	})
+	const pendingCalendarMessage = computed<MsgItem | null>(() => {
+		for (let index = msgList.value.length - 1; index >= 0; index--) {
+			const msg = msgList.value[index]
+			if (msg.toolConfirmation?.state == 'pending') return msg
+		}
+		return null
+	})
+	function resolveCalendar(confirmed: boolean) {
+		const msg = pendingCalendarMessage.value
+		if (msg != null) uniAi.resolveToolConfirmation(msg._id, confirmed)
+	}
+	function blockCalendarOverlay() {}
 
 	type MarkdownBlockCache = {
 		body: string
@@ -217,7 +241,7 @@
 
 	function canRebuildMarkdownFromBody(msg: MsgItem): boolean {
 		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-		return msg.body.length > 0
+		return msg.body.trim().length > 0
 		// #endif
 		// #ifndef APP-HARMONY || APP-ANDROID || APP-IOS
 		return false
@@ -249,7 +273,7 @@
 		if (cached != null && cached.body == cacheBody && cached.theme == theme && cached.sources == sources &&
 			cached.uniAiMdRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
 		const blocks = uniAiMdStreamGetBlocks(msg._id)
-		if (blocks.length == 0 && msg.body.length > 0 && msg.rendered) {
+		if (blocks.length == 0 && msg.body.trim().length > 0 && msg.rendered) {
 			uniAi.prepareMessagePresentation(msg)
 			uniAiMdStreamRequestRebuild(msg._id, msg.body)
 		}
@@ -340,15 +364,17 @@
 
 	function buildMessageRows(msg: MsgItem): ChatRenderItem[] {
 		const items: ChatRenderItem[] = []
+			const emptyState = msg.from_uid == 'uni-ai' && uniAi.lastAiMsg?._id == msg._id ? state.value : ''
+			const hasBody = msg.body.trim().length > 0
 			const blocks = msg.from_uid == 'uni-ai' ? getMarkdownBlocks(msg) : noBlocks
 			const hasMarkdown = blocks.length > 0 || (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || canRebuildMarkdownFromBody(msg)
 			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()
-				+ ':' + ((msg.thinkContent ?? '').length > 0).toString() + ':' + (msg.body.length > 0).toString()
+				+ ':' + ((msg.thinkContent ?? '').length > 0).toString() + ':' + hasBody.toString()
 				+ ':' + ((msg.toolStatus ?? '').length > 0).toString()
-				+ ':' + (msg.toolConfirmation?.state ?? '')
 				+ ':' + ((msg.toolResultText ?? '').length > 0).toString()
 				+ ':' + ((msg.stressSvgSource ?? '').length > 0).toString() + ':' + hasMarkdown.toString()
 				+ ':' + (msg.search?.status ?? '') + ':' + (msg.search?.sources.length ?? 0).toString() + ':' + msg.rendered.toString()
+				+ ':' + emptyState
 			const cached = messageRowCache.get(msg._id)
 			if (cached != null && cached.msg == msg && cached.blocks == blocks && cached.structure == structure) {
 				return cached.rows
@@ -425,7 +451,7 @@
 								appendNormalPart(aiRenderPart(block.kind, block.key, block))
 							}
 						}
-					} else if (msg.body.length > 0) {
+					} else if (hasBody) {
 						// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 						appendNormalPart(aiRenderPart('restoring', 'restoring'))
 						// #endif
@@ -433,19 +459,18 @@
 						appendNormalPart(aiRenderPart('plain', 'plain'))
 						// #endif
 					}
-				} else if (msg.body.length > 0) {
+				} else if (hasBody) {
 					// #ifdef APP-ANDROID
 					appendNormalPart(aiRenderPart('plain', 'plain'))
 					// #endif
 					// #ifndef APP-ANDROID
 					appendNormalPart(aiRenderPart('plain', 'plain'))
 					// #endif
-				} else if (stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && (msg.toolStatus ?? '').length == 0 && msg.toolConfirmation == null && (msg.toolResultText ?? '').length == 0 && msg.search?.status != 'searching') {
+				} else if (emptyState != '' && emptyState != 'completed' && stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && (msg.toolStatus ?? '').length == 0 && (msg.toolResultText ?? '').length == 0 && msg.search?.status != 'searching') {
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
 			}
 			if ((msg.toolStatus ?? '').length > 0) appendNormalPart(aiRenderPart('tool-status', 'tool-status'))
-			if (msg.toolConfirmation != null) appendNormalPart(aiRenderPart('tool-confirmation', 'tool-confirmation'))
 			if ((msg.toolResultText ?? '').length > 0) appendNormalPart(aiRenderPart('tool-result', 'tool-result'))
 			if (normalParts.length > 0) flushNormalParts()
 			if (msg.rendered && (msg.search?.sources.length ?? 0) > 0) {
@@ -876,6 +901,64 @@
 .chat-box-chat {
 	flex: 1;
 	position: relative;
+}
+
+.calendar-confirmation-overlay {
+	position: fixed;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 110;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.7);
+}
+
+.calendar-confirmation-modal {
+	width: 86%;
+	max-width: 360px;
+	padding: 20px;
+	border-radius: 8px;
+	background-color: var(--bg-primary);
+}
+
+.calendar-confirmation-title {
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin-bottom: 12px;
+}
+
+.calendar-confirmation-detail {
+	font-size: 14px;
+	line-height: 22px;
+	color: var(--text-secondary);
+}
+
+.calendar-confirmation-actions {
+	flex-direction: row;
+	margin-top: 18px;
+}
+
+.calendar-confirmation-button {
+	flex: 1;
+	height: 42px;
+	line-height: 42px;
+	font-size: 14px;
+	margin: 0;
+	padding: 0;
+	border-radius: 4px;
+}
+
+.calendar-confirmation-cancel {
+	margin-right: 8px;
+	color: var(--text-primary);
+}
+
+.calendar-confirmation-open {
+	background-color: #1677c9;
+	color: #fff;
 }
 
 .chat-box-scroll-view-box {
