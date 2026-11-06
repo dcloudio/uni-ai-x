@@ -1127,6 +1127,9 @@ class UniAi {
 			onState: (state: string) => {
 				if (!isActiveAiMsg()) return
 				if (state == 'completed' || state == 'stop') aiMsgItem.toolStatus = ''
+				if (state == 'completed' && aiMsgItem.toolConfirmation?.state == 'pending' && aiMsgItem.body.trim().length == 0 && (aiMsgItem.toolResultText ?? '').length == 0) {
+					aiMsgItem.toolResultText = '准备创建日程提醒，请确认以下信息。'
+				}
 				this.currentChat!.state = state
 				// #ifdef APP-HARMONY || APP-ANDROID
 				if (state == 'completed') {
