@@ -13,14 +13,14 @@
 
 <script lang="uts" setup>
 	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
-	import { uniAi, isCustomProvider } from '@/uni_modules/uni-ai-x/sdk'
+	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 
 	const emit = defineEmits<{
 		'change-menu': []
 	}>()
 
 	const title = computed<string>(() => {
-		if (isCustomProvider(uniAi.llm.provider)) {
+		if (uniAi.llm.provider == 'openClaw') {
 			return '与 ' + uniAi.llm.provider + ' 对话'
 		}
 		const chatTitle = (uniAi.currentChat?.title ?? '').replace(/\r\n|\n|\r/g, ' ').trim()

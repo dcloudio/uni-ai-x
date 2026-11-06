@@ -1,0 +1,280 @@
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+import { Chunk, CustomProviderAdapter, CustomProviderCallbacks, CalendarToolConfirmation, RequestAiCoMessage } from '@/uni_modules/uni-ai-x/types.uts'
+import { registerCustomProvider } from './provider-registry.uts'
+
+type ToolEntry = {
+	name: string,
+	description: string,
+	parameters: UTSJSONObject
+}
+
+const toolRegistry: ToolEntry[] = [{
+	name: 'get_weather',
+	description: '查询指定城市的当前天气和今日气温范围。只传城市名称，例如北京；天气数据来自 Open-Meteo。',
+	parameters: {
+		type: 'object',
+		properties: { city: { type: 'string', description: '城市名称，例如北京' } },
+		required: ['city']
+	} as UTSJSONObject
+}]
+
+// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+toolRegistry.push({
+	name: 'create_calendar_reminder',
+	description: '仅当用户明确要求创建日程或提醒，且标题和开始时间明确时调用。在手机系统日历创建一次性日程。start_at 使用设备本地时间 YYYY-MM-DD HH:mm；时间不明确时先询问用户。',
+	parameters: {
+		type: 'object',
+		properties: {
+			title: { type: 'string', description: '日程标题' },
+			start_at: { type: 'string', description: '设备本地开始时间，格式 YYYY-MM-DD HH:mm' },
+			duration_minutes: { type: 'number', description: '持续分钟数，未指定时为 30' },
+			alarm_minutes_before: { type: 'number', description: '提前提醒分钟数，未指定时为 5；0 表示开始时提醒' }
+		},
+		required: ['title', 'start_at']
+	} as UTSJSONObject
+})
+// #endif
+
+function pad2(value: number): string {
+	return value < 10 ? '0' + value.toString() : value.toString()
+}
+
+function localDateTime(date: Date): string {
+	return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+}
+
+// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+function parseLocalDateTime(value: string): number {
+	const parts = value.split(' ')
+	if (parts.length != 2) return 0
+	const day = parts[0].split('-')
+	const time = parts[1].split(':')
+	if (day.length != 3 || time.length != 2 || day[0].length != 4 || day[1].length != 2 || day[2].length != 2 || time[0].length != 2 || time[1].length != 2) return 0
+	const year = parseInt(day[0])
+	const month = parseInt(day[1])
+	const dateNumber = parseInt(day[2])
+	const hour = parseInt(time[0])
+	const minute = parseInt(time[1])
+	if (year < 2020 || year > 2100 || month < 1 || month > 12 || dateNumber < 1 || dateNumber > 31 || hour < 0 || hour > 23 || minute < 0 || minute > 59) return 0
+	const date = new Date()
+	date.setDate(1)
+	date.setFullYear(year)
+	date.setMonth(month - 1)
+	date.setDate(dateNumber)
+	date.setHours(hour)
+	date.setMinutes(minute)
+	date.setSeconds(0)
+	date.setMilliseconds(0)
+	return localDateTime(date) == value ? date.getTime() : 0
+}
+
+function createCalendarReminder(args: UTSJSONObject): Promise<string> {
+	const title = args['title']
+	const startAt = args['start_at']
+	const durationValue = args['duration_minutes']
+	const alarmValue = args['alarm_minutes_before']
+	if (typeof title != 'string' || title.trim().length == 0 || title.length > 100 || typeof startAt != 'string') {
+		return Promise.resolve(JSON.stringify({ error: '需要 1 到 100 字的标题和明确的开始时间' }))
+	}
+	const startTime = parseLocalDateTime(startAt)
+	if (startTime <= Date.now()) return Promise.resolve(JSON.stringify({ error: '开始时间无效或已过去，请确认设备本地时间' }))
+	const duration = durationValue == null ? 30 : durationValue as number
+	const alarmMinutes = alarmValue == null ? 5 : alarmValue as number
+	if (typeof duration != 'number' || duration < 1 || duration > 1440 || Math.floor(duration) != duration || typeof alarmMinutes != 'number' || alarmMinutes < 0 || alarmMinutes > 10080 || Math.floor(alarmMinutes) != alarmMinutes) {
+		return Promise.resolve(JSON.stringify({ error: '持续时间需为 1 到 1440 分钟，提前提醒时间需为 0 到 10080 分钟' }))
+	}
+	const endTime = startTime + duration * 60 * 1000
+	return new Promise<string>((resolve) => {
+		try {
+			uni.addPhoneCalendar({
+				title: title.trim(), startTime: startTime, endTime: endTime,
+				alarm: true, alarmOffset: alarmMinutes * 60,
+				success: (calendarResponse) => {
+					const message = calendarResponse?.errMsg
+					if (message == null || message.length == 0) {
+						resolve(JSON.stringify({ status: 'opened' }))
+						return
+					}
+					resolve(JSON.stringify({ success: true, title: title.trim(), start_at: startAt, duration_minutes: duration, alarm_minutes_before: alarmMinutes }))
+				},
+				fail: (error) => {
+					if (error.errCode == 609) {
+						resolve(JSON.stringify({ status: 'opened' }))
+						return
+					}
+					resolve(JSON.stringify({ error: '系统日历创建失败', code: error.errCode, detail: error.errMsg }))
+				}
+			})
+		} catch (error) {
+			resolve(JSON.stringify({ error: '系统日历调用失败', detail: `${error}` }))
+		}
+	})
+}
+// #endif
+
+export async function runCalendarConfirmation(details: CalendarToolConfirmation): Promise<string> {
+	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+	return await createCalendarReminder({
+		title: details.title,
+		start_at: details.startAt,
+		duration_minutes: details.durationMinutes,
+		alarm_minutes_before: details.alarmMinutesBefore
+	} as UTSJSONObject)
+	// #endif
+	// #ifndef APP-ANDROID || APP-IOS || APP-HARMONY
+	return JSON.stringify({ error: '当前平台不支持系统日历' })
+	// #endif
+}
+
+function toolDefinitions(): UTSJSONObject[] {
+	return toolRegistry.map((tool): UTSJSONObject => ({
+		type: 'function',
+		function: {
+			name: tool.name,
+			description: tool.description,
+			parameters: tool.parameters
+		}
+	} as UTSJSONObject))
+}
+
+function requestModel(url: string, token: string, data: UTSJSONObject): Promise<UTSJSONObject> {
+	return new Promise<UTSJSONObject>((resolve, reject) => {
+		uni.request({
+			url: url,
+			method: 'POST',
+			dataType: 'json',
+			timeout: 90000,
+			data: data,
+			header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+			success: (response: RequestSuccess<any>) => {
+				if (response.statusCode < 200 || response.statusCode >= 300) {
+					reject(new Error('模型请求失败（HTTP ' + response.statusCode.toString() + '）'))
+					return
+				}
+				try {
+					resolve(JSON.parse<UTSJSONObject>(JSON.stringify(response.data)) as UTSJSONObject)
+				} catch (_error) {
+					reject(new Error('模型响应解析失败'))
+				}
+			},
+			fail: (error: RequestFail) => reject(new Error(error.errMsg))
+		})
+	})
+}
+
+async function executeTool(name: string, argumentText: string): Promise<string> {
+	const tool = toolRegistry.find((entry) => entry.name == name)
+	if (tool == null) return JSON.stringify({ error: '未知工具: ' + name })
+	let args: UTSJSONObject
+	try {
+		args = JSON.parse<UTSJSONObject>(argumentText.trim().length == 0 ? '{}' : argumentText) as UTSJSONObject
+	} catch (_error) {
+		return JSON.stringify({ error: '工具参数不是有效 JSON' })
+	}
+	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+	if (name == 'create_calendar_reminder') return await createCalendarReminder(args)
+	// #endif
+	const city = args['city']
+	if (typeof city != 'string' || city.trim().length == 0 || city.length > 80) {
+		return JSON.stringify({ error: 'city 必须是 1 到 80 字的城市名称' })
+	}
+	try {
+		const response = await uniCloud.callFunction({ name: 'weather-demo', data: { city: city.trim() } })
+		console.log('[uni-ai-x][weather] cloud result', JSON.stringify(response.result))
+		return JSON.stringify(response.result)
+	} catch (error) {
+		return JSON.stringify({ error: '云函数调用失败', detail: `${error}` })
+	}
+}
+
+// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+function calendarConfirmation(argumentText: string): CalendarToolConfirmation | null {
+	try {
+		const args = JSON.parse<UTSJSONObject>(argumentText) as UTSJSONObject
+		const title = args['title']
+		const startAt = args['start_at']
+		if (typeof title != 'string' || title.trim().length == 0 || title.length > 100 || typeof startAt != 'string' || parseLocalDateTime(startAt) <= Date.now()) return null
+		const duration = args['duration_minutes'] == null ? 30 : args['duration_minutes'] as number
+		const alarm = args['alarm_minutes_before'] == null ? 5 : args['alarm_minutes_before'] as number
+		if (typeof duration != 'number' || duration < 1 || duration > 1440 || Math.floor(duration) != duration || typeof alarm != 'number' || alarm < 0 || alarm > 10080 || Math.floor(alarm) != alarm) return null
+		return { title: title.trim(), startAt: startAt, durationMinutes: duration, alarmMinutesBefore: alarm, state: 'pending' } as CalendarToolConfirmation
+	} catch (_error) {
+		return null
+	}
+}
+// #endif
+
+class QiniuToolAdapter extends CustomProviderAdapter {
+	override supportsTitleUpdate: boolean = false
+
+	override async request(messages: RequestAiCoMessage[], model: string, _chatId: string, callbacks: CustomProviderCallbacks, thinking?: boolean): Promise<boolean> {
+		const provider = llmModelMap.get('qiniu')
+		if (provider == null || provider.baseURL == null || provider.getToken == null) {
+			callbacks.onError?.({ errMsg: '七牛模型未配置' })
+			return false
+		}
+		try {
+			const token = await provider.getToken!()
+			const history = JSON.parse<UTSJSONObject[]>(JSON.stringify(messages)) as UTSJSONObject[]
+			const tools = toolDefinitions()
+			const now = new Date()
+			history.unshift({ role: 'system', content: `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求：云端天气查询和本地日程提醒可同时出现。天气必须调用 get_weather，城市不明确时先询问。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答天气等已完成的需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。` } as UTSJSONObject)
+			const modelConfig = provider.models.find((entry) => entry.modelId == model)
+			let calendarCalled = false
+			let pendingCalendar: CalendarToolConfirmation | null = null
+			for (let round = 0; round < 5; round++) {
+				const body: UTSJSONObject = {
+					model: model, messages: history, tools: calendarCalled ? tools.filter((tool) => ((tool['function'] as UTSJSONObject)['name'] as string) != 'create_calendar_reminder') : tools, tool_choice: 'auto', stream: false
+				} as UTSJSONObject
+				if (modelConfig?.thinking == true) body['thinking'] = { type: thinking == false ? 'disabled' : 'enabled' }
+				const response = await requestModel(provider.baseURL!, token, body)
+				const choices = response['choices'] as UTSJSONObject[] | null
+				const message = choices?.[0]?.['message'] as UTSJSONObject | null
+				if (message == null) throw new Error('模型没有返回消息')
+				const calls = message['tool_calls'] as UTSJSONObject[] | null
+				if (calls == null || calls.length == 0) {
+					const content = (message['content'] as string | null) ?? ''
+					if (content.length > 0) callbacks.onChunk?.({ choices: [{ delta: { content: content } }] } as Chunk)
+					if (pendingCalendar != null) callbacks.onToolConfirm?.(pendingCalendar!)
+					callbacks.onDone?.({})
+					return true
+				}
+				history.push(message)
+				for (let index = 0; index < calls.length; index++) {
+					const call = calls[index]
+					const fn = call['function'] as UTSJSONObject | null
+					const name = (fn?.['name'] as string | null) ?? ''
+					const args = (fn?.['arguments'] as string | null) ?? '{}'
+					// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+					if (name == 'create_calendar_reminder') {
+						let calendarResult = JSON.stringify({ error: '日历工具本轮已调用，请勿重复执行' })
+						if (!calendarCalled) {
+							calendarCalled = true
+							const details = calendarConfirmation(args)
+							if (details == null) {
+								calendarResult = JSON.stringify({ error: '日程参数无效或时间已过去，请重新确认' })
+							} else {
+								pendingCalendar = details
+								calendarResult = JSON.stringify({ status: 'pending' })
+							}
+						}
+						history.push({ role: 'tool', tool_call_id: call['id'], content: calendarResult } as UTSJSONObject)
+						continue
+					}
+					// #endif
+					const result = await executeTool(name, args)
+					history.push({ role: 'tool', tool_call_id: call['id'], content: result } as UTSJSONObject)
+				}
+			}
+			throw new Error('工具调用轮数超过上限')
+		} catch (error) {
+			callbacks.onToolStatus?.('')
+			callbacks.onError?.({ errMsg: `${error}` })
+			return false
+		}
+	}
+}
+
+export function installAgentTools() {
+	registerCustomProvider('qiniu', new QiniuToolAdapter())
+}

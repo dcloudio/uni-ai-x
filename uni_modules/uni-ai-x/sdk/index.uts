@@ -4,9 +4,10 @@ import { uniAiMdStreamSetContext } from './uni-ai-md-stream-store.uts'
 import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
-import { Llm,ChatItem,Chat, MsgItem, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
+import { Llm,ChatItem,Chat, MsgItem, CalendarToolConfirmation, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
 export { MsgItem, ChatItem, BaseMsgItem, Userinfo }
 import RequestAiRunner, { RequestAiRunnerCallbacks } from '@/uni_modules/uni-ai-x/sdk/requestAiRunner.uts';
+import { runCalendarConfirmation } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts';
 import { AiRequestRunnerHandle, getAiRequestRunnerFactory } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts';
 import { StorageManager, AiChat, ChatMessageBatch } from './storage-manager.uts'
 import { buildAiMessages } from '@/uni_modules/uni-ai-x/sdk/message-builder.uts'
@@ -720,6 +721,31 @@ class UniAi {
 	// 正在流式生成的 AI 消息：中断时需要落一次最终状态
 	private streamingAiMsg: MsgItem | null = null
 	private activeAnswerMsg: MsgItem | null = null
+	async resolveToolConfirmation(messageId: string, confirmed: boolean): Promise<void> {
+		const msg = this.currentChat?.msgList.find((item: MsgItem) => item._id == messageId)
+		const details = msg?.toolConfirmation
+		if (msg == null || details == null || details.state != 'pending') return
+		msg.toolConfirmation = null
+		if (!confirmed) {
+			msg.toolResultText = '已取消创建提醒。'
+			this.flushMsg2Storage(msg)
+			return
+		}
+		msg.toolStatus = '正在打开系统日历'
+		this.flushMsg2Storage(msg)
+		const result = await runCalendarConfirmation(details)
+		let outcome: UTSJSONObject | null = null
+		try { outcome = JSON.parse<UTSJSONObject>(result) as UTSJSONObject } catch (_error) {}
+		msg.toolStatus = ''
+		if (outcome?.['success'] == true) {
+			msg.toolResultText = `已创建提醒：${details.title}，${details.startAt}。`
+		} else if (outcome?.['error'] != null) {
+			msg.toolResultText = `打开系统日历失败：${outcome!['error']}。`
+		} else {
+			msg.toolResultText = `已打开系统日历：${details.title}，${details.startAt}。`
+		}
+		this.flushMsg2Storage(msg)
+	}
 	private clearPendingMsgSave() {
 		if (this.sM2STimer != 0) {
 			clearTimeout(this.sM2STimer)
@@ -1014,6 +1040,9 @@ class UniAi {
 	resetMsg(msg: MsgItem) {
 		msg.renderSnapshot = undefined
 		msg.search = null
+		msg.toolConfirmation = null
+		msg.toolStatus = ''
+		msg.toolResultText = ''
 		this.answerGeneration += 1
 		// #ifdef APP-HARMONY || APP-ANDROID
 		uniAiMdStreamReset(msg._id)
@@ -1032,6 +1061,9 @@ class UniAi {
 	// 回答问题
 	answerQuestion(aiMsgItem: MsgItem) {
 		this.abortRequest()
+		aiMsgItem.toolConfirmation = null
+		aiMsgItem.toolStatus = ''
+		aiMsgItem.toolResultText = ''
 		this.streamingAiMsg = aiMsgItem
 		this.activeAnswerMsg = aiMsgItem
 		const answerGeneration = this.answerGeneration
@@ -1082,8 +1114,19 @@ class UniAi {
 				aiMsgItem.body = msgBody
 				this.updateMsg2Storage(aiMsgItem)
 			},
+			onToolStatus: (status: string) => {
+				if (!isActiveAiMsg()) return
+				aiMsgItem.toolStatus = status
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onToolConfirm: (details: CalendarToolConfirmation) => {
+				if (!isActiveAiMsg()) return
+				aiMsgItem.toolConfirmation = details
+				this.flushMsg2Storage(aiMsgItem)
+			},
 			onState: (state: string) => {
 				if (!isActiveAiMsg()) return
+				if (state == 'completed' || state == 'stop') aiMsgItem.toolStatus = ''
 				this.currentChat!.state = state
 				// #ifdef APP-HARMONY || APP-ANDROID
 				if (state == 'completed') {
