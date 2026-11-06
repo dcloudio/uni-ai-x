@@ -27,7 +27,8 @@ test('buffered response fallback emits once; aborted requests cannot publish lat
   const read = file => readFileSync(new URL(file, import.meta.url), 'utf8')
     .replace(/^import .*$/gm, '').replace(/^export /gm, '')
     .replace(/\/\/ #ifdef APP-HARMONY[\s\S]*?\/\/ #endif/g, '')
-    .replaceAll('Number.from(separatorIndex)', 'Number(separatorIndex)');
+    .replaceAll('Number.from(separatorIndex)', 'Number(separatorIndex)')
+    .replaceAll('Number.from(bytes.length)', 'Number(bytes.length)');
   let request;
   const context = vm.createContext({ TextDecoder, TextEncoder, Uint8Array, console,
     uni: { request: options => { request = options; return { onChunkReceived() {}, abort() {} }; } }
