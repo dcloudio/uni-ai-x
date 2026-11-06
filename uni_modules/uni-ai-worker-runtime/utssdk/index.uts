@@ -870,6 +870,5 @@ export { readAndroidChatMessages, readAndroidChatList, writeAndroidStorageBatch 
 export { mutateAndroidChatMessages } from './background-storage.uts'
 export { readAndroidSettings } from './background-storage.uts'
 export { readAndroidSvgCache, writeAndroidSvgCache, prepareAndroidSvgSource, encodeAndroidWebRequest } from './background-render.uts'
-export { prepareAndroidWebSearch } from './background-search.uts'
 // #endif
 
