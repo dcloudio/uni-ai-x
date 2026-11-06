@@ -19,7 +19,7 @@ for (const platform of ['APP-ANDROID', 'APP-HARMONY']) {
         ] }));
       }
     }
-    const api = loadUts('uni_modules/uni-ai-x/sdk/parseCode.uts', ['parseCodeText'], {
+    const api = loadUts('uni_modules/uni-ai-x/sdk/parseCode-textmate.uts', ['parseCodeText'], {
       CreateHighLighter,
       MarkdownToken: {},
       uni: { getFileSystemManager: () => ({ readFileSync: path => readFileSync(

@@ -7,9 +7,9 @@
 			<uni-ai-chat :show-menu="showMenu" @change-menu="changeMenu" @close-menu="closeMenu" @source="openSource"></uni-ai-chat>
 			<view class="uni-ai-menu-mask" :class="showMenu ? 'uni-ai-menu-mask-show' : ''" @click="closeMenu"></view>
 			<fps v-if="showFps" />
-			<!-- #ifndef MP-WEIXIN -->
+			<!-- #ifdef APP || WEB -->
 			<web-view v-if="showProxyWeb" class="uni-ai-proxy-web" id="proxy-web"
-				src="/uni_modules/uni-ai-x/static/proxy-web/proxy-web.html"
+				:src="proxyWebUrl"
 				@load="proxyWebLoad" @message="proxyWebMsg"></web-view>
 			<!-- #endif -->
 		</view>
@@ -56,8 +56,14 @@
 	// #ifdef APP
 	import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update'
 	// #endif
-	// #ifndef MP-WEIXIN
+	// #ifdef APP || WEB
 	import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
+	// #endif
+	// #ifdef APP
+	const proxyWebUrl = '/static/app/proxy-web/proxy-web.html'
+	// #endif
+	// #ifdef WEB
+	const proxyWebUrl = '/static/web/proxy-web/proxy-web.html'
 	// #endif
 	
 	const showMenu = ref<boolean>(false)
@@ -125,7 +131,7 @@
 		// #endif
 		clearCodeHighlightCache(true)
 		uniAi.offOpenSetting(openModelPopup)
-		// #ifndef MP-WEIXIN
+		// #ifdef APP || WEB
 		cancelProxyWebRelease()
 		proxyWebMountToken += 1
 		proxyWeb.setEnsureHandler(null)
@@ -134,7 +140,7 @@
 		// #endif
 	})
 
-	// #ifndef MP-WEIXIN
+	// #ifdef APP || WEB
 	// 按会话懒加载：只有当前会话出现公式/图表时才创建 web-view，切换会话后释放
 	const showProxyWeb = ref<boolean>(false)
 	let proxyWebMountToken = 0
@@ -219,7 +225,7 @@
 		})
 		setMenu(window.innerWidth > 960)
 		// #endif
-		// #ifndef MP-WEIXIN
+		// #ifdef APP || WEB
 		proxyWeb.setEnsureHandler(() => {
 			ensureProxyWeb()
 		})

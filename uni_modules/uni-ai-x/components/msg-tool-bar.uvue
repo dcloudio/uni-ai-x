@@ -101,7 +101,8 @@
 			utils.showCopyFailureToast()
 			return
 		}
-		copyToClipboard(msg.body as string)
+		const result = msg.toolResultText ?? ''
+		copyToClipboard(result.length > 0 ? (msg.body.length > 0 ? msg.body + '\n' : '') + result : msg.body)
 	}
 	
 	const loop = async () => {

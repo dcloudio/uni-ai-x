@@ -35,10 +35,22 @@
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
+		<text v-else-if="part.kind == 'tool-status'" class="msg-root-plain-text" flatten>{{msg.toolStatus}}</text>
+		<text v-else-if="part.kind == 'tool-result'" class="msg-root-plain-text" flatten>{{msg.toolResultText}}</text>
+		<view v-else-if="part.kind == 'tool-confirmation' && msg.toolConfirmation != null" class="calendar-confirmation">
+			<text class="calendar-confirmation-title" flatten>创建日程提醒</text>
+			<text class="calendar-confirmation-detail" flatten>{{msg.toolConfirmation!.title}}</text>
+			<text class="calendar-confirmation-detail" flatten>{{msg.toolConfirmation!.startAt}} · {{msg.toolConfirmation!.durationMinutes}} 分钟</text>
+			<text class="calendar-confirmation-detail" flatten>提前 {{msg.toolConfirmation!.alarmMinutesBefore}} 分钟提醒</text>
+			<view class="calendar-confirmation-actions">
+				<button class="calendar-confirmation-button calendar-confirmation-cancel" @click="resolveCalendar(false)">取消</button>
+				<button class="calendar-confirmation-button calendar-confirmation-open" @click="resolveCalendar(true)">同意</button>
+			</view>
+		</view>
 		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" :paused="loadingPaused" /></view>
 		<template v-else-if="part.kind == 'empty'">
 			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
-			<text v-else-if="state == 'none'" class="msg-root-need-try" flatten>错误：未回复</text>
+			<text v-else-if="state == 'none'" class="msg-root-stop-text" flatten>回答已中断</text>
 			<template v-else-if="state == 'processing' && msg.search?.status != 'searching'">
 				<!-- #ifdef APP-HARMONY -->
 				<view class="msg-root-loading-placeholder" />
@@ -102,6 +114,9 @@
 	})
 	const msg = computed<MsgItem>(() => props.msg)
 	const parts = computed<AiMsgRenderPart[]>(() => props.parts)
+	function resolveCalendar(confirmed: boolean) {
+		uniAi.resolveToolConfirmation(msg.value._id, confirmed)
+	}
 	function partRenderKey(part: AiMsgRenderPart, index: number): string {
 		// Android bytecode keyed replacement can leave recycled message content stale.
 		// Keep the render slot alive; branch selection and child props carry its content.
@@ -134,8 +149,31 @@
 		return uniAi.lastAiMsg?._id == msg.value._id
 	})
 
+	const toolbarDelayReady = ref<boolean>(false)
+	let toolbarDelayTimer = 0
+	watch(() => msg.value._id + ':' + msg.value.rendered.toString() + ':' + state.value + ':' + isLastAiMsg.value.toString(), () => {
+		if (toolbarDelayTimer != 0) {
+			clearTimeout(toolbarDelayTimer)
+			toolbarDelayTimer = 0
+		}
+		if (!isLastAiMsg.value || state.value == 'stop') {
+			toolbarDelayReady.value = true
+			return
+		}
+		toolbarDelayReady.value = false
+		if (state.value != 'processing' && msg.value.rendered) {
+			toolbarDelayTimer = setTimeout(() => {
+				toolbarDelayTimer = 0
+				toolbarDelayReady.value = true
+			}, 2000)
+		}
+	}, { immediate: true })
+	onUnmounted(() => {
+		if (toolbarDelayTimer != 0) clearTimeout(toolbarDelayTimer)
+	})
+
 	const shouldShowToolBar = computed<boolean>(() => {
-		return messageToolBarVisible.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
+		return msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
 	})
 
 	const msgSegmentStyle = 'width:100%;min-height:0;box-sizing:border-box;padding-left:45px;padding-right:45px;'
@@ -217,6 +255,53 @@
 .msg-root-plain-text {
 	text-align: left;
 	width: 100%;
+}
+
+.calendar-confirmation {
+	width: 100%;
+	padding: 12px;
+	margin: 6px 0;
+	border: 1px solid var(--border-secondary);
+	border-radius: 6px;
+	background-color: var(--bg-secondary);
+}
+
+.calendar-confirmation-title {
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin-bottom: 8px;
+}
+
+.calendar-confirmation-detail {
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--text-secondary);
+}
+
+.calendar-confirmation-actions {
+	flex-direction: row;
+	margin-top: 12px;
+}
+
+.calendar-confirmation-button {
+	flex: 1;
+	height: 38px;
+	line-height: 38px;
+	font-size: 13px;
+	margin: 0;
+	padding: 0;
+	border-radius: 4px;
+}
+
+.calendar-confirmation-cancel {
+	margin-right: 8px;
+	color: var(--text-primary);
+}
+
+.calendar-confirmation-open {
+	background-color: #1677c9;
+	color: #fff;
 }
 
 .msg-root-plain-text {

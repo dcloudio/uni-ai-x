@@ -1,6 +1,7 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
-import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, MessageSearch, SearchSource } from '@/uni_modules/uni-ai-x/types.uts';
+import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, CalendarToolConfirmation, MessageSearch, SearchSource } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
+import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 import {
 	lastUserQuestionText,
@@ -34,6 +35,8 @@ export type RequestAiRunnerCallbacks = {
 	// #endif
 	onThinkContent: (thinkContent: string) => void,
 	onMsgBody: (msgBody: string) => void,
+	onToolStatus?: (status: string) => void,
+	onToolConfirm?: (details: CalendarToolConfirmation) => void,
 	onState: (state: string) => void,
 	onErrorMsg: (errorMsg: string) => void,
 	onRendered: (rendered: boolean) => void,
@@ -304,6 +307,7 @@ class RequestAiRunner {
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		installAgentTools()
 		// #ifdef APP-ANDROID || APP-HARMONY
 		if (getCustomProvider(llm.provider) == null) {
 			this.requestRemoteAiInWorker(messages, llm, chat_id)
@@ -581,6 +585,8 @@ class RequestAiRunner {
 		let errorReported = false
 		const callbacks: CustomProviderCallbacks = {
 			onChunk: options.onChunk,
+			onToolStatus: (status: string) => this.callbacks?.onToolStatus?.(status),
+			onToolConfirm: (details: CalendarToolConfirmation) => this.callbacks?.onToolConfirm?.(details),
 			onError: (err : UTSJSONObject) => {
 				errorReported = true
 				options.onError?.(err)
@@ -590,7 +596,7 @@ class RequestAiRunner {
 		const currentChatId = options.chat_id ?? ''
 		let success = false
 		try {
-			success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks)
+			success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks, options.llm.thinking)
 		} catch (e) {
 			console.error('自定义提供商请求异常', e)
 			if (!errorReported) {

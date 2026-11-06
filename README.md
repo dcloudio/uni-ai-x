@@ -132,6 +132,10 @@ web pc端：
 
 ## 开发文档[详情查看](https://doc.dcloud.net.cn/uniCloud/uni-ai-x.html#install)
 
+## 微信小程序代码高亮模式
+
+默认是轻量版。需要完整版 TextMate 高亮时，在项目根目录执行 `node scripts/select-mp-weixin-mode.mjs full`，然后在 HBuilderX 中重新运行或发行到微信小程序，并在微信开发者工具中上传。完成编译和上传后，执行 `node scripts/select-mp-weixin-mode.mjs basic` 切回轻量版；要发布轻量版，同样需要在 HBuilderX 中重新编译。不带参数运行脚本可查看当前模式。脚本会自动切换相关引用、资源和分包配置，不需要手动修改源码或配置 HBuilderX 路径。详细说明见 [小程序代码高亮模式](docs/mini-program-code-highlighting.md)。
+
 ## App升级中心
 
 项目已集成 `uni-upgrade-center-app`，App 启动后会自动检查更新。使用前请将本项目和 `uni-admin` 关联到同一个 uniCloud 服务空间，并在 `uni-admin` 中部署 `uni-upgrade-center` 云函数、添加当前 `appid`，再发布线上版本。发布新安装包时请同步递增 `manifest.json` 的 `versionName` 和 `versionCode`。

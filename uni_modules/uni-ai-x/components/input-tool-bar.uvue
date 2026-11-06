@@ -27,12 +27,12 @@
     </view>
 </template>
 <script lang="uts" setup>
-import uniAi, { isCustomProvider } from '@/uni_modules/uni-ai-x/sdk';
+import uniAi from '@/uni_modules/uni-ai-x/sdk';
 import {llmModelMap, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 
 const isOpenClaw = computed<boolean>(() => {
-    return isCustomProvider(uniAi.llm.provider);
+    return uniAi.llm.provider == 'openClaw';
 });
 
 

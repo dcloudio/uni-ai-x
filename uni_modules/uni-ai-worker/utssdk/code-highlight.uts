@@ -1,27 +1,27 @@
 const grammarList = ['javascript', 'python', 'typescript', 'javascriptReact', 'html', 'css', 'cpp', 'dart', 'go', 'java', 'lua', 'php', 'r', 'sql', 'json', 'jsonc', 'jsonl', 'c', 'cuda-cpp', 'xml', 'xsl']
 // Import all grammar files - start
 // #ifndef APP-ANDROID || APP-HARMONY
-import javascriptGrammar from '@/uni_modules/uni-highlight/static/grammar/javascript.tmLanguage.json'
-import pythonGrammar from '@/uni_modules/uni-highlight/static/grammar/python.tmLanguage.json'
-import javascriptReactGrammar from '@/uni_modules/uni-highlight/static/grammar/Javascript-react.tmLanguage.json'
-import typescriptGrammar from '@/uni_modules/uni-highlight/static/grammar/typescript.tmLanguage.json'
-import htmlGrammar from '@/uni_modules/uni-highlight/static/grammar/html.tmLanguage.json'
-import cssGrammar from '@/uni_modules/uni-highlight/static/grammar/css.tmLanguage.json'
-import cppGrammar from '@/uni_modules/uni-highlight/static/grammar/cpp.tmLanguage.json'
-import dartGrammar from '@/uni_modules/uni-highlight/static/grammar/dart.tmLanguage.json'
-import goGrammar from '@/uni_modules/uni-highlight/static/grammar/go.tmLanguage.json'
-import javaGrammar from '@/uni_modules/uni-highlight/static/grammar/java.tmLanguage.json'
-import luaGrammar from '@/uni_modules/uni-highlight/static/grammar/lua.tmLanguage.json'
-import phpGrammar from '@/uni_modules/uni-highlight/static/grammar/php.tmLanguage.json'
-import rGrammar from '@/uni_modules/uni-highlight/static/grammar/r.tmLanguage.json'
-import sqlGrammar from '@/uni_modules/uni-highlight/static/grammar/sql.tmLanguage.json'
-import jsonGrammar from '@/uni_modules/uni-highlight/static/grammar/json.tmLanguage.json'
-import jsoncGrammar from '@/uni_modules/uni-highlight/static/grammar/jsonc.tmLanguage.json'
-import jsonlGrammar from '@/uni_modules/uni-highlight/static/grammar/jsonl.tmLanguage.json'
-import cGrammar from '@/uni_modules/uni-highlight/static/grammar/c.tmLanguage.json'
-import cudaCppGrammar from '@/uni_modules/uni-highlight/static/grammar/cuda-cpp.tmLanguage.json'
-import xmlGrammar from '@/uni_modules/uni-highlight/static/grammar/xml.tmLanguage.json'
-import xslGrammar from '@/uni_modules/uni-highlight/static/grammar/xsl.tmLanguage.json'
+import javascriptGrammar from '@/static/app/uni-highlight-grammar/javascript.tmLanguage.json'
+import pythonGrammar from '@/static/app/uni-highlight-grammar/python.tmLanguage.json'
+import javascriptReactGrammar from '@/static/app/uni-highlight-grammar/Javascript-react.tmLanguage.json'
+import typescriptGrammar from '@/static/app/uni-highlight-grammar/typescript.tmLanguage.json'
+import htmlGrammar from '@/static/app/uni-highlight-grammar/html.tmLanguage.json'
+import cssGrammar from '@/static/app/uni-highlight-grammar/css.tmLanguage.json'
+import cppGrammar from '@/static/app/uni-highlight-grammar/cpp.tmLanguage.json'
+import dartGrammar from '@/static/app/uni-highlight-grammar/dart.tmLanguage.json'
+import goGrammar from '@/static/app/uni-highlight-grammar/go.tmLanguage.json'
+import javaGrammar from '@/static/app/uni-highlight-grammar/java.tmLanguage.json'
+import luaGrammar from '@/static/app/uni-highlight-grammar/lua.tmLanguage.json'
+import phpGrammar from '@/static/app/uni-highlight-grammar/php.tmLanguage.json'
+import rGrammar from '@/static/app/uni-highlight-grammar/r.tmLanguage.json'
+import sqlGrammar from '@/static/app/uni-highlight-grammar/sql.tmLanguage.json'
+import jsonGrammar from '@/static/app/uni-highlight-grammar/json.tmLanguage.json'
+import jsoncGrammar from '@/static/app/uni-highlight-grammar/jsonc.tmLanguage.json'
+import jsonlGrammar from '@/static/app/uni-highlight-grammar/jsonl.tmLanguage.json'
+import cGrammar from '@/static/app/uni-highlight-grammar/c.tmLanguage.json'
+import cudaCppGrammar from '@/static/app/uni-highlight-grammar/cuda-cpp.tmLanguage.json'
+import xmlGrammar from '@/static/app/uni-highlight-grammar/xml.tmLanguage.json'
+import xslGrammar from '@/static/app/uni-highlight-grammar/xsl.tmLanguage.json'
 // #endif
 // Import all grammar files - end
 
@@ -367,7 +367,7 @@ function initUniCodeHighlighter(callBack: () => void, onError: (message: string)
 		grammarList.forEach(item => {
 			tmlsList.push({
 				scopeName: item,
-				path: `/uni_modules/uni-highlight/static/grammar/${item == 'javascriptReact' ? 'Javascript-react' : item}.tmLanguage.json`
+				path: `/static/app/uni-highlight-grammar/${item == 'javascriptReact' ? 'Javascript-react' : item}.tmLanguage.json`
 			})
 		})
 		const tmls = getTmlFile(tmlsList)

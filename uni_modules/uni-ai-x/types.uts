@@ -105,6 +105,9 @@ import type { RenderSnapshot } from '@/uni_modules/uni-ai-worker/utssdk/render-s
 export type MsgItem = {
 	_id: string
 	body: string
+	toolStatus?: string
+	toolConfirmation?: CalendarToolConfirmation | null
+	toolResultText?: string
 	img_url_list?: string[]
 	thinkContent?: string
 	from_uid: string
@@ -127,6 +130,14 @@ export type MsgItem = {
 	stressSvgHeight?: number
 	error_msg?: string
 	rendered: boolean
+}
+
+export type CalendarToolConfirmation = {
+	title: string
+	startAt: string
+	durationMinutes: number
+	alarmMinutesBefore: number
+	state: string
 }
 export type BaseMsgItem = {
 	body: string
@@ -202,6 +213,8 @@ export type ImgItem = {
 // 自定义提供商适配器回调
 export type CustomProviderCallbacks = {
 	onChunk ?: (chunkObj : Chunk) => void,
+	onToolStatus ?: (status : string) => void,
+	onToolConfirm ?: (details : CalendarToolConfirmation) => void,
 	onError ?: (err : UTSJSONObject) => void,
 	onDone ?: (data : UTSJSONObject) => void
 }
@@ -213,7 +226,7 @@ export class CustomProviderAdapter {
 	// 初始化（可选，模块加载时调用）
 	init() : void {}
 	// 发起请求（子类必须重写）
-	async request(messages : RequestAiCoMessage[], model : string, chat_id : string, callbacks : CustomProviderCallbacks) : Promise<boolean> {
+	async request(messages : RequestAiCoMessage[], model : string, chat_id : string, callbacks : CustomProviderCallbacks, thinking ?: boolean) : Promise<boolean> {
 		return false
 	}
 	// 是否支持会话标题更新（不支持则跳过）

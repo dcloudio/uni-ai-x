@@ -75,6 +75,7 @@ function snapshotMessage(message: MsgItem): MsgItem {
 	const search = message.search
 	return {
 		_id: message._id, body: message.body, from_uid: message.from_uid,
+		toolConfirmation: message.toolConfirmation, toolResultText: message.toolResultText,
 		state: message.state, create_time: message.create_time, chat_id: message.chat_id,
 		rendered: message.rendered, thinkContent: message.thinkContent,
 		about_msg_id: message.about_msg_id, error_msg: message.error_msg,

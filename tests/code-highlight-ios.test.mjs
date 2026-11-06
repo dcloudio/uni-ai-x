@@ -8,9 +8,9 @@ class IToken {
 class ILineTokens {
   constructor(tokens) { this.tokens = tokens; }
 }
-const page = loadUts('uni_modules/uni-ai-x/sdk/parseCode.uts', ['tokensForLine'], { MarkdownToken: {} });
+const page = loadUts('uni_modules/uni-ai-x/sdk/parseCode-textmate.uts', ['tokensForLine'], { MarkdownToken: {} });
 const rich = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts', ['markdownCodeTokenToRichTextNodes']);
-const iosPage = loadUts('uni_modules/uni-ai-x/sdk/parseCode.uts', ['decodeIosCodeTokens'], { MarkdownToken: {} }, ['APP', 'APP-IOS']);
+const iosPage = loadUts('uni_modules/uni-ai-x/sdk/parseCode-textmate.uts', ['decodeIosCodeTokens'], { MarkdownToken: {} }, ['APP', 'APP-IOS']);
 
 function setup(nativeTokens = () => []) {
   class ScopeparserBridge {

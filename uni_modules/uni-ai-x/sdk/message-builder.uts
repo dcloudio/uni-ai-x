@@ -21,7 +21,9 @@ function buildMultimodalContent(body: string, imgUrlList: string[]): MultiModalC
 export function buildAiMessages(chatItem: ChatItem): RequestAiCoMessage[] {
 	const messages: RequestAiCoMessage[] = []
 	chatItem.msgList.forEach((item) => {
-		let content: string | MultiModalContent = item.body
+		const body = item.from_uid == 'uni-ai' && (item.toolResultText ?? '').length > 0
+			? item.body + '\n' + item.toolResultText! : item.body
+		let content: string | MultiModalContent = body
 		if (item.from_uid != 'uni-ai' && (item.img_url_list?.length ?? 0) > 0) {
 			content = buildMultimodalContent(item.body, item.img_url_list!)
 		}

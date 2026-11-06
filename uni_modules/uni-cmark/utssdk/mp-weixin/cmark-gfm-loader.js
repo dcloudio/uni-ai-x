@@ -1,5 +1,11 @@
 let moduleInstance = null
 let initialization = null
+// WeChat can evaluate the loader in separate module contexts during initialization and rendering.
+const instanceKey = '__uniAiXCmarkGfmMpWeixin'
+
+function currentInstance() {
+  return globalThis[instanceKey] ?? moduleInstance
+}
 
 function stringToUtf8Bytes(text) {
   const bytes = []
@@ -95,57 +101,60 @@ async function createModule() {
 }
 
 function init() {
-  if (moduleInstance != null) return Promise.resolve()
+  if (currentInstance() != null) return Promise.resolve()
   if (initialization != null) return initialization
   initialization = createModule().then(exports => {
     moduleInstance = exports
+    globalThis[instanceKey] = exports
   })
   return initialization
 }
 
 function md2html(markdown) {
-  if (moduleInstance == null) throw new Error('cmark-gfm WebAssembly module is not initialized')
+  const instance = currentInstance()
+  if (instance == null) throw new Error('cmark-gfm WebAssembly module is not initialized')
   const input = stringToUtf8Bytes(markdown)
-  const inputPointer = moduleInstance.malloc(input.length + 1)
-  let heap = new Uint8Array(moduleInstance.memory.buffer)
+  const inputPointer = instance.malloc(input.length + 1)
+  let heap = new Uint8Array(instance.memory.buffer)
   heap.set(input, inputPointer)
   heap[inputPointer + input.length] = 0
   try {
-    const htmlPointer = moduleInstance.uni_cmark_markdown_to_html(inputPointer, input.length, 0)
+    const htmlPointer = instance.uni_cmark_markdown_to_html(inputPointer, input.length, 0)
     if (htmlPointer === 0) throw new Error('cmark-gfm failed to convert Markdown to HTML')
     try {
-      heap = new Uint8Array(moduleInstance.memory.buffer)
+      heap = new Uint8Array(instance.memory.buffer)
       const output = []
       for (let pointer = htmlPointer; heap[pointer] !== 0; pointer++) output.push(heap[pointer])
       return utf8BytesToString(output)
     } finally {
-      moduleInstance.uni_cmark_free_html(htmlPointer)
+      instance.uni_cmark_free_html(htmlPointer)
     }
   } finally {
-    moduleInstance.free(inputPointer)
+    instance.free(inputPointer)
   }
 }
 
 function md2json(markdown) {
-  if (moduleInstance == null) throw new Error('cmark-gfm WebAssembly module is not initialized')
+  const instance = currentInstance()
+  if (instance == null) throw new Error('cmark-gfm WebAssembly module is not initialized')
   const input = stringToUtf8Bytes(markdown)
-  const inputPointer = moduleInstance.malloc(input.length + 1)
-  let heap = new Uint8Array(moduleInstance.memory.buffer)
+  const inputPointer = instance.malloc(input.length + 1)
+  let heap = new Uint8Array(instance.memory.buffer)
   heap.set(input, inputPointer)
   heap[inputPointer + input.length] = 0
   try {
-    const jsonPointer = moduleInstance.uni_cmark_markdown_to_json(inputPointer, input.length, 0)
+    const jsonPointer = instance.uni_cmark_markdown_to_json(inputPointer, input.length, 0)
     if (jsonPointer === 0) throw new Error('cmark-gfm failed to convert Markdown to JSON')
     try {
-      heap = new Uint8Array(moduleInstance.memory.buffer)
+      heap = new Uint8Array(instance.memory.buffer)
       const output = []
       for (let pointer = jsonPointer; heap[pointer] !== 0; pointer++) output.push(heap[pointer])
       return utf8BytesToString(output)
     } finally {
-      moduleInstance.uni_cmark_free_json(jsonPointer)
+      instance.uni_cmark_free_json(jsonPointer)
     }
   } finally {
-    moduleInstance.free(inputPointer)
+    instance.free(inputPointer)
   }
 }
 

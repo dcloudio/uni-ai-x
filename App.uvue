@@ -1,9 +1,13 @@
 <script lang="uts">
+	// #ifndef MP
 	import { installOpenClaw } from '@/uni_modules/uni-ai-x-openClaw/install.uts'
+	// #endif
+	import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
 	let firstBackTime = 0
 	export default {
 		onLaunch: function () {
 			console.log('App Launch')
+			installAgentTools()
 			// installOpenClaw()
 		},
 		onShow: function () {
