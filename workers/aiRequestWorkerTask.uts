@@ -25,7 +25,7 @@ import {
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 import { UniAiMdSourceTail } from './uni-ai-md-source-tail.uts'
 // #endif
-// #ifdef APP-ANDROID || APP-HARMONY
+// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
 // #endif
 
@@ -60,7 +60,7 @@ function readEsString(message: ESObject, key: string): string {
 // #endif
 
 export class AiRequestWorkerTask extends WorkerTaskImpl {
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	private streamRequest: WorkerStreamRequest | null = null
 	// #endif
 	private renderTimer: number = 0
@@ -154,7 +154,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			return
 		}
 		// #endif
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (action == 'start') {
 			this.startRequest(payload)
 			return
@@ -498,7 +498,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	private startRequest(payload: UTSJSONObject) {
 		const requestVersion = readMessageNumber(payload, 'requestVersion')
 		const url = readMessageString(payload, 'url')
@@ -508,7 +508,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
 		try {
 			const body = payload['body'] as UTSJSONObject | null
-			if (body != null) bodyJson = JSON.stringify(body)
+			// iOS（Swift）下 JSON.stringify 返回可选值，需兜底空串避免编译错
+			if (body != null) bodyJson = JSON.stringify(body) ?? ''
 		} catch (_error) {
 			this.fail('invalid_request', '请求数据序列化失败')
 			return
@@ -565,7 +566,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
 	}
 
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	private handleSseEvent(data: string) {
 		if (this.finished) return
 		let raw: UTSJSONObject
@@ -584,8 +585,19 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 
 		this.eventCount += 1
-		let contentDelta = chunk.choices?.[0]?.delta?.content ?? ''
-		let reasoningDelta = chunk.choices?.[0]?.delta?.reasoning_content ?? ''
+		// 不用 ?.[0]?. 链式访问：iOS（Swift）生成的可选链+下标组合无法通过编译；
+		// `&&` 条件链在 iOS 上不参与空值收窄，按项目惯例用 ! 后再访问成员。
+		let contentDelta = ''
+		let reasoningDelta = ''
+		const choices = chunk.choices
+		if (choices != null && choices!.length > 0) {
+			const delta = choices![0].delta
+			if (delta != null) {
+				const activeDelta = delta!
+				contentDelta = activeDelta.content ?? ''
+				reasoningDelta = activeDelta.reasoning_content ?? ''
+			}
+		}
 		if (this.content.length == 0 && contentDelta == '<think>') {
 			this.hasThinkContent = true
 			contentDelta = ''
@@ -600,7 +612,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		if (contentDelta.length > 0) this.content += contentDelta
 		if (reasoningDelta.length > 0) this.reasoningContent += reasoningDelta
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		this.feedUniAiMdContent(contentDelta)
 		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
@@ -757,7 +769,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.destroyUniAiMdSession()
 		this.resetUniAiMdProtocol()
 		// #endif
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		// #endif
@@ -804,7 +816,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.destroyUniAiMdSession()
 		this.resetUniAiMdProtocol()
 		// #endif
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		this.streamRequest?.abort()
 		this.streamRequest = null
 		// #endif

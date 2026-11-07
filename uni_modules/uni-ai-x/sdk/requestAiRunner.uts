@@ -309,7 +309,7 @@ class RequestAiRunner {
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
 		installAgentTools()
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (getCustomProvider(llm.provider) == null) {
 			this.requestRemoteAiInWorker(messages, llm, chat_id)
 			return
@@ -341,7 +341,7 @@ class RequestAiRunner {
 			// 错误已由 onError 回调上报，这里兜住 reject，避免产生 Uncaught (in promise)
 		})
 	}
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	private async requestRemoteAiInWorker(messages: RequestAiCoMessage[], llm: Llm, chat_id: string) {
 		const requestVersion = this.workerRequestVersion + 1
 		this.workerRequestVersion = requestVersion
@@ -375,7 +375,9 @@ class RequestAiRunner {
 				model: llm.model,
 				url: config.baseURL!,
 				authorization: 'Bearer ' + tmpToken,
-				bodyJson: '',
+				// iOS 的 postStart 只透传 bodyJson 字符串（body 对象仅 Android/鸿蒙消费）；
+				// Android/鸿蒙 worker 会优先用 body 覆盖，行为不变
+				bodyJson: JSON.stringify(body) ?? '',
 				body: body,
 				renderInterval: MARKDOWN_RENDER_INTERVAL,
 				timeout: 90000,
