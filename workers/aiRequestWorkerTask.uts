@@ -3,7 +3,8 @@ import { createSession, feedChunk, finishSession, destroySession } from '@/uni_m
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
 // #endif
 // #ifdef APP-IOS
-import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/app-ios/index.uts'
+import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-ios/index.uts'
+import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
 // #endif
 // #ifdef WEB
 import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/web/index.uts'
@@ -21,7 +22,7 @@ import {
 	prepareMarkdownHtml,
 	buildMarkdownHtmlBlocks
 } from '../uni_modules/uni-ai-worker/utssdk/index.uts'
-// #ifdef APP-HARMONY || APP-ANDROID
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 import { UniAiMdSourceTail } from './uni-ai-md-source-tail.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY
@@ -76,8 +77,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private terminalSource: string = ''
 	private finished: boolean = false
 	private preprocessor: MarkdownPreprocessor = new MarkdownPreprocessor()
+	// #ifdef APP-IOS
+	// iOS 插件句柄是自增 number id：iOS 运行时对 object 参数的装箱不可靠。
+	private uniAiMdSession: number = 0
+	// #endif
 	// #ifdef APP-HARMONY || APP-ANDROID
 	private uniAiMdSession: object | null = null
+	// #endif
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	private uniAiMdLanguage: string | null = null
 	// 解析会话的配色：darkMode 决定 uni-ai-md 插件默认前景色，background 是画布底色；
 	// 由主线程按当前主题随启动消息传入。
@@ -95,11 +102,11 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	override entry() {
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.postMessage({ phase: 'ready' } as UTSJSONObject)
 		return
 		// #endif
-		// #ifdef APP-IOS || WEB || MP-WEIXIN
+		// #ifdef WEB || MP-WEIXIN
 		initMd2html().then(() => {
 			this.postMessage({ phase: 'ready' } as UTSJSONObject)
 		}).catch((error) => {
@@ -141,7 +148,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			if (readMessageNumber(payload, 'requestVersion') == this.requestVersion) this.complete()
 			return
 		}
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		if (action == 'rebuild-markdown') {
 			this.rebuildMarkdown(payload)
 			return
@@ -156,25 +163,37 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (action == 'start-markdown') this.startMarkdown(payload)
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	private ensureUniAiMdSession(): boolean {
+		// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派；
+		// 语言用主线程传入的应用语言，为空时由桥接按设备语言兜底挑集合字体的 face；
+		// 配色（深浅色与画布底色）用主线程按当前主题传入的值。
+		// #ifdef APP-IOS
+		if (this.uniAiMdSession > 0) return true
+		try {
+			this.uniAiMdSession = createSession('html', this.uniAiMdLanguage ?? '',
+				this.uniAiMdDarkMode, this.uniAiMdBackground)
+			if (this.uniAiMdSession > 0) return true
+		} catch {
+		}
+		// #endif
+		// #ifdef APP-HARMONY || APP-ANDROID
 		if (this.uniAiMdSession != null) return true
 		try {
-			// 关闭 AST 通道，只交付 HTML 与 DATA，渲染由主线程适配层按内容类型分派；
-			// 语言用主线程传入的应用语言，为空时由桥接按设备语言兜底挑集合字体的 face；
-			// 配色（深浅色与画布底色）用主线程按当前主题传入的值
 			this.uniAiMdSession = createSession('html', this.uniAiMdLanguage,
 				this.uniAiMdDarkMode, this.uniAiMdBackground)
 			if (this.uniAiMdSession != null) return true
 		} catch {
 		}
+		// #endif
 		this.failUniAiMd('uni_ai_md_session_create_failed', 'uni-ai-md 会话创建失败')
 		return false
 	}
 
 	private appendUniAiMdOps(event: UniAiMdEvent | null | undefined): void {
 		if (event == null) return
-		const ops = (event as UniAiMdEvent).ops
+		// iOS 上跨插件的事件类型字段会变成可选，用 ! 解包后再读取 ops。
+		const ops = (event as UniAiMdEvent).ops!
 		for (let i = 0; i < ops.length; i++) {
 			this.uniAiMdPendingOps.push(ops[i])
 		}
@@ -191,7 +210,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		}
 		this.postMessage(batch, { harmonySendable: true } as WorkerPostMessageOptions)
 		// #endif
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-IOS
 		const ops = [] as UTSJSONObject[]
 		while (this.uniAiMdPendingOpOffset < this.uniAiMdPendingOps.length) {
 			const op = this.uniAiMdPendingOps[this.uniAiMdPendingOpOffset]
@@ -220,6 +239,20 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (contentDelta.length == 0) return true
 		if (this.ensureUniAiMdSession() == false) return false
 		try {
+			// #ifdef APP-IOS
+			const session = this.uniAiMdSession
+			if (session <= 0) return false
+			let start: number = 0
+			while (start < contentDelta.length) {
+				const newline = contentDelta.indexOf('\n', start)
+				const end = newline < 0 ? contentDelta.length as number : newline + 1
+				const chunk = contentDelta.slice(start, end)
+				this.appendUniAiMdOps(this.sourceTail.feed(chunk, feedChunk(session, chunk)))
+				start = end
+			}
+			return true
+			// #endif
+			// #ifdef APP-HARMONY || APP-ANDROID
 			const session = this.uniAiMdSession
 			if (session == null) return false
 			let start: number = 0
@@ -231,6 +264,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				start = end
 			}
 			return true
+			// #endif
 		} catch {
 			this.failUniAiMd('uni_ai_md_feed_failed', 'uni-ai-md 解析失败')
 			return false
@@ -249,6 +283,19 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (!this.uniAiMdCompletionPending) return
 		if (!this.uniAiMdFinishCalled) {
 			this.uniAiMdFinishCalled = true
+			// #ifdef APP-IOS
+			const session = this.uniAiMdSession
+			if (session > 0) {
+				try {
+					this.appendUniAiMdOps(this.sourceTail.finish(finishSession(session)))
+				} catch {
+					this.failUniAiMd('uni_ai_md_finish_failed', 'uni-ai-md 完成解析失败')
+					return
+				}
+				this.destroyUniAiMdSession()
+			}
+			// #endif
+			// #ifdef APP-HARMONY || APP-ANDROID
 			const session = this.uniAiMdSession
 			if (session != null) {
 				try {
@@ -259,6 +306,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				}
 				this.destroyUniAiMdSession()
 			}
+			// #endif
 			this.flushUniAiMdOps()
 			if (this.finished) return
 		}
@@ -292,6 +340,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// #endif
 
 	private failUniAiMd(code: string, message: string) {
+		console.error('[uni-ai-md-worker] failUniAiMd', code, message)
 		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
@@ -307,6 +356,17 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private destroyUniAiMdSession() {
+		// #ifdef APP-IOS
+		const session = this.uniAiMdSession
+		this.uniAiMdSession = 0
+		if (session <= 0) return
+		try {
+			destroySession(session)
+		} catch {
+			// Cancellation/reset must not be blocked by native cleanup errors.
+		}
+		// #endif
+		// #ifdef APP-HARMONY || APP-ANDROID
 		const session = this.uniAiMdSession
 		this.uniAiMdSession = null
 		if (session == null) return
@@ -315,6 +375,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		} catch {
 			// Cancellation/reset must not be blocked by native cleanup errors.
 		}
+		// #endif
 	}
 
 	private resetUniAiMdProtocol() {
@@ -325,7 +386,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.uniAiMdFinishCalled = false
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	// 页面冷启动恢复历史消息：用独立 session 解析完整原文并回传 ops，
 	// 不复用流式协议状态，与 AI 请求可并发执行
 	private rebuildMarkdown(payload: UTSJSONObject) {
@@ -339,11 +400,32 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			this.postRebuildOps(msgId, ops)
 			return
 		}
+		// #ifdef APP-IOS
+		let session: number = 0
+		try {
+			session = createSession('html', language, darkMode, background)
+			const feedOps = this.rebuildOpsOf(feedChunk(session, content))
+			for (let i = 0; i < feedOps.length; i++) ops.push(feedOps[i])
+			const finishOps = this.rebuildOpsOf(finishSession(session))
+			for (let i = 0; i < finishOps.length; i++) ops.push(finishOps[i])
+		} catch (_error) {
+			// 解析失败回传空 ops，页面回退为原文显示
+		}
+		if (session > 0) {
+			try {
+				destroySession(session)
+			} catch (_error) {
+			}
+		}
+		// #endif
+		// #ifdef APP-HARMONY || APP-ANDROID
 		let session: object | null = null
 		try {
 			session = createSession('html', language.length > 0 ? language : null, darkMode, background)
-			this.appendRebuildOps(ops, feedChunk(session!, content))
-			this.appendRebuildOps(ops, finishSession(session!))
+			const feedOps = this.rebuildOpsOf(feedChunk(session!, content))
+			for (let i = 0; i < feedOps.length; i++) ops.push(feedOps[i])
+			const finishOps = this.rebuildOpsOf(finishSession(session!))
+			for (let i = 0; i < finishOps.length; i++) ops.push(finishOps[i])
 		} catch (_error) {
 			// 解析失败回传空 ops，页面回退为原文显示
 		}
@@ -353,15 +435,18 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			} catch (_error) {
 			}
 		}
+		// #endif
 		this.postRebuildOps(msgId, ops)
 	}
 
-	private appendRebuildOps(target: UTSJSONObject[], event: UniAiMdEvent | null | undefined) {
-		if (event == null) return
-		const eventOps = (event as UniAiMdEvent).ops
+	// 返回新数组而不是改写入参：iOS 上函数参数是不可变 let，不能对参数数组调用 push。
+	private rebuildOpsOf(event: UniAiMdEvent | null | undefined): UTSJSONObject[] {
+		const result = [] as UTSJSONObject[]
+		if (event == null) return result
+		const eventOps = (event as UniAiMdEvent).ops!
 		for (let i = 0; i < eventOps.length; i++) {
 			const op = eventOps[i]
-			target.push({
+			result.push({
 				op: op.op,
 				kind: op.kind,
 				content: op.content,
@@ -369,6 +454,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 				unchanged: op.unchanged
 			} as UTSJSONObject)
 		}
+		return result
 	}
 
 	private postRebuildOps(msgId: string, ops: UTSJSONObject[]) {
@@ -380,7 +466,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 	// #endif
 
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	private feedUniAiMdContent(contentDelta: string): void {
 		if (this.finished || contentDelta.length == 0) return
 		if (this.processUniAiMdContent(contentDelta)) this.flushUniAiMdOps()
@@ -403,7 +489,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.terminalSource = ''
 		this.finished = false
 		this.preprocessor = new MarkdownPreprocessor()
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.uniAiMdLanguage = null
 		this.uniAiMdDarkMode = false
 		this.uniAiMdBackground = ''
@@ -453,7 +539,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private startMarkdown(payload: UTSJSONObject) {
 		const requestVersion = readMessageNumber(payload, 'requestVersion')
 		this.resetState(requestVersion, readMessageNumber(payload, 'renderInterval', 300))
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		const language = readMessageString(payload, 'language')
 		this.uniAiMdLanguage = language.length > 0 ? language : null
 		this.uniAiMdDarkMode = (payload['darkMode'] as boolean | null) ?? false
@@ -473,7 +559,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.eventCount += 1
 		this.networkChunkCount += 1
 		this.receivedBytes += contentDelta.length + reasoningDelta.length
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-IOS
 		this.feedUniAiMdContent(contentDelta)
 		// #endif
 		if (contentDelta.length > 0 || reasoningDelta.length > 0) this.scheduleHtmlSnapshot()
@@ -538,7 +624,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.finished) return
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.uniAiMdCompletionPending = true
 		this.pumpUniAiMd()
 		return
@@ -551,8 +637,8 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		// #endif
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
-	// 鸿蒙/Android 不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 uni-ai-md ops 驱动
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+	// 鸿蒙/Android/iOS 不生成 cmark html/ast，只直发纯状态对象（无序列化），渲染由 uni-ai-md ops 驱动
 	private publishUniAiMdState(phase: string, errCode: string = '', errMsg: string = ''): void {
 		this.snapshotVersion += 1
 		// #ifdef APP-HARMONY
@@ -570,7 +656,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		state.errMsg = errMsg
 		this.postMessage(state, { harmonySendable: true } as WorkerPostMessageOptions)
 		// #endif
-		// #ifdef APP-ANDROID
+		// #ifdef APP-ANDROID || APP-IOS
 		this.postMessage({
 			tag: 'ai-worker-state',
 			requestVersion: this.requestVersion,
@@ -592,14 +678,14 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	private publishSnapshot(isDone: boolean) {
 		// 纯深度思考阶段（正文为空但 reasoning 有增量）也需要发布快照，否则思考内容无法流式渲染
 		if (this.content.length == 0 && this.reasoningContent.length == 0 && !isDone) return
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.publishUniAiMdState(isDone ? 'complete' : 'snapshot')
 		return
 		// #endif
 		const processedMarkdownValue = this.preprocessor.process(this.content, isDone)
 		if (processedMarkdownValue == null) return
 		const processedMarkdown = processedMarkdownValue!
-		// #ifdef APP-IOS || WEB || MP-WEIXIN
+		// #ifdef WEB || MP-WEIXIN
 		if (isMd2htmlAvailable() == false) {
 			this.fail('markdown_html_unavailable', 'cmark-gfm Markdown HTML 转换器不可用')
 			return
@@ -667,7 +753,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.finished = true
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.destroyUniAiMdSession()
 		this.resetUniAiMdProtocol()
 		// #endif
@@ -679,7 +765,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private publishErrorSnapshot(code: string, message: string) {
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.publishUniAiMdState('error', code, message)
 		return
 		// #endif
@@ -714,7 +800,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		if (this.renderTimer != 0) clearTimeout(this.renderTimer)
 		this.renderTimer = 0
 		this.finished = true
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		this.destroyUniAiMdSession()
 		this.resetUniAiMdProtocol()
 		// #endif

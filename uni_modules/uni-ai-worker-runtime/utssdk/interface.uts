@@ -52,9 +52,11 @@ export type AiWorkerRebuildRequest = {
 	darkMode: boolean,
 	background: string
 }
+// ops 用 JSON 字符串承载：iOS 上原生 AiWorkerOp 实例回到 JS 会退化成空对象，
+// 统一改成序列化字符串回传，由调用方在 JS 侧解析。
 export type AiWorkerRebuildResult = {
 	msgId: string,
-	ops: AiWorkerOp[]
+	opsJson: string
 }
 export type AiWorkerRebuildListener = (result: AiWorkerRebuildResult) => void
 export type RequestAiWorkerMarkdownRebuild = (msgId: string, content: string, darkMode: boolean, background: string) => void

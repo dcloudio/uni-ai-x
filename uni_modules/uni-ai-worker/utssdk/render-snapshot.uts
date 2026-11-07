@@ -1,4 +1,3 @@
-// #ifdef APP-ANDROID || APP-HARMONY
 import type { MarkdownTextRenderBlock } from './native-presentation.uts'
 
 export type RenderSnapshot = {
@@ -69,4 +68,3 @@ export function mapRenderResources(blocks: MarkdownTextRenderBlock[], mapSource:
 		if (block.mermaidImageSource != null) block.mermaidImageSource = mapSource(block.mermaidImageSource!)
 	}
 }
-// #endif

@@ -21,8 +21,9 @@ import {
 	startAiWorkerMarkdown
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
-// #ifdef APP-HARMONY || APP-ANDROID
-import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+import { readAiWorkerState } from '@/uni_modules/uni-ai-worker-runtime'
+import { resolveAiWorkerOps } from '@/uni_modules/uni-ai-x/sdk/worker-ops.uts'
 import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
 import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-log.uts'
 // #endif
@@ -155,20 +156,29 @@ export default class MarkdownDemoRunner {
 
 	private pollWorkerSnapshot() {
 		if (!this.workerActive || this.stopped) return
-		// #ifdef APP-HARMONY || APP-ANDROID
-		const ops = takeAiWorkerOps()
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+		const ops = resolveAiWorkerOps()
 		for (let i = 0; i < ops.length; i++) {
 			const op = ops[i]
 			if (op.op != OP_RESET) {
 				logBlockPayload(op.kind, op.content, op.index, op.op, op.unchanged)
 			}
 		}
-		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
+		// 应用 ops 若抛异常，不能阻断后面的完成态轮询（上层 data listener 会吞掉异常，
+		// 一旦这里中断，complete 状态就永远收不到，示例会一直卡在“生成中”）。
+		if (ops.length > 0) {
+			try {
+				this.callbacks?.onMarkdownAstDelta?.(ops)
+			} catch (error) {
+				console.error('[uni-ai-x][demo] apply ops failed:', error)
+			}
+		}
 		this.pollUniAiMdState()
 		return
 		// #endif
 		// #ifndef APP-HARMONY
 		// #ifndef APP-ANDROID
+		// #ifndef APP-IOS
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -217,9 +227,10 @@ export default class MarkdownDemoRunner {
 		this.callbacks?.onRendered(true)
 		// #endif
 		// #endif
+		// #endif
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	private pollUniAiMdState() {
 		const state = readAiWorkerState()
 		if (state == null) return
@@ -244,14 +255,26 @@ export default class MarkdownDemoRunner {
 			blockCount,
 			readSnapshotNumber(state, 'elapsed')
 		)
-		this.callbacks?.onMsgBody(msgBody)
-		this.callbacks?.onThinkContent(thinkContent)
+		try {
+			this.callbacks?.onMsgBody(msgBody)
+			this.callbacks?.onThinkContent(thinkContent)
+		} catch (error) {
+			console.error('[uni-ai-x][demo] apply state failed:', error)
+		}
 		if (phase != 'complete') return
 
 		this.stopWorkerRuntime(false)
 		finishDemoMarkdownRun()
-		this.callbacks?.onState('completed')
-		this.callbacks?.onRendered(true)
+		try {
+			this.callbacks?.onState('completed')
+		} catch (error) {
+			console.error('[uni-ai-x][demo] onState(completed) failed:', error)
+		}
+		try {
+			this.callbacks?.onRendered(true)
+		} catch (error) {
+			console.error('[uni-ai-x][demo] onRendered failed:', error)
+		}
 	}
 	// #endif
 	// #endif

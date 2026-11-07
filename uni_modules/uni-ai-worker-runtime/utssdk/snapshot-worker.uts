@@ -4,6 +4,8 @@ import { realHarmonyAssetPath } from './app-harmony/asset-path.ets'
 // #endif
 let worker: Worker | null = null
 let ready = false
+// iOS 上 Worker 不是 Equatable，无法用 worker != created 判断归属：用代际计数替代。
+let workerGeneration = 0
 let sequence = 0
 let pending: UTSJSONObject[] = []
 const callbacks = new Map<number, (result: UTSJSONObject) => void>()
@@ -19,29 +21,31 @@ export function requestSnapshotWork(request: UTSJSONObject, callback: (result: U
 	if (worker == null) {
 		const created = uni.createWorker('workers/aiSnapshotWorkerTask.uts')
 		worker = created
+		const generation = ++workerGeneration
 		created.onMessage((message: any) => {
-			if (worker != created) return
+			if (generation != workerGeneration) return
 			const result = message as UTSJSONObject
-			if (result['action'] == 'ready') {
+			if (result.getString('action') == 'ready') {
 				ready = true
 				const queue = pending
 				pending = []
-				for (const task of queue) created.postMessage(task, null)
+				for (const task of queue) { created.postMessage(task, null) }
 				return
 			}
-			const id = result['id'] as number
+			const id = result.getNumber('id') ?? 0
 			const timer = timers.get(id)
-			if (timer != null) clearTimeout(timer)
+			if (timer != null) clearTimeout(timer!)
 			timers.delete(id)
 			const receive = callbacks.get(id)
 			callbacks.delete(id)
 			receive?.(result)
 		})
 		created.onError((_error: any) => {
-			if (worker != created) return
+			if (generation != workerGeneration) return
 			let detail = ''
 			try { detail = JSON.stringify(_error) ?? 'null' } catch (_stringifyError) { detail = 'unstringifiable' }
 			console.error('[render-snapshot] snapshot worker onError: ' + detail)
+			workerGeneration += 1
 			worker = null
 			ready = false
 			pending = []
@@ -51,7 +55,7 @@ export function requestSnapshotWork(request: UTSJSONObject, callback: (result: U
 			timers.forEach((timer: number) => { clearTimeout(timer) })
 			timers.clear()
 			created.terminate()
-			for (const receive of waiting) receive({ snapshot: null } as UTSJSONObject)
+			for (const receive of waiting) { receive({ snapshot: null } as UTSJSONObject) }
 		})
 	}
 	request['id'] = ++sequence
@@ -61,7 +65,7 @@ export function requestSnapshotWork(request: UTSJSONObject, callback: (result: U
 		const receive = callbacks.get(id)
 		callbacks.delete(id)
 		timers.delete(id)
-		pending = pending.filter((task: UTSJSONObject): boolean => task['id'] != id)
+		pending = pending.filter((task: UTSJSONObject): boolean => (task.getNumber('id') ?? -1) != id)
 		receive?.({ snapshot: null } as UTSJSONObject)
 	}, 30000))
 	if (ready) worker!.postMessage(request, null)

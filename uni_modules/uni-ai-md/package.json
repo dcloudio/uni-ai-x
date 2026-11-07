@@ -1,15 +1,16 @@
 {
   "id": "uni-ai-md",
   "displayName": "uni-ai-md",
-  "version": "1.0.0",
-  "description": "面向 uni-app x 的流式 Markdown 解析 UTS 插件，支持 Android、HarmonyOS，按块输出 HTML/DATA/AST 事件",
+  "version": "1.0.1",
+  "description": "面向 uni-app x 的流式 Markdown 解析 UTS 插件，支持 Android、HarmonyOS、iOS，按块输出 HTML/DATA/AST 事件",
   "keywords": [
     "uni-ai-md",
     "markdown",
     "stream",
     "android",
-    "harmony"
-],
+    "harmony",
+    "ios"
+  ],
   "repository": "",
   "engines": {
     "HBuilderX": "^5.0",
@@ -89,7 +90,7 @@
           },
           "app": {
             "android": "√",
-            "ios": "-",
+            "ios": "√",
             "harmony": "√"
           },
           "mp": {

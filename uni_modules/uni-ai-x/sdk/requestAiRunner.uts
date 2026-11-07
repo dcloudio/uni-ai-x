@@ -19,9 +19,10 @@ import {
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
-// #ifdef APP-HARMONY || APP-ANDROID
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
-import { readAiWorkerState, takeAiWorkerOps } from '@/uni_modules/uni-ai-worker-runtime'
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+import { readAiWorkerState } from '@/uni_modules/uni-ai-worker-runtime'
+import { resolveAiWorkerOps } from './worker-ops.uts'
 import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
 import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-log.uts'
 // #endif
@@ -30,7 +31,7 @@ export type RequestAiRunnerCallbacks = {
 	onSearch?: (search: MessageSearch) => void,
 	onMarkdownHtml: (html: string) => void,
 	onMarkdownBlocks: (blocks: string) => void,
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	onMarkdownAstDelta?: (ops: AiWorkerOp[]) => void,
 	// #endif
 	onThinkContent: (thinkContent: string) => void,
@@ -393,20 +394,28 @@ class RequestAiRunner {
 	// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 	private pollWorkerSnapshot(requestVersion: number) {
 		if (!this.workerActive || requestVersion != this.workerRequestVersion || this.userAbort) return
-		// #ifdef APP-HARMONY || APP-ANDROID
-		const ops = takeAiWorkerOps()
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+		const ops = resolveAiWorkerOps()
 		for (let i = 0; i < ops.length; i++) {
 			const op = ops[i]
 			if (op.op != OP_RESET) {
 				logBlockPayload(op.kind, op.content, op.index, op.op, op.unchanged)
 			}
 		}
-		if (ops.length > 0) this.callbacks?.onMarkdownAstDelta?.(ops)
+		// 应用 ops 抛异常时不能阻断完成态轮询：data listener 会吞掉异常，否则 complete 状态收不到。
+		if (ops.length > 0) {
+			try {
+				this.callbacks?.onMarkdownAstDelta?.(ops)
+			} catch (error) {
+				console.error('[uni-ai-x][stream] apply ops failed:', error)
+			}
+		}
 		this.pollUniAiMdState(requestVersion)
 		return
 		// #endif
 		// #ifndef APP-HARMONY
 		// #ifndef APP-ANDROID
+		// #ifndef APP-IOS
 		const snapshotJson = readAiWorkerSnapshot()
 		if (snapshotJson.length == 0) return
 		let snapshot: UTSJSONObject
@@ -473,9 +482,10 @@ class RequestAiRunner {
 		}
 		// #endif
 		// #endif
+		// #endif
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	private pollUniAiMdState(requestVersion: number): void {
 		const state = readAiWorkerState()
 		if (state == null) return
@@ -516,8 +526,16 @@ class RequestAiRunner {
 		}))
 		this.stopWorkerRuntime(false)
 		this.currentChatState = 'completed'
-		this.callbacks?.onState('completed')
-		this.callbacks?.onRendered(true)
+		try {
+			this.callbacks?.onState('completed')
+		} catch (error) {
+			console.error('[uni-ai-x][stream] onState(completed) failed:', error)
+		}
+		try {
+			this.callbacks?.onRendered(true)
+		} catch (error) {
+			console.error('[uni-ai-x][stream] onRendered failed:', error)
+		}
 		this.updateChatTitleAfterDone()
 	}
 	// #endif

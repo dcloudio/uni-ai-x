@@ -15,6 +15,8 @@ export type MarkdownTextRenderBlock = {
 	isComplete: boolean
 	columnWidths: number[]
 	rowTextWidths: number[][]
+	// 跨插件类型 MarkdownToken 只在 Android / HarmonyOS 的 Worker 模块可用，
+	// iOS（Swift）与其它平台统一退化为 any[][]，避免跨插件类型解析失败。
 	// #ifdef APP-ANDROID || APP-HARMONY
 	codeTokens: MarkdownToken[][]
 	// #endif
@@ -47,7 +49,13 @@ export function nativeRenderBlock(block: UniAiMdHtmlRenderBlock, isDone: boolean
 		kind: block.kind, key: block.key, html: block.html, text: block.text,
 		language: block.language, isComplete: block.kind == 'mermaid' || block.kind == 'math' ? block.isComplete : (isDone || block.isComplete),
 		columnWidths: block.columnWidths, rowTextWidths: block.rowTextWidths,
-		codeTokens: [] as MarkdownToken[][], codeCompleteLines: block.codeCompleteLines ?? 0,
+		// #ifdef APP-ANDROID || APP-HARMONY
+		codeTokens: [] as MarkdownToken[][],
+		// #endif
+		// #ifndef APP-ANDROID || APP-HARMONY
+		codeTokens: [] as any[][],
+		// #endif
+		codeCompleteLines: block.codeCompleteLines ?? 0,
 		level: 0, indent: 0, marker: '', quoteDepth: 0,
 		mermaidImageSource: '', mermaidRenderTheme: '', mermaidRenderFailed: null,
 		codeHeight: null, codeLines: null, codeHtml: null, codeContentHeight: null,

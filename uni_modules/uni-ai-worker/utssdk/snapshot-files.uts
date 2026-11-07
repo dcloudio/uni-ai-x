@@ -47,19 +47,20 @@ export function persistRenderAssets(messageId: string, snapshot: RenderSnapshot,
 			return source
 		}
 		const data = /^data:image\/(png|svg\+xml|jpeg|webp|gif);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(source)
-		let extension = ''
+		// 变量名不能叫 extension：iOS 会把 uts 编译成 Swift，extension 是 Swift 关键字。
+		let fileExtension = ''
 		let encoded = ''
 		if (data != null) {
-			extension = data[1] == 'svg+xml' ? 'svg' : data[1] == 'jpeg' ? 'jpg' : (data[1] ?? 'png')
+			fileExtension = data[1] == 'svg+xml' ? 'svg' : data[1] == 'jpeg' ? 'jpg' : (data[1] ?? 'png')
 			encoded = data[2] ?? ''
 		} else {
 			if (source.startsWith('data:')) throw new Error('Unsupported render image encoding')
 			const suffix = /\.(svg|png|jpg|jpeg|webp|gif)$/.exec(source)
 			if (suffix == null) return source
-			extension = suffix[1] == 'jpeg' ? 'jpg' : (suffix[1] ?? 'png')
+			fileExtension = suffix[1] == 'jpeg' ? 'jpg' : (suffix[1] ?? 'png')
 			encoded = fs.readFileSync(source, 'base64') as string
 		}
-		const path = directory + '/' + renderContentKey(encoded) + '.' + extension
+		const path = directory + '/' + renderContentKey(encoded) + '.' + fileExtension
 		let exists = false
 		try { fs.accessSync(root + path); exists = true } catch (_) { }
 		if (!exists) {

@@ -1,0 +1,4 @@
+{
+  "deploymentTarget": "13.0",
+  "simulatorArchitectures": ["arm64", "x86_64"]
+}
