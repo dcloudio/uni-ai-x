@@ -69,7 +69,40 @@ function parseLocalDateTime(value: string): number {
 	return localDateTime(date) == value ? date.getTime() : 0
 }
 
-function createCalendarReminder(args: UTSJSONObject): Promise<string> {
+// #ifdef APP-ANDROID
+function requestCalendarPermissions(): Promise<string> {
+	const permissions = ['android.permission.READ_CALENDAR', 'android.permission.WRITE_CALENDAR']
+	return new Promise<string>((resolve) => {
+		let settled = false
+		let timeout = 0
+		const finish = (status: string) => {
+			if (settled) return
+			settled = true
+			clearTimeout(timeout)
+			resolve(status)
+		}
+		timeout = setTimeout(() => { finish('timeout') }, 90000)
+		try {
+			uni.requestSystemPermission({
+				permissions: permissions,
+				success: (result) => {
+					const granted = permissions.every((permission: string): boolean => result.grantedList.includes(permission))
+					finish(granted ? 'granted' : 'denied')
+				},
+				fail: (error) => {
+					console.error('[uni-ai-x][calendar] permission fail', error.errCode, error.errMsg)
+					finish('failed')
+				}
+			})
+		} catch (error) {
+			console.error('[uni-ai-x][calendar] permission exception', error)
+			finish('unavailable')
+		}
+	})
+}
+// #endif
+
+async function createCalendarReminder(args: UTSJSONObject): Promise<string> {
 	const title = args['title']
 	const startAt = args['start_at']
 	const durationValue = args['duration_minutes']
@@ -84,6 +117,15 @@ function createCalendarReminder(args: UTSJSONObject): Promise<string> {
 	if (typeof duration != 'number' || duration < 1 || duration > 1440 || Math.floor(duration) != duration || typeof alarmMinutes != 'number' || alarmMinutes < 0 || alarmMinutes > 10080 || Math.floor(alarmMinutes) != alarmMinutes) {
 		return Promise.resolve(JSON.stringify({ error: '持续时间需为 1 到 1440 分钟，提前提醒时间需为 0 到 10080 分钟' }))
 	}
+	// #ifdef APP-ANDROID
+	// Without permission Android opens the system editor, where some devices ignore alarmOffset.
+	const permission = await requestCalendarPermissions()
+	if (permission != 'granted') {
+		const message = permission == 'denied' ? '请授予日历读写权限，以按指定时间创建提醒' : '当前应用无法申请日历权限，请更新应用后重试'
+		return JSON.stringify({ error: message })
+	}
+	// #endif
+	if (startTime <= Date.now()) return JSON.stringify({ error: '开始时间已过去，请重新指定提醒时间' })
 	const endTime = startTime + duration * 60 * 1000
 	return new Promise<string>((resolve) => {
 		try {
