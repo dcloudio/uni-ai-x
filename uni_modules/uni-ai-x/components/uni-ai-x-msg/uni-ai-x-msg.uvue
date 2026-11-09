@@ -56,7 +56,7 @@
 </template>
 
 <script lang="uts" setup>
-	import {uniAi, MsgItem, messageToolBarVisible, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import {uniAi, MsgItem, messageToolBarVisible, calendarConfirmationRevision, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
 	import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
@@ -138,7 +138,7 @@
 
 	const toolbarDelayReady = ref<boolean>(false)
 	let toolbarDelayTimer = 0
-	watch(() => msg.value._id + ':' + msg.value.rendered.toString() + ':' + state.value + ':' + isLastAiMsg.value.toString(), () => {
+	watch(() => msg.value._id + ':' + msg.value.rendered.toString() + ':' + state.value + ':' + isLastAiMsg.value.toString() + ':' + calendarConfirmationRevision.value.toString(), () => {
 		if (toolbarDelayTimer != 0) {
 			clearTimeout(toolbarDelayTimer)
 			toolbarDelayTimer = 0
@@ -148,7 +148,8 @@
 			return
 		}
 		toolbarDelayReady.value = false
-		if (state.value != 'processing' && msg.value.rendered) {
+		// Tool-only replies have no Markdown blocks to mark as rendered.
+		if (state.value != 'processing' && (msg.value.rendered || (msg.value.toolResultText ?? '').length > 0)) {
 			toolbarDelayTimer = setTimeout(() => {
 				toolbarDelayTimer = 0
 				toolbarDelayReady.value = true
@@ -160,7 +161,8 @@
 	})
 
 	const shouldShowToolBar = computed<boolean>(() => {
-		return msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && msg.value.rendered))
+		calendarConfirmationRevision.value
+		return msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && (msg.value.rendered || (msg.value.toolResultText ?? '').length > 0)))
 	})
 
 	const msgSegmentStyle = 'width:100%;min-height:0;box-sizing:border-box;padding-left:45px;padding-right:45px;'

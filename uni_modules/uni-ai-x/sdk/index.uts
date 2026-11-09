@@ -36,6 +36,8 @@ type StressCopyProgress = (completed: number) => void
 
 export const uiTheme = ref<string>('light')
 export const messageToolBarVisible = ref<boolean>(true)
+// In-place message updates need an explicit invalidation for the confirmation overlay.
+export const calendarConfirmationRevision = ref<number>(0)
 let themeInitialized = false
 
 function updateUiTheme(theme: string) {
@@ -726,21 +728,28 @@ class UniAi {
 		const details = msg?.toolConfirmation
 		if (msg == null || details == null || details.state != 'pending') return
 		msg.toolConfirmation = null
+		calendarConfirmationRevision.value += 1
 		if (!confirmed) {
 			msg.toolResultText = '已取消创建提醒。'
 			this.flushMsg2Storage(msg)
 			return
 		}
-		msg.toolStatus = '正在打开系统日历'
+		msg.toolStatus = '正在处理日程提醒'
 		this.flushMsg2Storage(msg)
-		const result = await runCalendarConfirmation(details)
+		let result = ''
+		try {
+			result = await runCalendarConfirmation(details)
+		} catch (error) {
+			console.error('[uni-ai-x][calendar] confirmation exception', error)
+			result = JSON.stringify({ error: '创建提醒时发生异常' })
+		}
 		let outcome: UTSJSONObject | null = null
 		try { outcome = JSON.parse<UTSJSONObject>(result) as UTSJSONObject } catch (_error) {}
 		msg.toolStatus = ''
 		if (outcome?.['success'] == true) {
 			msg.toolResultText = `已创建提醒：${details.title}，${details.startAt}。`
 		} else if (outcome?.['error'] != null) {
-			msg.toolResultText = `打开系统日历失败：${outcome!['error']}。`
+			msg.toolResultText = `创建提醒失败：${outcome!['error']}。`
 		} else {
 			msg.toolResultText = `已打开系统日历：${details.title}，${details.startAt}。`
 		}
@@ -1122,6 +1131,7 @@ class UniAi {
 			onToolConfirm: (details: CalendarToolConfirmation) => {
 				if (!isActiveAiMsg()) return
 				aiMsgItem.toolConfirmation = details
+				calendarConfirmationRevision.value += 1
 				this.flushMsg2Storage(aiMsgItem)
 			},
 			onState: (state: string) => {
