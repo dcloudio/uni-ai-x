@@ -16,8 +16,8 @@ import { prepareMathPresentation, mathWindowWidth } from './math-presentation.ut
 import { refreshMessagePresentation, forgetMessagePresentation } from './message-presentation.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
 import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
-// #ifdef APP-HARMONY || APP-ANDROID
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
 import {
 	uniAiMdStreamApply,
 	uniAiMdStreamSetTheme,
@@ -444,7 +444,7 @@ class UniAi {
 		this.clearPendingMsgSave()
 		const deletingChat = this.chat.datas.find((item) => item.id == chatId)
 		if (this.chat.activeId == chatId && deletingChat?.state == 'processing') this.abortRequest()
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		if (deletingChat != null) {
 			for (let i = 0; i < deletingChat.msgList.length; i++) uniAiMdStreamRelease(deletingChat.msgList[i]._id)
 		}
@@ -480,7 +480,7 @@ class UniAi {
 		this.clearPendingMsgSave()
 		if (this.currentChat?.state == 'processing') this.abortRequest()
 		const chatIds = this.chat.datas.map((item: ChatItem): string => item.id)
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		for (let chatIndex = 0; chatIndex < this.chat.datas.length; chatIndex++) {
 			const msgList = this.chat.datas[chatIndex].msgList
 			for (let msgIndex = 0; msgIndex < msgList.length; msgIndex++) uniAiMdStreamRelease(msgList[msgIndex]._id)
@@ -508,7 +508,7 @@ class UniAi {
 	}
 
 	prepareMessagePresentation(msg: MsgItem): Promise<void> {
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		uniAiMdStreamSetTheme(uiTheme.value)
 		uniAiMdStreamSetLayoutWidth(uni.getWindowInfo().windowWidth)
 		const restoration = uniAiMdStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
@@ -516,10 +516,10 @@ class UniAi {
 		// #ifdef APP-ANDROID
 		uniAiMdStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
 		// #endif
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		return restoration
 		// #endif
-		// #ifndef APP-ANDROID || APP-HARMONY
+		// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 		if ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length > 0) {
 			msg.markdownBlocks = JSON.stringify(buildMarkdownHtmlBlocks(msg.markdownHtml ?? '', msg.rendered)) ?? '[]'
 		}
@@ -533,7 +533,7 @@ class UniAi {
 	}
 
 	private async loadChatMessages(chatId: string): Promise<void> {
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (this.loadedChatIds.indexOf(chatId) >= 0) return Promise.resolve()
 		const pending = this.loadingChats.get(chatId)
 		if (pending != null) return pending
@@ -551,7 +551,7 @@ class UniAi {
 		this.loadingChats.set(chatId, task)
 		return task
 		// #endif
-		// #ifndef APP-ANDROID || APP-HARMONY
+		// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (this.loadedChatIds.indexOf(chatId) >= 0) return Promise.resolve()
 		const chat = this.chat.datas.find((item) => item.id == chatId)
 		if (chat == null) return Promise.resolve()
@@ -763,13 +763,13 @@ class UniAi {
 		this.pendingMsgSave = null
 	}
 	updateMsg2Storage(msg: MsgItem) {
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		uniAiMdStreamBindMessage(msg, (message: MsgItem) => { this.storageManager.updateStreamingMessage(message) })
 		// #endif
 		// #ifdef APP-ANDROID
 		uniAiMdStreamSetContext(msg._id, msg.body, (msg.search?.sources ?? []).map((source) => source.id))
 		// #endif
-		// #ifndef APP-ANDROID || APP-HARMONY
+		// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 		refreshMessagePresentation(msg, uiTheme.value)
 		// #endif
 		this.clearPendingMsgSave()
@@ -786,7 +786,7 @@ class UniAi {
 		const pending = msg != null ? msg! : this.pendingMsgSave
 		this.clearPendingMsgSave()
 		if (pending != null) {
-			// #ifndef APP-ANDROID || APP-HARMONY
+			// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 			refreshMessagePresentation(pending!, uiTheme.value)
 			// #endif
 			this.storageManager.updateStreamingMessage(pending!)
@@ -916,7 +916,7 @@ class UniAi {
 				this.activeAnswerMsg = null
 			}
 			forgetMessagePresentation(msgId)
-			// #ifdef APP-HARMONY || APP-ANDROID
+			// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 			uniAiMdStreamRelease(msgId)
 			// #endif
 			msgList.splice(index, 1)
@@ -965,7 +965,7 @@ class UniAi {
 		}
 		// 先清掉防抖中的待写消息，避免删除后又被写回 Storage
 		this.clearPendingMsgSave()
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		for (let i = index; i < msgList.length; i++) uniAiMdStreamRelease(msgList[i]._id)
 		// #endif
 		msgList.splice(index, msgList.length - index)
@@ -1053,7 +1053,7 @@ class UniAi {
 		msg.toolStatus = ''
 		msg.toolResultText = ''
 		this.answerGeneration += 1
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		uniAiMdStreamReset(msg._id)
 		// #endif
 		msg.body = ''
@@ -1091,7 +1091,7 @@ class UniAi {
 				this.prepareMessagePresentation(aiMsgItem)
 				this.updateMsg2Storage(aiMsgItem)
 			},
-			// #ifdef APP-HARMONY || APP-ANDROID
+			// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 			onMarkdownAstDelta: (ops: AiWorkerOp[]) => {
 				if (!isActiveAiMsg() || this.currentChat!.state == 'stop') return
 				if (uniAiMdStreamApply(aiMsgItem._id, ops)) {
@@ -1141,7 +1141,7 @@ class UniAi {
 					aiMsgItem.toolResultText = '准备创建日程提醒，请确认以下信息。'
 				}
 				this.currentChat!.state = state
-				// #ifdef APP-HARMONY || APP-ANDROID
+				// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 				if (state == 'completed') {
 					// 最终高亮和图片准备就绪后，由展示层提交完整快照。
 					uniAiMdStreamMarkComplete(aiMsgItem._id)

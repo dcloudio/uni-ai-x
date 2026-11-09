@@ -4,11 +4,14 @@ export * from './stream-request.uts'
 export * from './markdown-preprocessor.uts' // Includes iOS-safe trailing-newline scanning.
 export * from './markdown-html.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
+// 渲染快照持久化只在 Android / HarmonyOS 启用；iOS 历史消息由 Worker 从原文重建。
 export * from './render-snapshot.uts'
 export * from './uni-ai-md-html.uts'
 export * from './snapshot-files.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY
+// 该组模块只服务于 Android 的 presentation Worker（native-presentation/code-highlight 等），
+// iOS 走主线程展示层（uni-ai-x/sdk/code-presentation.uts），不需要经包入口导出。
 export * from './native-presentation.uts'
 export * from './code-presentation.uts'
 export * from './code-highlight.uts'

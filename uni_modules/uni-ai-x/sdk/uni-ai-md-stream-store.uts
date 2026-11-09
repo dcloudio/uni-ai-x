@@ -1,4 +1,4 @@
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker-runtime/utssdk/interface.uts'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
 import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-worker-runtime'
 import { UniAiMdHtmlStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
 import { uniAiMdHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
@@ -17,9 +17,10 @@ import type { MsgItem } from '../types.uts'
 import { RenderSnapshot, RENDER_SNAPSHOT_VERSION, renderContentKey } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY
-import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
+// 命名空间导入：被条件编译屏蔽的具名导入仍会被 Rollup 解析并报缺失导出，命名空间成员不校验。
+import * as uniAiWorkerRuntime from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
-// #ifdef APP-HARMONY
+// #ifdef APP-HARMONY || APP-IOS
 import { prepareTablePresentation } from './table-presentation.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { linkSearchCitations } from './search-citations.uts'
@@ -154,7 +155,7 @@ function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 	}
 	// #ifdef APP-ANDROID || APP-HARMONY
 	entry.saveInFlightVersion = version
-	requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
+	uniAiWorkerRuntime.requestSnapshotWork({ action: 'persist', messageId: message._id, body: body, snapshot: snapshot } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (entry.saveInFlightVersion == version) entry.saveInFlightVersion = -1
 		if (!isCurrent()) return
 		const stored = result['snapshot'] as RenderSnapshot | null
@@ -175,15 +176,21 @@ function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 }
 
 export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgItem) => void): Promise<void> {
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	if (message.from_uid != 'uni-ai') return Promise.resolve()
 	const entry = entryFor(message._id)
 	entry.message = message
 	entry.save = save
 	if (entry.restored && entry.body != message.body) rebuildRestoredEntry(entry)
 	if (entry.restoring || entry.restored || entry.preparationVersion > 0 || entry.textBlocks.length > 0) return Promise.resolve()
-	const snapshot = message.renderSnapshot
 	entry.body = message.body
+	// #ifdef APP-IOS
+	// iOS 不做渲染快照持久化/恢复：历史消息统一交给 Worker 从原文重建。
+	uniAiMdStreamRequestRebuild(message._id, message.body)
+	return Promise.resolve()
+	// #endif
+	// #ifdef APP-ANDROID || APP-HARMONY
+	const snapshot = message.renderSnapshot
 	const snapshotMatchesContext = snapshot != null && snapshot.theme == presentationTheme && snapshot.width == presentationWidth &&
 		snapshot.citations == (message.search?.sources ?? []).map((source) => source.id).join(',')
 	if (!snapshotMatchesContext) {
@@ -194,8 +201,7 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 	const body = message.body
 	entry.body = body
 	return new Promise<void>((resolve) => {
-	// #ifdef APP-ANDROID || APP-HARMONY
-	requestSnapshotWork({ action: 'restore', snapshot: snapshot, body: body } as UTSJSONObject, (result: UTSJSONObject) => {
+	uniAiWorkerRuntime.requestSnapshotWork({ action: 'restore', snapshot: snapshot, body: body } as UTSJSONObject, (result: UTSJSONObject) => {
 		if (streamEntries.get(message._id) != entry || message.body != body || !entry.restoring) { resolve(); return }
 		entry.restoring = false
 		const restored = result['snapshot'] as RenderSnapshot | null
@@ -210,10 +216,10 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 		}
 		resolve()
 	})
-	// #endif
 	})
 	// #endif
-	// #ifndef APP-ANDROID || APP-HARMONY
+	// #endif
+	// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 	return Promise.resolve()
 	// #endif
 }
@@ -275,10 +281,10 @@ function prepareStreamSvgFiles(blocks: MarkdownTextRenderBlock[], done: () => vo
 }
 // #endif
 
-function finishRefreshEntry(entry: LibmarkStreamEntry, prepared: MarkdownTextRenderBlock[], isCurrent: () => boolean) {
+function finishRefreshEntry(entry: UniAiMdStreamEntry, prepared: MarkdownTextRenderBlock[], isCurrent: () => boolean) {
 	if (!isCurrent()) return
 		entry.settled = true
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-IOS
 		for (const block of prepared) {
 			if (block.kind != 'html' && block.kind != 'table') continue
 			block.html = linkMarkdownFootnotes(block.html, entry.message?.body ?? '')
@@ -398,13 +404,13 @@ export function uniAiMdStreamSetTheme(theme: string) {
 	if (presentationTheme == theme) return
 	presentationTheme = theme
 	streamEntries.forEach((entry: UniAiMdStreamEntry) => {
-		// #ifdef APP-ANDROID || APP-HARMONY
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		// A theme switch invalidates every generated SVG, including entries that
 		// were already prepared. Rebuild from the source so old-theme assets are
 		// never reused by recycled list items.
 		rebuildRestoredEntry(entry)
 		// #endif
-		// #ifndef APP-ANDROID || APP-HARMONY
+		// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 		refreshEntry(entry, entry.done)
 		// #endif
 	})
@@ -517,7 +523,7 @@ export function uniAiMdStreamMarkComplete(msgId: string): void {
 	// #endif
 }
 
-// #ifdef APP-HARMONY || APP-ANDROID
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 // 正在等待 Worker 重建结果的消息（去重）
 const rebuildingMsgIds = [] as string[]
 // 本次会话重建失败的消息（避免反复请求）
@@ -530,7 +536,7 @@ const rebuildFailedMsgIds = [] as string[]
  * 解析结果通过 setAiWorkerRebuildListener 的监听器回调，再调用 uniAiMdStreamApplyRebuild 应用。
  */
 export function uniAiMdStreamRequestRebuild(msgId: string, text: string): boolean {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	if (text.length == 0) return false
 	if (rebuildFailedMsgIds.indexOf(msgId) >= 0) return false
 	if (rebuildingMsgIds.indexOf(msgId) >= 0) return false
@@ -545,7 +551,9 @@ export function uniAiMdStreamRequestRebuild(msgId: string, text: string): boolea
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
+	// #ifndef APP-IOS
 	return false
+	// #endif
 	// #endif
 	// #endif
 }
@@ -554,7 +562,7 @@ export function uniAiMdStreamRequestRebuild(msgId: string, text: string): boolea
  * 应用 Worker 回传的重建 ops；ops 为空或应用后无 blocks 均视为重建失败，本次会话不再重试。
  */
 export function uniAiMdStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boolean {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	const index = rebuildingMsgIds.indexOf(msgId)
 	if (index < 0) return false
 	rebuildingMsgIds.splice(index, 1)
@@ -572,7 +580,9 @@ export function uniAiMdStreamApplyRebuild(msgId: string, ops: AiWorkerOp[]): boo
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
+	// #ifndef APP-IOS
 	return false
+	// #endif
 	// #endif
 	// #endif
 }
@@ -597,7 +607,7 @@ export function uniAiMdStreamRelease(msgId: string): void {
 	// #endif
 	const index = streamEntryOrder.indexOf(msgId)
 	if (index >= 0) streamEntryOrder.splice(index, 1)
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	const pendingIndex = rebuildingMsgIds.indexOf(msgId)
 	if (pendingIndex >= 0) rebuildingMsgIds.splice(pendingIndex, 1)
 	const failedIndex = rebuildFailedMsgIds.indexOf(msgId)

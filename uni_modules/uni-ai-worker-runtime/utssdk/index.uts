@@ -46,7 +46,7 @@ type SendablePostMessageOptions = {
 }
 // #endif
 
-// #ifdef APP-HARMONY || APP-ANDROID
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 let pendingUniAiMdOps = [] as AiWorkerOp[]
 let latestUniAiMdState: UTSJSONObject | null = null
 // Worker 未就绪时排队的重建请求、待监听器消费的重建结果
@@ -106,7 +106,8 @@ function notifyDataListener(): void {
 	if (listener == null) return
 	try {
 		listener()
-	} catch (_error) {
+	} catch (error) {
+		console.error('[uni-ai-x][worker-runtime] data listener failed:', error)
 	}
 }
 
@@ -149,7 +150,7 @@ function postStart(options: AiWorkerStartOptions): void {
 
 function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	if (worker == null || !workerReady) return
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	pendingUniAiMdOps = [] as AiWorkerOp[]
 	latestUniAiMdState = null
 	// #endif
@@ -214,7 +215,7 @@ function receiveUniAiMdOpBatch(batch: UniAiMdOpBatch): void {
 }
 // #endif
 
-// #ifdef APP-ANDROID
+// #ifdef APP-ANDROID || APP-IOS
 function receiveUniAiMdOpBatchObject(message: UTSJSONObject): void {
 	if (readMessageNumber(message, 'requestVersion') != currentRequestVersion) return
 	const ops = message['ops'] as UTSJSONObject[] | null
@@ -232,27 +233,12 @@ function receiveUniAiMdOpBatchObject(message: UTSJSONObject): void {
 }
 // #endif
 
-// #ifdef APP-HARMONY || APP-ANDROID
-function toAiWorkerOps(rawOps: UTSJSONObject[] | null): AiWorkerOp[] {
-	const ops = [] as AiWorkerOp[]
-	if (rawOps == null) return ops
-	for (let i = 0; i < rawOps.length; i++) {
-		const entry = rawOps[i]
-		ops.push({
-			op: readMessageNumber(entry, 'op'),
-			kind: readMessageString(entry, 'kind'),
-			content: readMessageString(entry, 'content'),
-			index: readMessageNumber(entry, 'index'),
-			unchanged: readMessageBoolean(entry, 'unchanged')
-		} as AiWorkerOp)
-	}
-	return ops
-}
-
+// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 function receiveRebuildResult(message: UTSJSONObject): void {
+	const rebuildOps = message['ops'] as UTSJSONObject[] | null
 	const result: AiWorkerRebuildResult = {
 		msgId: readMessageString(message, 'msgId'),
-		ops: toAiWorkerOps(message['ops'] as UTSJSONObject[] | null)
+		opsJson: JSON.stringify(rebuildOps) ?? '[]'
 	}
 	const listener = rebuildListener
 	if (listener == null) {
@@ -304,12 +290,12 @@ function createWorkerNow(generation: number): void {
 	worker!.onMessage((message: any) => {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		if (readMessageString(result, 'tag') == 'uni-ai-md-op-batch') {
 			// #ifdef APP-HARMONY
 			receiveUniAiMdOpBatch(message as UniAiMdOpBatch)
 			// #endif
-			// #ifdef APP-ANDROID
+			// #ifdef APP-ANDROID || APP-IOS
 			receiveUniAiMdOpBatchObject(result)
 			// #endif
 			notifyDataListener()
@@ -328,7 +314,7 @@ function createWorkerNow(generation: number): void {
 		const phase = readMessageString(result, 'phase')
 		if (phase == 'ready') {
 			workerReady = true
-			// #ifdef APP-HARMONY || APP-ANDROID
+			// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 			flushPendingRebuildRequests()
 			// #endif
 			if (pendingMarkdownStart != null) {
@@ -366,7 +352,7 @@ function createWorkerNow(generation: number): void {
 	})
 	worker!.onError((_error: any) => {
 		if (generation != runtimeGeneration) return
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		latestUniAiMdState = {
 			tag: 'ai-worker-state',
 			requestVersion: currentRequestVersion,
@@ -462,7 +448,7 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	pendingMarkdownContent = ''
 	pendingMarkdownReasoning = ''
 	pendingMarkdownComplete = false
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	pendingUniAiMdOps = [] as AiWorkerOp[]
 	latestUniAiMdState = null
 	currentRequestVersion = 0
@@ -486,7 +472,7 @@ const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
 	pendingMarkdownComplete = false
 	latestSnapshotJson = ''
 	currentRequestVersion = 0
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	pendingUniAiMdOps = [] as AiWorkerOp[]
 	latestUniAiMdState = null
 	pendingRebuildRequests = [] as AiWorkerRebuildRequest[]
@@ -777,12 +763,14 @@ export const readAiWorkerSnapshot: ReadAiWorkerSnapshot = function (): string {
 }
 
 export const readAiWorkerState: ReadAiWorkerState = function (): UTSJSONObject | null {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	return latestUniAiMdState
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
+	// #ifndef APP-IOS
 	return null
+	// #endif
 	// #endif
 	// #endif
 }
@@ -795,38 +783,55 @@ export function setAiWorkerDataListener(listener: AiWorkerDataListener | null): 
 }
 
 export const takeAiWorkerOps: () => AiWorkerOp[] = function (): AiWorkerOp[] {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	const result = pendingUniAiMdOps
 	pendingUniAiMdOps = [] as AiWorkerOp[]
 	return result
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
+	// #ifndef APP-IOS
 	return [] as AiWorkerOp[]
+	// #endif
 	// #endif
 	// #endif
 }
 
+// iOS 原生 AiWorkerOp 实例跨 UTS 边界回 JS 时字段会丢失（拿到空对象），
+// 改为序列化成 JSON 字符串回到 JS 侧再解析，得到带字段的普通对象。
+export function takeAiWorkerOpsJson(): string {
+	// #ifdef APP-IOS
+	const result = JSON.stringify(pendingUniAiMdOps) ?? '[]'
+	pendingUniAiMdOps = [] as AiWorkerOp[]
+	return result
+	// #endif
+	// #ifndef APP-IOS
+	return '[]'
+	// #endif
+}
+
 export const isUniAiMdOpsSupported: () => boolean = function (): boolean {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	return true
 	// #endif
 	// #ifndef APP-HARMONY
 	// #ifndef APP-ANDROID
+	// #ifndef APP-IOS
 	return false
+	// #endif
 	// #endif
 	// #endif
 }
 
 export const requestAiWorkerMarkdownRebuild: RequestAiWorkerMarkdownRebuild = function (msgId: string, content: string, darkMode: boolean, background: string): void {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	requestWorkerMarkdownRebuild(msgId, content, darkMode, background)
 	// #endif
 }
 
 @UTSJS.keepAlive
 export function setAiWorkerRebuildListener(listener: AiWorkerRebuildListener | null): void {
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	rebuildListener = listener
 	const target = listener
 	if (target == null) return
@@ -866,3 +871,4 @@ export { mutateAndroidChatMessages } from './background-storage.uts'
 export { readAndroidSettings } from './background-storage.uts'
 export { readAndroidSvgCache, writeAndroidSvgCache, prepareAndroidSvgSource, encodeAndroidWebRequest } from './background-render.uts'
 // #endif
+

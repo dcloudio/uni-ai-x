@@ -1,8 +1,11 @@
 // #ifdef APP-ANDROID
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
 // #endif
-// #ifndef APP-ANDROID
+// #ifdef APP-HARMONY
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
+// #endif
+// #ifdef APP-IOS
+import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
 // #endif
 
 // Keep native block boundaries; preview only the unconsumed source of a confirmed tail.
@@ -23,7 +26,7 @@ export class UniAiMdSourceTail {
 		this.pendingSource += chunk
 		const result = this.feedConfirmedTail(chunk, event)
 		// The caller feeds at newline boundaries, so a delivery covers completed lines only.
-		if (chunk.endsWith('\n') && event != null && event.ops.length > 0) this.pendingSource = ''
+		if (chunk.endsWith('\n') && event != null && event!.ops.length > 0) this.pendingSource = ''
 		const source = this.tail == null ? this.pendingSource : ''
 		return this.withSource(result, source)
 		// #endif
@@ -37,7 +40,7 @@ export class UniAiMdSourceTail {
 	private withSource(event: UniAiMdEvent | null, source: string): UniAiMdEvent | null {
 		if (source == this.visibleSource) return event
 		this.visibleSource = source
-		const ops = event == null ? [] as UniAiMdOp[] : event.ops.slice()
+		const ops = event == null ? [] as UniAiMdOp[] : event!.ops.slice()
 		const preview: UniAiMdOp = { op: 2, kind: 'source', index: -1, unchanged: false, content: source }
 		ops.push(preview)
 		const result: UniAiMdEvent = { ops: ops }
@@ -54,22 +57,23 @@ export class UniAiMdSourceTail {
 				if (this.fence.length == 0) {
 					const opening = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(source)
 					if (opening != null) {
-						const marker = opening[2] ?? ''
-						const info = opening[3] ?? ''
+						// 正则分组在 iOS（Worker）里被推断成 Any，显式转成 string 才能调用字符串成员。
+						const marker = opening[2] as string
+						const info = opening[3] as string
 						if (!(marker.startsWith('`') && info.indexOf('`') >= 0)) {
 							this.fence = marker
-							this.indent = (opening[1] ?? '').length
+							this.indent = ((opening[1] as string).length) as number
 						}
 					}
 				} else {
 					const closing = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(source)
-					const marker = closing == null ? '' : (closing[1] ?? '')
+					const marker = closing == null ? '' : closing[1] as string
 					if (marker.charAt(0) == this.fence.charAt(0) && marker.length >= this.fence.length) this.fence = ''
 				}
 			}
 		}
 		this.line = newline >= 0 ? combined.slice(newline + 1) : combined
-		const ops = event == null ? [] as UniAiMdOp[] : event.ops.slice()
+		const ops = event == null ? [] as UniAiMdOp[] : event!.ops.slice()
 		for (let i = 0; i < ops.length; i++) {
 			const op = ops[i]
 			this.tail = null
@@ -88,8 +92,10 @@ export class UniAiMdSourceTail {
 		}
 		const tail = this.tail
 		if (tail == null) return event
-		if (tail.kind == 'data') {
-			const data = JSON.parse<UTSJSONObject>(tail.content)!
+		// iOS 上可选值不会自动收窄：先强制解包成非空局部变量，再访问其成员。
+		const activeTail = tail!
+		if (activeTail.kind == 'data') {
+			const data = JSON.parse<UTSJSONObject>(activeTail.content)!
 			const source = data.getString('source') ?? ''
 			let pending = this.line.replace(/\r$/, '')
 			if (data.getString('type') == 'math') {
@@ -97,7 +103,7 @@ export class UniAiMdSourceTail {
 				pending = pending.replace(/\$\$?[ \t]*$/, '').replace(/\\\]?[ \t]*$/, '')
 			} else if (/^ {0,3}(`+|~+)\s*$/.test(pending)) pending = ''
 			data['source'] = source + pending
-			const preview: UniAiMdOp = { op: 2, kind: 'data', index: tail.index, unchanged: false, content: JSON.stringify(data) }
+			const preview: UniAiMdOp = { op: 2, kind: 'data', index: activeTail.index, unchanged: false, content: JSON.stringify(data) }
 			ops.push(preview)
 			const result: UniAiMdEvent = { ops: ops }
 			return result
@@ -112,13 +118,13 @@ export class UniAiMdSourceTail {
 		// A partial closing fence must not flash as source while its delimiter arrives.
 		const possibleFence = line.trim().startsWith(this.fence.charAt(0)) && /^ {0,3}(`+|~+)\s*$/.test(line)
 		if (line.length == 0 || possibleFence) {
-			if (this.previewVisible) ops.push(tail)
+			if (this.previewVisible) ops.push(activeTail)
 			this.previewVisible = false
 		} else {
-			const end = tail.content.indexOf('</code>')
+			const end = activeTail.content.indexOf('</code>')
 			const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-			const preview: UniAiMdOp = { op: 2, kind: 'html', index: tail.index, unchanged: false,
-				content: tail.content.slice(0, end) + escaped + tail.content.slice(end) }
+			const preview: UniAiMdOp = { op: 2, kind: 'html', index: activeTail.index, unchanged: false,
+				content: activeTail.content.slice(0, end) + escaped + activeTail.content.slice(end) }
 			ops.push(preview)
 			this.previewVisible = true
 		}

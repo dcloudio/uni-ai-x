@@ -3,7 +3,8 @@ import { ChatItem, MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
 import { saveAndroidMessageInBackground, invalidateAndroidMessageWrite, readAndroidChatMessages, readAndroidChatList, writeAndroidStorageBatch, mutateAndroidChatMessages } from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY
-import { requestSnapshotWork } from '@/uni_modules/uni-ai-worker-runtime'
+// 命名空间导入：避免 Rollup 对被条件编译屏蔽的具名导入做缺失导出校验。
+import * as uniAiWorkerRuntime from '@/uni_modules/uni-ai-worker-runtime'
 // #endif
 
 // 存储键常量
@@ -31,11 +32,11 @@ function migrateLegacyMessage(message: MsgItem): MsgItem {
 }
 
 function serializeMessage(message: MsgItem): string {
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	const stored: MsgItem = { ...message, markdownHtml: '', markdownAst: '', markdownBlocks: '', uniAiMdRevision: 0 }
 	return JSON.stringify(stored)
 	// #endif
-	// #ifndef APP-ANDROID || APP-HARMONY
+	// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 	return JSON.stringify(message)
 	// #endif
 }
@@ -465,7 +466,7 @@ export class StorageManager {
 			const msgId = msgIds[i]
 			const msg = this.getMessage(msgId)
 			if (msg != null) {
-				// #ifdef APP-HARMONY || APP-ANDROID
+				// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 				// 原生渲染数据不落 storage：清掉历史遗留的 AST/HTML 字段（内存立即生效），
 				// 保留 body 即可在渲染时重建
 				msg.uniAiMdRevision = 0
@@ -485,7 +486,7 @@ export class StorageManager {
 		return messages.sort((a, b) => a.create_time - b.create_time)
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	/**
 	 * 把需要清理旧渲染字段的消息加入后台队列，分批重写。
 	 * 清掉旧字段可降低 preferences 整文件刷盘成本。
@@ -555,7 +556,7 @@ export class StorageManager {
 
 	private removeRenderAssets(msgId: string) {
 		// #ifdef APP-ANDROID || APP-HARMONY
-		requestSnapshotWork({ action: 'delete', messageId: msgId } as UTSJSONObject, (_result: UTSJSONObject) => {})
+		uniAiWorkerRuntime.requestSnapshotWork({ action: 'delete', messageId: msgId } as UTSJSONObject, (_result: UTSJSONObject) => {})
 		// #endif
 	}
 }

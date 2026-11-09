@@ -1,0 +1,4 @@
+framework module UniAiMdBridge {
+  umbrella header "UniAiMdBridge.h"
+  export *
+}

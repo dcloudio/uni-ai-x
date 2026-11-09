@@ -80,10 +80,10 @@
 	import { footnoteLabel, markdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
 	import uniAiSearchStatus from '@/uni_modules/uni-ai-x/components/uni-ai-search-status.uvue'
 	import uniAiSearchSources from '@/uni_modules/uni-ai-x/components/uni-ai-search-sources.uvue'
-	// #ifdef APP-ANDROID || APP-HARMONY
+	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 	const isUniAiMdPlatform = true
 	// #endif
-	// #ifndef APP-ANDROID || APP-HARMONY
+	// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 	const isUniAiMdPlatform = false
 	// #endif
 

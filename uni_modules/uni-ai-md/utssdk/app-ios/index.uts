@@ -1,0 +1,49 @@
+import type { UniAiMdEvent } from '../interface.uts'
+
+// 句柄统一用 number（自增 id）传递：UTS 运行时的 iOS 同步通道对 object 参数
+// 的装箱不可靠（含 object 参数的方法会在进入方法体前报 method call failed，
+// 基本类型参数无此问题），lldb 直接调用同一 Swift 方法却正常，可排除方法
+// 本身的问题。createSession 直接返回 id，其余方法接收 id。
+
+// 参数必须为必选：UTS 可选参数会编译成 Swift Optional（尤其 boolean?），
+// Swift 编译器会静默拒绝把含 Optional Bool 参数的 @objcMembers 方法导出为 OC
+// 方法，运行时经 OC bridge 调用 s_createSessionByJs 时找不到方法而报
+// method call failed。调用方（utils/bridge.uts）固定传全 4 个参数。
+export function createSession(mode: string, languageTags: string, darkMode: boolean,
+	background: string): number {
+	const id = UniAiMdIOS.createSession(mode, languageTags, darkMode, background)
+	if (id == 0) console.error('[uni-ai-md] session creation failed')
+	return id
+}
+
+export function feedChunk(id: number, chunk: string): UniAiMdEvent | null {
+	return toEvent(UniAiMdIOS.feedChunk(toSessionId(id), chunk))
+}
+
+export function finishSession(id: number): UniAiMdEvent | null {
+	return toEvent(UniAiMdIOS.finishSession(toSessionId(id)))
+}
+
+// 返回 boolean 而非 void：与 feedChunk/finishSession 保持「返回非空值」一致，
+// 避免依赖 iOS 同步通道对 void 返回的处理；调用方不消费返回值。
+export function destroySession(id: number): boolean {
+	UniAiMdIOS.destroySession(toSessionId(id))
+	return true
+}
+
+function toSessionId(id: number): Int {
+	const intId = id.toInt()
+	if (intId <= 0) console.error('[uni-ai-md] invalid session handle')
+	return intId
+}
+
+function toEvent(payload: string | null): UniAiMdEvent | null {
+	if (payload == null || payload.length == 0) return null
+	if (payload.startsWith('{"error":')) {
+		console.error('[uni-ai-md] ' + (payload ?? ''))
+		return null
+	}
+	const event = JSON.parse<UniAiMdEvent>(payload)
+	if (event == null || event.ops.length == 0) return null
+	return event
+}

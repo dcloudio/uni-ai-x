@@ -72,7 +72,7 @@
 	import { prepareTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
 	import { linkSearchCitations } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
 	import { linkMarkdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	import {
 		uniAiMdStreamApplyRebuild,
 		uniAiMdPresentationRevision,
@@ -82,6 +82,7 @@
 	} from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
 	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-worker-runtime'
 	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-worker-runtime'
+	import { parseAiWorkerOps } from '@/uni_modules/uni-ai-x/sdk/worker-ops.uts'
 	// #endif
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
@@ -185,10 +186,10 @@
 		}, 60)
 	}
 
-	// #ifdef APP-HARMONY || APP-ANDROID
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	// Worker 重建完成回调：应用 ops 后驱动重算（页面环境无法调用 uni-ai-md，重建统一在 Worker 执行）
 	const onRebuildResult = (result: AiWorkerRebuildResult) => {
-		if (uniAiMdStreamApplyRebuild(result.msgId, result.ops)) {
+		if (uniAiMdStreamApplyRebuild(result.msgId, parseAiWorkerOps(result.opsJson))) {
 			rebuildVersion.value += 1
 			scheduleRebuildScroll()
 		}
@@ -240,19 +241,19 @@
 	const RENDER_ITEM_FIRST_OFFSET = 100
 
 	function canRebuildMarkdownFromBody(msg: MsgItem): boolean {
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		return msg.body.trim().length > 0
 		// #endif
-		// #ifndef APP-HARMONY || APP-ANDROID
+		// #ifndef APP-HARMONY || APP-ANDROID || APP-IOS
 		return false
 		// #endif
 	}
 
 	function getMarkdownBlocks(msg: MsgItem): MarkdownTextRenderBlock[] {
-		// #ifndef APP-HARMONY || APP-ANDROID
+		// #ifndef APP-HARMONY || APP-ANDROID || APP-IOS
 		return readMessagePresentation(msg._id)
 		// #endif
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		const revision = msg.uniAiMdRevision ?? 0
 			const version = uniAiMdStreamGetRevision(msg._id)
 		const theme = uiTheme.value
@@ -412,7 +413,7 @@
 			const appendRichTextBlock = (block: MarkdownTextRenderBlock) => {
 				flushNormalParts()
 				let blockKey = block.key
-				// #ifdef APP-ANDROID || APP-HARMONY
+				// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 				if (block.kind == 'mermaid') {
 					blockKey = 'mermaid-' + mermaidBlockIndex.toString()
 					// #ifndef APP-ANDROID
@@ -452,10 +453,10 @@
 							}
 						}
 					} else if (hasBody) {
-						// #ifdef APP-ANDROID || APP-HARMONY
+						// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 						appendNormalPart(aiRenderPart('restoring', 'restoring'))
 						// #endif
-						// #ifndef APP-ANDROID || APP-HARMONY
+						// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 						appendNormalPart(aiRenderPart('plain', 'plain'))
 						// #endif
 					}
@@ -493,7 +494,7 @@
 
 	const messageComputations = new Map<string, { msg: MsgItem, rows: ComputedRef<ChatRenderItem[]> }>()
 	const renderItemList = computed<ChatRenderItem[]>(() => {
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-IOS
 		uniAiMdPresentationRevision.value
 		rebuildVersion.value
 		// #endif
@@ -851,7 +852,7 @@
 	
 	onMounted(() => {
 		uniAi.onBeforeRequestAi(beforeRequestAi)
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		setAiWorkerRebuildListener(onRebuildResult)
 		// #endif
 		// #ifdef H5
@@ -876,7 +877,7 @@
 		messageComputations.clear()
 		if (state.value == 'processing') uniAi.abortRequest()
 		uniAi.offBeforeRequestAi(beforeRequestAi)
-		// #ifdef APP-HARMONY || APP-ANDROID
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		setAiWorkerRebuildListener(null)
 		// #endif
 		scrollingT = clearTimer(scrollingT)

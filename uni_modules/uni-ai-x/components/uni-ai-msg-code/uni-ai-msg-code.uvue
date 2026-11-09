@@ -44,7 +44,13 @@ const contentWidthStyle = computed((): string => {
 		for (const char of line) width += char == '\t' ? 36 : ((char.codePointAt(0) ?? 0) > 255 ? 18 : 9)
 		longest = Math.max(longest, width)
 	}
-	return 'width:' + Math.ceil(longest + 32).toString() + 'px;'
+	// iOS 原生 rich-text 的 Metal 视口按「逻辑宽 × pixelRatio」申请纹理，超过 8192 像素会直接
+	// abort 闪退。这里把宽度钳制在安全上限，避免超长代码行把纹理顶爆。
+	const scale = uni.getWindowInfo().pixelRatio
+	const safeScale = scale > 0 ? scale : 1
+	const maxWidth = Math.floor((8192 - 64) / safeScale)
+	const width = Math.min(Math.ceil(longest + 32), maxWidth)
+	return 'width:' + width.toString() + 'px;'
 	// #endif
 	// #ifndef APP-IOS
 	return ''

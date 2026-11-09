@@ -3,7 +3,7 @@
 		<scroll-view class="uni-ai-msg-html-table-scroll"
 			direction="horizontal" :show-scrollbar="true" :style="props.presentation.scrollStyle"
 			>
-			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :user-select="true" :style="props.presentation.richTextStyle"
+			<rich-text :disable-split-screen-render="true" class="uni-ai-msg-html-table-content" :user-select="true" :style="richTextStyle"
 				:nodes="props.presentation.html" mode="native" @itemclick="onItemClick"></rich-text>
 		</scroll-view>
 	</view>
@@ -20,6 +20,20 @@
 	}
 
 	const props = defineProps<UniAiMsgHtmlTableProps>()
+
+	// iOS 原生 rich-text 的 Metal 纹理宽 = 逻辑宽 × pixelRatio，超过 8192 像素会 abort；
+	// 给超宽表格加 max-width 上限，避免绘制脚本把纹理顶爆而闪退。
+	const richTextStyle = computed((): string => {
+		// #ifdef APP-IOS
+		const scale = uni.getWindowInfo().pixelRatio
+		const safeScale = scale > 0 ? scale : 1
+		const maxWidth = Math.floor((8192 - 64) / safeScale)
+		return props.presentation.richTextStyle + 'max-width:' + maxWidth.toString() + 'px;'
+		// #endif
+		// #ifndef APP-IOS
+		return props.presentation.richTextStyle
+		// #endif
+	})
 
 	function onItemClick(e: UniRichTextItemClickEvent) {
 		if (e.detail.href != null && e.detail.href!.length > 0) {

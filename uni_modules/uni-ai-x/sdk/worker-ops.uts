@@ -1,0 +1,22 @@
+import { takeAiWorkerOps, takeAiWorkerOpsJson } from '@/uni_modules/uni-ai-worker-runtime'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+
+// 解析 Worker 回传的 ops JSON（'[]' 或更短视为空）。
+export function parseAiWorkerOps(json: string): AiWorkerOp[] {
+	if (json.length <= 2) return [] as AiWorkerOp[]
+	const parsed = JSON.parse<AiWorkerOp[]>(json)
+	return parsed == null ? ([] as AiWorkerOp[]) : parsed as AiWorkerOp[]
+}
+
+// 取走 Worker 待消费的渲染 ops。
+// iOS：原生 AiWorkerOp 实例跨 UTS 边界回到 JS 时会退化成空对象（字段全丢），
+// 因此改由原生侧序列化成 JSON 字符串，再在 JS 侧解析成带字段的普通对象；
+// 其它平台直接返回原生数组。
+export function resolveAiWorkerOps(): AiWorkerOp[] {
+	// #ifdef APP-IOS
+	return parseAiWorkerOps(takeAiWorkerOpsJson())
+	// #endif
+	// #ifndef APP-IOS
+	return takeAiWorkerOps()
+	// #endif
+}
