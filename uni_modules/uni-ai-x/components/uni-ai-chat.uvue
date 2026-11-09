@@ -65,7 +65,7 @@
 
 <script lang="uts" setup>
 	import type { ComputedRef } from 'vue'
-	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
+	import {uniAi, MsgItem, uiTheme, calendarConfirmationRevision} from '@/uni_modules/uni-ai-x/sdk/'
 	import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
@@ -145,6 +145,7 @@
 		return uniAi.currentChat?.msgList ?? []
 	})
 	const pendingCalendarMessage = computed<MsgItem | null>(() => {
+		calendarConfirmationRevision.value
 		for (let index = msgList.value.length - 1; index >= 0; index--) {
 			const msg = msgList.value[index]
 			if (msg.toolConfirmation?.state == 'pending') return msg
