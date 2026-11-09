@@ -43,7 +43,7 @@
 			<text v-else-if="state == 'none'" class="msg-root-stop-text" flatten>回答已中断</text>
 			<template v-else-if="state == 'processing' && msg.search?.status != 'searching'">
 				<!-- #ifdef APP-HARMONY -->
-				<view class="msg-root-loading-placeholder" />
+				<view id="pending-spinner-anchor" class="msg-root-loading-placeholder" />
 				<!-- #endif -->
 				<!-- #ifndef APP-HARMONY -->
 				<loading class="msg-root-loging-icon" :paused="loadingPaused" />

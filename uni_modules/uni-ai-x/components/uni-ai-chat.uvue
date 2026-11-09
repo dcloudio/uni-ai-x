@@ -2,7 +2,7 @@
 	<view class="chat-box uni-theme-root">
 		<uni-ai-chat-nav @change-menu="changeMenu" />
 		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
-			<view class="chat-box-scroll-view-box">
+			<view id="chat-scroll-box" class="chat-box-scroll-view-box">
 				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0" flatten>
 					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 					<text class="chat-box-welcome-title" flatten>嗨！我是 UNI-AI</text>
@@ -35,7 +35,7 @@
 					<!-- #endif -->
 				</list-view>
 				<!-- #ifdef APP-HARMONY -->
-				<loading v-if="showPendingLoading" class="chat-box-pending-loading" :paused="false" />
+				<loading v-if="showPendingLoading && pendingSpinnerVisible" class="chat-box-pending-loading" :style="pendingSpinnerStyle" :paused="false" />
 				<!-- #endif -->
 				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
 					<add-chat-btn />
@@ -522,7 +522,42 @@
 	// #ifdef APP-HARMONY
 	const showPendingLoading = computed<boolean>(() => {
 		const msg = lastMsg.value
-		return state.value == 'processing' && msg != null && msg.body.length == 0 && (msg.thinkContent ?? '').length == 0
+		return state.value == 'processing' && msg != null && msg.body.length == 0
+			&& (msg.thinkContent ?? '').length == 0 && (msg.toolStatus ?? '').length == 0
+			&& (msg.toolResultText ?? '').length == 0 && msg.search?.status != 'searching'
+	})
+	const pendingSpinnerVisible = ref<boolean>(false)
+	const pendingSpinnerStyle = ref<string>('')
+	let pendingSpinnerMeasureTimer = 0
+
+	function updatePendingSpinnerPosition(): void {
+		if (!showPendingLoading.value || viewDisposed) {
+			pendingSpinnerVisible.value = false
+			return
+		}
+		const box = uni.getElementById('chat-scroll-box')?.getBoundingClientRect()
+		const list = uni.getElementById('msg-list')?.getBoundingClientRect()
+		const anchor = uni.getElementById('pending-spinner-anchor')?.getBoundingClientRect()
+		if (box == null || list == null || anchor == null || anchor.width == 0) {
+			pendingSpinnerVisible.value = false
+			return
+		}
+		pendingSpinnerStyle.value = 'top:' + (anchor.top - box.top).toString() + 'px;left:' + (anchor.left - box.left).toString() + 'px;'
+		pendingSpinnerVisible.value = anchor.bottom > list.top && anchor.top < list.bottom
+	}
+
+	watch(showPendingLoading, (visible: boolean) => {
+		pendingSpinnerVisible.value = false
+		pendingSpinnerMeasureTimer = clearTimer(pendingSpinnerMeasureTimer)
+		if (!visible) return
+		nextTick(() => {
+			if (viewDisposed) return
+			updatePendingSpinnerPosition()
+			pendingSpinnerMeasureTimer = setTimeout(() => {
+				pendingSpinnerMeasureTimer = 0
+				updatePendingSpinnerPosition()
+			}, 60)
+		})
 	})
 	// #endif
 	
@@ -787,6 +822,9 @@
 	}
 	
 	const onScroll = () => {
+		// #ifdef APP-HARMONY
+		if (showPendingLoading.value) updatePendingSpinnerPosition()
+		// #endif
 		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
 		if (!scrolling.value) {
 			scrolling.value = true
@@ -885,6 +923,9 @@
 		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
 		mouseScrollTimer = clearTimer(mouseScrollTimer)
 		touchClearTimer = clearTimer(touchClearTimer)
+		// #ifdef APP-HARMONY
+		pendingSpinnerMeasureTimer = clearTimer(pendingSpinnerMeasureTimer)
+		// #endif
 	})
 </script>
 
@@ -974,8 +1015,6 @@
 
 .chat-box-pending-loading {
 	position: absolute;
-	bottom: 180px;
-	left: 45px;
 	width: 16px;
 	height: 16px;
 	border-color: #aaaaaa;
