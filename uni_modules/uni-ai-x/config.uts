@@ -30,12 +30,6 @@ export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userin
  * 默认以第一个为默认模型
  */
 const llmModelMap = new Map<string, Provider>([
-	[
-		'Uni小助手', {
-			models: [{ modelId: 'doc-search', name: 'Uni 小助手' }],
-			baseURL: 'https://ai-assist-api-p.dcloud.net.cn/http/tbox/chatForUniAiStreamResponse'
-		}
-	],
 	// 七牛
 	[
 		'qiniu', {
@@ -141,6 +135,20 @@ if (providerNameList.length < 1) {
 const defaultLLM: DefaultLLM = {
 	provider: providerNameList[0]!,
 	model: llmModelMap.get(providerNameList[0])?.models?.[0].modelId!
+}
+
+/** Register an optional provider before UniAi loads persisted settings. */
+export function registerOptionalProvider(name: string, provider: Provider, first: boolean = false): void {
+	if (llmModelMap.has(name)) return
+	if (provider.models.length == 0) throw new Error('可选模型提供商至少需要配置一个模型')
+	llmModelMap.set(name, provider)
+	if (first) {
+		providerNameList.unshift(name)
+		defaultLLM.provider = name
+		defaultLLM.model = provider.models[0].modelId
+	} else {
+		providerNameList.push(name)
+	}
 }
 
 export default llmModelMap

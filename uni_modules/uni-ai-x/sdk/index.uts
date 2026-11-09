@@ -116,6 +116,7 @@ class UniAi {
 	private loadingChats = new Map<string, Promise<void>>()
 	private storageReady: Promise<void> | null = null
 	private settingsReady: Promise<void> | null = null
+	private settingsInitialized = false
 	private settingEditedDuringLoad = false
 	private settingSaveVersion = 0
 	private storageLoading = false
@@ -584,14 +585,6 @@ class UniAi {
 		// #ifndef APP-ANDROID
 		this.loadDataFromNewStorage()
 		// #endif
-		// #ifdef APP-ANDROID
-		const stopTracking = watch(() => this.setting, () => { this.settingEditedDuringLoad = true }, { deep: true, flush: 'sync' })
-		this.settingsReady = this.loadSetting().finally(() => { stopTracking(); this.watchSetting(); this.settingsReady = null })
-		// #endif
-		// #ifndef APP-ANDROID
-		this.loadSetting()
-		this.watchSetting()
-		// #endif
 		watch(uiTheme, (theme: string, previousTheme: string) => {
 			if (theme == previousTheme) return
 			this.refreshCurrentChatThemedImages()
@@ -604,6 +597,21 @@ class UniAi {
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { refreshMessagePresentation(msg, uiTheme.value) })
 			// #endif
 		})
+	}
+
+	initializeSettings(): void {
+		if (this.settingsInitialized) return
+		this.settingsInitialized = true
+		// Optional providers register before this point, so fresh installs use their preferred model.
+		this.setting.llm = this.buildDefaultLlm()
+		// #ifdef APP-ANDROID
+		const stopTracking = watch(() => this.setting, () => { this.settingEditedDuringLoad = true }, { deep: true, flush: 'sync' })
+		this.settingsReady = this.loadSetting().finally(() => { stopTracking(); this.watchSetting(); this.settingsReady = null })
+		// #endif
+		// #ifndef APP-ANDROID
+		this.loadSetting()
+		this.watchSetting()
+		// #endif
 	}
 	/**
 	 * Rebuild themed math/mermaid assets once at the presentation layer.

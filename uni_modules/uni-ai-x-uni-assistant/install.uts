@@ -6,10 +6,10 @@ import {
 	MultiModalContent,
 	RequestAiCoMessage
 } from '@/uni_modules/uni-ai-x/types.uts'
-import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+import { registerOptionalProvider } from '@/uni_modules/uni-ai-x/config.uts'
 
 const PROVIDER_NAME = 'Uni小助手'
-const CHAT_URL = llmModelMap.get(PROVIDER_NAME)?.baseURL ?? ''
+const CHAT_URL = 'https://ai-assist-api-p.dcloud.net.cn/http/tbox/chatForUniAiStreamResponse'
 const CLASSIFICATION = 'uni-app x'
 const CONVERSATION_KEY_PREFIX = 'uni-assistant-conversation:'
 
@@ -225,5 +225,11 @@ class UniAssistantAdapter extends CustomProviderAdapter {
 }
 
 export function installUniAssistant(): void {
+	registerOptionalProvider(PROVIDER_NAME, {
+		models: [{ modelId: 'doc-search', name: 'Uni 小助手' }],
+		baseURL: CHAT_URL
+	}, true)
 	registerCustomProvider(PROVIDER_NAME, new UniAssistantAdapter())
 }
+
+installUniAssistant()

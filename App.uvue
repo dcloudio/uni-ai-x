@@ -3,12 +3,14 @@
 	import { installOpenClaw } from '@/uni_modules/uni-ai-x-openClaw/install.uts'
 	// #endif
 	import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
+	import { uniAi } from '@/uni_modules/uni-ai-x/sdk/index.uts'
 	let firstBackTime = 0
 	export default {
 		onLaunch: function () {
 			console.log('App Launch')
 			installAgentTools()
 			// installOpenClaw()
+			uniAi.initializeSettings()
 		},
 		onShow: function () {
 			console.log('App Show')

@@ -15,6 +15,7 @@ export function loadUts(path, names, dependencies = {}, flags = ['APP', 'APP-AND
     }).join('\n')
     .replace(/^import[\s\S]*?from [^\n]*\n/gm, '')
     .replace(/^export type \{[^\n]*\} from [^\n]*\n/gm, '')
+    .replace(/^export \{[^\n]*\}\s*$/gm, '')
     .replace(/^@UTSJS\.keepAlive\s*$/gm, '')
     .replace(/^export default .*$/gm, '').replace(/^export /gm, '');
   if (enabled.length !== 1) throw new Error('Unbalanced platform directives: ' + path);
