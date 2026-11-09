@@ -153,7 +153,7 @@
 			toolbarDelayTimer = setTimeout(() => {
 				toolbarDelayTimer = 0
 				toolbarDelayReady.value = true
-			}, 2000)
+			}, 1000)
 		}
 	}, { immediate: true })
 	onUnmounted(() => {
