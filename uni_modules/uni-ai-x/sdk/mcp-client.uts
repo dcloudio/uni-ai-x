@@ -1,6 +1,7 @@
 export type McpServerConfig = {
 	id: string,
 	url: string,
+	description?: string,
 	tools?: string[]
 }
 

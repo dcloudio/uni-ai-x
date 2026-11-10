@@ -5,6 +5,7 @@ import type { McpServerConfig } from '@/uni_modules/uni-ai-x/sdk/mcp-client.uts'
 export const mcpServers: McpServerConfig[] = [{
 	id: 'weather',
 	url: 'https://open-meteo.caseyjhand.com/mcp',
+	description: '查询城市的实时天气和天气预报',
 	tools: ['openmeteo_search_locations', 'openmeteo_get_forecast']
 }]
 // 1. 定义左侧菜单区域下方的用户头像信息

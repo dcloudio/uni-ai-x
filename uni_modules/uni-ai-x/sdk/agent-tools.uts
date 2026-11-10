@@ -387,21 +387,12 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			let mcpStatusActive = false
 			if (modelConfig?.toolCall == true) {
 				for (let serverIndex = 0; serverIndex < mcpClients.length; serverIndex++) {
-					const client = mcpClients[serverIndex]
-					if (!client.hasCachedTools()) mcpStatusActive = true
-					const remoteTools = await listMcpTools(client, callbacks)
-					let enabledCount = 0
-					remoteTools.forEach((remoteTool: UTSJSONObject) => {
-						const remoteName = remoteTool['name'] as string
-						if (client.config.tools != null && !client.config.tools!.includes(remoteName)) return
-						const name = client.config.id + '__' + remoteName
-						const schema = remoteTool['inputSchema'] as UTSJSONObject | null
-						if (schema == null || mcpBindings.has(name)) throw new Error('MCP 工具定义无效：' + name)
-						tools.push({ type: 'function', function: { name: name, description: remoteTool['description'] ?? '', parameters: schema } } as UTSJSONObject)
-						mcpBindings.set(name, { client: client, remoteName: remoteName })
-						enabledCount += 1
-					})
-					if (enabledCount == 0) throw new Error('MCP 服务没有提供已配置的工具：' + client.config.id)
+					const config = mcpClients[serverIndex].config
+					tools.push({ type: 'function', function: {
+						name: 'enable_mcp__' + config.id,
+						description: '仅当用户请求需要以下能力时调用，以连接 MCP 服务并获取可用工具：' + (config.description ?? config.id),
+						parameters: { type: 'object', properties: {} }
+					} } as UTSJSONObject)
 				}
 			}
 			const systemContent = tools.length > 0
@@ -434,6 +425,7 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					return true
 				}
 				history.push(message)
+				let activatedMcpThisRound = false
 				for (let index = 0; index < calls.length; index++) {
 					const call = calls[index]
 					const fn = call['function'] as UTSJSONObject | null
@@ -456,6 +448,27 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 						continue
 					}
 					// #endif
+					const activation = mcpClients.find((client): boolean => name == 'enable_mcp__' + client.config.id)
+					if (activation != null) {
+						mcpStatusActive = true
+						const remoteTools = await listMcpTools(activation, callbacks)
+						let enabledCount = 0
+						remoteTools.forEach((remoteTool: UTSJSONObject) => {
+							const remoteName = remoteTool['name'] as string
+							if (activation.config.tools != null && !activation.config.tools!.includes(remoteName)) return
+							const remoteNameForModel = activation.config.id + '__' + remoteName
+							const schema = remoteTool['inputSchema'] as UTSJSONObject | null
+							if (schema == null || mcpBindings.has(remoteNameForModel)) throw new Error('MCP 工具定义无效：' + remoteNameForModel)
+						tools.push({ type: 'function', function: { name: remoteNameForModel, description: remoteTool['description'] ?? '', parameters: schema } } as UTSJSONObject)
+							mcpBindings.set(remoteNameForModel, { client: activation, remoteName: remoteName })
+							enabledCount += 1
+						})
+						if (enabledCount == 0) throw new Error('MCP 服务没有提供已配置的工具：' + activation.config.id)
+						tools.splice(tools.findIndex((tool): boolean => ((tool['function'] as UTSJSONObject)['name'] as string) == name), 1)
+						history.push({ role: 'tool', tool_call_id: call['id'], content: 'MCP 服务已连接，请使用新增的工具完成用户请求。' } as UTSJSONObject)
+						activatedMcpThisRound = true
+						continue
+					}
 					if (mcpBindings.has(name)) {
 						const binding = mcpBindings.get(name)!
 						mcpStatusActive = true
@@ -466,11 +479,11 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					history.push({ role: 'tool', tool_call_id: call['id'], content: JSON.stringify({ error: '未知工具: ' + name }) } as UTSJSONObject)
 				}
 				}
-				if (pendingCalendar != null && !remoteCalled) {
-				if (mcpStatusActive) callbacks.onToolStatus?.('')
-					callbacks.onToolConfirm?.(pendingCalendar!)
-					callbacks.onDone?.({})
-					return true
+				if (pendingCalendar != null && !remoteCalled && !activatedMcpThisRound) {
+						if (mcpStatusActive) callbacks.onToolStatus?.('')
+						callbacks.onToolConfirm?.(pendingCalendar!)
+						callbacks.onDone?.({})
+						return true
 				}
 			}
 			throw new Error('工具调用轮数超过上限')

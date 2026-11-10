@@ -40,6 +40,7 @@ function event(delta) {
 
 test('calendar confirmation is separate from the streamed answer and needs no second model round', async () => {
   const sequence = [];
+  let connections = 0;
   const start = new Date(Date.now() + 60 * 60 * 1000);
   const date = [start.getFullYear(), String(start.getMonth() + 1).padStart(2, '0'), String(start.getDate()).padStart(2, '0')].join('-');
   const time = [String(start.getHours()).padStart(2, '0'), String(start.getMinutes()).padStart(2, '0')].join(':');
@@ -54,7 +55,7 @@ test('calendar confirmation is separate from the streamed answer and needs no se
     request(options) {
       const chunks = rounds.shift();
       assert.ok(chunks, 'unexpected model round');
-      requests.push(options.data);
+      requests.push(structuredClone(options.data));
       let receive = () => {};
       queueMicrotask(() => {
         for (const chunk of chunks) receive({ data: new TextEncoder().encode(chunk).buffer });
@@ -68,7 +69,11 @@ test('calendar confirmation is separate from the streamed answer and needs no se
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {},
     SseStreamParser: TestSseParser,
-    mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
+    mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', description: '查询天气' }],
+    McpClient: class {
+      constructor(config) { this.config = config; }
+      async listTools() { connections += 1; throw new Error('MCP should not connect'); }
+    }, McpRequestError: class extends Error {},
     registerCustomProvider() {},
     uni,
   });
@@ -83,6 +88,7 @@ test('calendar confirmation is separate from the streamed answer and needs no se
   assert.equal(success, true);
   assert.deepEqual(sequence, ['我先帮你创建，', 'confirm:测试日程', 'done']);
   assert.equal(requests.length, 1);
+  assert.equal(connections, 0);
   assert.match(requests[0].messages[0].content, /根据工具说明自行决定是否调用/);
 });
 
@@ -92,6 +98,7 @@ test('MCP weather and calendar in one turn still stream the weather result after
   const startAt = [start.getFullYear(), String(start.getMonth() + 1).padStart(2, '0'), String(start.getDate()).padStart(2, '0')].join('-')
     + ' ' + [String(start.getHours()).padStart(2, '0'), String(start.getMinutes()).padStart(2, '0')].join(':');
   const rounds = [
+    [event({ tool_calls: [{ index: 0, id: 'enable', type: 'function', function: { name: 'enable_mcp__weather', arguments: '{}' } }] })],
     [event({ tool_calls: [
       { index: 0, id: 'weather', type: 'function', function: { name: 'weather__openmeteo_get_forecast', arguments: '{"latitude":39.9,"longitude":116.4}' } },
       { index: 1, id: 'calendar', type: 'function', function: { name: 'create_calendar_reminder', arguments: JSON.stringify({ title: '喝水', start_at: startAt }) } },
@@ -103,7 +110,7 @@ test('MCP weather and calendar in one turn still stream the weather result after
     request(options) {
       const chunks = rounds.shift();
       assert.ok(chunks, 'unexpected model round');
-      requests.push(options.data);
+      requests.push(structuredClone(options.data));
       let receive = () => {};
       queueMicrotask(() => {
         for (const chunk of chunks) receive({ data: new TextEncoder().encode(chunk).buffer });
@@ -137,6 +144,8 @@ test('MCP weather and calendar in one turn still stream the weather result after
 
   assert.equal(success, true);
   assert.deepEqual(sequence, ['北京今天晴，当前12°C，', '最低4°C，最高15°C。', 'confirm:喝水', 'done']);
-  assert.equal(requests.length, 2);
-  assert.equal(requests[1].messages.at(-1).content, '{"status":"pending"}');
+  assert.equal(requests.length, 3);
+  assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['create_calendar_reminder', 'enable_mcp__weather']);
+  assert.equal(requests[1].messages.at(-1).tool_call_id, 'enable');
+  assert.equal(requests[2].messages.at(-1).content, '{"status":"pending"}');
 });

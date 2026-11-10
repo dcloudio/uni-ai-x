@@ -119,6 +119,7 @@ test('agent exposes and calls MCP weather tools', async () => {
   const modelRequests = [];
   const mcpRequests = [];
   const rounds = [
+    [modelEvent({ tool_calls: [{ index: 0, id: 'enable', type: 'function', function: { name: 'enable_mcp__weather', arguments: '{}' } }] })],
     [modelEvent({ tool_calls: [{ index: 0, id: 'geo', type: 'function', function: { name: 'weather__geocode_location', arguments: '{"name":"Beijing"}' } }] })],
     [modelEvent({ tool_calls: [{ index: 0, id: 'forecast', type: 'function', function: { name: 'weather__get_weather_forecast', arguments: '{"latitude":39.9,"longitude":116.4}' } }] })],
     [modelEvent({ content: '北京现在晴，12°C。' })],
@@ -168,10 +169,14 @@ test('agent exposes and calls MCP weather tools', async () => {
   assert.equal(success, true);
   assert.equal(chunks.join(''), '北京现在晴，12°C。');
   assert.deepEqual(modelRequests[0].tools.map((tool) => tool.function.name), [
+    'create_calendar_reminder', 'enable_mcp__weather',
+  ]);
+  assert.equal(modelRequests[1].messages.at(-1).tool_call_id, 'enable');
+  assert.deepEqual(modelRequests[1].tools.map((tool) => tool.function.name), [
     'create_calendar_reminder', 'weather__geocode_location', 'weather__get_weather_forecast',
   ]);
-  assert.equal(modelRequests[1].messages.at(-1).tool_call_id, 'geo');
-  assert.equal(modelRequests[2].messages.at(-1).tool_call_id, 'forecast');
+  assert.equal(modelRequests[2].messages.at(-1).tool_call_id, 'geo');
+  assert.equal(modelRequests[3].messages.at(-1).tool_call_id, 'forecast');
   assert.deepEqual(mcpRequests.filter((request) => request.method == 'tools/call').map((request) => request.params.name), ['geocode_location', 'get_weather_forecast']);
   assert.deepEqual(statuses, [
     '天气查询工具 · 连接天气服务 · 正在连接',
@@ -278,7 +283,7 @@ test('MCP discovery retries only transient failures and clears its progress card
   assert.equal(calls, 5);
 });
 
-test('a model HTTP error replaces the pending MCP card with an error', async () => {
+test('a model HTTP error before MCP activation does not connect to MCP', async () => {
   const events = [];
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
@@ -301,9 +306,42 @@ test('a model HTTP error replaces the pending MCP card with an error', async () 
   });
   assert.equal(success, false);
   assert.deepEqual(events, [
-    '天气查询工具 · 连接天气服务 · 正在连接',
-    '天气查询工具 · 确定查询步骤 · 服务已连接，正在等待模型选择工具',
     'Error: 模型请求失败（HTTP 429）',
     '',
   ]);
+});
+
+test('ordinary questions answer in one model round without connecting to MCP', async () => {
+  const requests = [];
+  let connections = 0;
+  const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
+    llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
+    mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', description: '查询天气' }],
+    McpClient: class {
+      constructor(config) { this.config = config; }
+      async listTools() { connections += 1; throw new Error('MCP should not connect'); }
+    },
+    McpRequestError: class extends Error {}, CustomProviderAdapter: class {}, SseStreamParser: TestSseParser,
+    registerCustomProvider() {},
+    uni: { request(options) {
+      requests.push(structuredClone(options.data));
+      let receive = () => {};
+      queueMicrotask(() => {
+        receive({ data: new TextEncoder().encode(modelEvent({ content: '你好。' })).buffer });
+        receive({ data: new TextEncoder().encode('data: [DONE]\n\n').buffer });
+        options.success({ statusCode: 200, data: '' });
+      });
+      return { onChunkReceived(callback) { receive = callback; } };
+    } },
+  });
+  const chunks = [];
+  const success = await new QiniuToolAdapter().request([{ role: 'user', content: '你好' }], 'test', 'chat', {
+    onChunk(chunk) { chunks.push(chunk.choices[0].delta.content); },
+    onError(error) { throw new Error(error.errMsg); },
+  });
+  assert.equal(success, true);
+  assert.deepEqual(chunks, ['你好。']);
+  assert.equal(requests.length, 1);
+  assert.equal(connections, 0);
+  assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['create_calendar_reminder', 'enable_mcp__weather']);
 });
