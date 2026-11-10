@@ -16,6 +16,7 @@ test('calendar call passes title, 30 minute duration, and five minute alarm offs
     ['createCalendarReminder'], {
       console: { log() {} },
       CustomProviderAdapter: class {},
+      legacyWeatherToolEnabled: false, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
       setTimeout,
       clearTimeout,
       uni: {
@@ -46,6 +47,7 @@ test('denied calendar access does not open the system editor with a wrong alarm'
     ['createCalendarReminder'], {
       console: { log() {} },
       CustomProviderAdapter: class {},
+      legacyWeatherToolEnabled: false, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
       setTimeout,
       clearTimeout,
       uni: {
@@ -70,6 +72,7 @@ test('missing permission module ends the request without opening the system edit
     ['createCalendarReminder'], {
       console: { log() {}, error() {} },
       CustomProviderAdapter: class {},
+      legacyWeatherToolEnabled: false, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
       setTimeout,
       clearTimeout,
       uni: {

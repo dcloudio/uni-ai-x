@@ -16,10 +16,10 @@
 				</view>
 			</view>
 		</template>
-		<view v-else-if="part.kind == 'error' && isWeatherToolError" class="weather-tool-card weather-tool-card-error" flatten>
+		<view v-else-if="part.kind == 'error' && isToolErrorCard" class="weather-tool-card weather-tool-card-error" flatten>
 			<view class="weather-tool-card-heading" flatten>
 				<uni-icons type="info-filled" size="18" color="#d95b55" flatten />
-				<text class="weather-tool-card-title" flatten>天气查询失败</text>
+				<text class="weather-tool-card-title" flatten>{{isWeatherToolError ? '天气查询失败' : 'MCP 服务失败'}}</text>
 			</view>
 			<text class="weather-tool-card-detail" flatten>{{weatherErrorText}}</text>
 			<view v-if="isLastAiMsg" class="weather-tool-card-retry" @click.stop="retryWeather">
@@ -46,10 +46,10 @@
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
-		<view v-else-if="part.kind == 'tool-status' && isWeatherToolStatus" class="weather-tool-card" flatten>
+		<view v-else-if="part.kind == 'tool-status' && isToolStatusCard" class="weather-tool-card" flatten>
 			<view class="weather-tool-card-heading" flatten>
 				<loading class="weather-tool-card-spinner" :paused="loadingPaused" />
-				<text class="weather-tool-card-title" flatten>天气查询</text>
+				<text class="weather-tool-card-title" flatten>{{isWeatherToolStatus ? '天气查询' : 'MCP 服务'}}</text>
 			</view>
 			<text class="weather-tool-card-detail" flatten>{{msg.toolStatus}}</text>
 		</view>
@@ -154,9 +154,14 @@
 		return uniAi.lastAiMsg?._id == msg.value._id
 	})
 	const isWeatherToolStatus = computed<boolean>(() => (msg.value.toolStatus ?? '').startsWith('天气查询工具'))
+	const isToolStatusCard = computed<boolean>(() => isWeatherToolStatus.value || (msg.value.toolStatus ?? '').startsWith('MCP '))
 	const isWeatherToolError = computed<boolean>(() => {
 		const error = msg.value.error_msg ?? ''
 		return error.includes('天气查询工具连续三次调用失败') || error.includes('模型连续三次提供了无效的天气查询参数')
+	})
+	const isToolErrorCard = computed<boolean>(() => {
+		const error = msg.value.error_msg ?? ''
+		return isWeatherToolError.value || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
 	})
 	const weatherErrorText = computed<string>(() => (msg.value.error_msg ?? '').replace('Error: ', ''))
 	const retryWeather = async () => {

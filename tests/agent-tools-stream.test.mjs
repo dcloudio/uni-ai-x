@@ -68,6 +68,7 @@ test('calendar confirmation is separate from the streamed answer and needs no se
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {},
     SseStreamParser: TestSseParser,
+    legacyWeatherToolEnabled: true, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
     registerCustomProvider() {},
     uni,
   });
@@ -82,7 +83,7 @@ test('calendar confirmation is separate from the streamed answer and needs no se
   assert.equal(success, true);
   assert.deepEqual(sequence, ['我先帮你创建，', 'confirm:测试日程', 'done']);
   assert.equal(requests.length, 1);
-  assert.match(requests[0].messages[0].content, /只有用户询问天气时才调用/);
+  assert.match(requests[0].messages[0].content, /根据工具说明自行决定是否调用/);
 });
 
 test('weather and calendar in one turn still stream the weather result after tool calls', async () => {
@@ -116,6 +117,7 @@ test('weather and calendar in one turn still stream the weather result after too
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {},
     SseStreamParser: TestSseParser,
+    legacyWeatherToolEnabled: true, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
     registerCustomProvider() {},
     uni,
     uniCloud: { callFunction: async () => ({ result: {

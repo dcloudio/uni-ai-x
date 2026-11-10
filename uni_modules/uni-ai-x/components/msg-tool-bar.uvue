@@ -44,7 +44,10 @@
 	const isLastAiMsg = computed<boolean>(() => {
 		return msg._id == uniAi.lastAiMsg?._id
 	})
-	const isWeatherToolError = computed<boolean>(() => (msg.error_msg ?? '').includes('天气查询工具连续三次调用失败'))
+	const isWeatherToolError = computed<boolean>(() => {
+		const error = msg.error_msg ?? ''
+		return error.includes('天气查询工具连续三次调用失败') || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
+	})
 	
 	const copyIcon = computed<string>(() => {
 		return uicon('e60c')

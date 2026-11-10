@@ -1,7 +1,8 @@
-import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+import { llmModelMap, legacyWeatherToolEnabled, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
 import { Chunk, ChunkToolCall, CustomProviderAdapter, CustomProviderCallbacks, CalendarToolConfirmation, RequestAiCoMessage } from '@/uni_modules/uni-ai-x/types.uts'
 import { registerCustomProvider } from './provider-registry.uts'
 import { SseStreamParser } from './sse.uts'
+import { McpClient, McpRequestError } from './mcp-client.uts'
 
 type ToolEntry = {
 	name: string,
@@ -9,7 +10,9 @@ type ToolEntry = {
 	parameters: UTSJSONObject
 }
 
-const toolRegistry: ToolEntry[] = [{
+const toolRegistry: ToolEntry[] = []
+
+if (legacyWeatherToolEnabled) toolRegistry.push({
 	name: 'get_weather',
 	description: '查询指定城市的当前天气和今日气温范围。只传城市名称，例如北京；天气数据来自 Open-Meteo。',
 	parameters: {
@@ -17,7 +20,14 @@ const toolRegistry: ToolEntry[] = [{
 		properties: { city: { type: 'string', description: '城市名称，例如北京' } },
 		required: ['city']
 	} as UTSJSONObject
-}]
+})
+
+type McpToolBinding = {
+	client: McpClient,
+	remoteName: string
+}
+
+const mcpClients = mcpServers.map((server): McpClient => new McpClient(server))
 
 // #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
 toolRegistry.push({
@@ -182,6 +192,8 @@ function toolDefinitions(): UTSJSONObject[] {
 
 function requestModel(url: string, token: string, data: UTSJSONObject, callbacks: CustomProviderCallbacks): Promise<UTSJSONObject> {
 	return new Promise<UTSJSONObject>((resolve, reject) => {
+		const startedAt = Date.now()
+		console.log('[uni-ai-x][model] request', JSON.stringify({ url: url, model: data['model'], messageCount: (data['messages'] as UTSJSONObject[]).length, toolChoice: data['tool_choice'] }))
 		let settled = false
 		let chunkReceived = false
 		let content = ''
@@ -232,6 +244,9 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 			data: data,
 			header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
 			success: (response: RequestSuccess<any>) => {
+				const responseText = typeof response.data == 'string' ? response.data as string : ''
+				const errorBody = response.statusCode >= 400 ? (responseText.length > 0 ? responseText : JSON.stringify(response.data)) : ''
+				console.log('[uni-ai-x][model] response', JSON.stringify({ url: url, model: data['model'], status: response.statusCode, durationMs: Date.now() - startedAt, responseBody: errorBody }))
 				if (response.statusCode < 200 || response.statusCode >= 300) {
 					if (!settled) {
 						settled = true
@@ -239,11 +254,11 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 					}
 					return
 				}
-				const responseText = typeof response.data == 'string' ? response.data as string : ''
 					if (!chunkReceived && responseText.length > 0) parser.pushText(responseText)
 				parser.finish()
 			},
 			fail: (error: RequestFail) => {
+				console.error('[uni-ai-x][model] network failure', JSON.stringify({ url: url, model: data['model'], durationMs: Date.now() - startedAt, error: error.errMsg }))
 				if (settled) return
 				settled = true
 				reject(new Error(error.errMsg))
@@ -332,6 +347,87 @@ async function executeWeather(argumentText: string, callbacks: CustomProviderCal
 	return { content: JSON.stringify({ error: lastError }), kind: 'service_error', error: lastError }
 }
 
+async function executeMcpTool(binding: McpToolBinding, argumentText: string, callbacks: CustomProviderCallbacks): Promise<string> {
+	let args: UTSJSONObject
+	try {
+		args = JSON.parse<UTSJSONObject>(argumentText.trim().length == 0 ? '{}' : argumentText) as UTSJSONObject
+	} catch (_error) {
+		return JSON.stringify({ isError: true, error: 'MCP 工具参数不是有效 JSON，请修正后重试调用' })
+	}
+	if (args == null || typeof args != 'object') {
+		return JSON.stringify({ isError: true, error: 'MCP 工具参数必须是对象，请修正后重试调用' })
+	}
+	let lastError = ''
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			if (attempt == 1) callbacks.onToolStatus?.(binding.client.config.id == 'weather'
+				? (binding.remoteName == 'openmeteo_search_locations' ? '天气查询工具正在查找城市' : '天气查询工具正在获取天气数据')
+				: `MCP 工具正在调用：${binding.remoteName}`)
+			console.log('[uni-ai-x][mcp] tool call', JSON.stringify({ server: binding.client.config.id, url: binding.client.config.url, tool: binding.remoteName, attempt: attempt, arguments: args }))
+			const result = await binding.client.callTool(binding.remoteName, args)
+			console.log('[uni-ai-x][mcp] tool result', JSON.stringify({ server: binding.client.config.id, tool: binding.remoteName, result: result }))
+			if (binding.client.config.id == 'weather') {
+				const structured = result['structuredContent'] as UTSJSONObject | null
+				const toolError = structured?.['error'] as UTSJSONObject | null
+				const rateLimited = (toolError?.['data'] as UTSJSONObject | null)?.['reason'] == 'rate_limited'
+				if (result['isError'] == true && (toolError?.['retryable'] == true || rateLimited)) {
+					throw new McpRequestError((toolError?.['message'] as string | null) ?? '远程天气服务暂时不可用', true, rateLimited ? 5000 : 0)
+				}
+				const content = result['content'] as UTSJSONObject[] | null
+				const hasText = content?.some((item: UTSJSONObject): boolean => (item['type'] as string | null) == 'text' && ((item['text'] as string | null) ?? '').trim().length > 0) == true
+				const current = structured?.['current'] as UTSJSONObject | null
+				const hourly = structured?.['hourly'] as UTSJSONObject | null
+				const daily = structured?.['daily'] as UTSJSONObject | null
+				const emptyForecast = binding.remoteName == 'openmeteo_get_forecast' && structured != null
+					&& (current == null || Object.keys(current).length == 0)
+					&& (hourly == null || Object.keys(hourly).length == 0)
+					&& (daily == null || Object.keys(daily).length == 0)
+				if (result['isError'] != true && (emptyForecast || ((structured == null || Object.keys(structured).length == 0) && !hasText))) {
+					throw new McpRequestError('远程天气工具返回空结果', true)
+				}
+			}
+			callbacks.onToolStatus?.('')
+			return JSON.stringify(result)
+		} catch (error) {
+			lastError = `${error}`
+			console.error('[uni-ai-x][mcp] tool request failed', JSON.stringify({ server: binding.client.config.id, url: binding.client.config.url, tool: binding.remoteName, attempt: attempt, arguments: args, error: lastError }))
+			if (!(error instanceof McpRequestError) || !error.retryable) throw error
+			if (attempt < 3) {
+				callbacks.onToolStatus?.(binding.client.config.id == 'weather' ? weatherRetryStatus(attempt) : `MCP 工具调用失败，正在进行第${attempt == 1 ? '一' : '二'}次重试`)
+				const delayMs = Math.max(error.delayMs, attempt * 400)
+				await new Promise<void>((resolve) => { setTimeout(resolve, delayMs) })
+			}
+		}
+	}
+	if (binding.client.config.id == 'weather') throw new Error(weatherExhaustedError(lastError))
+	throw new Error(`MCP 工具连续三次调用失败：${binding.client.config.id}/${binding.remoteName}。${lastError}`)
+}
+
+async function listMcpTools(client: McpClient, callbacks: CustomProviderCallbacks): Promise<UTSJSONObject[]> {
+	let lastError = ''
+	const needsConnection = !client.hasCachedTools()
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			if (attempt == 1 && needsConnection) callbacks.onToolStatus?.(client.config.id == 'weather' ? '天气查询工具正在连接服务' : 'MCP 服务正在连接')
+			const tools = await client.listTools()
+			if (needsConnection) callbacks.onToolStatus?.('')
+			return tools
+		} catch (error) {
+			lastError = `${error}`
+			console.error('[uni-ai-x][mcp] discovery failed', JSON.stringify({ server: client.config.id, url: client.config.url, attempt: attempt, error: lastError }))
+			if (!(error instanceof McpRequestError) || !error.retryable) throw error
+			if (attempt < 3) {
+				callbacks.onToolStatus?.(client.config.id == 'weather'
+					? `天气查询工具连接失败，正在进行第${attempt == 1 ? '一' : '二'}次重试`
+					: `MCP 服务连接失败，正在进行第${attempt == 1 ? '一' : '二'}次重试`)
+				const delayMs = Math.max(error.delayMs, attempt * 400)
+				await new Promise<void>((resolve) => { setTimeout(resolve, delayMs) })
+			}
+		}
+	}
+	throw new Error(`MCP 服务连续三次连接失败：${client.config.id}。${lastError}。请点击重试。`)
+}
+
 // #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
 function calendarConfirmation(argumentText: string): CalendarToolConfirmation | null {
 	try {
@@ -364,12 +460,32 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			const now = new Date()
 			const modelConfig = provider.models.find((entry) => entry.modelId == model)
 			const tools = modelConfig?.toolCall == true ? toolDefinitions() : [] as UTSJSONObject[]
+			const mcpBindings = new Map<string, McpToolBinding>()
+			if (modelConfig?.toolCall == true) {
+				for (let serverIndex = 0; serverIndex < mcpClients.length; serverIndex++) {
+					const client = mcpClients[serverIndex]
+					const remoteTools = await listMcpTools(client, callbacks)
+					let enabledCount = 0
+					remoteTools.forEach((remoteTool: UTSJSONObject) => {
+						const remoteName = remoteTool['name'] as string
+						if (client.config.tools != null && !client.config.tools!.includes(remoteName)) return
+						const name = client.config.id + '__' + remoteName
+						const schema = remoteTool['inputSchema'] as UTSJSONObject | null
+						if (schema == null || mcpBindings.has(name)) throw new Error('MCP 工具定义无效：' + name)
+						tools.push({ type: 'function', function: { name: name, description: remoteTool['description'] ?? '', parameters: schema } } as UTSJSONObject)
+						mcpBindings.set(name, { client: client, remoteName: remoteName })
+						enabledCount += 1
+					})
+					if (enabledCount == 0) throw new Error('MCP 服务没有提供已配置的工具：' + client.config.id)
+				}
+			}
 			const systemContent = tools.length > 0
-				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求；只有用户询问天气时才调用 get_weather，用户没有要求天气时不要主动提及天气。用户要求天气但城市不明确时先询问。get_weather 返回参数或地名错误时，若用户已提供明确城市，请修正参数后重新调用；否则请向用户询问，不要猜测城市。天气回答必须依据 get_weather 返回的有效数据；工具报错或没有数据时，不得声称已查到天气。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答已完成的其他需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
+				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求，并根据工具说明自行决定是否调用。用户没有要求天气时不要主动提及天气；城市不明确时先询问。工具返回参数或地名错误时，若用户已提供明确城市，请修正参数后重新调用；否则请向用户询问，不要猜测城市。天气回答必须依据工具返回的有效数据；工具报错或没有数据时，不得声称已查到天气。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的远程工具；最终只回答已完成的其他需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
 				: `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。`
 			history.unshift({ role: 'system', content: systemContent } as UTSJSONObject)
 			let calendarCalled = false
 			let weatherCalled = false
+			let remoteCalled = false
 			let weatherParameterFailures = 0
 			let pendingCalendar: CalendarToolConfirmation | null = null
 			for (let round = 0; round < 5; round++) {
@@ -421,7 +537,8 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 						continue
 					}
 					// #endif
-				if (name == 'get_weather') {
+					// Legacy uniCloud weather call stays here for comparison; disabled by config.
+					if (name == 'get_weather' && legacyWeatherToolEnabled) {
 					const result = await executeWeather(args, callbacks)
 					weatherCalled = true
 					history.push({ role: 'tool', tool_call_id: call['id'], content: result.content } as UTSJSONObject)
@@ -435,11 +552,17 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 						weatherParameterFailures = 0
 						callbacks.onToolStatus?.('')
 					}
-				} else {
+					} else if (mcpBindings.has(name)) {
+						const binding = mcpBindings.get(name)!
+						const result = await executeMcpTool(binding, args, callbacks)
+						history.push({ role: 'tool', tool_call_id: call['id'], content: result } as UTSJSONObject)
+						remoteCalled = true
+						if (binding.client.config.id == 'weather') weatherCalled = true
+					} else {
 					history.push({ role: 'tool', tool_call_id: call['id'], content: JSON.stringify({ error: '未知工具: ' + name }) } as UTSJSONObject)
 				}
 				}
-				if (pendingCalendar != null && !weatherCalled) {
+				if (pendingCalendar != null && !weatherCalled && !remoteCalled) {
 					callbacks.onToolConfirm?.(pendingCalendar!)
 					callbacks.onDone?.({})
 					return true

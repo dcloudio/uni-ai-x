@@ -1,5 +1,14 @@
 import {reactive} from 'vue';
 import {LLMModel, Provider, DefaultLLM, Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
+import type { McpServerConfig } from '@/uni_modules/uni-ai-x/sdk/mcp-client.uts';
+
+// The uniCloud weather function remains available for comparison, but is not advertised to the model.
+export const legacyWeatherToolEnabled = false
+export const mcpServers: McpServerConfig[] = [{
+	id: 'weather',
+	url: 'https://open-meteo.caseyjhand.com/mcp',
+	tools: ['openmeteo_search_locations', 'openmeteo_get_forecast']
+}]
 // 1. 定义左侧菜单区域下方的用户头像信息
 export const currentUser: Userinfo = reactive<Userinfo>({})
 // 这里以uni-id的用户信息绑定为例，你自己的系统如果不是基于 unicloud 的，请参考此方法修改

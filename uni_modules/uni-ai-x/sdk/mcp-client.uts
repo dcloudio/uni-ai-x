@@ -1,0 +1,178 @@
+export type McpServerConfig = {
+	id: string,
+	url: string,
+	tools?: string[]
+}
+
+export class McpRequestError extends Error {
+	retryable: boolean
+	delayMs: number
+
+	constructor(message: string, retryable: boolean = false, delayMs: number = 0) {
+		super(message)
+		this.retryable = retryable
+		this.delayMs = delayMs
+	}
+}
+
+function headerValue(headers: UTSJSONObject, name: string): string {
+	const key = Object.keys(headers).find((entry: string): boolean => entry.toLowerCase() == name)
+	if (key == null) return ''
+	const value = headers[key]
+	return typeof value == 'string' ? value : ''
+}
+
+function parseMcpMessage(body: string, id: number): UTSJSONObject {
+	const trimmed = body.trim()
+	if (trimmed.startsWith('{')) {
+		const message = JSON.parse<UTSJSONObject>(trimmed) as UTSJSONObject
+		if (message['id'] == id) return message
+	}
+	let dataLines: string[] = []
+	const lines = body.replaceAll('\r\n', '\n').split('\n')
+	for (let index = 0; index <= lines.length; index++) {
+		const line = index == lines.length ? '' : lines[index]
+		if (line.startsWith('data:')) dataLines.push(line.substring(5).trimStart())
+		if (line.length == 0 && dataLines.length > 0) {
+			const message = JSON.parse<UTSJSONObject>(dataLines.join('\n')) as UTSJSONObject
+			if (message['id'] == id) return message
+			dataLines = []
+		}
+	}
+	throw new Error('MCP 服务没有返回对应请求的结果')
+}
+
+export class McpClient {
+	readonly config: McpServerConfig
+	private sessionId: string = ''
+	private nextId: number = 0
+	private tools: UTSJSONObject[] | null = null
+	private connecting: Promise<UTSJSONObject[]> | null = null
+
+	constructor(config: McpServerConfig) {
+		this.config = config
+	}
+
+	hasCachedTools(): boolean {
+		return this.tools != null
+	}
+
+	private request(message: UTSJSONObject, id: number | null): Promise<UTSJSONObject | null> {
+		return new Promise<UTSJSONObject | null>((resolve, reject) => {
+			const startedAt = Date.now()
+			console.log('[uni-ai-x][mcp] request', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], id: id, params: message['params'] }))
+			const hadSession = this.sessionId.length > 0
+			const headers: UTSJSONObject = {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json, text/event-stream',
+				'MCP-Protocol-Version': '2025-06-18'
+			} as UTSJSONObject
+			if (this.sessionId.length > 0) headers['Mcp-Session-Id'] = this.sessionId
+			uni.request({
+				url: this.config.url,
+				method: 'POST',
+				dataType: 'text',
+				timeout: 20000,
+				header: headers,
+				data: message,
+				success: (response: RequestSuccess<any>) => {
+					const responseHeaders = response.header == null ? {} as UTSJSONObject : JSON.parse<UTSJSONObject>(JSON.stringify(response.header)) as UTSJSONObject
+					const body = typeof response.data == 'string' ? response.data as string : JSON.stringify(response.data)
+					console.log('[uni-ai-x][mcp] response', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], id: id, status: response.statusCode, durationMs: Date.now() - startedAt, bodyLength: body.length }))
+					const sessionId = headerValue(responseHeaders, 'mcp-session-id')
+					if (sessionId.length > 0) this.sessionId = sessionId
+					if (hadSession && (response.statusCode == 404 || response.statusCode == 410)) {
+						this.sessionId = ''
+						this.tools = null
+					}
+					if (response.statusCode < 200 || response.statusCode >= 300) {
+						console.error('[uni-ai-x][mcp] HTTP error', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], status: response.statusCode, request: message['params'], responseBody: body }))
+						if (response.statusCode == 400 || response.statusCode == 422) {
+							try {
+								if (id != null) {
+									const parsed = parseMcpMessage(body, id)
+									if (parsed['error'] != null) { resolve(parsed); return }
+								}
+							} catch (_error) {}
+						}
+						const retryable = response.statusCode == 408 || response.statusCode == 429 || response.statusCode >= 500
+							|| (hadSession && (response.statusCode == 404 || response.statusCode == 410))
+						const retryAfter = parseInt(headerValue(responseHeaders, 'retry-after'))
+						const delayMs = response.statusCode == 429 && !isNaN(retryAfter) ? Math.min(Math.max(retryAfter * 1000, 0), 5000) : 0
+						reject(new McpRequestError(`MCP 请求失败（HTTP ${response.statusCode}）`, retryable, delayMs))
+						return
+					}
+					if (id == null) {
+						resolve(null)
+						return
+					}
+					try {
+						resolve(parseMcpMessage(body, id))
+					} catch (error) {
+						console.error('[uni-ai-x][mcp] invalid response', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], responseBody: body, error: `${error}` }))
+						reject(new McpRequestError('MCP 服务响应格式无效'))
+					}
+				},
+				fail: (error: RequestFail) => {
+					console.error('[uni-ai-x][mcp] network error', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], params: message['params'], durationMs: Date.now() - startedAt, error: error.errMsg }))
+					reject(new McpRequestError(error.errMsg, true))
+				}
+			})
+		})
+	}
+
+	private async send(method: string, params: UTSJSONObject | null = null, notification: boolean = false): Promise<UTSJSONObject | null> {
+		const id = notification ? null : ++this.nextId
+		const message: UTSJSONObject = { jsonrpc: '2.0', method: method } as UTSJSONObject
+		if (id != null) message['id'] = id
+		if (params != null) message['params'] = params
+		return await this.request(message, id)
+	}
+
+	private async connect(): Promise<UTSJSONObject[]> {
+		this.sessionId = ''
+		const response = await this.send('initialize', {
+			protocolVersion: '2025-06-18',
+			capabilities: {},
+			clientInfo: { name: 'uni-ai-x', version: '1.0.0' }
+		} as UTSJSONObject)
+		const result = response?.['result'] as UTSJSONObject | null
+		if (result == null || result['protocolVersion'] != '2025-06-18') throw new McpRequestError('MCP 服务初始化失败或协议版本不兼容')
+		await this.send('notifications/initialized', null, true)
+		const tools: UTSJSONObject[] = []
+		let cursor = ''
+		for (let page = 0; page < 20; page++) {
+			const listed = await this.send('tools/list', cursor.length > 0 ? { cursor: cursor } as UTSJSONObject : {} as UTSJSONObject)
+			const pageResult = listed?.['result'] as UTSJSONObject | null
+			const pageTools = pageResult?.['tools'] as UTSJSONObject[] | null
+			if (pageTools == null) throw new McpRequestError('MCP 服务没有返回工具列表')
+			tools.push(...pageTools)
+			cursor = (pageResult?.['nextCursor'] as string | null) ?? ''
+			if (cursor.length == 0) break
+			if (page == 19) throw new McpRequestError('MCP 工具列表分页超过上限')
+		}
+		this.tools = tools
+		console.log('[uni-ai-x][mcp] connected', JSON.stringify({ server: this.config.id, url: this.config.url, tools: tools.map((tool): string => tool['name'] as string) }))
+		return tools
+	}
+
+	async listTools(): Promise<UTSJSONObject[]> {
+		if (this.tools != null) return this.tools!
+		if (this.connecting == null) this.connecting = this.connect()
+		try {
+			return await this.connecting!
+		} finally {
+			this.connecting = null
+		}
+	}
+
+	async callTool(name: string, args: UTSJSONObject): Promise<UTSJSONObject> {
+		await this.listTools()
+		const response = await this.send('tools/call', { name: name, arguments: args } as UTSJSONObject)
+		const error = response?.['error'] as UTSJSONObject | null
+		if (error != null) return { isError: true, content: [{ type: 'text', text: error['message'] ?? 'MCP 工具调用失败' }] } as UTSJSONObject
+		const result = response?.['result'] as UTSJSONObject | null
+		if (result == null) throw new McpRequestError('MCP 工具没有返回结果')
+		return result
+	}
+}

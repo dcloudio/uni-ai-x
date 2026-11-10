@@ -72,6 +72,7 @@ async function runScenario(rounds, results, userText = '北京天气') {
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {}, SseStreamParser: TestSseParser, registerCustomProvider() {}, uni, uniCloud,
+    legacyWeatherToolEnabled: true, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
   });
   const success = await new QiniuToolAdapter().request([{ role: 'user', content: userText }], 'test', 'chat', {
     onChunk(chunk) { chunks.push(chunk.choices[0].delta.content ?? ''); },
