@@ -68,7 +68,7 @@ test('calendar confirmation is separate from the streamed answer and needs no se
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {},
     SseStreamParser: TestSseParser,
-    legacyWeatherToolEnabled: true, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
+    mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
     registerCustomProvider() {},
     uni,
   });
@@ -86,14 +86,14 @@ test('calendar confirmation is separate from the streamed answer and needs no se
   assert.match(requests[0].messages[0].content, /根据工具说明自行决定是否调用/);
 });
 
-test('weather and calendar in one turn still stream the weather result after tool calls', async () => {
+test('MCP weather and calendar in one turn still stream the weather result after tool calls', async () => {
   const sequence = [];
   const start = new Date(Date.now() + 60 * 60 * 1000);
   const startAt = [start.getFullYear(), String(start.getMonth() + 1).padStart(2, '0'), String(start.getDate()).padStart(2, '0')].join('-')
     + ' ' + [String(start.getHours()).padStart(2, '0'), String(start.getMinutes()).padStart(2, '0')].join(':');
   const rounds = [
     [event({ tool_calls: [
-      { index: 0, id: 'weather', type: 'function', function: { name: 'get_weather', arguments: '{"city":"北京"}' } },
+      { index: 0, id: 'weather', type: 'function', function: { name: 'weather__openmeteo_get_forecast', arguments: '{"latitude":39.9,"longitude":116.4}' } },
       { index: 1, id: 'calendar', type: 'function', function: { name: 'create_calendar_reminder', arguments: JSON.stringify({ title: '喝水', start_at: startAt }) } },
     ] })],
     [event({ content: '北京今天晴，当前12°C，' }), event({ content: '最低4°C，最高15°C。' })],
@@ -117,13 +117,16 @@ test('weather and calendar in one turn still stream the weather result after too
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {},
     SseStreamParser: TestSseParser,
-    legacyWeatherToolEnabled: true, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
+    mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', tools: ['openmeteo_get_forecast'] }],
+    McpClient: class {
+      constructor(config) { this.config = config; }
+      hasCachedTools() { return true; }
+      async listTools() { return [{ name: 'openmeteo_get_forecast', inputSchema: { type: 'object' } }]; }
+      async callTool() { return { content: [{ type: 'text', text: '{"temperature_c":12,"weather":"晴"}' }] }; }
+    },
+    McpRequestError: class extends Error {},
     registerCustomProvider() {},
     uni,
-    uniCloud: { callFunction: async () => ({ result: {
-      city: '北京', observed_at: '2026-11-10T14:00', weather: '晴',
-      temperature_c: 12, today_max_c: 15, today_min_c: 4,
-    } }) },
   });
   const success = await new QiniuToolAdapter().request([{ role: 'user', content: '北京天气怎么样，并提醒我喝水' }], 'test', 'chat', {
     onChunk(chunk) { sequence.push(chunk.choices[0].delta.content); },

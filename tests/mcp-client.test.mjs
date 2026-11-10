@@ -115,7 +115,7 @@ class TestSseParser {
 
 function modelEvent(delta) { return 'data: ' + JSON.stringify({ choices: [{ delta }] }) + '\n\n'; }
 
-test('agent exposes MCP weather tools while keeping the legacy weather tool disabled', async () => {
+test('agent exposes and calls MCP weather tools', async () => {
   const modelRequests = [];
   const mcpRequests = [];
   const rounds = [
@@ -155,10 +155,8 @@ test('agent exposes MCP weather tools while keeping the legacy weather tool disa
   const { McpClient, McpRequestError } = loadUts('uni_modules/uni-ai-x/sdk/mcp-client.uts', ['McpClient', 'McpRequestError'], { uni });
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
-    legacyWeatherToolEnabled: false,
     mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', tools: ['geocode_location', 'get_weather_forecast'] }],
     McpClient, McpRequestError, CustomProviderAdapter: class {}, SseStreamParser: TestSseParser, registerCustomProvider() {}, uni,
-    uniCloud: { callFunction() { throw new Error('legacy weather must not run'); } },
   });
   const chunks = [];
   const statuses = [];
@@ -189,7 +187,7 @@ test('agent exposes MCP weather tools while keeping the legacy weather tool disa
 test('MCP transport failures retry visibly, while tool errors go back to the model', async () => {
   const { McpRequestError } = loadUts('uni_modules/uni-ai-x/sdk/mcp-client.uts', ['McpRequestError']);
   const { executeMcpTool } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['executeMcpTool'], {
-    llmModelMap: new Map(), legacyWeatherToolEnabled: false, mcpServers: [], McpClient: class {},
+    llmModelMap: new Map(), mcpServers: [], McpClient: class {},
     McpRequestError, CustomProviderAdapter: class {}, registerCustomProvider() {}, SseStreamParser: class {},
     setTimeout(resolve) { resolve(); },
   });
@@ -253,7 +251,7 @@ test('MCP transport failures retry visibly, while tool errors go back to the mod
 test('MCP discovery retries only transient failures and clears its progress card', async () => {
   const { McpRequestError } = loadUts('uni_modules/uni-ai-x/sdk/mcp-client.uts', ['McpRequestError']);
   const { listMcpTools } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['listMcpTools'], {
-    llmModelMap: new Map(), legacyWeatherToolEnabled: false, mcpServers: [], McpClient: class {}, McpRequestError,
+    llmModelMap: new Map(), mcpServers: [], McpClient: class {}, McpRequestError,
     CustomProviderAdapter: class {}, registerCustomProvider() {}, SseStreamParser: class {},
     setTimeout(resolve) { resolve(); },
   });
@@ -284,7 +282,6 @@ test('a model HTTP error replaces the pending MCP card with an error', async () 
   const events = [];
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
-    legacyWeatherToolEnabled: false,
     mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', tools: ['openmeteo_search_locations'] }],
     McpClient: class {
       constructor(config) { this.config = config; }

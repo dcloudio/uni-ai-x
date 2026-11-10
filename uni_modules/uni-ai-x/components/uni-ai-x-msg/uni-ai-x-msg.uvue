@@ -164,7 +164,7 @@
 	const toolStatusSource = computed<string>(() => isWeatherToolStatus.value ? '天气查询工具 · MCP' : 'MCP 工具')
 	const isWeatherToolError = computed<boolean>(() => {
 		const error = msg.value.error_msg ?? ''
-		return error.includes('天气查询工具连续三次调用失败') || error.includes('模型连续三次提供了无效的天气查询参数')
+		return error.includes('天气查询工具连续三次调用失败')
 	})
 	const isToolErrorCard = computed<boolean>(() => {
 		const error = msg.value.error_msg ?? ''

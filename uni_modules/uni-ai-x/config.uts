@@ -2,8 +2,6 @@ import {reactive} from 'vue';
 import {LLMModel, Provider, DefaultLLM, Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
 import type { McpServerConfig } from '@/uni_modules/uni-ai-x/sdk/mcp-client.uts';
 
-// The uniCloud weather function remains available for comparison, but is not advertised to the model.
-export const legacyWeatherToolEnabled = false
 export const mcpServers: McpServerConfig[] = [{
 	id: 'weather',
 	url: 'https://open-meteo.caseyjhand.com/mcp',
