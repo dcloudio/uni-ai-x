@@ -20,7 +20,7 @@ let activeRun = 0;
 const pending = new Map();
 const requests = new Map();
 const runs = [];
-let screenshotTaken = false;
+let screenshotCount = 0;
 
 function command(method, params = {}) {
   return new Promise((resolve, reject) => {
@@ -131,6 +131,7 @@ const snapshot = `(() => ({
   processing: !!document.querySelector('.input-tool-bar-stop'),
   example: [...document.querySelectorAll('.chat-box-welcome-demo-btn')].some((node) => node.innerText.trim() === '查天气'),
   segments: [...document.querySelectorAll('.msg-segment-first')].map((node) => node.innerText.trim()).filter(Boolean),
+  answerVisible: [...document.querySelectorAll('.msg-segment-first .uni-ai-md-rich-text,.msg-segment-first .msg-root-plain-text')].some((node) => node.innerText.trim().length > 0),
   retryCards: [...document.querySelectorAll('.weather-tool-card')].map((node) => node.innerText.trim()),
   errors: [...document.querySelectorAll('.msg-root-error-msg,.weather-tool-card-error')].map((node) => node.innerText.trim())
 }))()`;
@@ -150,17 +151,25 @@ try {
     write({ type: 'runStart', run: number, prompt: '帮我查一下北京现在的天气' });
     const started = Date.now();
     let sawProcessing = false;
+    let sawCard = false;
+    let gapRecorded = false;
     while (Date.now() - started < timeoutMs) {
       const state = await evaluate(snapshot);
       sawProcessing ||= state.processing;
+      sawCard ||= state.retryCards.length > 0;
+      if (sawCard && !gapRecorded && state.processing && state.retryCards.length === 0 && !state.answerVisible) {
+        gapRecorded = true;
+        write({ type: 'uiGap', run: number, elapsedMs: Date.now() - started });
+      }
       for (const status of state.retryCards) {
         if (!run.statuses.includes(status)) {
           run.statuses.push(status);
           write({ type: 'uiStatus', run: number, status });
-          if (screenshotPath && !screenshotTaken) {
+          if (screenshotPath && screenshotCount < 6) {
             const screenshot = await command('Page.captureScreenshot', { format: 'png' });
-            writeFileSync(screenshotPath, Buffer.from(screenshot.data, 'base64'));
-            screenshotTaken = true;
+            screenshotCount += 1;
+            const path = screenshotPath.replace(/\.png$/, `-${screenshotCount}.png`);
+            writeFileSync(path, Buffer.from(screenshot.data, 'base64'));
           }
         }
       }
@@ -179,7 +188,7 @@ try {
     run.ok = !run.errors?.length && run.result !== '[timeout]' && calls.length > 0 &&
       models.every((request) => request.model === expectedModel) && /北京|Beijing/.test(run.result) &&
       !/查到如下|查询结果如下/.test(run.result.slice(-50));
-    write({ type: 'runEnd', run: number, ok: run.ok, elapsedMs: run.elapsedMs,
+    write({ type: 'runEnd', run: number, ok: run.ok, uiGap: gapRecorded, elapsedMs: run.elapsedMs,
       modelRequests: models.length, mcpCalls: calls.map((request) => request.tool),
       statuses: run.statuses, errors: run.errors ?? [], answer: clip(run.result, 2000) });
     console.log(`${number}/${count} ${run.ok ? 'OK' : 'CHECK'} ${run.elapsedMs}ms model=${models.length} mcp=${calls.map((call) => call.tool).join(',')} ${clip(run.result.replaceAll('\n', ' '), 100)}`);
