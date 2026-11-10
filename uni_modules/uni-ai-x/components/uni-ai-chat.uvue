@@ -70,7 +70,7 @@
 <script lang="uts" setup>
 	import type { ComputedRef } from 'vue'
 	import {uniAi, MsgItem, uiTheme, calendarConfirmationRevision} from '@/uni_modules/uni-ai-x/sdk/'
-	import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+	import { llmModelMap, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
 	import { prepareTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
@@ -874,10 +874,16 @@
 		icon: string
 		prompt: string
 	}
-	const welcomePrompts: WelcomePrompt[] = [
-		{ label: 'MCP 示例：查天气', icon: 'search', prompt: '帮我查一下北京现在的天气' },
-		{ label: '工具调用示例：创建日程提醒', icon: 'calendar', prompt: '帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒' }
-	]
+	const welcomePrompts: WelcomePrompt[] = []
+	if (mcpServers.some((server): boolean =>
+		server.id == 'weather' && server.url.length > 0 &&
+		(server.tools == null || (server.tools.includes('openmeteo_search_locations') && server.tools.includes('openmeteo_get_forecast')))
+	)) {
+		welcomePrompts.push({ label: 'MCP 示例：查天气', icon: 'search', prompt: '帮我查一下北京现在的天气' })
+	}
+	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+	welcomePrompts.push({ label: '工具调用示例：创建日程提醒', icon: 'calendar', prompt: '帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒' })
+	// #endif
 	const showToolExamples = computed<boolean>(() => {
 		if (uniAi.llm.provider != 'qiniu') return false
 		const model = llmModelMap.get('qiniu')?.models.find((item) => item.modelId == uniAi.llm.model)
