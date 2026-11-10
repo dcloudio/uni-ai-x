@@ -16,6 +16,17 @@
 				</view>
 			</view>
 		</template>
+		<view v-else-if="part.kind == 'error' && isWeatherToolError" class="weather-tool-card weather-tool-card-error" flatten>
+			<view class="weather-tool-card-heading" flatten>
+				<uni-icons type="info-filled" size="18" color="#d95b55" flatten />
+				<text class="weather-tool-card-title" flatten>天气查询失败</text>
+			</view>
+			<text class="weather-tool-card-detail" flatten>{{weatherErrorText}}</text>
+			<view v-if="isLastAiMsg" class="weather-tool-card-retry" @click.stop="retryWeather">
+				<uni-icons type="refresh" size="16" color="#ffffff" flatten />
+				<text class="weather-tool-card-retry-text" flatten>重试</text>
+			</view>
+		</view>
 		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
@@ -35,6 +46,13 @@
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
+		<view v-else-if="part.kind == 'tool-status' && isWeatherToolStatus" class="weather-tool-card" flatten>
+			<view class="weather-tool-card-heading" flatten>
+				<loading class="weather-tool-card-spinner" :paused="loadingPaused" />
+				<text class="weather-tool-card-title" flatten>天气查询</text>
+			</view>
+			<text class="weather-tool-card-detail" flatten>{{msg.toolStatus}}</text>
+		</view>
 		<text v-else-if="part.kind == 'tool-status'" class="msg-root-plain-text" flatten>{{msg.toolStatus}}</text>
 		<text v-else-if="part.kind == 'tool-result'" class="msg-root-plain-text" flatten>{{msg.toolResultText}}</text>
 		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" :paused="loadingPaused" /></view>
@@ -135,6 +153,18 @@
 	const isLastAiMsg = computed<boolean>(() => {
 		return uniAi.lastAiMsg?._id == msg.value._id
 	})
+	const isWeatherToolStatus = computed<boolean>(() => (msg.value.toolStatus ?? '').startsWith('天气查询工具'))
+	const isWeatherToolError = computed<boolean>(() => {
+		const error = msg.value.error_msg ?? ''
+		return error.includes('天气查询工具连续三次调用失败') || error.includes('模型连续三次提供了无效的天气查询参数')
+	})
+	const weatherErrorText = computed<string>(() => (msg.value.error_msg ?? '').replace('Error: ', ''))
+	const retryWeather = async () => {
+		if (!isLastAiMsg.value || state.value == 'processing') return
+		uniAi.resetMsg(msg.value)
+		await nextTick()
+		uniAi.answerQuestion(msg.value)
+	}
 
 	const toolbarDelayReady = ref<boolean>(false)
 	let toolbarDelayTimer = 0
@@ -257,6 +287,64 @@
 	color: var(--error);
 	font-size: 14px;
 	line-height: 26px;
+}
+
+.weather-tool-card {
+	width: 100%;
+	max-width: 440px;
+	box-sizing: border-box;
+	padding: 12px;
+	margin: 4px 0;
+	border: 1px solid var(--border-secondary);
+	border-left: 3px solid var(--accent-primary);
+	border-radius: 6px;
+	background-color: var(--bg-secondary);
+}
+
+.weather-tool-card-error {
+	border-left-color: var(--error);
+}
+
+.weather-tool-card-heading {
+	flex-direction: row;
+	align-items: center;
+}
+
+.weather-tool-card-spinner {
+	width: 18px;
+	height: 18px;
+	border-color: var(--accent-primary);
+}
+
+.weather-tool-card-title {
+	margin-left: 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.weather-tool-card-detail {
+	margin-top: 8px;
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--text-secondary);
+}
+
+.weather-tool-card-retry {
+	width: 76px;
+	height: 34px;
+	margin-top: 12px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	background-color: var(--accent-primary);
+}
+
+.weather-tool-card-retry-text {
+	margin-left: 5px;
+	font-size: 13px;
+	color: #ffffff;
 }
 
 .msg-root-loging-icon {

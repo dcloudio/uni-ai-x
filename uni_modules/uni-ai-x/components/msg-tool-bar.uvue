@@ -1,7 +1,7 @@
 <template>
 	<view class="uni-ai-tool-bar uni-theme-root" :style="toolBarStyle">
 		<!-- 复制按钮、重新回答按钮 -->
-		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg">
+		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg && !isWeatherToolError">
 			<text class="uni-ai-tool-bar-icon uni-ai-tool-bar-btn-loop" :style="loopIconStyle" flatten>{{loopIcon}}</text>
 		</view>
 		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="copy">
@@ -44,6 +44,7 @@
 	const isLastAiMsg = computed<boolean>(() => {
 		return msg._id == uniAi.lastAiMsg?._id
 	})
+	const isWeatherToolError = computed<boolean>(() => (msg.error_msg ?? '').includes('天气查询工具连续三次调用失败'))
 	
 	const copyIcon = computed<string>(() => {
 		return uicon('e60c')

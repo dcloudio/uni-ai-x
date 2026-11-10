@@ -212,7 +212,14 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 			if (settled) return
 			settled = true
 			const toolCalls: UTSJSONObject[] = []
-			Array.from(calls.keys()).sort((a, b) => a - b).forEach((index: number) => { toolCalls.push(calls.get(index)!) })
+			Array.from(calls.keys()).sort((a, b) => a - b).forEach((index: number) => {
+				const call = calls.get(index)!
+				if ((call['id'] as string).length == 0) {
+					call['id'] = `call_${Date.now()}_${index}_${Math.floor(Math.random() * 1000000)}`
+					console.warn('[uni-ai-x][tools] model omitted tool call id', JSON.stringify({ index: index, name: (call['function'] as UTSJSONObject)['name'], generatedId: call['id'] }))
+				}
+				toolCalls.push(call)
+			})
 			resolve({ choices: [{ message: { role: 'assistant', content: content, tool_calls: toolCalls } }] } as UTSJSONObject)
 		})
 		const task = uni.request({
@@ -250,29 +257,79 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 	})
 }
 
-async function executeTool(name: string, argumentText: string): Promise<string> {
-	const tool = toolRegistry.find((entry) => entry.name == name)
-	if (tool == null) return JSON.stringify({ error: '未知工具: ' + name })
+type WeatherToolResult = {
+	content: string,
+	kind: string,
+	error: string | null
+}
+
+function weatherRetryStatus(failedAttempts: number): string {
+	return failedAttempts == 1 ? '天气查询工具调用失败，正在进行第一次重试' : '天气查询工具再次调用失败，正在进行第二次重试'
+}
+
+function weatherExhaustedError(reason: string): string {
+	return `天气查询工具连续三次调用失败。${reason}。请点击重试。`
+}
+
+function weatherArgumentsExhaustedError(): string {
+	return '模型连续三次提供了无效的天气查询参数。请点击重试。'
+}
+
+function weatherResultError(result: UTSJSONObject | null): string | null {
+	if (result == null) return '天气服务返回空结果'
+	const error = result['error']
+	if (typeof error == 'string' && error.length > 0) return error
+	if (typeof result['city'] != 'string' || (result['city'] as string).length == 0
+		|| typeof result['observed_at'] != 'string' || (result['observed_at'] as string).length == 0
+		|| typeof result['weather'] != 'string' || (result['weather'] as string).length == 0 || result['weather'] == '未知'
+		|| typeof result['temperature_c'] != 'number'
+		|| typeof result['today_max_c'] != 'number' || typeof result['today_min_c'] != 'number') {
+		return '天气服务返回的数据不完整'
+	}
+	return null
+}
+
+async function executeWeather(argumentText: string, callbacks: CustomProviderCallbacks): Promise<WeatherToolResult> {
+	let attempts = 0
 	let args: UTSJSONObject
 	try {
 		args = JSON.parse<UTSJSONObject>(argumentText.trim().length == 0 ? '{}' : argumentText) as UTSJSONObject
 	} catch (_error) {
-		return JSON.stringify({ error: '工具参数不是有效 JSON' })
+		console.error('[uni-ai-x][weather] invalid tool arguments', argumentText)
+		return { content: JSON.stringify({ error: '工具参数不是有效 JSON，请检查 city' }), kind: 'argument_error', error: '工具参数不是有效 JSON' }
 	}
-	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
-	if (name == 'create_calendar_reminder') return await createCalendarReminder(args)
-	// #endif
+	if (args == null || typeof args != 'object') {
+		console.error('[uni-ai-x][weather] invalid tool arguments', argumentText)
+		return { content: JSON.stringify({ error: '工具参数必须是包含 city 的对象' }), kind: 'argument_error', error: '工具参数无效' }
+	}
 	const city = args['city']
 	if (typeof city != 'string' || city.trim().length == 0 || city.length > 80) {
-		return JSON.stringify({ error: 'city 必须是 1 到 80 字的城市名称' })
+		console.error('[uni-ai-x][weather] invalid city argument', argumentText)
+		return { content: JSON.stringify({ error: 'city 必须是 1 到 80 字的城市名称' }), kind: 'argument_error', error: '城市参数无效' }
 	}
-	try {
-		const response = await uniCloud.callFunction({ name: 'weather-demo', data: { city: city.trim() } })
-		console.log('[uni-ai-x][weather] cloud result', JSON.stringify(response.result))
-		return JSON.stringify(response.result)
-	} catch (error) {
-		return JSON.stringify({ error: '云函数调用失败', detail: `${error}` })
+	let lastError = ''
+	while (attempts < 3) {
+		attempts += 1
+		console.log('[uni-ai-x][weather] cloud call', JSON.stringify({ attempt: attempts, function: 'weather-demo', city: city.trim() }))
+		try {
+			const response = await uniCloud.callFunction({ name: 'weather-demo', data: { city: city.trim() } })
+			console.log('[uni-ai-x][weather] cloud result', JSON.stringify(response.result))
+			const result = response.result as UTSJSONObject | null
+			if (result != null && (result['code'] == 'invalid_city' || result['code'] == 'city_not_found')) {
+				console.error('[uni-ai-x][weather] city rejected', JSON.stringify({ city: city.trim(), result: result }))
+				return { content: JSON.stringify(result), kind: 'argument_error', error: result['error'] as string }
+			}
+			const error = weatherResultError(result)
+			if (error == null) return { content: JSON.stringify(result), kind: 'success', error: null }
+			lastError = error
+			console.error('[uni-ai-x][weather] invalid cloud result', JSON.stringify({ attempt: attempts, city: city.trim(), error: lastError, result: response.result }))
+		} catch (error) {
+			lastError = `云函数调用失败：${error}`
+			console.error('[uni-ai-x][weather] cloud call failed', JSON.stringify({ attempt: attempts, city: city.trim(), error: `${error}` }))
+		}
+		if (attempts < 3) callbacks.onToolStatus?.(weatherRetryStatus(attempts))
 	}
+	return { content: JSON.stringify({ error: lastError }), kind: 'service_error', error: lastError }
 }
 
 // #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
@@ -308,11 +365,12 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			const modelConfig = provider.models.find((entry) => entry.modelId == model)
 			const tools = modelConfig?.toolCall == true ? toolDefinitions() : [] as UTSJSONObject[]
 			const systemContent = tools.length > 0
-				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求；只有用户询问天气时才调用 get_weather，用户没有要求天气时不要主动提及天气。用户要求天气但城市不明确时先询问。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答已完成的其他需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
+				? `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。请识别用户消息中的全部需求；只有用户询问天气时才调用 get_weather，用户没有要求天气时不要主动提及天气。用户要求天气但城市不明确时先询问。get_weather 返回参数或地名错误时，若用户已提供明确城市，请修正参数后重新调用；否则请向用户询问，不要猜测城市。天气回答必须依据 get_weather 返回的有效数据；工具报错或没有数据时，不得声称已查到天气。日程标题或开始时间不明确时先询问，不要调用日历工具。需要的工具尽量在同一轮全部调用。create_calendar_reminder 只是本地操作意图，工具返回 pending 表示尚未打开系统日历。收到 pending 后，继续调用尚未执行的云端工具；最终只回答已完成的其他需求，不要说日历已打开、已创建或解释待确认状态。日历确认卡片由应用展示，用户选择后应用会另行显示简短结果。`
 				: `当前设备本地时间：${localDateTime(now)}。相对时间按此时间计算。`
 			history.unshift({ role: 'system', content: systemContent } as UTSJSONObject)
 			let calendarCalled = false
 			let weatherCalled = false
+			let weatherParameterFailures = 0
 			let pendingCalendar: CalendarToolConfirmation | null = null
 			for (let round = 0; round < 5; round++) {
 				const body: UTSJSONObject = {
@@ -323,6 +381,9 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					body['tool_choice'] = 'auto'
 				}
 				if (modelConfig?.thinking == true) body['thinking'] = { type: thinking == false ? 'disabled' : 'enabled' }
+				if (weatherCalled) {
+					console.log('[uni-ai-x][weather] model follow-up request', JSON.stringify({ model: model, messages: history.slice(-2) }))
+				}
 				const response = await requestModel(provider.baseURL!, token, body, callbacks)
 				const choices = response['choices'] as UTSJSONObject[] | null
 				const message = choices?.[0]?.['message'] as UTSJSONObject | null
@@ -330,7 +391,10 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 				const calls = message['tool_calls'] as UTSJSONObject[] | null
 				if (calls == null || calls.length == 0) {
 					const content = (message['content'] as string | null) ?? ''
+					if (weatherCalled) console.log('[uni-ai-x][weather] model answer after tool', content)
+					if (content.trim().length == 0 && pendingCalendar == null) throw new Error('模型没有生成回答。请点击重试。')
 					if (pendingCalendar != null) callbacks.onToolConfirm?.(pendingCalendar!)
+					if (weatherParameterFailures > 0) callbacks.onToolStatus?.('')
 					callbacks.onDone?.({})
 					return true
 				}
@@ -357,9 +421,23 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 						continue
 					}
 					// #endif
-					const result = await executeTool(name, args)
-					if (name == 'get_weather') weatherCalled = true
-					history.push({ role: 'tool', tool_call_id: call['id'], content: result } as UTSJSONObject)
+				if (name == 'get_weather') {
+					const result = await executeWeather(args, callbacks)
+					weatherCalled = true
+					history.push({ role: 'tool', tool_call_id: call['id'], content: result.content } as UTSJSONObject)
+					console.log('[uni-ai-x][weather] tool message for model', JSON.stringify({ toolCallId: call['id'], content: result.content }))
+					if (result.kind == 'service_error') throw new Error(weatherExhaustedError(result.error ?? '天气服务暂时不可用'))
+					if (result.kind == 'argument_error') {
+						weatherParameterFailures += 1
+						if (weatherParameterFailures >= 3) throw new Error(weatherArgumentsExhaustedError())
+						callbacks.onToolStatus?.('天气查询工具参数无效，等待模型修正或向用户追问')
+					} else {
+						weatherParameterFailures = 0
+						callbacks.onToolStatus?.('')
+					}
+				} else {
+					history.push({ role: 'tool', tool_call_id: call['id'], content: JSON.stringify({ error: '未知工具: ' + name }) } as UTSJSONObject)
+				}
 				}
 				if (pendingCalendar != null && !weatherCalled) {
 					callbacks.onToolConfirm?.(pendingCalendar!)

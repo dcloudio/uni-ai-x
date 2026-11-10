@@ -95,7 +95,7 @@ test('weather and calendar in one turn still stream the weather result after too
       { index: 0, id: 'weather', type: 'function', function: { name: 'get_weather', arguments: '{"city":"北京"}' } },
       { index: 1, id: 'calendar', type: 'function', function: { name: 'create_calendar_reminder', arguments: JSON.stringify({ title: '喝水', start_at: startAt }) } },
     ] })],
-    [event({ content: '北京今天' }), event({ content: '晴。' })],
+    [event({ content: '北京今天晴，当前12°C，' }), event({ content: '最低4°C，最高15°C。' })],
   ];
   const requests = [];
   const uni = {
@@ -118,7 +118,10 @@ test('weather and calendar in one turn still stream the weather result after too
     SseStreamParser: TestSseParser,
     registerCustomProvider() {},
     uni,
-    uniCloud: { callFunction: async () => ({ result: { city: '北京', weather: '晴' } }) },
+    uniCloud: { callFunction: async () => ({ result: {
+      city: '北京', observed_at: '2026-11-10T14:00', weather: '晴',
+      temperature_c: 12, today_max_c: 15, today_min_c: 4,
+    } }) },
   });
   const success = await new QiniuToolAdapter().request([{ role: 'user', content: '北京天气怎么样，并提醒我喝水' }], 'test', 'chat', {
     onChunk(chunk) { sequence.push(chunk.choices[0].delta.content); },
@@ -128,7 +131,7 @@ test('weather and calendar in one turn still stream the weather result after too
   });
 
   assert.equal(success, true);
-  assert.deepEqual(sequence, ['北京今天', '晴。', 'confirm:喝水', 'done']);
+  assert.deepEqual(sequence, ['北京今天晴，当前12°C，', '最低4°C，最高15°C。', 'confirm:喝水', 'done']);
   assert.equal(requests.length, 2);
   assert.equal(requests[1].messages.at(-1).content, '{"status":"pending"}');
 });

@@ -16,8 +16,13 @@ function describeWeather(code) {
 	return '未知'
 }
 
-async function getJson(url) {
+async function getJson(url, trace) {
+	trace.url = url
+	trace.status = null
+	trace.responseBody = null
 	const response = await uniCloud.httpclient.request(url, { dataType: 'json', timeout: 10000 })
+	trace.status = response.status
+	trace.responseBody = response.data
 	if (response.status < 200 || response.status >= 300) {
 		throw new Error(`天气服务请求失败（HTTP ${response.status}）`)
 	}
@@ -27,13 +32,26 @@ async function getJson(url) {
 
 exports.main = async (event) => {
 	const city = typeof event?.city === 'string' ? event.city.trim() : ''
-	if (!city || city.length > 80) return { error: 'city 必须是 1 到 80 字的城市名称' }
+	if (!city || city.length > 80) {
+		console.error('[weather-demo] invalid city', JSON.stringify({ city: event?.city }))
+		return { error: 'city 必须是 1 到 80 字的城市名称', code: 'invalid_city' }
+	}
 
 	let stage = 'geocoding'
+	const trace = { url: '', status: null, responseBody: null }
 	try {
-		const locations = await getJson(`${GEOCODING_URL}?${new URLSearchParams({ name: city, count: '5', language: 'zh', format: 'json' })}`)
+		const locations = await getJson(`${GEOCODING_URL}?${new URLSearchParams({ name: city, count: '5', language: 'zh', format: 'json' })}`, trace)
+		if (!locations || (!Array.isArray(locations.results) && !(locations.results == null && typeof locations.generationtime_ms === 'number'))) {
+			throw new Error('城市查询服务返回的数据不完整')
+		}
 		const location = locations.results?.[0]
-		if (!location) return { error: `未找到“${city}”对应的城市，请提供更明确的地名` }
+		if (!location) {
+			console.error('[weather-demo] city not found', JSON.stringify({ city, stage, ...trace }))
+			return { error: `未找到“${city}”对应的城市，请提供更明确的地名`, code: 'city_not_found', stage, diagnostics: trace }
+		}
+		if (typeof location.latitude !== 'number' || typeof location.longitude !== 'number' || typeof location.name !== 'string') {
+			throw new Error('城市查询服务返回的数据不完整')
+		}
 
 		const params = new URLSearchParams({
 			latitude: String(location.latitude),
@@ -44,9 +62,14 @@ exports.main = async (event) => {
 			forecast_days: '1'
 		})
 		stage = 'forecast'
-		const forecast = await getJson(`${FORECAST_URL}?${params}`)
+		const forecast = await getJson(`${FORECAST_URL}?${params}`, trace)
 		const current = forecast.current
-		if (!current || !current.time) throw new Error('天气服务未返回当前天气')
+		if (!current || !current.time || typeof current.temperature_2m !== 'number'
+			|| typeof current.weather_code !== 'number'
+			|| typeof forecast.daily?.temperature_2m_max?.[0] !== 'number'
+			|| typeof forecast.daily?.temperature_2m_min?.[0] !== 'number') {
+			throw new Error('天气服务返回的数据不完整')
+		}
 
 		return {
 			city: location.name,
@@ -66,7 +89,7 @@ exports.main = async (event) => {
 			source: 'Open-Meteo'
 		}
 	} catch (error) {
-		console.error('天气查询失败', stage, error)
-		return { error: error.message || '天气查询暂时不可用', stage }
+		console.error('[weather-demo] request failed', JSON.stringify({ city, stage, ...trace, error: error.message || String(error) }))
+		return { error: error.message || '天气查询暂时不可用', stage, diagnostics: trace }
 	}
 }
