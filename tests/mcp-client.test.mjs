@@ -176,9 +176,13 @@ test('agent exposes MCP weather tools while keeping the legacy weather tool disa
   assert.equal(modelRequests[2].messages.at(-1).tool_call_id, 'forecast');
   assert.deepEqual(mcpRequests.filter((request) => request.method == 'tools/call').map((request) => request.params.name), ['geocode_location', 'get_weather_forecast']);
   assert.deepEqual(statuses, [
-    '天气查询工具正在连接服务', '',
-    '天气查询工具正在获取天气数据', '',
-    '天气查询工具正在获取天气数据', '',
+    '天气查询工具 · 连接天气服务 · 正在连接',
+    '天气查询工具 · 确定查询步骤 · 服务已连接，正在等待模型选择工具',
+    '天气查询工具 · 查找城市坐标 · 正在查询',
+    '天气查询工具 · 查找城市坐标 · 查询完成，正在准备下一步',
+    '天气查询工具 · 获取实时天气 · 正在查询',
+    '天气查询工具 · 获取实时天气 · 天气数据已获取，正在生成回答',
+    '',
   ]);
 });
 
@@ -203,7 +207,7 @@ test('MCP transport failures retry visibly, while tool errors go back to the mod
   const result = await executeMcpTool(binding, '{"latitude":39.9}', callbacks);
   assert.equal(JSON.parse(JSON.parse(result).content[0].text).weather, '晴');
   assert.equal(calls, 3);
-  assert.deepEqual(statuses, ['天气查询工具正在获取天气数据', '天气查询工具调用失败，正在进行第一次重试', '天气查询工具再次调用失败，正在进行第二次重试', '']);
+  assert.deepEqual(statuses, ['天气查询工具 · 获取实时天气 · 正在查询', '天气查询工具 · 获取实时天气 · 首次调用失败，正在第 1 次重试', '天气查询工具 · 获取实时天气 · 再次调用失败，正在第 2 次重试', '天气查询工具 · 获取实时天气 · 天气数据已获取，正在生成回答']);
 
   binding.client.callTool = async () => {
     calls += 1;
@@ -265,7 +269,7 @@ test('MCP discovery retries only transient failures and clears its progress card
   const tools = await listMcpTools(client, { onToolStatus(status) { statuses.push(status); } });
   assert.equal(tools[0].name, 'forecast');
   assert.equal(calls, 3);
-  assert.deepEqual(statuses, ['天气查询工具正在连接服务', '天气查询工具连接失败，正在进行第一次重试', '天气查询工具连接失败，正在进行第二次重试', '']);
+  assert.deepEqual(statuses, ['天气查询工具 · 连接天气服务 · 正在连接', '天气查询工具 · 连接天气服务 · 首次连接失败，正在第 1 次重试', '天气查询工具 · 连接天气服务 · 再次连接失败，正在第 2 次重试', '天气查询工具 · 确定查询步骤 · 服务已连接，正在等待模型选择工具']);
 
   await listMcpTools(client, { onToolStatus(status) { statuses.push(status); } });
   assert.equal(statuses.length, 4, 'cached discovery does not flash a connection card');
@@ -274,4 +278,35 @@ test('MCP discovery retries only transient failures and clears its progress card
   client.listTools = async () => { calls += 1; throw new McpRequestError('unauthorized'); };
   await assert.rejects(listMcpTools(client, { onToolStatus() {} }), /unauthorized/);
   assert.equal(calls, 5);
+});
+
+test('a model HTTP error replaces the pending MCP card with an error', async () => {
+  const events = [];
+  const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
+    llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
+    legacyWeatherToolEnabled: false,
+    mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', tools: ['openmeteo_search_locations'] }],
+    McpClient: class {
+      constructor(config) { this.config = config; }
+      hasCachedTools() { return false; }
+      async listTools() { return [{ name: 'openmeteo_search_locations', inputSchema: { type: 'object' } }]; }
+    },
+    McpRequestError: class extends Error {}, CustomProviderAdapter: class {}, SseStreamParser: TestSseParser,
+    registerCustomProvider() {},
+    uni: { request(options) {
+      queueMicrotask(() => options.success({ statusCode: 429, data: '{"error":"rate limit"}' }));
+      return { onChunkReceived() {} };
+    } },
+  });
+  const success = await new QiniuToolAdapter().request([{ role: 'user', content: '北京天气' }], 'test', 'chat', {
+    onToolStatus(status) { events.push(status); },
+    onError(error) { events.push(error.errMsg); },
+  });
+  assert.equal(success, false);
+  assert.deepEqual(events, [
+    '天气查询工具 · 连接天气服务 · 正在连接',
+    '天气查询工具 · 确定查询步骤 · 服务已连接，正在等待模型选择工具',
+    'Error: 模型请求失败（HTTP 429）',
+    '',
+  ]);
 });

@@ -348,21 +348,26 @@ async function executeWeather(argumentText: string, callbacks: CustomProviderCal
 }
 
 async function executeMcpTool(binding: McpToolBinding, argumentText: string, callbacks: CustomProviderCallbacks): Promise<string> {
+	const isWeather = binding.client.config.id == 'weather'
+	const source = isWeather ? '天气查询工具' : 'MCP 工具'
+	const step = isWeather
+		? (binding.remoteName == 'openmeteo_search_locations' || binding.remoteName == 'geocode_location' ? '查找城市坐标' : '获取实时天气')
+		: binding.remoteName
 	let args: UTSJSONObject
 	try {
 		args = JSON.parse<UTSJSONObject>(argumentText.trim().length == 0 ? '{}' : argumentText) as UTSJSONObject
 	} catch (_error) {
+		callbacks.onToolStatus?.(`${source} · ${step} · 参数无效，等待模型修正`)
 		return JSON.stringify({ isError: true, error: 'MCP 工具参数不是有效 JSON，请修正后重试调用' })
 	}
 	if (args == null || typeof args != 'object') {
+		callbacks.onToolStatus?.(`${source} · ${step} · 参数无效，等待模型修正`)
 		return JSON.stringify({ isError: true, error: 'MCP 工具参数必须是对象，请修正后重试调用' })
 	}
 	let lastError = ''
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			if (attempt == 1) callbacks.onToolStatus?.(binding.client.config.id == 'weather'
-				? (binding.remoteName == 'openmeteo_search_locations' ? '天气查询工具正在查找城市' : '天气查询工具正在获取天气数据')
-				: `MCP 工具正在调用：${binding.remoteName}`)
+			if (attempt == 1) callbacks.onToolStatus?.(`${source} · ${step} · ${isWeather ? '正在查询' : '正在调用'}`)
 			console.log('[uni-ai-x][mcp] tool call', JSON.stringify({ server: binding.client.config.id, url: binding.client.config.url, tool: binding.remoteName, attempt: attempt, arguments: args }))
 			const result = await binding.client.callTool(binding.remoteName, args)
 			console.log('[uni-ai-x][mcp] tool result', JSON.stringify({ server: binding.client.config.id, tool: binding.remoteName, result: result }))
@@ -386,14 +391,14 @@ async function executeMcpTool(binding: McpToolBinding, argumentText: string, cal
 					throw new McpRequestError('远程天气工具返回空结果', true)
 				}
 			}
-			callbacks.onToolStatus?.('')
+			callbacks.onToolStatus?.(`${source} · ${step} · ${result['isError'] == true ? '工具返回错误，等待模型处理' : (isWeather && step == '获取实时天气' ? '天气数据已获取，正在生成回答' : '查询完成，正在准备下一步')}`)
 			return JSON.stringify(result)
 		} catch (error) {
 			lastError = `${error}`
 			console.error('[uni-ai-x][mcp] tool request failed', JSON.stringify({ server: binding.client.config.id, url: binding.client.config.url, tool: binding.remoteName, attempt: attempt, arguments: args, error: lastError }))
 			if (!(error instanceof McpRequestError) || !error.retryable) throw error
 			if (attempt < 3) {
-				callbacks.onToolStatus?.(binding.client.config.id == 'weather' ? weatherRetryStatus(attempt) : `MCP 工具调用失败，正在进行第${attempt == 1 ? '一' : '二'}次重试`)
+				callbacks.onToolStatus?.(`${source} · ${step} · ${attempt == 1 ? '首次调用失败，正在第 1 次重试' : '再次调用失败，正在第 2 次重试'}`)
 				const delayMs = Math.max(error.delayMs, attempt * 400)
 				await new Promise<void>((resolve) => { setTimeout(resolve, delayMs) })
 			}
@@ -408,9 +413,9 @@ async function listMcpTools(client: McpClient, callbacks: CustomProviderCallback
 	const needsConnection = !client.hasCachedTools()
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			if (attempt == 1 && needsConnection) callbacks.onToolStatus?.(client.config.id == 'weather' ? '天气查询工具正在连接服务' : 'MCP 服务正在连接')
+			if (attempt == 1 && needsConnection) callbacks.onToolStatus?.(client.config.id == 'weather' ? '天气查询工具 · 连接天气服务 · 正在连接' : 'MCP 服务 · 连接服务 · 正在连接')
 			const tools = await client.listTools()
-			if (needsConnection) callbacks.onToolStatus?.('')
+			if (needsConnection) callbacks.onToolStatus?.(client.config.id == 'weather' ? '天气查询工具 · 确定查询步骤 · 服务已连接，正在等待模型选择工具' : 'MCP 服务 · 确定下一步 · 工具已就绪，正在等待模型选择')
 			return tools
 		} catch (error) {
 			lastError = `${error}`
@@ -418,8 +423,8 @@ async function listMcpTools(client: McpClient, callbacks: CustomProviderCallback
 			if (!(error instanceof McpRequestError) || !error.retryable) throw error
 			if (attempt < 3) {
 				callbacks.onToolStatus?.(client.config.id == 'weather'
-					? `天气查询工具连接失败，正在进行第${attempt == 1 ? '一' : '二'}次重试`
-					: `MCP 服务连接失败，正在进行第${attempt == 1 ? '一' : '二'}次重试`)
+					? `天气查询工具 · 连接天气服务 · ${attempt == 1 ? '首次连接失败，正在第 1 次重试' : '再次连接失败，正在第 2 次重试'}`
+					: `MCP 服务 · 连接服务 · ${attempt == 1 ? '首次连接失败，正在第 1 次重试' : '再次连接失败，正在第 2 次重试'}`)
 				const delayMs = Math.max(error.delayMs, attempt * 400)
 				await new Promise<void>((resolve) => { setTimeout(resolve, delayMs) })
 			}
@@ -461,9 +466,11 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			const modelConfig = provider.models.find((entry) => entry.modelId == model)
 			const tools = modelConfig?.toolCall == true ? toolDefinitions() : [] as UTSJSONObject[]
 			const mcpBindings = new Map<string, McpToolBinding>()
+			let mcpStatusActive = false
 			if (modelConfig?.toolCall == true) {
 				for (let serverIndex = 0; serverIndex < mcpClients.length; serverIndex++) {
 					const client = mcpClients[serverIndex]
+					if (!client.hasCachedTools()) mcpStatusActive = true
 					const remoteTools = await listMcpTools(client, callbacks)
 					let enabledCount = 0
 					remoteTools.forEach((remoteTool: UTSJSONObject) => {
@@ -510,7 +517,7 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					if (weatherCalled) console.log('[uni-ai-x][weather] model answer after tool', content)
 					if (content.trim().length == 0 && pendingCalendar == null) throw new Error('模型没有生成回答。请点击重试。')
 					if (pendingCalendar != null) callbacks.onToolConfirm?.(pendingCalendar!)
-					if (weatherParameterFailures > 0) callbacks.onToolStatus?.('')
+					if (mcpStatusActive || weatherParameterFailures > 0) callbacks.onToolStatus?.('')
 					callbacks.onDone?.({})
 					return true
 				}
@@ -554,6 +561,7 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					}
 					} else if (mcpBindings.has(name)) {
 						const binding = mcpBindings.get(name)!
+						mcpStatusActive = true
 						const result = await executeMcpTool(binding, args, callbacks)
 						history.push({ role: 'tool', tool_call_id: call['id'], content: result } as UTSJSONObject)
 						remoteCalled = true
@@ -563,6 +571,7 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 				}
 				}
 				if (pendingCalendar != null && !weatherCalled && !remoteCalled) {
+				if (mcpStatusActive) callbacks.onToolStatus?.('')
 					callbacks.onToolConfirm?.(pendingCalendar!)
 					callbacks.onDone?.({})
 					return true
@@ -570,8 +579,8 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			}
 			throw new Error('工具调用轮数超过上限')
 		} catch (error) {
-			callbacks.onToolStatus?.('')
 			callbacks.onError?.({ errMsg: `${error}` })
+			callbacks.onToolStatus?.('')
 			return false
 		}
 	}

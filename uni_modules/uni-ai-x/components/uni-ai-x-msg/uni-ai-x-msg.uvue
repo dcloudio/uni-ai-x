@@ -46,12 +46,13 @@
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
-		<view v-else-if="part.kind == 'tool-status' && isToolStatusCard" class="weather-tool-card" flatten>
+		<view v-else-if="part.kind == 'tool-status' && isToolStatusCard" class="weather-tool-card weather-tool-card-progress-card" flatten>
 			<view class="weather-tool-card-heading" flatten>
 				<loading class="weather-tool-card-spinner" :paused="loadingPaused" />
-				<text class="weather-tool-card-title" flatten>{{isWeatherToolStatus ? '天气查询' : 'MCP 服务'}}</text>
+				<text class="weather-tool-card-step" flatten>{{toolStatusStep}}</text>
 			</view>
-			<text class="weather-tool-card-detail" flatten>{{msg.toolStatus}}</text>
+			<text v-if="toolStatusDetail.length > 0" class="weather-tool-card-progress" flatten>{{toolStatusDetail}}</text>
+			<text class="weather-tool-card-source" flatten>{{toolStatusSource}}</text>
 		</view>
 		<text v-else-if="part.kind == 'tool-status'" class="msg-root-plain-text" flatten>{{msg.toolStatus}}</text>
 		<text v-else-if="part.kind == 'tool-result'" class="msg-root-plain-text" flatten>{{msg.toolResultText}}</text>
@@ -155,6 +156,12 @@
 	})
 	const isWeatherToolStatus = computed<boolean>(() => (msg.value.toolStatus ?? '').startsWith('天气查询工具'))
 	const isToolStatusCard = computed<boolean>(() => isWeatherToolStatus.value || (msg.value.toolStatus ?? '').startsWith('MCP '))
+	const toolStatusParts = computed<string[]>(() => (msg.value.toolStatus ?? '').split(' · '))
+	const toolStatusStep = computed<string>(() => toolStatusParts.value.length >= 2
+		? toolStatusParts.value[1]
+		: (msg.value.toolStatus ?? '').replace('天气查询工具', '').trim())
+	const toolStatusDetail = computed<string>(() => toolStatusParts.value.length >= 3 ? toolStatusParts.value[2] : '')
+	const toolStatusSource = computed<string>(() => isWeatherToolStatus.value ? '天气查询工具 · MCP' : 'MCP 工具')
 	const isWeatherToolError = computed<boolean>(() => {
 		const error = msg.value.error_msg ?? ''
 		return error.includes('天气查询工具连续三次调用失败') || error.includes('模型连续三次提供了无效的天气查询参数')
@@ -310,6 +317,10 @@
 	border-left-color: var(--error);
 }
 
+.weather-tool-card-progress-card {
+	min-height: 82px;
+}
+
 .weather-tool-card-heading {
 	flex-direction: row;
 	align-items: center;
@@ -326,6 +337,29 @@
 	font-size: 14px;
 	font-weight: 600;
 	color: var(--text-primary);
+}
+
+.weather-tool-card-step {
+	margin-left: 6px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.weather-tool-card-progress {
+	margin-top: 5px;
+	font-size: 12px;
+	line-height: 18px;
+	color: var(--text-secondary);
+}
+
+.weather-tool-card-source {
+	width: 100%;
+	margin-top: 5px;
+	font-size: 11px;
+	line-height: 16px;
+	text-align: right;
+	color: var(--text-secondary);
 }
 
 .weather-tool-card-detail {
