@@ -308,7 +308,23 @@
 	/* #endif */
 }
 
+/* #ifdef APP-ANDROID */
+.chat-input {
+	position: relative;
+	flex-shrink: 0;
+}
+
+.chat-input-fullscreen {
+	position: fixed;
+}
+/* #endif */
+
 /* #ifdef H5 */
+.chat-input:not(.chat-input-fullscreen) {
+	position: relative;
+	flex-shrink: 0;
+}
+
 @media screen and (min-device-width:960px){
 	.chat-input {
 		border-radius: 15px;

@@ -1136,6 +1136,22 @@
 }
 /* #endif */
 
+/* #ifdef H5 || APP-ANDROID */
+.chat-box-chat,
+.chat-box-scroll-view-box {
+	min-height: 0;
+}
+
+.chat-box-msg-list {
+	margin-bottom: 0;
+}
+
+.chat-box-add-chat,
+.chat-box-scroll-to-bottom {
+	bottom: 10px;
+}
+/* #endif */
+
 /* #ifdef H5 */
 @media screen and (min-device-width:960px){
 	.chat-box {
