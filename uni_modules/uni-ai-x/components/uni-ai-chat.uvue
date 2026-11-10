@@ -9,11 +9,15 @@
 					<text class="chat-box-welcome-text" flatten>我可以帮你回答问题、写代码、翻译、写诗等。</text>
 					<view class="chat-box-welcome-actions">
 						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo">
+							<uni-icons class="chat-box-welcome-demo-icon" type="list" size="20" color="var(--accent-primary)" />
 							<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
+							<uni-icons type="right" size="16" color="var(--text-tertiary)" />
 						</view>
 						<template v-if="showToolExamples">
 							<view v-for="item in welcomePrompts" :key="item.label" class="chat-box-welcome-demo-btn" @click="sendWelcomePrompt(item.prompt)">
+								<uni-icons class="chat-box-welcome-demo-icon" :type="item.icon" size="20" color="var(--accent-primary)" />
 								<text class="chat-box-welcome-demo-btn-text">{{ item.label }}</text>
+								<uni-icons type="right" size="16" color="var(--text-tertiary)" />
 							</view>
 						</template>
 					</view>
@@ -867,11 +871,12 @@
 	}
 	type WelcomePrompt = {
 		label: string
+		icon: string
 		prompt: string
 	}
 	const welcomePrompts: WelcomePrompt[] = [
-		{ label: '查天气', prompt: '帮我查一下北京现在的天气' },
-		{ label: '创建日程提醒', prompt: '帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒' }
+		{ label: 'MCP 示例：查天气', icon: 'search', prompt: '帮我查一下北京现在的天气' },
+		{ label: '工具调用示例：创建日程提醒', icon: 'calendar', prompt: '帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒' }
 	]
 	const showToolExamples = computed<boolean>(() => {
 		if (uniAi.llm.provider != 'qiniu') return false
@@ -1067,26 +1072,31 @@
 	width: 100%;
 	max-width: 440px;
 	margin-top: 20px;
-	flex-direction: row;
-	flex-wrap: wrap;
-	justify-content: center;
+	flex-direction: column;
 }
 
 .chat-box-welcome-demo-btn {
-	min-height: 36px;
-	margin: 4px;
-	padding: 8px 14px;
+	width: 100%;
+	min-height: 52px;
+	margin: 5px 0;
+	padding: 8px 12px;
 	box-sizing: border-box;
+	flex-direction: row;
 	align-items: center;
-	justify-content: center;
-	border-radius: 20px;
 	border: 1px solid var(--border-color);
-	background-color: var(--bg-secondary);
+	border-radius: 26px;
+	background-color: var(--bg-primary);
+}
+
+.chat-box-welcome-demo-icon {
+	width: 28px;
+	margin-right: 8px;
 }
 
 .chat-box-welcome-demo-btn-text {
+	flex: 1;
 	font-size: 14px;
-	color: var(--accent-primary);
+	color: var(--text-primary);
 }
 
 .chat-box-scroll-to-bottom {

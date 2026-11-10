@@ -129,7 +129,7 @@ await command('Runtime.enable');
 await command('Network.enable');
 const snapshot = `(() => ({
   processing: !!document.querySelector('.input-tool-bar-stop'),
-  example: [...document.querySelectorAll('.chat-box-welcome-demo-btn')].some((node) => node.innerText.trim() === '查天气'),
+  example: [...document.querySelectorAll('.chat-box-welcome-demo-btn')].some((node) => node.innerText.trim() === 'MCP 示例：查天气'),
   segments: [...document.querySelectorAll('.msg-segment-first')].map((node) => node.innerText.trim()).filter(Boolean),
   answerVisible: [...document.querySelectorAll('.msg-segment-first .uni-ai-md-rich-text,.msg-segment-first .msg-root-plain-text')].some((node) => node.innerText.trim().length > 0),
   retryCards: [...document.querySelectorAll('.weather-tool-card')].map((node) => node.innerText.trim()),
@@ -146,7 +146,7 @@ try {
     const run = { number, requests: [], statuses: [], result: '' };
     runs.push(run);
     activeRun = number;
-    const clicked = await evaluate(`(() => { const button = [...document.querySelectorAll('.chat-box-welcome-demo-btn')].find((node) => node.innerText.trim() === '查天气'); if (!button) return false; button.click(); return true })()`);
+    const clicked = await evaluate(`(() => { const button = [...document.querySelectorAll('.chat-box-welcome-demo-btn')].find((node) => node.innerText.trim() === 'MCP 示例：查天气'); if (!button) return false; button.click(); return true })()`);
     if (!clicked) throw new Error('Weather example unavailable for run ' + number);
     write({ type: 'runStart', run: number, prompt: '帮我查一下北京现在的天气' });
     const started = Date.now();
