@@ -1,6 +1,6 @@
 import { ref, shallowRef } from 'vue'
 import { MsgItem, SearchSource } from '../types.uts'
-import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 import { MarkdownTextRenderBlock, markdownHtmlBlocksToTextBlocks } from './markdown-text.uts'
 import { mathWindowWidth } from './math-presentation.uts'
 import { linkSearchCitations } from './search-citations.uts'

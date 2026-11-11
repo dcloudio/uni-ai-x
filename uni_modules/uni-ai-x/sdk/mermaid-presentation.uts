@@ -2,7 +2,7 @@ import { MsgItem } from '../types.uts'
 // #ifdef APP || WEB
 import proxyWeb from './proxy-web.uts'
 // #endif
-import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
 // #ifdef APP || WEB
 import { renderMermaidSvgForTheme, renderMathSvgForTheme, ThemedSvgResult } from './themed-svg.uts'

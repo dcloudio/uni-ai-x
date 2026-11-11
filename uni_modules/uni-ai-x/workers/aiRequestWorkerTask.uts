@@ -7,26 +7,26 @@ import { createSession, feedChunk, finishSession, destroySession } from '@/uni_m
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
 // #endif
 // #ifdef WEB
-import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/web/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk/web/index.uts'
 // #endif
 // #ifdef MP-WEIXIN
-import { initMd2html, isMd2htmlAvailable, md2html } from '../uni_modules/uni-cmark/utssdk/mp-weixin/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk/mp-weixin/index.uts'
 // #endif
 // #ifdef APP-HARMONY
 import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
-import { AiWorkerState, UniAiMdChunk, createOpBatch } from '@uni_modules/uni-ai-worker-runtime'
+import { AiWorkerState, UniAiMdChunk, createOpBatch } from '../utssdk/runtime/app-harmony/sendable.ets'
 // #endif
 import {
 	MarkdownPreprocessor,
 	prepareMarkdownHtml,
 	buildMarkdownHtmlBlocks
-} from '../uni_modules/uni-ai-worker/utssdk/index.uts'
+} from '../utssdk/worker/index.uts'
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 import { UniAiMdSourceTail } from './uni-ai-md-source-tail.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
-import { WorkerStreamRequest } from '../uni_modules/uni-ai-worker/utssdk/stream-request.uts'
+import { WorkerStreamRequest } from '../utssdk/worker/stream-request.uts'
 // #endif
 
 type WorkerAiDelta = {

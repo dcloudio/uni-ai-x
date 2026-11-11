@@ -18,7 +18,7 @@ import {
 	StartAiWorkerMarkdown,
 	StartAiWorkerRequest
 } from './interface.uts'
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+import type { AiWorkerOp } from '../worker/interface.uts'
 
 // #ifdef APP-HARMONY
 import {
@@ -56,12 +56,12 @@ let rebuildListener: AiWorkerRebuildListener | null = null
 // #endif
 
 // #ifdef MP-WEIXIN
-import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk/mp-weixin/index.uts'
+import { initMd2html, isMd2htmlAvailable, md2html } from '../../../uni-cmark/utssdk/mp-weixin/index.uts'
 import {
 	MarkdownPreprocessor,
 	prepareMarkdownHtml,
 	buildMarkdownHtmlBlocks
-} from '../../uni-ai-worker/utssdk/index.uts'
+} from '../worker/index.uts'
 // #endif
 
 export * from './interface.uts'
@@ -286,7 +286,7 @@ function createWorkerNow(generation: number): void {
 	if (generation != runtimeGeneration || worker != null) return
 	workerReady = false
 	latestSnapshotJson = ''
-	worker = uni.createWorker('workers/aiRequestWorkerTask.uts')
+	worker = uni.createWorker('uni_modules/uni-ai-x/workers/aiRequestWorkerTask.uts')
 	worker!.onMessage((message: any) => {
 		if (generation != runtimeGeneration) return
 		const result = message as UTSJSONObject

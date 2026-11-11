@@ -3,7 +3,7 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const { nativeRenderBlock } = loadUts(
-  'uni_modules/uni-ai-worker/utssdk/native-presentation.uts',
+  'uni_modules/uni-ai-x/utssdk/worker/native-presentation.uts',
   ['nativeRenderBlock'],
 );
 

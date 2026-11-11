@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
-const { linkSearchCitations } = loadUts('uni_modules/uni-ai-worker/utssdk/presentation-links.uts',
+const { linkSearchCitations } = loadUts('uni_modules/uni-ai-x/utssdk/worker/presentation-links.uts',
   ['linkSearchCitations']);
 
 test('citation links preserve the text before each reference', () => {

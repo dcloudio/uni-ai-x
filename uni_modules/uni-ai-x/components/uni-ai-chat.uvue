@@ -84,8 +84,8 @@
 		uniAiMdStreamGetBlocks,
 		uniAiMdStreamRequestRebuild
 	} from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
-	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-worker-runtime'
-	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-worker-runtime'
+	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-x'
+	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-x'
 	import { parseAiWorkerOps } from '@/uni_modules/uni-ai-x/sdk/worker-ops.uts'
 	// #endif
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'

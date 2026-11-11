@@ -1,6 +1,6 @@
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
-import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-worker-runtime'
-import { UniAiMdHtmlStreamAdapter } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-x/utssdk/worker/interface.uts'
+import { requestAiWorkerMarkdownRebuild } from '@/uni_modules/uni-ai-x'
+import { UniAiMdHtmlStreamAdapter } from '@/uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-html.uts'
 import { uniAiMdHtmlBlocksToTextBlocks } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 import { ref, reactive } from 'vue'
@@ -14,20 +14,20 @@ import { prepareHarmonySvgImageSource } from './harmony-svg-workaround.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
 import type { MsgItem } from '../types.uts'
 // #ifdef APP-ANDROID || APP-HARMONY
-import { RenderSnapshot, RENDER_SNAPSHOT_VERSION, renderContentKey } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+import { RenderSnapshot, RENDER_SNAPSHOT_VERSION, renderContentKey } from '@/uni_modules/uni-ai-x/utssdk/worker/render-snapshot.uts'
 // #endif
 // #ifdef APP-ANDROID || APP-HARMONY
 // 命名空间导入：被条件编译屏蔽的具名导入仍会被 Rollup 解析并报缺失导出，命名空间成员不校验。
-import * as uniAiWorkerRuntime from '@/uni_modules/uni-ai-worker-runtime'
+import * as uniAiWorkerRuntime from '@/uni_modules/uni-ai-x'
 // #endif
 // #ifdef APP-HARMONY || APP-IOS
 import { prepareTablePresentation } from './table-presentation.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { linkSearchCitations } from './search-citations.uts'
-import { prepareUniAiMdHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { prepareUniAiMdHtml } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 // #endif
 // #ifdef APP-ANDROID
-import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_modules/uni-ai-worker-runtime'
+import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_modules/uni-ai-x'
 // #endif
 
 export const uniAiMdPresentationRevision = ref<number>(0)

@@ -17,14 +17,14 @@ import {
 	setAiWorkerDataListener,
 	startAiWorkerMarkdown,
 	startAiWorkerRequest
-} from '@/uni_modules/uni-ai-worker-runtime'
+} from '@/uni_modules/uni-ai-x'
 // #endif
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
-import { readAiWorkerState } from '@/uni_modules/uni-ai-worker-runtime'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-x/utssdk/worker/interface.uts'
+import { readAiWorkerState } from '@/uni_modules/uni-ai-x'
 import { resolveAiWorkerOps } from './worker-ops.uts'
 import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
-import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-log.uts'
+import { logBlockPayload } from '@/uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-log.uts'
 // #endif
 
 export type RequestAiRunnerCallbacks = {

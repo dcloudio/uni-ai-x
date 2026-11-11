@@ -1,14 +1,14 @@
 // #ifdef APP-ANDROID
-import { UniAiMdHtmlStreamAdapter, UniAiMdHtmlRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
-import { nativeRenderBlock } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
-import type { AiWorkerOp } from '../uni_modules/uni-ai-worker/utssdk/interface.uts'
-import type { MarkdownTextRenderBlock, CodePresentationLine } from '../uni_modules/uni-ai-worker/utssdk/native-presentation.uts'
-import { prepareCodeBlocks, buildCodeHtmlPatch } from '../uni_modules/uni-ai-worker/utssdk/code-presentation.uts'
-import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../uni_modules/uni-ai-worker/utssdk/code-highlight.uts'
-import { prepareTablePresentation } from '../uni_modules/uni-ai-worker/utssdk/table-presentation.uts'
-import { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from '../uni_modules/uni-ai-worker/utssdk/presentation-links.uts'
-import { prepareMathSourceLayout } from '../uni_modules/uni-ai-worker/utssdk/math-layout.uts'
-import { prepareUniAiMdHtml } from '../uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { UniAiMdHtmlStreamAdapter, UniAiMdHtmlRenderBlock } from '../utssdk/worker/uni-ai-md-html.uts'
+import { nativeRenderBlock } from '../utssdk/worker/native-presentation.uts'
+import type { AiWorkerOp } from '../utssdk/worker/interface.uts'
+import type { MarkdownTextRenderBlock, CodePresentationLine } from '../utssdk/worker/native-presentation.uts'
+import { prepareCodeBlocks, buildCodeHtmlPatch } from '../utssdk/worker/code-presentation.uts'
+import { releaseCodeHighlightSessions, closeCodeHighlightWorker } from '../utssdk/worker/code-highlight.uts'
+import { prepareTablePresentation } from '../utssdk/worker/table-presentation.uts'
+import { markdownFootnotes, linkMarkdownFootnotes, linkSearchCitations } from '../utssdk/worker/presentation-links.uts'
+import { prepareMathSourceLayout } from '../utssdk/worker/math-layout.uts'
+import { prepareUniAiMdHtml } from '../utssdk/worker/markdown-html.uts'
 
 class PresentationEntry {
 	// Merge adjacent ordinary HTML so headings, paragraphs and lists share one RichText.

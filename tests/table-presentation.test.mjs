@@ -4,7 +4,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 import test from 'node:test';
 
-const source = readFileSync(new URL('../uni_modules/uni-ai-worker/utssdk/markdown-html.uts', import.meta.url), 'utf8')
+const source = readFileSync(new URL('../uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts', import.meta.url), 'utf8')
   .replace(/^import .*$/gm, '').replace(/^export /gm, '');
 const api = vm.createContext({});
 vm.runInContext(stripTypeScriptTypes(source), api);

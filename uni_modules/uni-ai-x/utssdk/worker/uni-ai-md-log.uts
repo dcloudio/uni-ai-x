@@ -1,6 +1,6 @@
 // 块事件日志：uni-ai-md 下发的 html / data / ast 载荷都按同一套格式打印到控制台，
 // 前缀 [uni-ai-md] 便于过滤。模块内只有纯函数，格式与 uni-ai-md 的 uni-app-x demo 一致。
-import { OP_APPEND, OP_TAIL, OP_COMMIT, OP_RESET } from '../../uni-ai-md/utssdk/interface.uts'
+import { OP_APPEND, OP_TAIL, OP_COMMIT, OP_RESET } from '../../../uni-ai-md/utssdk/interface.uts'
 
 // 单行日志上限：超过则截断保留头部并附上原始长度。
 const LOG_LINE_LIMIT: number = 400

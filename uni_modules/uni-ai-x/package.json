@@ -41,7 +41,9 @@
   },
   "uni_modules": {
     "dependencies": [
-      "uni-ai-md"
+      "uni-ai-md",
+      "uni-cmark",
+      "uni-highlight"
     ],
     "encrypt": [],
     "platforms": {

@@ -110,7 +110,7 @@ export type MessageSearch = {
 }
 
 // #ifdef APP-ANDROID || APP-HARMONY
-import type { RenderSnapshot } from '@/uni_modules/uni-ai-worker/utssdk/render-snapshot.uts'
+import type { RenderSnapshot } from '@/uni_modules/uni-ai-x/utssdk/worker/render-snapshot.uts'
 // #endif
 
 export type MsgItem = {

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { MsgItem } from '../types.uts'
-import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 import { estimateMaxLineTextWidth } from './text-width.uts'
 // #ifdef APP || WEB
 import proxyWeb from './proxy-web.uts'

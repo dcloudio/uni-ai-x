@@ -25,7 +25,7 @@ function failPresentation(message: string) {
 
 function ensureWorker() {
 	if (worker != null || failed) return
-	const created = uni.createWorker('workers/aiPresentationWorkerTask.uts')
+	const created = uni.createWorker('uni_modules/uni-ai-x/workers/aiPresentationWorkerTask.uts')
 	worker = created
 	created.onMessage((message: any) => {
 		const payload = message as UTSJSONObject

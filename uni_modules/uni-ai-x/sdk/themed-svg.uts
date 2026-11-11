@@ -1,7 +1,7 @@
 import proxyWeb from '@/uni_modules/uni-ai-x/sdk/proxy-web.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 // #ifdef APP-ANDROID
-import { readAndroidSvgCache, writeAndroidSvgCache } from '@/uni_modules/uni-ai-worker-runtime'
+import { readAndroidSvgCache, writeAndroidSvgCache } from '@/uni_modules/uni-ai-x'
 // #endif
 import { getHarmonySvgWorkaroundConfig, prepareHarmonySvgImageSource, cleanupPreviousSvgFiles } from '@/uni_modules/uni-ai-x/sdk/harmony-svg-workaround.uts'
 
