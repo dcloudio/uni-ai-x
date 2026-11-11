@@ -19,6 +19,9 @@ import {
 	startAiWorkerRequest
 } from '@/uni_modules/uni-ai-x'
 // #endif
+// #ifdef APP-IOS
+import { startAiWorkerMarkdownByValues } from '@/uni_modules/uni-ai-x'
+// #endif
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 import type { AiWorkerOp } from '@/uni_modules/uni-ai-x/utssdk/worker/interface.uts'
 import { readAiWorkerState } from '@/uni_modules/uni-ai-x'
@@ -384,9 +387,16 @@ class RequestAiRunner {
 				darkMode: this.pluginDarkMode,
 				background: this.pluginBackground
 			})
+			// #ifdef APP-IOS
+			this.workerPollTimer = setInterval(() => {
+				this.pollWorkerSnapshot(requestVersion)
+			}, 50)
+			// #endif
+			// #ifndef APP-IOS
 			setAiWorkerDataListener(() => {
 				this.pollWorkerSnapshot(requestVersion)
 			})
+			// #endif
 		} catch (_error) {
 			// getProviderConfig/requestProviderToken 已通过 requestOptions.onError 上报。
 		}
@@ -554,8 +564,10 @@ class RequestAiRunner {
 	private stopWorkerRuntime(cancelRequest: boolean) {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.workerPollTimer = 0
+		// #ifndef APP-IOS
 		// #ifndef MP-WEIXIN
 		setAiWorkerDataListener(null)
+		// #endif
 		// #endif
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.workerRequestVersion)
@@ -570,21 +582,28 @@ class RequestAiRunner {
 		this.workerRequestVersion = requestVersion
 		this.workerSnapshotVersion = 0
 		this.workerActive = true
+		// #ifdef APP-IOS
+		startAiWorkerMarkdownByValues(requestVersion, MARKDOWN_RENDER_INTERVAL, this.pluginDarkMode, this.pluginBackground)
+		// #endif
+		// #ifndef APP-IOS
 		startAiWorkerMarkdown({
 			requestVersion: requestVersion,
 			renderInterval: MARKDOWN_RENDER_INTERVAL,
 			darkMode: this.pluginDarkMode,
 			background: this.pluginBackground
 		})
-		// #ifdef MP-WEIXIN
+		// #endif
+		// #ifdef APP-IOS || MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {
 			this.pollWorkerSnapshot(requestVersion)
 		}, 50)
 		// #endif
+		// #ifndef APP-IOS
 		// #ifndef MP-WEIXIN
 		setAiWorkerDataListener(() => {
 			this.pollWorkerSnapshot(requestVersion)
 		})
+		// #endif
 		// #endif
 	}
 	// #endif

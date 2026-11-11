@@ -110,7 +110,17 @@ export type MessageSearch = {
 }
 
 // #ifdef APP-ANDROID || APP-HARMONY
-import type { RenderSnapshot } from '@/uni_modules/uni-ai-x/utssdk/worker/render-snapshot.uts'
+// Keep the persisted snapshot shape local: importing the renderer here creates
+// a runtime module cycle in the Harmony UTS output during app startup.
+type StoredRenderSnapshot = {
+	version: number
+	bodyKey: string
+	theme: string
+	width: number
+	citations: string
+	assets: string[]
+	blocks: object[]
+}
 // #endif
 
 export type MsgItem = {
@@ -131,7 +141,7 @@ export type MsgItem = {
 	markdownHtml?: string
 	markdownBlocks?: string
 	// #ifdef APP-ANDROID || APP-HARMONY
-	renderSnapshot?: RenderSnapshot
+	renderSnapshot?: StoredRenderSnapshot
 	// #endif
 	search?: MessageSearch
 	markdownAst?: string
