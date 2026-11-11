@@ -1,4 +1,4 @@
-import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableThemeColors, markdownTableNaturalHeight } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableThemeColors, markdownTableNaturalHeight } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 
 export type TablePresentation = {
 	height: string

@@ -1,6 +1,6 @@
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 // #ifdef APP-ANDROID
-import { encodeAndroidWebRequest } from '@/uni_modules/uni-ai-worker-runtime'
+import { encodeAndroidWebRequest } from '@/uni_modules/uni-ai-x'
 // #endif
 type OnMsgFn = (e : UTSJSONObject) => void
 type VoidFn = () => void

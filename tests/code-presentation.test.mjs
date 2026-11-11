@@ -5,12 +5,12 @@ import { loadUts } from './uts-loader.mjs';
 
 const ref = value => ({ value });
 const UtsNumber = Object.assign(value => Number(value), { from: value => Number(value) });
-const rich = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts', ['markdownCodeTokenToRichTextNodes']);
-const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
-const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts', ['UniAiMdHtmlStreamAdapter'], {
+const rich = loadUts('uni_modules/uni-ai-x/utssdk/worker/markdown-rich-text.uts', ['markdownCodeTokenToRichTextNodes']);
+const html = loadUts('uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts', ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
+const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-html.uts', ['UniAiMdHtmlStreamAdapter'], {
   ...html, Number: UtsNumber, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
 });
-const { nativeRenderBlock } = loadUts('uni_modules/uni-ai-worker/utssdk/native-presentation.uts', ['nativeRenderBlock']);
+const { nativeRenderBlock } = loadUts('uni_modules/uni-ai-x/utssdk/worker/native-presentation.uts', ['nativeRenderBlock']);
 const converters = loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts',
   ['uniAiMdHtmlBlocksToTextBlocks', 'markdownHtmlBlocksToTextBlocks']);
 

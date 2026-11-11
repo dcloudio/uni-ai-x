@@ -7,7 +7,7 @@ import {
 	markdownTableContentWidth as workerMarkdownTableContentWidth,
 	markdownTableTokenToRichTextNodes as workerMarkdownTableTokenToRichTextNodes,
 	markdownTokensToRichTextNodes as workerMarkdownTokensToRichTextNodes
-} from '@/uni_modules/uni-ai-worker/utssdk/markdown-rich-text.uts'
+} from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-rich-text.uts'
 
 export function markdownTokensToRichTextNodes(tokens: MarkdownToken[] | null): UTSJSONObject[] {
 	return workerMarkdownTokensToRichTextNodes(tokens)

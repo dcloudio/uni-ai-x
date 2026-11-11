@@ -1,6 +1,6 @@
 import Foundation
 // @_implementationOnly：UniAiMdBridge 只在本文件内部使用，不能让编译产物（unimoduleUniAiMd
-// 的 swiftinterface）把它暴露成模块依赖，否则其它 UTS 插件（如 uni-ai-worker-runtime）编译时
+// 的 swiftinterface）把它暴露成模块依赖，否则其它 UTS 插件（如 uni-ai-x）编译时
 // 会因找不到该模块而失败（自定义基座构建不会把本插件自带的 framework 放进全局搜索路径）。
 @_implementationOnly import UniAiMdBridge
 

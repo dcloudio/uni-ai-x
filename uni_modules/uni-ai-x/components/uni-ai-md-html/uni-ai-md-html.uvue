@@ -6,7 +6,7 @@
 <script lang="uts" setup>
 	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 	// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
-	import { prepareUniAiMdHtml } from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+	import { prepareUniAiMdHtml } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 	// #endif
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	import { citationNumber } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'

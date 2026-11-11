@@ -1,5 +1,5 @@
 // #ifdef APP-ANDROID
-import { prepareAndroidSvgSource } from '@/uni_modules/uni-ai-worker-runtime'
+import { prepareAndroidSvgSource } from '@/uni_modules/uni-ai-x'
 // #endif
 
 export type HarmonySvgWorkaroundConfig = {

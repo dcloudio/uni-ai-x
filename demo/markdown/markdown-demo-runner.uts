@@ -19,13 +19,13 @@ import {
 	readAiWorkerSnapshot,
 	setAiWorkerDataListener,
 	startAiWorkerMarkdown
-} from '@/uni_modules/uni-ai-worker-runtime'
+} from '@/uni_modules/uni-ai-x'
 // #endif
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-import { readAiWorkerState } from '@/uni_modules/uni-ai-worker-runtime'
+import { readAiWorkerState } from '@/uni_modules/uni-ai-x'
 import { resolveAiWorkerOps } from '@/uni_modules/uni-ai-x/sdk/worker-ops.uts'
 import { OP_RESET } from '@/uni_modules/uni-ai-md/utssdk/interface.uts'
-import { logBlockPayload } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-log.uts'
+import { logBlockPayload } from '@/uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-log.uts'
 // #endif
 
 const DEMO_RENDER_INTERVAL = 300

@@ -1,5 +1,5 @@
-import { takeAiWorkerOps, takeAiWorkerOpsJson } from '@/uni_modules/uni-ai-worker-runtime'
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+import { takeAiWorkerOps, takeAiWorkerOpsJson } from '@/uni_modules/uni-ai-x'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-x/utssdk/worker/interface.uts'
 
 // 解析 Worker 回传的 ops JSON（'[]' 或更短视为空）。
 export function parseAiWorkerOps(json: string): AiWorkerOp[] {

@@ -1,7 +1,7 @@
 import { reactive, watch, nextTick, ref } from 'vue';
 // #ifdef APP-ANDROID
 import { uniAiMdStreamSetContext } from './uni-ai-md-stream-store.uts'
-import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-worker-runtime'
+import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-x'
 // #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, CalendarToolConfirmation, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
@@ -15,9 +15,9 @@ import { prepareMermaidPresentation } from './mermaid-presentation.uts'
 import { prepareMathPresentation, mathWindowWidth } from './math-presentation.uts'
 import { refreshMessagePresentation, forgetMessagePresentation } from './message-presentation.uts'
 import { pluginBackgroundFor } from './plugin-theme.uts'
-import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-worker/utssdk/index.uts'
+import { buildMarkdownHtmlBlocks } from '@/uni_modules/uni-ai-x/utssdk/worker/index.uts'
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-import type { AiWorkerOp } from '@/uni_modules/uni-ai-worker/utssdk/interface.uts'
+import type { AiWorkerOp } from '@/uni_modules/uni-ai-x/utssdk/worker/interface.uts'
 import {
 	uniAiMdStreamApply,
 	uniAiMdStreamSetTheme,

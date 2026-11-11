@@ -1,10 +1,10 @@
 import {
 	MarkdownHtmlBlock
-} from '@/uni_modules/uni-ai-worker/utssdk/markdown-html.uts'
+} from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import { TablePresentation, prepareTablePresentation } from './table-presentation.uts'
 import { MathPresentation, buildMathPresentation } from './math-presentation.uts'
-import type { UniAiMdHtmlRenderBlock } from '@/uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts'
+import type { UniAiMdHtmlRenderBlock } from '@/uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-html.uts'
 
 export type CodePresentationLine = {
 	text: string

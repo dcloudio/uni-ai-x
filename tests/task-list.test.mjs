@@ -3,7 +3,7 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const { prepareUniAiMdHtml, prepareMarkdownHtml } = loadUts(
-  'uni_modules/uni-ai-worker/utssdk/markdown-html.uts',
+  'uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts',
   ['prepareUniAiMdHtml', 'prepareMarkdownHtml'],
 );
 const checkbox = '<input type="checkbox" checked disabled>';

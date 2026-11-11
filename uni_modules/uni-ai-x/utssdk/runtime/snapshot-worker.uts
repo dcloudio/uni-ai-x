@@ -19,7 +19,7 @@ export function requestSnapshotWork(request: UTSJSONObject, callback: (result: U
 	request['assetCacheRoot'] = realHarmonyAssetPath(uni.env.CACHE_PATH)
 	// #endif
 	if (worker == null) {
-		const created = uni.createWorker('workers/aiSnapshotWorkerTask.uts')
+		const created = uni.createWorker('uni_modules/uni-ai-x/workers/aiSnapshotWorkerTask.uts')
 		worker = created
 		const generation = ++workerGeneration
 		created.onMessage((message: any) => {

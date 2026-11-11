@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 test('SSE emits before completion and preserves Chinese characters split across network chunks', () => {
-  let source = readFileSync(new URL('../uni_modules/uni-ai-worker/utssdk/sse.uts', import.meta.url), 'utf8');
+  let source = readFileSync(new URL('../uni_modules/uni-ai-x/utssdk/worker/sse.uts', import.meta.url), 'utf8');
   source = source.replace(/\/\/ #ifdef APP-HARMONY[\s\S]*?\/\/ #endif/g, '').replaceAll('Number.from(separatorIndex)', 'Number(separatorIndex)');
   source = source.replace(/^export /gm, '');
   const context = vm.createContext({ TextDecoder, Uint8Array });
@@ -33,7 +33,7 @@ test('buffered response fallback emits once; aborted requests cannot publish lat
   const context = vm.createContext({ TextDecoder, TextEncoder, Uint8Array, console,
     uni: { request: options => { request = options; return { onChunkReceived() {}, abort() {} }; } }
   });
-  vm.runInContext(stripTypeScriptTypes(read('../uni_modules/uni-ai-worker/utssdk/sse.uts') + '\n' + read('../uni_modules/uni-ai-worker/utssdk/stream-request.uts')) + '\nthis.Request = WorkerStreamRequest;', context);
+  vm.runInContext(stripTypeScriptTypes(read('../uni_modules/uni-ai-x/utssdk/worker/sse.uts') + '\n' + read('../uni_modules/uni-ai-x/utssdk/worker/stream-request.uts')) + '\nthis.Request = WorkerStreamRequest;', context);
   const received = [];
   const completions = [];
   const runner = new context.Request(data => received.push(data), () => assert.fail('Unexpected error'), (...args) => completions.push(args));

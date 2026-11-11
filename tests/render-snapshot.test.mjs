@@ -3,7 +3,7 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const plain = value => JSON.parse(JSON.stringify(value));
-const pure = loadUts('uni_modules/uni-ai-worker/utssdk/render-snapshot.uts',
+const pure = loadUts('uni_modules/uni-ai-x/utssdk/worker/render-snapshot.uts',
   ['renderContentKey', 'mapRenderResources', 'validRenderSnapshot', 'RENDER_ASSET_PREFIX', 'RENDER_SNAPSHOT_VERSION']);
 const block = (extra = {}) => ({ kind: 'html', key: 'html-1', html: '<p>hello</p>', text: '',
   isComplete: true, language: '', columnWidths: [], rowTextWidths: [], codeTokens: [],
@@ -21,7 +21,7 @@ function files() {
     renameSync(from, to) { data.set(to, data.get(from)); data.delete(from); },
     rmdirSync(path) { for (const key of data.keys()) if (key === path || key.startsWith(path + '/')) data.delete(key); },
   };
-  const api = loadUts('uni_modules/uni-ai-worker/utssdk/snapshot-files.uts',
+  const api = loadUts('uni_modules/uni-ai-x/utssdk/worker/snapshot-files.uts',
     ['persistRenderAssets', 'restoreRenderAssets', 'deleteRenderAssets'], {
       ...pure, uni: { env: { USER_DATA_PATH: '/data' }, getFileSystemManager: () => fs },
     });
@@ -370,7 +370,7 @@ test('background message writes, history and deletion preserve FIFO order and re
   const data = new Map();
   const removed = [];
   const replies = [];
-  const { AiSnapshotWorkerTask } = loadUts('workers/aiSnapshotWorkerTask.uts', ['AiSnapshotWorkerTask'], {
+  const { AiSnapshotWorkerTask } = loadUts('uni_modules/uni-ai-x/workers/aiSnapshotWorkerTask.uts', ['AiSnapshotWorkerTask'], {
     WorkerTaskImpl: class { postMessage(value) { replies.push(value); } },
     uni: { getStorageSync: key => data.get(key) ?? '', setStorageSync: (key, value) => data.set(key, value),
       removeStorageSync: key => data.delete(key) },

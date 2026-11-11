@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
-const html = loadUts('uni_modules/uni-ai-worker/utssdk/markdown-html.uts',
+const html = loadUts('uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts',
   ['codeLanguage', 'decodeHtmlText', 'findOpenTag', 'prepareMarkdownTable']);
-const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-worker/utssdk/uni-ai-md-html.uts',
+const { UniAiMdHtmlStreamAdapter } = loadUts('uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-html.uts',
   ['UniAiMdHtmlStreamAdapter'], {
     ...html, TextEncoder, uni: { arrayBufferToBase64: value => Buffer.from(value).toString('base64') },
   });

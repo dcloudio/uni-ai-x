@@ -1,5 +1,5 @@
 // #ifdef APP-ANDROID || APP-HARMONY
-import { RenderSnapshot, renderContentKey, persistRenderAssets, restoreRenderAssets, deleteRenderAssets } from '@/uni_modules/uni-ai-worker'
+import { RenderSnapshot, renderContentKey, persistRenderAssets, restoreRenderAssets, deleteRenderAssets } from '../utssdk/worker/index.uts'
 // #endif
 
 export class AiSnapshotWorkerTask extends WorkerTaskImpl {

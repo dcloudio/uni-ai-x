@@ -1,5 +1,5 @@
 import ReentrantLock from 'java.util.concurrent.locks.ReentrantLock'
-import { deleteRenderAssets } from '@/uni_modules/uni-ai-worker'
+import { deleteRenderAssets } from '../worker/index.uts'
 
 const writeLock = new ReentrantLock()
 const generations = new Map<string, number>()
