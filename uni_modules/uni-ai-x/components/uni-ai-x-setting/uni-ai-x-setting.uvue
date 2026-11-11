@@ -4,17 +4,33 @@
 			<view class="uni-im-setting-popup-content">
 				<text class="uni-im-setting-title">系统设置</text>
 				<!-- #ifdef APP -->
-				<view class="uni-im-setting-item">
-					<text class="uni-im-setting-label">暗黑模式</text>
-					<switch class="uni-im-setting-switch" color="#111" :checked="isDarkMode" @change="onThemeChange" />
+				<view class="uni-im-setting-item" @click="toggleThemeOptions">
+					<text class="uni-im-setting-label">主题</text>
+					<view class="uni-im-setting-theme-value">
+						<text class="uni-im-setting-theme-value-text">{{themeLabel}}</text>
+						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
+					</view>
+				</view>
+				<view v-if="themeOptionsVisible" class="uni-im-setting-theme-options">
+					<view class="uni-im-setting-theme-option" @click="selectTheme('auto')">
+						<text class="uni-im-setting-theme-option-text">跟随系统</text>
+						<uni-icons v-if="uniAi.setting.theme == 'auto'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
+					</view>
+					<view class="uni-im-setting-theme-option" @click="selectTheme('dark')">
+						<text class="uni-im-setting-theme-option-text">深色</text>
+						<uni-icons v-if="uniAi.setting.theme == 'dark'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
+					</view>
+					<view class="uni-im-setting-theme-option" @click="selectTheme('light')">
+						<text class="uni-im-setting-theme-option-text">浅色</text>
+						<uni-icons v-if="uniAi.setting.theme == 'light'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
+					</view>
 				</view>
 				<!-- #endif -->
 				<!-- #ifdef WEB || MP -->
-				<view class="uni-im-setting-item uni-im-setting-host-theme" @click="onHostThemeClick">
-					<text class="uni-im-setting-label">暗黑模式</text>
+				<view class="uni-im-setting-item uni-im-setting-host-theme">
+					<text class="uni-im-setting-label">主题</text>
 					<view class="uni-im-setting-host-theme-value">
-						<text class="uni-im-setting-host-theme-value-text">跟随系统主题</text>
-						<uni-icons type="info" size="16" color="#999"></uni-icons>
+						<text class="uni-im-setting-host-theme-value-text">跟随系统</text>
 					</view>
 				</view>
 				<!-- #endif -->
@@ -57,7 +73,7 @@
 
 <script lang="uts" setup>
 	import {uniAi, uiTheme, getLlmDisplayName} from '@/uni_modules/uni-ai-x/sdk';
-	import {Provider} from '@/uni_modules/uni-ai-x/types.uts';
+	import {Provider, Theme} from '@/uni_modules/uni-ai-x/types.uts';
 	// #ifdef APP
 	import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update'
 	// #endif
@@ -70,9 +86,11 @@
 	const llmModelMapData = llmModelMap as Map<string, Provider>
 	const providerNameListData = providerNameList as string[]
 	
-	// 计算当前是否为暗黑模式
-	const isDarkMode = computed<boolean>(() => {
-		return uiTheme.value == 'dark'
+	const themeOptionsVisible = ref<boolean>(false)
+	const themeLabel = computed<string>(() => {
+		if (uniAi.setting.theme == 'dark') return '深色'
+		if (uniAi.setting.theme == 'light') return '浅色'
+		return '跟随系统'
 	})
 	
 	const currentModel = computed<string>(() => {
@@ -97,24 +115,32 @@
 	}
 	
 	const open = () => {
+		themeOptionsVisible.value = false
 		popupRefMethod().$callMethod('open');
 	}
 	
 	const close = () => {
+		themeOptionsVisible.value = false
 		popupRefMethod().$callMethod('close');
 	}
 	
-	// 主题切换事件处理
-	const onThemeChange = (event: UniSwitchChangeEvent) => {
-		uniAi.setting.theme = event.detail.value ? 'dark' : 'light'
+	// #ifdef APP
+	const toggleThemeOptions = () => {
+		themeOptionsVisible.value = !themeOptionsVisible.value
 	}
 
-	const onHostThemeClick = () => {
-		uni.showToast({
-			title: '当前平台只能跟随系统主题',
-			icon: 'none'
+	const selectTheme = (theme: Theme) => {
+		themeOptionsVisible.value = false
+		uni.setAppTheme({
+			theme,
+			success: () => { uniAi.setting.theme = theme },
+			fail: (error: IAppThemeFail) => {
+				uni.showToast({ title: '主题切换失败', icon: 'none' })
+				console.error('主题切换失败', error.errMsg)
+			}
 		})
 	}
+	// #endif
 	
 	const changeModel = () => {
 		openModelPopup()
@@ -170,7 +196,7 @@
 	background-color: var(--bg-primary);
 	width: 320px;
 	height: auto;
-	max-height: 500rpx;
+	max-height: 900rpx;
 	border-radius: 16px;
 	padding: 20px;
 }
@@ -189,8 +215,33 @@
 	padding: 14px 0;
 }
 
-.uni-im-setting-switch {
-	transform: scale(0.8);
+.uni-im-setting-theme-value {
+	flex-direction: row;
+	align-items: center;
+}
+
+.uni-im-setting-theme-value-text {
+	font-size: 14px;
+	color: var(--text-secondary);
+	margin-right: 6px;
+}
+
+.uni-im-setting-theme-options {
+	background-color: var(--bg-secondary);
+	border-radius: 6px;
+	padding: 2px 12px;
+}
+
+.uni-im-setting-theme-option {
+	min-height: 42px;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.uni-im-setting-theme-option-text {
+	font-size: 14px;
+	color: var(--text-primary);
 }
 
 .uni-im-setting-host-theme-value {
