@@ -186,6 +186,7 @@
 	width: 100%;
 	padding-right: 48px;
 	box-sizing: border-box;
+	color: var(--text-primary);
 }
 
 .chat-input-textarea-expanded {
