@@ -43,7 +43,11 @@
     "dependencies": [
       "uni-ai-md",
       "uni-cmark",
-      "uni-highlight"
+      "uni-highlight",
+      "uni-icons",
+      "uni-popup",
+      "uni-upgrade-center-app",
+      "uts-openSchema"
     ],
     "encrypt": [],
     "platforms": {
