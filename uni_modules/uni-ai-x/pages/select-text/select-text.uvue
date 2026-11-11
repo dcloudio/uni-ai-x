@@ -6,6 +6,7 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem} from '@/uni_modules/uni-ai-x/sdk/'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { ref, onMounted } from 'vue'
 	
 	type SelectTextProps = {
@@ -16,7 +17,7 @@
 		msgId: ''
 	})
 	
-	const text = ref<string>("加载中...")
+	const text = ref<string>(tr('加载中...', 'Loading...'))
 
 	const nodes = computed<UTSJSONObject[]>(() => {
 		const result = [] as UTSJSONObject[]
@@ -34,13 +35,14 @@
 	})
 
 	onMounted(() => {
+		uni.setNavigationBarTitle({ title: tr('选择文本', 'Select text') })
 		const msg = uniAi.currentChat?.msgList.find((item: MsgItem) => item._id == props.msgId)
 		const errorMsg = msg?.error_msg ?? null
 		if (errorMsg != null && errorMsg.length > 0) {
 			text.value = errorMsg
 			return
 		}
-		text.value = msg?.body ?? '没有数据'
+		text.value = msg?.body ?? tr('没有数据', 'No data')
 	})
 </script>
 

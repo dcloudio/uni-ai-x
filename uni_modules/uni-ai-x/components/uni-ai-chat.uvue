@@ -5,12 +5,12 @@
 			<view id="chat-scroll-box" class="chat-box-scroll-view-box">
 				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0" flatten>
 					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
-					<text class="chat-box-welcome-title" flatten>嗨！我是 UNI-AI</text>
-					<text class="chat-box-welcome-text" flatten>我可以帮你回答问题、写代码、翻译、写诗等。</text>
+					<text class="chat-box-welcome-title" flatten>{{tr('嗨！我是 UNI-AI', 'Hi, I am UNI-AI')}}</text>
+					<text class="chat-box-welcome-text" flatten>{{tr('问答、编程、翻译与创作。', 'Ask, code, translate, create.')}}</text>
 					<view class="chat-box-welcome-actions">
 						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo">
 							<uni-icons class="chat-box-welcome-demo-icon" type="list" size="20" color="var(--accent-primary)" />
-							<text class="chat-box-welcome-demo-btn-text">体验完整Markdown示例</text>
+							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例', 'Explore the Markdown demo')}}</text>
 							<uni-icons type="right" size="16" color="var(--text-tertiary)" />
 						</view>
 						<template v-if="showToolExamples">
@@ -50,17 +50,17 @@
 			</view>
 			<uni-ai-chat-extension-input v-if="hasInputExtension" />
 			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
-			<text class="chat-box-tip" flatten>内容由ai生成，仅供参考</text>
+			<text class="chat-box-tip" flatten>{{tr('内容由ai生成，仅供参考', 'AI generated content may be inaccurate')}}</text>
 		</view>
 		<view v-if="pendingCalendarMessage != null" class="calendar-confirmation-overlay" @click.stop="blockCalendarOverlay">
 			<view class="calendar-confirmation-modal uni-theme-root" @click.stop="blockCalendarOverlay">
-				<text class="calendar-confirmation-title" flatten>创建日程提醒</text>
+				<text class="calendar-confirmation-title" flatten>{{tr('创建日程提醒', 'Create calendar reminder')}}</text>
 				<text class="calendar-confirmation-detail" flatten>{{pendingCalendarMessage!.toolConfirmation!.title}}</text>
-				<text class="calendar-confirmation-detail" flatten>{{pendingCalendarMessage!.toolConfirmation!.startAt}} · {{pendingCalendarMessage!.toolConfirmation!.durationMinutes}} 分钟</text>
-				<text class="calendar-confirmation-detail" flatten>提前 {{pendingCalendarMessage!.toolConfirmation!.alarmMinutesBefore}} 分钟提醒</text>
+				<text class="calendar-confirmation-detail" flatten>{{pendingCalendarMessage!.toolConfirmation!.startAt}} · {{pendingCalendarMessage!.toolConfirmation!.durationMinutes}} {{tr('分钟', 'minutes')}}</text>
+				<text class="calendar-confirmation-detail" flatten>{{tr('提前', 'Remind')}} {{pendingCalendarMessage!.toolConfirmation!.alarmMinutesBefore}} {{tr('分钟提醒', 'minutes before')}}</text>
 				<view class="calendar-confirmation-actions">
-					<button class="calendar-confirmation-button calendar-confirmation-cancel" @click="resolveCalendar(false)">取消</button>
-					<button class="calendar-confirmation-button calendar-confirmation-open" @click="resolveCalendar(true)">同意</button>
+					<button class="calendar-confirmation-button calendar-confirmation-cancel" @click="resolveCalendar(false)">{{tr('取消', 'Cancel')}}</button>
+					<button class="calendar-confirmation-button calendar-confirmation-open" @click="resolveCalendar(true)">{{tr('同意', 'Allow')}}</button>
 				</view>
 			</view>
 		</view>
@@ -70,6 +70,7 @@
 <script lang="uts" setup>
 	import type { ComputedRef } from 'vue'
 	import {uniAi, MsgItem, uiTheme, calendarConfirmationRevision} from '@/uni_modules/uni-ai-x/sdk/'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { llmModelMap, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
@@ -780,9 +781,9 @@
 		if (item.from_uid == 'uni-ai') {
 			return
 		}
-		const itemList = ['复制'] as string[]
+		const itemList = [tr('复制', 'Copy')] as string[]
 		const isAiMsg = item.from_uid == 'uni-ai'
-		itemList.push(isAiMsg ? '选择' : '修改')
+		itemList.push(isAiMsg ? tr('选择', 'Select') : tr('修改', 'Edit'))
 		uni.showActionSheet({
 			itemList,
 			success: (res: ShowActionSheetSuccess) => {
@@ -874,16 +875,19 @@
 		icon: string
 		prompt: string
 	}
-	const welcomePrompts: WelcomePrompt[] = []
+	const welcomePrompts = computed<WelcomePrompt[]>(() => {
+		const prompts: WelcomePrompt[] = []
 	if (mcpServers.some((server): boolean =>
 		server.id == 'weather' && server.url.length > 0 &&
 		(server.tools == null || (server.tools.includes('openmeteo_search_locations') && server.tools.includes('openmeteo_get_forecast')))
 	)) {
-		welcomePrompts.push({ label: 'MCP 示例：查天气', icon: 'search', prompt: '帮我查一下北京现在的天气' })
+		prompts.push({ label: tr('MCP 示例：查天气', 'MCP example: Weather'), icon: 'search', prompt: tr('帮我查一下北京现在的天气', 'What is the weather in Beijing right now?') })
 	}
 	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
-	welcomePrompts.push({ label: '工具调用示例：创建日程提醒', icon: 'calendar', prompt: '帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒' })
+	prompts.push({ label: tr('工具调用示例：创建日程提醒', 'Tool example: Calendar reminder'), icon: 'calendar', prompt: tr('帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒', 'Create a test calendar reminder in 15 minutes, lasting 30 minutes, with an alert 5 minutes before.') })
 	// #endif
+		return prompts
+	})
 	const showToolExamples = computed<boolean>(() => {
 		if (uniAi.llm.provider != 'qiniu') return false
 		const model = llmModelMap.get('qiniu')?.models.find((item) => item.modelId == uniAi.llm.model)
@@ -1067,11 +1071,13 @@
 }
 
 .chat-box-welcome-text {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0 10px;
 	font-size: 16px;
 	color: var(--text-secondary);
 	text-align: center;
 	line-height: 24px;
-	margin: 0 30px;
 }
 
 .chat-box-welcome-actions {

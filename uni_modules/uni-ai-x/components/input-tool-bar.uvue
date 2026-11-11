@@ -6,11 +6,11 @@
 					<!-- #endif -->
 				>
             <uni-ai-icon code="e639" :color="!canThinking ? '#aaa' : (thinkingActive ? '#3c76e4' : '#666')"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', !canThinking ? 'input-tool-bar-text-disable' : '']">深度思考</text>
+            <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', !canThinking ? 'input-tool-bar-text-disable' : '']">{{tr('深度思考', 'Think')}}</text>
 		</view>
 			<view class="input-tool-bar-btn input-tool-bar-search" :class="[webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon code="e797" :color="webSearch ? '#3c76e4' : '#666'"></uni-ai-icon>
-            <text class="input-tool-bar-text" :class="[webSearch ? 'input-tool-bar-text-active' : '']">联网搜索</text>
+            <text class="input-tool-bar-text" :class="[webSearch ? 'input-tool-bar-text-active' : '']">{{tr('联网搜索', 'Search web')}}</text>
 			</view>
 			<uni-icons v-if="canParseImg" @click="uploadImage" class="input-tool-bar-upload-image-btn" type="plusempty" size="25" color="var(--text-secondary)"></uni-icons>
 		<view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active"
@@ -19,7 +19,7 @@
         </view>
 		<view v-else class="input-tool-bar-send" @click="send" :class="inputContent.length > 0 && allUploaded ? 'input-tool-bar-send-active' : ''"
 					<!-- #ifdef WEB -->
-					:title="allUploaded ? '发送' : '请等待图片上传完成'"
+					:title="allUploaded ? tr('发送', 'Send') : tr('请等待图片上传完成', 'Wait for images to upload')"
 					<!-- #endif -->
 				>
             <uni-ai-icon code="e627" color="#FFF" size="20"></uni-ai-icon>
@@ -28,6 +28,7 @@
 </template>
 <script lang="uts" setup>
 import uniAi from '@/uni_modules/uni-ai-x/sdk';
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import {llmModelMap, type LLMModel} from '../config';
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts';
 
@@ -76,8 +77,8 @@ watch((): string => uniAi.llm.provider + '/' + uniAi.llm.model, (): void => {
     if (unavailableModelWarned) return
     unavailableModelWarned = true
     uni.showModal({
-        title: '当前模型不可用',
-        content: '当前模型「' + uniAi.llm.model + '」不可用，请到系统设置中重新选择模型',
+        title: tr('当前模型不可用', 'Model unavailable'),
+        content: tr('当前模型「', 'The model "') + uniAi.llm.model + tr('」不可用，请到系统设置中重新选择模型', '" is unavailable. Choose another model in Settings.'),
         showCancel: false
     })
 })
@@ -102,7 +103,7 @@ const send = async () => {
     }
     if (!allUploaded.value) {
         uni.showToast({
-            title: '请等待图片上传完成',
+            title: tr('请等待图片上传完成', 'Wait for images to upload'),
             duration: 3000,
             icon: 'none'
         });
@@ -124,22 +125,22 @@ const thinkingActive = computed<boolean>(() => {
 // Web 端 hover 提示：不支持时提示不可操作，支持时提示切换动作
 const thinkingTitle = computed<string>(() => {
     if (!canThinking.value) {
-        return '当前模型不支持操作'
+        return tr('当前模型不支持操作', 'This model does not support this')
     }
-    return thinkingActive.value ? '关闭深度思考' : '开启深度思考'
+    return thinkingActive.value ? tr('关闭深度思考', 'Turn off thinking') : tr('开启深度思考', 'Turn on thinking')
 });
 
 const setThinking = () => {
     if (isOpenClaw.value) {
         uni.showToast({
-            title: uniAi.llm.provider + '不支持深度思考',
+            title: uniAi.llm.provider + tr('不支持深度思考', ' does not support thinking'),
             icon: 'none'
         });
         return
     }
     if (!canThinking.value) {
         uni.showToast({
-            title: '当前模型不支持深度思考',
+            title: tr('当前模型不支持深度思考', 'This model does not support thinking'),
             duration: 3000,
             icon: 'none'
         });

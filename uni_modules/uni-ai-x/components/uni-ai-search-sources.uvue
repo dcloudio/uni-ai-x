@@ -1,6 +1,6 @@
 <template>
 	<view v-if="msg.search != null && msg.search!.sources.length > 0" class="search-sources">
-		<text class="sources-title">搜索来源</text>
+		<text class="sources-title">{{tr('搜索来源', 'Sources')}}</text>
 		<view v-for="source in msg.search!.sources" :key="source.id" class="source-row" @click="emit('open', source.id)">
 			<text class="source-number">[{{source.id}}]</text>
 			<text class="source-title">{{source.title}}</text>
@@ -11,6 +11,7 @@
 
 <script setup lang="uts">
 	import { MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	const props = defineProps<{ msg: MsgItem }>()
 	const msg = computed<MsgItem>(() => props.msg)
 	const emit = defineEmits<{ 'open': [id: number] }>()

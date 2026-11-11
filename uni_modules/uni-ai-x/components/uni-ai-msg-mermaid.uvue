@@ -2,12 +2,12 @@
 	<view class="uni-mermaid-msg-root" :class="uiTheme == 'dark' ? 'uni-theme-dark' : 'uni-theme-light'">
 		<view class="uni-mermaid-msg-code-header">
 			<view class="uni-mermaid-msg-switch" flatten>
-				<text class="uni-mermaid-msg-switch-item" :class="!showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = ''">图表</text>
-				<text class="uni-mermaid-msg-switch-item" :class="showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = props.identity">代码</text>
+				<text class="uni-mermaid-msg-switch-item" :class="!showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = ''">{{tr('图表', 'Diagram')}}</text>
+				<text class="uni-mermaid-msg-switch-item" :class="showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = props.identity">{{tr('代码', 'Code')}}</text>
 			</view>
 			<view v-if="showSource" class="uni-mermaid-msg-copy-btn" @click.stop="copyCode">
 				<uni-ai-icon code="e60c" size="12" :color="uiTheme == 'dark' ? '#f4f4f4' : '#334155'" />
-				<text class="uni-mermaid-msg-copy-text" flatten>复制代码</text>
+				<text class="uni-mermaid-msg-copy-text" flatten>{{tr('复制代码', 'Copy code')}}</text>
 			</view>
 		</view>
 		<view class="uni-mermaid-msg-stage">
@@ -24,6 +24,7 @@
 
 <script lang="uts" setup>
 import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'

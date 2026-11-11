@@ -5,7 +5,7 @@
 				<image class="draft-image" :src="img.path" mode="aspectFill"></image>
 				<view class="draft-image-info">
 					<text class="draft-image-name">{{img.name}}</text>
-					<text class="draft-image-upload-percent" v-if="img.uploadPercent < 100">上传中：{{img.uploadPercent}}%</text>
+					<text class="draft-image-upload-percent" v-if="img.uploadPercent < 100">{{tr('上传中：', 'Uploading: ')}}{{img.uploadPercent}}%</text>
 					<template v-else>
 						<text class="draft-image-type">{{img.type}}</text>
 						<text class="draft-image-size">{{img.size}}</text>
@@ -21,6 +21,7 @@
 
 <script lang="uts" setup>
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 
 	function removeImg(index: number) {
 		uniAi.imgList.splice(index, 1)

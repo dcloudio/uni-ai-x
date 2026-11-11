@@ -11,38 +11,38 @@
 			<view class="chat-extension-input-action"
 				:class="!canCopyChats ? 'chat-extension-input-action-disabled' : ''"
 				@click.stop="copyChats">
-				<text class="chat-extension-input-action-text">复制500个会话</text>
+				<text class="chat-extension-input-action-text">{{tr('复制500个会话', 'Copy 500 chats')}}</text>
 			</view>
 			<view class="chat-extension-input-action"
 				:class="aiState == 'processing' ? 'chat-extension-input-action-disabled' : ''"
 				@click.stop="createChat">
-				<text class="chat-extension-input-action-text">新建会话</text>
+				<text class="chat-extension-input-action-text">{{tr('新建会话', 'New chat')}}</text>
 			</view>
 			<view class="chat-extension-input-action chat-extension-input-delete"
 				:class="aiState == 'processing' || uniAi.currentChat == null ? 'chat-extension-input-action-disabled' : ''"
 				@click.stop="deleteCurrentChat">
-				<text class="chat-extension-input-delete-text">删除当前会话</text>
+				<text class="chat-extension-input-delete-text">{{tr('删除当前会话', 'Delete current chat')}}</text>
 			</view>
 			<view class="chat-extension-input-action chat-extension-input-delete"
 				:class="aiState == 'processing' || uniAi.chat.datas.length == 0 ? 'chat-extension-input-action-disabled' : ''"
 				@click.stop="deleteAllChats">
-				<text class="chat-extension-input-delete-text">删除所有会话</text>
+				<text class="chat-extension-input-delete-text">{{tr('删除所有会话', 'Delete all chats')}}</text>
 			</view>
 			<view class="chat-extension-input-action" @click.stop="toggleMessageToolBar">
-				<text class="chat-extension-input-action-text">{{messageToolBarVisible ? '隐藏消息工具栏' : '显示消息工具栏'}}</text>
+				<text class="chat-extension-input-action-text">{{messageToolBarVisible ? tr('隐藏消息工具栏', 'Hide message tools') : tr('显示消息工具栏', 'Show message tools')}}</text>
 			</view>
 			<view class="chat-extension-input-action" @click.stop="togglePanel">
-				<text class="chat-extension-input-action-text">隐藏此面板</text>
+				<text class="chat-extension-input-action-text">{{tr('隐藏此面板', 'Hide panel')}}</text>
 			</view>
 			<view class="stress-generator">
-				<view class="stress-generator-title"><text>随机生成</text><input class="stress-count" v-model="stressCount" type="number" /><text>条</text><text class="stress-select-all" @click.stop="toggleAll">{{allSelected ? '取消全选' : '全选'}}</text></view>
-				<checkbox-group class="stress-types" @change="onStressTypesChange"><label v-for="type in stressTypes" :key="type" class="stress-type"><checkbox :value="type" :checked="selectedTypes.indexOf(type) >= 0" /><text class="stress-type-text">{{type}}</text></label></checkbox-group>
-				<view class="stress-generate-btn" :class="!canCopyMessages || selectedTypes.length == 0 ? 'chat-extension-input-action-disabled' : ''" @click.stop="copyMessages"><text class="stress-generate-text">确认生成</text></view>
+				<view class="stress-generator-title"><text>{{tr('随机生成', 'Generate')}}</text><input class="stress-count" v-model="stressCount" type="number" /><text>{{tr('条', 'items')}}</text><text class="stress-select-all" @click.stop="toggleAll">{{allSelected ? tr('取消全选', 'Deselect all') : tr('全选', 'Select all')}}</text></view>
+				<checkbox-group class="stress-types" @change="onStressTypesChange"><label v-for="type in stressTypes" :key="type" class="stress-type"><checkbox :value="type" :checked="selectedTypes.indexOf(type) >= 0" /><text class="stress-type-text">{{stressTypeLabel(type)}}</text></label></checkbox-group>
+				<view class="stress-generate-btn" :class="!canCopyMessages || selectedTypes.length == 0 ? 'chat-extension-input-action-disabled' : ''" @click.stop="copyMessages"><text class="stress-generate-text">{{tr('确认生成', 'Generate')}}</text></view>
 			</view>
 		</view>
 		<view v-else class="chat-extension-input-collapsed" @click.stop="togglePanel">
 			<uni-icons type="up" size="14" color="var(--text-secondary)"></uni-icons>
-			<text class="chat-extension-input-collapsed-text">显示工具栏</text>
+			<text class="chat-extension-input-collapsed-text">{{tr('显示工具栏', 'Show tools')}}</text>
 		</view>
 		<view v-if="aiState == 'processing'" class="chat-extension-input-status-row">
 			<text class="chat-extension-input-status-text">{{statusText}}</text>
@@ -54,13 +54,14 @@
 		</view>
 		<view class="chat-extension-input-safe-area"></view>
 		<view v-if="copyingChats" class="chat-extension-input-copy-mask">
-			<text class="chat-extension-input-copy-mask-text">正在复制会话 {{copiedChats}} / 500</text>
+			<text class="chat-extension-input-copy-mask-text">{{tr('正在复制会话 ', 'Copying chats ')}}{{copiedChats}} / 500</text>
 		</view>
 	</view>
 </template>
 
 <script lang="uts" setup>
 	import uniAi, { messageToolBarVisible } from '@/uni_modules/uni-ai-x/sdk'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 
 	const extension = getChatInputExtension()!
@@ -72,6 +73,16 @@
 	const copiedChats = ref<number>(0)
 	const stressCount = ref<string>('100')
 	const stressTypes = ['标题', '长文', '引用', '列表', '表格', '代码', 'SVG', '链接']
+	function stressTypeLabel(type: string): string {
+		if (type == '标题') return tr('标题', 'Heading')
+		if (type == '长文') return tr('长文', 'Long text')
+		if (type == '引用') return tr('引用', 'Quote')
+		if (type == '列表') return tr('列表', 'List')
+		if (type == '表格') return tr('表格', 'Table')
+		if (type == '代码') return tr('代码', 'Code')
+		if (type == '链接') return tr('链接', 'Link')
+		return type
+	}
 	const selectedTypes = ref<string[]>(['长文'])
 	const allSelected = computed<boolean>(() => selectedTypes.value.length == stressTypes.length)
 	const panelVisible = ref<boolean>(true)
@@ -98,8 +109,8 @@
 		const chatId = uniAi.currentChat?.id ?? ''
 		if (chatId.length == 0) return
 		uni.showModal({
-			title: '删除当前会话',
-			content: '确定删除当前会话及其全部消息吗？',
+			title: tr('删除当前会话', 'Delete current chat'),
+			content: tr('确定删除当前会话及其全部消息吗？', 'Delete this chat and all its messages?'),
 			success: (result) => {
 				if (result.confirm) uniAi.deleteChat(chatId)
 			}
@@ -109,8 +120,8 @@
 	function deleteAllChats() {
 		if (aiState.value == 'processing' || uniAi.chat.datas.length == 0) return
 		uni.showModal({
-			title: '删除所有会话',
-			content: '确定删除所有会话及其全部消息吗？此操作无法撤销。',
+			title: tr('删除所有会话', 'Delete all chats'),
+			content: tr('确定删除所有会话及其全部消息吗？此操作无法撤销。', 'Delete every chat and message? This cannot be undone.'),
 			success: (result) => {
 				if (result.confirm) uniAi.deleteAllChats()
 			}

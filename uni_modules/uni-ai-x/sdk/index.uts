@@ -1,7 +1,7 @@
 import { reactive, watch, nextTick, ref } from 'vue';
 // #ifdef APP-ANDROID
 import { uniAiMdStreamSetContext } from './uni-ai-md-stream-store.uts'
-import { readAndroidSettings, writeAndroidStorageBatch } from '@/uni_modules/uni-ai-x'
+import { readAndroidSettings } from '@/uni_modules/uni-ai-x'
 // #endif
 import { defaultLLM, currentUser, llmModelMap } from '../config';
 import { Llm,ChatItem,Chat, MsgItem, CalendarToolConfirmation, RequestAiCoMessage, Userinfo, BaseMsgItem, Setting, ImgItem, Theme, EditState } from '@/uni_modules/uni-ai-x/types.uts';
@@ -117,8 +117,8 @@ class UniAi {
 	private storageReady: Promise<void> | null = null
 	private settingsReady: Promise<void> | null = null
 	private settingsInitialized = false
+	private storedLanguage = ''
 	private settingEditedDuringLoad = false
-	private settingSaveVersion = 0
 	private storageLoading = false
 	private loadingSendChatId = ''
 	imgList: ImgItem[] = reactive<ImgItem[]>([]);
@@ -136,7 +136,7 @@ class UniAi {
 		// UI 主题
 		theme: 'auto',
 		// 语言
-		language: 'zh-CN',
+		language: (uni.getAppBaseInfo().appLanguage ?? '').toLowerCase().indexOf('zh') == 0 ? 'zh-CN' : 'en-US',
 		// 大模型
 		llm: {
 			// 当前提供商
@@ -156,8 +156,32 @@ class UniAi {
 	set llm(value: Llm) {
 		this.setting.llm = value
 	}
+	setLanguage(language: 'zh-CN' | 'en-US'): void {
+		try {
+			uni.setStorageSync('uni-ai-language', language)
+			this.storedLanguage = language
+			this.setting.language = language
+		} catch (error) {
+			console.error('uni-ai-language 存储失败', error)
+			uni.showToast({ title: '语言设置保存失败', icon: 'none' })
+		}
+	}
+	restoreLanguage(): void {
+		try {
+			const language = uni.getStorageSync('uni-ai-language') as string
+			if (language == 'zh-CN' || language == 'en-US') {
+				this.storedLanguage = language
+				this.setting.language = language
+			}
+		} catch (error) {
+			console.error('uni-ai-language 读取失败', error)
+		}
+	}
 	// 设置被系统调整（如旧模型不可用）时的用户通知，等待 UI 就绪后展示
 	private settingNotices: string[] = []
+	private localized(zh: string, en: string): string {
+		return this.setting.language == 'en-US' ? en : zh
+	}
 	private pushSettingNotice(message: string) {
 		this.settingNotices.push(message)
 	}
@@ -602,11 +626,16 @@ class UniAi {
 	initializeSettings(): void {
 		if (this.settingsInitialized) return
 		this.settingsInitialized = true
+		this.restoreLanguage()
 		// Optional providers register before this point, so fresh installs use their preferred model.
 		this.setting.llm = this.buildDefaultLlm()
 		// #ifdef APP-ANDROID
 		const stopTracking = watch(() => this.setting, () => { this.settingEditedDuringLoad = true }, { deep: true, flush: 'sync' })
-		this.settingsReady = this.loadSetting().finally(() => { stopTracking(); this.watchSetting(); this.settingsReady = null })
+		this.settingsReady = this.loadSetting().finally(() => {
+			stopTracking()
+			this.watchSetting()
+			this.settingsReady = null
+		})
 		// #endif
 		// #ifndef APP-ANDROID
 		this.loadSetting()
@@ -652,7 +681,7 @@ class UniAi {
 			// #endif
 		} catch (error) {
 			console.error('uni-ai-setting 读取失败', error)
-			this.pushSettingNotice('本地设置数据读取失败，已恢复默认设置')
+			this.pushSettingNotice(this.localized('本地设置数据读取失败，已恢复默认设置', 'Could not read saved settings. Defaults have been restored.'))
 			return
 		}
 		if (raw == null) return
@@ -664,11 +693,9 @@ class UniAi {
 		} else {
 			this.setting.theme = 'auto'
 		}
-		const languageValue = raw['language'] as string | null
-		if (languageValue == 'en-US') {
-			this.setting.language = 'en-US'
-		} else {
-			this.setting.language = 'zh-CN'
+		if (this.storedLanguage.length == 0) {
+			const languageValue = raw['language'] as string | null
+			if (languageValue == 'en-US' || languageValue == 'zh-CN') this.setLanguage(languageValue)
 		}
 		const llmJson = raw['llm'] as UTSJSONObject | null
 		if (llmJson == null) return
@@ -692,7 +719,7 @@ class UniAi {
 		this.setting.llm = this.buildDefaultLlm()
 		// 空模型表示首次初始化或旧版本未保存过模型，不需要打扰用户。
 		if (model.length > 0) {
-			this.pushSettingNotice('原选择的模型「' + model + '」已不可用，已切换到「' + getLlmDisplayName(this.setting.llm) + '」')
+			this.pushSettingNotice(this.localized('原选择的模型「', 'The model "') + model + this.localized('」已不可用，已切换到「', '" is unavailable. Switched to "') + getLlmDisplayName(this.setting.llm) + this.localized('」', '"'))
 		}
 	}
 	private watchSetting() {
@@ -701,17 +728,18 @@ class UniAi {
 		}, { immediate: true })
 		watch((): Setting => this.setting, () => {
 			this.saveSetting()
-		}, { deep: true, immediate: true })
+		}, { deep: true, immediate: true, flush: 'sync' })
 	}
 	private saveSetting() {
 		// #ifdef APP-ANDROID
 		const llm = this.setting.llm
 		const snapshot = { theme: this.setting.theme, language: this.setting.language,
 			llm: { provider: llm.provider, model: llm.model, webSearch: llm.webSearch, thinking: llm.thinking } } as UTSJSONObject
-		const version = ++this.settingSaveVersion
-		writeAndroidStorageBatch([{ key: 'uni-ai-setting', data: snapshot } as UTSJSONObject], (ok: boolean) => {
-			if (!ok && version == this.settingSaveVersion) console.error('后台保存设置失败')
-		})
+		try {
+			uni.setStorageSync('uni-ai-setting', JSON.stringify(snapshot))
+		} catch (error) {
+			console.error('uni-ai-setting 存储失败', error)
+		}
 		return
 		// #endif
 		// #ifndef APP-ANDROID
@@ -738,11 +766,11 @@ class UniAi {
 		msg.toolConfirmation = null
 		calendarConfirmationRevision.value += 1
 		if (!confirmed) {
-			msg.toolResultText = '已取消创建提醒。'
+			msg.toolResultText = this.localized('已取消创建提醒。', 'Calendar reminder canceled.')
 			this.flushMsg2Storage(msg)
 			return
 		}
-		msg.toolStatus = '正在处理日程提醒'
+		msg.toolStatus = this.localized('正在处理日程提醒', 'Creating calendar reminder')
 		this.flushMsg2Storage(msg)
 		let result = ''
 		try {
@@ -755,11 +783,11 @@ class UniAi {
 		try { outcome = JSON.parse<UTSJSONObject>(result) as UTSJSONObject } catch (_error) {}
 		msg.toolStatus = ''
 		if (outcome?.['success'] == true) {
-			msg.toolResultText = `已创建提醒：${details.title}，${details.startAt}。`
+			msg.toolResultText = this.localized('已创建提醒：', 'Reminder created: ') + details.title + this.localized('，', ', ') + details.startAt + this.localized('。', '.')
 		} else if (outcome?.['error'] != null) {
-			msg.toolResultText = `创建提醒失败：${outcome!['error']}。`
+			msg.toolResultText = this.localized('创建提醒失败：', 'Could not create reminder: ') + outcome!['error'] + this.localized('。', '.')
 		} else {
-			msg.toolResultText = `已打开系统日历：${details.title}，${details.startAt}。`
+			msg.toolResultText = this.localized('已打开系统日历：', 'Opened calendar: ') + details.title + this.localized('，', ', ') + details.startAt + this.localized('。', '.')
 		}
 		this.flushMsg2Storage(msg)
 	}
@@ -1146,7 +1174,7 @@ class UniAi {
 				if (!isActiveAiMsg()) return
 				if (state == 'completed' || state == 'stop') aiMsgItem.toolStatus = ''
 				if (state == 'completed' && aiMsgItem.toolConfirmation?.state == 'pending' && aiMsgItem.body.trim().length == 0 && (aiMsgItem.toolResultText ?? '').length == 0) {
-					aiMsgItem.toolResultText = '准备创建日程提醒，请确认以下信息。'
+					aiMsgItem.toolResultText = this.localized('准备创建日程提醒，请确认以下信息。', 'Ready to create a calendar reminder. Please confirm the details.')
 				}
 				this.currentChat!.state = state
 				// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS

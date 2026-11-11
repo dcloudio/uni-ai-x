@@ -1,9 +1,11 @@
+import { tr } from './locale.uts'
+
 const COPY_TOAST_DURATION = 1500
 
 export class Utils {
 	showCopySuccessToast() : void {
 		uni.showToast({
-			title: '复制成功',
+			title: tr('复制成功', 'Copied'),
 			icon: 'success',
 			duration: COPY_TOAST_DURATION
 		})
@@ -11,7 +13,7 @@ export class Utils {
 
 	showCopyFailureToast() : void {
 		uni.showToast({
-			title: '复制失败',
+			title: tr('复制失败', 'Copy failed'),
 			icon: 'none',
 			duration: COPY_TOAST_DURATION
 		})

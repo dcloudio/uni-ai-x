@@ -4,7 +4,7 @@
 			<text class="uni-code-msg-language" flatten>{{language}}</text>
 			<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
 				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
-				<text class="uni-code-msg-copy-text" flatten>复制代码</text>
+				<text class="uni-code-msg-copy-text" flatten>{{tr('复制代码', 'Copy code')}}</text>
 			</view>
 		</view>
 		<scroll-view class="uni-code-msg-code-scroll-view" direction="horizontal" :show-scrollbar="false" :style="'height:' + preparedHeight + ';background-color:#111827;'">
@@ -20,6 +20,7 @@
 
 <script lang="uts" setup>
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 
 const props = withDefaults(defineProps<{
 	codeText?: string

@@ -1,0 +1,5 @@
+import { uniAi } from './index.uts'
+
+export function tr(zh: string, en: string): string {
+	return uniAi.setting.language == 'en-US' ? en : zh
+}

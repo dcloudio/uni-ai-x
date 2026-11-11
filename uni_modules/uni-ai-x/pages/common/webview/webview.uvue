@@ -17,6 +17,7 @@
 </template>
 
 <script lang="uts" setup>
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	// #ifdef APP
 	import { openSchema } from '@/uni_modules/uts-openSchema'
 	// #endif
@@ -24,7 +25,7 @@
 	const url = ref<string>("")
 	const title = ref<string>("")
 	function browserFallback() {
-		uni.showModal({ title: '未能切换到浏览器', content: '请检查系统是否允许打开外部应用，或复制链接到浏览器打开。', confirmText: '复制链接',
+		uni.showModal({ title: tr('未能切换到浏览器', 'Could not open browser'), content: tr('请检查系统是否允许打开外部应用，或复制链接到浏览器打开。', 'Check permission to open external apps, or copy the link to a browser.'), confirmText: tr('复制链接', 'Copy link'),
 			success: (res) => { if (res.confirm) uni.setClipboardData({ data: url.value }) } })
 	}
 	
@@ -35,15 +36,15 @@
 		title.value = (param["title"] ?? urlParam) as string;
 		if (!/^https?:\/\/[^\s/]+/i.test(urlParam)) {
 			uni.showModal({
-				title: "错误",
-				content: '不是一个有效的网站链接,' + '"' + urlParam + '"',
+				title: tr('错误', 'Error'),
+				content: tr('不是一个有效的网站链接,', 'Invalid website URL: ') + '"' + urlParam + '"',
 				showCancel: false,
-				confirmText: "知道了",
+				confirmText: tr('知道了', 'OK'),
 				complete: () => {
 					uni.navigateBack()
 				}
 			});
-			title.value = "页面路径错误"
+			title.value = tr('页面路径错误', 'Invalid page URL')
 		} else {
 			url.value = urlParam;
 		}

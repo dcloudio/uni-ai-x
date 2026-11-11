@@ -16,6 +16,7 @@
 
 <script setup lang="uts">
 	import { MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	const props = defineProps<{ msg: MsgItem }>()
 	const emit = defineEmits<{ 'open': [id: number] }>()
 	const msg = computed<MsgItem>(() => props.msg)
@@ -24,11 +25,15 @@
 	const label = computed<string>(() => {
 		const search = props.msg.search
 		if (search == null) return ''
-		if (search.status == 'searching') return '正在搜索网页'
-		if (search.status == 'cancelled') return '搜索已停止'
-		if (search.status == 'failed') return search.error
-		if (search.status == 'empty') return '未找到相关网页'
-		return '已检索 ' + search.sources.length.toString() + ' 个网页'
+		if (search.status == 'searching') return tr('正在搜索网页', 'Searching the web')
+		if (search.status == 'cancelled') return tr('搜索已停止', 'Search stopped')
+		if (search.status == 'failed') {
+			if (search.error == '联网搜索失败，将直接回答') return tr('联网搜索失败，将直接回答', 'Web search failed. Answering directly.')
+			if (search.error == '当前模型未配置搜索，将直接回答') return tr('当前模型未配置搜索，将直接回答', 'Search is unavailable for this model. Answering directly.')
+			return search.error
+		}
+		if (search.status == 'empty') return tr('未找到相关网页', 'No relevant pages found')
+		return tr('已检索 ', 'Found ') + search.sources.length.toString() + tr(' 个网页', ' pages')
 	})
 	function openSources() {
 		if ((props.msg.search?.sources.length ?? 0) > 0) emit('open', 0)

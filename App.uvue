@@ -4,6 +4,7 @@
 	// #endif
 	import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk/index.uts'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	let firstBackTime = 0
 	export default {
 		onLaunch: function () {
@@ -32,7 +33,7 @@
 			console.log('App LastPageBackPress')
 			if (firstBackTime == 0) {
 				uni.showToast({
-					title: '再按一次退出应用',
+					title: tr('再按一次退出应用', 'Press back again to exit'),
 					position: 'bottom',
 				})
 				firstBackTime = Date.now()
