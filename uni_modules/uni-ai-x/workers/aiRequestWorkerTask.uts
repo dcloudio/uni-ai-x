@@ -15,7 +15,7 @@ import { initMd2html, isMd2htmlAvailable, md2html } from '../../uni-cmark/utssdk
 // #ifdef APP-HARMONY
 import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-harmony/index.uts'
-import { AiWorkerState, UniAiMdChunk, createOpBatch } from '../utssdk/runtime/app-harmony/sendable.ets'
+import { AiWorkerState, UniAiMdChunk, createOpBatch } from '@/uni_modules/uni-ai-x'
 // #endif
 import {
 	MarkdownPreprocessor,
@@ -319,7 +319,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	// #ifdef APP-HARMONY
 	private handleUniAiMdChunk(message: ESObject) {
 		if (this.finished || this.uniAiMdCompletionPending) return
-		const chunk = message as UniAiMdChunk
+		const chunk: UniAiMdChunk = message as UniAiMdChunk
 		if (chunk.requestVersion != this.requestVersion) return
 		const contentDelta = chunk.content
 		const reasoningDelta = chunk.reasoningContent

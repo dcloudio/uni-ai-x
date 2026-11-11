@@ -176,7 +176,7 @@ function collectRows(tableHtml: string): HtmlTableRow[] {
 		if (rowStart < 0) break
 		const rowOpenEnd = tableHtml.indexOf('>', rowStart)
 		if (rowOpenEnd < 0) break
-		const rowCloseStart = tableHtml.indexOf('</tr>', rowOpenEnd + 1)
+		const rowCloseStart: number = tableHtml.indexOf('</tr>', rowOpenEnd + 1)
 		if (rowCloseStart < 0) break
 		const rowEnd = rowCloseStart + '</tr>'.length
 		const rowHtml = tableHtml.slice(rowStart, rowEnd)
@@ -234,7 +234,7 @@ function appendTagAttributes(openTag: string, attributes: string): string {
 }
 
 function styleOpenTags(source: string, tag: string, style: string): string {
-	let result = ''
+	let result: string = ''
 	let cursor = 0
 	while (cursor < source.length) {
 		const start = findOpenTag(source, tag, cursor)
@@ -519,7 +519,7 @@ function styleTableRow(row: HtmlTableRow, rowIndex: number): string {
 		result += row.html.slice(cursor, cellPosition.start)
 		let cellStyle = 'border:1px solid ' + TABLE_BORDER_COLOR + ';padding:6px 8px;font-size:14px;line-height:22px;'
 		const sourceOpenTag = row.html.slice(cellPosition.start, openEnd + 1)
-		const align = tagAttribute(sourceOpenTag, 'align')
+		const align: string = tagAttribute(sourceOpenTag, 'align')
 		if (align.length > 0) cellStyle += 'text-align:' + align + ';'
 		if (rowIndex == 0) cellStyle += 'border-top-width:0;'
 		if (cellIndex == 0) cellStyle += 'border-left-width:0;'

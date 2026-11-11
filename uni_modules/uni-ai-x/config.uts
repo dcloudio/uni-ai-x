@@ -1,5 +1,5 @@
 import {reactive} from 'vue';
-import {LLMModel, Provider, DefaultLLM, Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
+import type {LLMModel, Provider, DefaultLLM, Userinfo} from '@/uni_modules/uni-ai-x/types.uts';
 import type { McpServerConfig } from '@/uni_modules/uni-ai-x/sdk/mcp-client.uts';
 
 export const mcpServers: McpServerConfig[] = [{

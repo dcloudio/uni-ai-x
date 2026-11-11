@@ -89,6 +89,9 @@
 	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-x'
 	import { parseAiWorkerOps } from '@/uni_modules/uni-ai-x/sdk/worker-ops.uts'
 	// #endif
+	// #ifdef APP-IOS
+	import { takeAiWorkerRebuildResultsJson } from '@/uni_modules/uni-ai-x'
+	// #endif
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
@@ -197,6 +200,27 @@
 		if (uniAiMdStreamApplyRebuild(result.msgId, parseAiWorkerOps(result.opsJson))) {
 			rebuildVersion.value += 1
 			scheduleRebuildScroll()
+		}
+	}
+	// #endif
+	// #ifdef APP-IOS
+	let rebuildPollTimer = 0
+	const pollRebuildResults = () => {
+		const json = takeAiWorkerRebuildResultsJson()
+		if (json.length == 0) return
+		let results: AiWorkerRebuildResult[]
+		try {
+			results = JSON.parse<AiWorkerRebuildResult[]>(json) as AiWorkerRebuildResult[]
+		} catch (error) {
+			console.error('[uni-ai-x][rebuild] 解析重建结果失败', error)
+			return
+		}
+		for (let i = 0; i < results.length; i++) {
+			try {
+				onRebuildResult(results[i])
+			} catch (error) {
+				console.error('[uni-ai-x][rebuild] 应用重建结果失败', error)
+			}
 		}
 	}
 	// #endif
@@ -905,8 +929,14 @@
 	
 	onMounted(() => {
 		uniAi.onBeforeRequestAi(beforeRequestAi)
+		// #ifdef APP-IOS
+		pollRebuildResults()
+		rebuildPollTimer = setInterval(pollRebuildResults, 100)
+		// #endif
+		// #ifndef APP-IOS
 		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		setAiWorkerRebuildListener(onRebuildResult)
+		// #endif
 		// #endif
 		// #ifdef H5
 		window.addEventListener('wheel', () => {
@@ -930,8 +960,14 @@
 		messageComputations.clear()
 		if (state.value == 'processing') uniAi.abortRequest()
 		uniAi.offBeforeRequestAi(beforeRequestAi)
+		// #ifdef APP-IOS
+		if (rebuildPollTimer != 0) clearInterval(rebuildPollTimer)
+		rebuildPollTimer = 0
+		// #endif
+		// #ifndef APP-IOS
 		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		setAiWorkerRebuildListener(null)
+		// #endif
 		// #endif
 		scrollingT = clearTimer(scrollingT)
 		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)

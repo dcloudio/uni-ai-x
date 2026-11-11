@@ -21,6 +21,9 @@ import {
 	startAiWorkerMarkdown
 } from '@/uni_modules/uni-ai-x'
 // #endif
+// #ifdef APP-IOS
+import { startAiWorkerMarkdownByValues } from '@/uni_modules/uni-ai-x'
+// #endif
 // #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 import { readAiWorkerState } from '@/uni_modules/uni-ai-x'
 import { resolveAiWorkerOps } from '@/uni_modules/uni-ai-x/sdk/worker-ops.uts'
@@ -92,21 +95,28 @@ export default class MarkdownDemoRunner {
 		this.snapshotVersion = 0
 		this.workerActive = true
 		this.stopped = false
+		// #ifdef APP-IOS
+		startAiWorkerMarkdownByValues(this.requestVersion, DEMO_RENDER_INTERVAL, uiTheme.value == 'dark', pluginBackgroundFor(uiTheme.value))
+		// #endif
+		// #ifndef APP-IOS
 		startAiWorkerMarkdown({
 			requestVersion: this.requestVersion,
 			renderInterval: DEMO_RENDER_INTERVAL,
 			darkMode: uiTheme.value == 'dark',
 			background: pluginBackgroundFor(uiTheme.value)
 		})
-		// #ifdef MP-WEIXIN
+		// #endif
+		// #ifdef APP-IOS || MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {
 			this.pollWorkerSnapshot()
 		}, 50)
 		// #endif
+		// #ifndef APP-IOS
 		// #ifndef MP-WEIXIN
 		setAiWorkerDataListener(() => {
 			this.pollWorkerSnapshot()
 		})
+		// #endif
 		// #endif
 		this.streamTimer = setInterval(() => {
 			this.emitDemoChunk()
@@ -291,8 +301,10 @@ export default class MarkdownDemoRunner {
 		if (this.workerPollTimer != 0) clearInterval(this.workerPollTimer)
 		this.streamTimer = 0
 		this.workerPollTimer = 0
+		// #ifndef APP-IOS
 		// #ifndef MP-WEIXIN
 		setAiWorkerDataListener(null)
+		// #endif
 		// #endif
 		// #ifdef APP-ANDROID || APP-IOS || WEB || MP-WEIXIN || APP-HARMONY
 		if (cancelRequest && this.workerActive) cancelAiWorkerRequest(this.requestVersion)
