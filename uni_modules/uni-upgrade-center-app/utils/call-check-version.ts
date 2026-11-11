@@ -1,8 +1,10 @@
-export const upgradeCloud = uniCloud.init({
-	provider: 'aliyun',
-	spaceId: 'mp-172f98d6-0564-4974-980e-d78dc9189b22',
-	clientSecret: '85f8hTqaZgtpg4AtmFgfsQ=='
-})
+export const upgradeCloud = uni.getSystemInfoSync().appId === '__UNI__C50103A'
+	? uniCloud.init({
+		provider: 'aliyun',
+		spaceId: 'mp-172f98d6-0564-4974-980e-d78dc9189b22',
+		clientSecret: '85f8hTqaZgtpg4AtmFgfsQ=='
+	})
+	: uniCloud
 
 export type StoreListItem = {
 	enable : boolean
