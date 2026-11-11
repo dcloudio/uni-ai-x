@@ -8,7 +8,7 @@
 		<template v-else-if="part.kind == 'think'">
 			<view class="msg-segment-think-content">
 				<view class="msg-root-think-content-header" @click.stop="changeThinkContent">
-					<text class="msg-root-think-content-title" flatten>深度思考</text>
+					<text class="msg-root-think-content-title" flatten>{{tr('深度思考', 'Thinking')}}</text>
 					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
 				</view>
 				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
@@ -19,12 +19,12 @@
 		<view v-else-if="part.kind == 'error' && isToolErrorCard" class="weather-tool-card weather-tool-card-error" flatten>
 			<view class="weather-tool-card-heading" flatten>
 				<uni-icons type="info-filled" size="18" color="#d95b55" flatten />
-				<text class="weather-tool-card-title" flatten>{{isWeatherToolError ? '天气查询失败' : 'MCP 服务失败'}}</text>
+				<text class="weather-tool-card-title" flatten>{{isWeatherToolError ? tr('天气查询失败', 'Weather lookup failed') : tr('MCP 服务失败', 'MCP service failed')}}</text>
 			</view>
 			<text class="weather-tool-card-detail" flatten>{{weatherErrorText}}</text>
 			<view v-if="isLastAiMsg" class="weather-tool-card-retry" @click.stop="retryWeather">
 				<uni-icons type="refresh" size="16" color="#ffffff" flatten />
-				<text class="weather-tool-card-retry-text" flatten>重试</text>
+				<text class="weather-tool-card-retry-text" flatten>{{tr('重试', 'Retry')}}</text>
 			</view>
 		</view>
 		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
@@ -58,8 +58,8 @@
 		<text v-else-if="part.kind == 'tool-result'" class="msg-root-plain-text" flatten>{{msg.toolResultText}}</text>
 		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" :paused="loadingPaused" /></view>
 		<template v-else-if="part.kind == 'empty'">
-			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>回答被终止</text>
-			<text v-else-if="state == 'none'" class="msg-root-stop-text" flatten>回答已中断</text>
+			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>{{tr('回答被终止', 'Response stopped')}}</text>
+			<text v-else-if="state == 'none'" class="msg-root-stop-text" flatten>{{tr('回答已中断', 'Response interrupted')}}</text>
 			<template v-else-if="state == 'processing' && msg.search?.status != 'searching'">
 				<!-- #ifdef APP-HARMONY -->
 				<view id="pending-spinner-anchor" class="msg-root-loading-placeholder" />
@@ -76,6 +76,7 @@
 
 <script lang="uts" setup>
 	import {uniAi, MsgItem, messageToolBarVisible, calendarConfirmationRevision, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
 	import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
@@ -144,7 +145,7 @@
 		const label = footnoteLabel(href)
 		const content = markdownFootnotes(props.msg.body).get(label)
 		if (content == null) return
-		uni.showModal({ title: '脚注 [' + label + ']', content: content, showCancel: false })
+		uni.showModal({ title: tr('脚注 [', 'Footnote [') + label + ']', content: content, showCancel: false })
 	}
 
 	const state = computed<string>(() => {
@@ -161,7 +162,7 @@
 		? toolStatusParts.value[1]
 		: (msg.value.toolStatus ?? '').replace('天气查询工具', '').trim())
 	const toolStatusDetail = computed<string>(() => toolStatusParts.value.length >= 3 ? toolStatusParts.value[2] : '')
-	const toolStatusSource = computed<string>(() => isWeatherToolStatus.value ? '天气查询工具 · MCP' : 'MCP 工具')
+	const toolStatusSource = computed<string>(() => isWeatherToolStatus.value ? tr('天气查询工具 · MCP', 'Weather tool · MCP') : tr('MCP 工具', 'MCP tool'))
 	const isWeatherToolError = computed<boolean>(() => {
 		const error = msg.value.error_msg ?? ''
 		return error.includes('天气查询工具连续三次调用失败')

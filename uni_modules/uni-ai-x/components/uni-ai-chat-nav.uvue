@@ -14,6 +14,7 @@
 <script lang="uts" setup>
 	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 
 	const emit = defineEmits<{
 		'change-menu': []
@@ -21,13 +22,14 @@
 
 	const title = computed<string>(() => {
 		if (uniAi.llm.provider == 'openClaw') {
-			return '与 ' + uniAi.llm.provider + ' 对话'
+			return tr('与 ', 'Chat with ') + uniAi.llm.provider + tr(' 对话', '')
 		}
 		const chatTitle = (uniAi.currentChat?.title ?? '').replace(/\r\n|\n|\r/g, ' ').trim()
+		if (chatTitle == '新对话') return tr('新对话', 'New chat')
 		if (chatTitle.length > 0) {
 			return chatTitle.length > 10 ? chatTitle.slice(0, 10) + '...' : chatTitle
 		}
-		return '新对话'
+		return tr('新对话', 'New chat')
 	})
 
 	function changeMenu() {

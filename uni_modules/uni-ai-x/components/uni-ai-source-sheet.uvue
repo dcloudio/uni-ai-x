@@ -3,7 +3,7 @@
 		<view class="source-mask" @click="emit('close')"></view>
 		<view class="source-sheet">
 			<view class="sheet-header">
-				<text class="sheet-title">搜索结果</text>
+				<text class="sheet-title">{{tr('搜索结果', 'Search results')}}</text>
 				<view class="sheet-close" @click="emit('close')"><uni-icons type="closeempty" size="23" color="#888" /></view>
 			</view>
 			<scroll-view class="sheet-scroll" direction="vertical" :scroll-into-view="scrollTarget">
@@ -28,6 +28,7 @@
 
 <script setup lang="uts">
 	import { SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
 	const props = defineProps<{ sources: SearchSource[], selectedId: number }>()
 	const emit = defineEmits<{ 'close': [] }>()

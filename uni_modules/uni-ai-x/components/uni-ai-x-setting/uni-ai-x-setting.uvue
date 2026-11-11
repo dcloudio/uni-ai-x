@@ -2,10 +2,27 @@
 	<view class="uni-im-setting uni-theme-root">
 		<uni-popup ref="popupRef">
 			<view class="uni-im-setting-popup-content">
-				<text class="uni-im-setting-title">系统设置</text>
+				<text class="uni-im-setting-title">{{tr('系统设置', 'Settings')}}</text>
+				<view class="uni-im-setting-item" @click="languageOptionsVisible = !languageOptionsVisible">
+					<text class="uni-im-setting-label">{{tr('语言', 'Language')}}</text>
+					<view class="uni-im-setting-theme-value">
+						<text class="uni-im-setting-theme-value-text">{{uniAi.setting.language == 'en-US' ? 'English' : '简体中文'}}</text>
+						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
+					</view>
+				</view>
+				<view v-if="languageOptionsVisible" class="uni-im-setting-theme-options">
+					<view class="uni-im-setting-theme-option" @click="selectLanguage('zh-CN')">
+						<text class="uni-im-setting-theme-option-text">简体中文</text>
+						<uni-icons v-if="uniAi.setting.language == 'zh-CN'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
+					</view>
+					<view class="uni-im-setting-theme-option" @click="selectLanguage('en-US')">
+						<text class="uni-im-setting-theme-option-text">English</text>
+						<uni-icons v-if="uniAi.setting.language == 'en-US'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
+					</view>
+				</view>
 				<!-- #ifdef APP -->
 				<view class="uni-im-setting-item" @click="toggleThemeOptions">
-					<text class="uni-im-setting-label">主题</text>
+					<text class="uni-im-setting-label">{{tr('主题', 'Appearance')}}</text>
 					<view class="uni-im-setting-theme-value">
 						<text class="uni-im-setting-theme-value-text">{{themeLabel}}</text>
 						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
@@ -13,29 +30,29 @@
 				</view>
 				<view v-if="themeOptionsVisible" class="uni-im-setting-theme-options">
 					<view class="uni-im-setting-theme-option" @click="selectTheme('auto')">
-						<text class="uni-im-setting-theme-option-text">跟随系统</text>
+						<text class="uni-im-setting-theme-option-text">{{tr('跟随系统', 'System')}}</text>
 						<uni-icons v-if="uniAi.setting.theme == 'auto'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
 					</view>
 					<view class="uni-im-setting-theme-option" @click="selectTheme('dark')">
-						<text class="uni-im-setting-theme-option-text">深色</text>
+						<text class="uni-im-setting-theme-option-text">{{tr('深色', 'Dark')}}</text>
 						<uni-icons v-if="uniAi.setting.theme == 'dark'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
 					</view>
 					<view class="uni-im-setting-theme-option" @click="selectTheme('light')">
-						<text class="uni-im-setting-theme-option-text">浅色</text>
+						<text class="uni-im-setting-theme-option-text">{{tr('浅色', 'Light')}}</text>
 						<uni-icons v-if="uniAi.setting.theme == 'light'" type="checkbox-filled" size="18" color="#007AFF"></uni-icons>
 					</view>
 				</view>
 				<!-- #endif -->
 				<!-- #ifdef WEB || MP -->
 				<view class="uni-im-setting-item uni-im-setting-host-theme">
-					<text class="uni-im-setting-label">主题</text>
+					<text class="uni-im-setting-label">{{tr('主题', 'Appearance')}}</text>
 					<view class="uni-im-setting-host-theme-value">
-						<text class="uni-im-setting-host-theme-value-text">跟随系统</text>
+						<text class="uni-im-setting-host-theme-value-text">{{tr('跟随系统', 'System')}}</text>
 					</view>
 				</view>
 				<!-- #endif -->
 				<view class="uni-im-setting-item">
-					<text class="uni-im-setting-label">大语言模型</text>
+					<text class="uni-im-setting-label">{{tr('大语言模型', 'AI model')}}</text>
 					<view class="uni-im-setting-value-box" @click="changeModel">
 						<text class="uni-im-setting-value">{{currentModel}}</text>
 						<uni-icons type="down" size="16" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
@@ -44,25 +61,25 @@
 				<!-- #ifdef APP -->
 				<view class="uni-im-setting-item uni-im-setting-action" @click="checkForUpdate">
 					<view class="uni-im-setting-update-info">
-						<text class="uni-im-setting-label">检查更新</text>
-						<text class="uni-im-setting-version">当前版本 {{currentAppVersion}}</text>
+						<text class="uni-im-setting-label">{{tr('检查更新', 'Check for updates')}}</text>
+						<text class="uni-im-setting-version">{{tr('当前版本', 'Version')}} {{currentAppVersion}}</text>
 					</view>
-					<text class="uni-im-setting-action-text">{{checkingUpdate ? '检查中...' : '立即检查'}}</text>
+					<text class="uni-im-setting-action-text">{{checkingUpdate ? tr('检查中...', 'Checking...') : tr('立即检查', 'Check now')}}</text>
 				</view>
 				<!-- #endif -->
 			</view>
 		</uni-popup>
 		<uni-popup ref="modelPopupRef" @clickMask="closeModelPopup">
 			<view class="uni-im-setting-choose-llm-model">
-				<text class="uni-im-setting-choose-title">选择AI模型</text>
+				<text class="uni-im-setting-choose-title">{{tr('选择AI模型', 'Choose AI model')}}</text>
 				<scroll-view direction="horizontal" class="uni-im-setting-scroll-view">
 					<view v-for="provider in providerNameList" :key="provider">
 						<view v-for="(llmMode, i) in llmModelMap.get(provider)!.models" :key="i" @click="radioChange(provider, llmMode.modelId)" class="uni-im-setting-model-item">
 							<uni-icons class="uni-im-setting-radio" type="checkbox-filled" size="18" :color="uniAi.llm.model == llmMode.modelId && provider == uniAi.llm.provider ? '#007AFF' : '#DDD'"></uni-icons>
 							<text class="uni-im-setting-model-text">{{llmMode.name ?? llmMode.modelId}}</text>
-							<text class="uni-im-setting-tag" v-if="llmMode.thinking">思考</text>
-							<text class="uni-im-setting-tag" v-if="llmMode.image">图片理解</text>
-							<text class="uni-im-setting-tag" v-if="llmMode.toolCall">工具调用</text>
+							<text class="uni-im-setting-tag" v-if="llmMode.thinking">{{tr('思考', 'Reasoning')}}</text>
+							<text class="uni-im-setting-tag" v-if="llmMode.image">{{tr('图片理解', 'Vision')}}</text>
+							<text class="uni-im-setting-tag" v-if="llmMode.toolCall">{{tr('工具调用', 'Tools')}}</text>
 						</view>
 					</view>
 				</scroll-view>
@@ -74,6 +91,7 @@
 <script lang="uts" setup>
 	import {uniAi, uiTheme, getLlmDisplayName} from '@/uni_modules/uni-ai-x/sdk';
 	import {Provider, Theme} from '@/uni_modules/uni-ai-x/types.uts';
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	// #ifdef APP
 	import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update'
 	// #endif
@@ -87,10 +105,15 @@
 	const providerNameListData = providerNameList as string[]
 	
 	const themeOptionsVisible = ref<boolean>(false)
+	const languageOptionsVisible = ref<boolean>(false)
+	const selectLanguage = (language: 'zh-CN' | 'en-US') => {
+		uniAi.setLanguage(language)
+		languageOptionsVisible.value = false
+	}
 	const themeLabel = computed<string>(() => {
-		if (uniAi.setting.theme == 'dark') return '深色'
-		if (uniAi.setting.theme == 'light') return '浅色'
-		return '跟随系统'
+		if (uniAi.setting.theme == 'dark') return tr('深色', 'Dark')
+		if (uniAi.setting.theme == 'light') return tr('浅色', 'Light')
+		return tr('跟随系统', 'System')
 	})
 	
 	const currentModel = computed<string>(() => {
@@ -117,6 +140,7 @@
 	const open = () => {
 		themeOptionsVisible.value = false
 		popupRefMethod().$callMethod('open');
+		languageOptionsVisible.value = false
 	}
 	
 	const close = () => {
@@ -135,7 +159,7 @@
 			theme,
 			success: () => { uniAi.setting.theme = theme },
 			fail: (error: IAppThemeFail) => {
-				uni.showToast({ title: '主题切换失败', icon: 'none' })
+				uni.showToast({ title: tr('主题切换失败', 'Could not change appearance'), icon: 'none' })
 				console.error('主题切换失败', error.errMsg)
 			}
 		})
@@ -153,7 +177,7 @@
 		checkUpdate().then((result) => {
 			if (result.code <= 0) {
 				uni.showToast({
-					title: '当前已是最新版本',
+					title: tr('当前已是最新版本', 'You are up to date'),
 					icon: 'none'
 				})
 			}
@@ -161,12 +185,12 @@
 			const result = error as any
 			if (result != null && (result.code == 0 || result.code == -101)) {
 				uni.showToast({
-					title: '当前已是最新版本',
+					title: tr('当前已是最新版本', 'You are up to date'),
 					icon: 'none'
 				})
 			} else {
 				uni.showToast({
-					title: '检查更新失败',
+					title: tr('检查更新失败', 'Could not check for updates'),
 					icon: 'none'
 				})
 			}

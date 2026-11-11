@@ -1,12 +1,13 @@
 <template>
 	<add-chat class="add-chat-box" v-if="msgListLength > 1" size="16">
-		<text class="add-chat-box-text" flatten>开启新对话</text>
+		<text class="add-chat-box-text" flatten>{{tr('开启新对话', 'New chat')}}</text>
 	</add-chat>
 </template>
 
 <script lang="uts" setup>
 	import addChat from './add-chat.uvue'
 	import uniAi from '@/uni_modules/uni-ai-x/sdk';
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	
 	const msgListLength = computed<number>(() => {
 		return uniAi.currentChat?.msgList.length ?? 0

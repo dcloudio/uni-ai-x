@@ -3,9 +3,9 @@
 		:style="{height: chatInputHeight}">
 		<uni-ai-draft-images />
 		<view v-if="isEditingMsg" class="chat-input-edit-tip">
-			<text class="chat-input-edit-tip-text" flatten>正在编辑消息，发送后将替换该消息及之后的对话</text>
+			<text class="chat-input-edit-tip-text" flatten>{{tr('正在编辑消息，发送后将替换该消息及之后的对话', 'Editing this message will replace it and all later replies.')}}</text>
 			<view class="chat-input-edit-tip-cancel" @click="cancelEdit">
-				<text class="chat-input-edit-tip-cancel-text">取消</text>
+				<text class="chat-input-edit-tip-cancel-text">{{tr('取消', 'Cancel')}}</text>
 			</view>
 		</view>
 		<view v-if="chatInputContent.length > 0 || isFullscreen" class="chat-input-fullscreen-btn" @click.stop="toggleFullscreen"
@@ -14,7 +14,7 @@
 			@mousedown.stop="prepareFullscreenToggle"
 			<!-- #endif -->
 			<!-- #ifdef WEB -->
-			:title="isFullscreen ? '退出全屏输入' : '全屏输入'"
+			:title="isFullscreen ? tr('退出全屏输入', 'Exit full screen') : tr('全屏输入', 'Full screen')"
 			<!-- #endif -->
 		>
 			<view class="chat-input-fullscreen-icon">
@@ -25,7 +25,7 @@
 			</view>
 		</view>
 		<textarea id="chat-input-textarea" class="chat-input-textarea" :class="isFullscreen ? 'chat-input-textarea-expanded' : ''"
-			:style="{height: isFullscreen ? expandedTextareaHeight : '50px'}" v-model="chatInputContent" placeholder="给 uni-ai-x 发送消息"
+			:style="{height: isFullscreen ? expandedTextareaHeight : '50px'}" v-model="chatInputContent" :placeholder="tr('给 uni-ai-x 发送消息', 'Message uni-ai-x')"
 			:adjust-position="false" :hold-keyboard="isFullscreen || keepKeyboardForToggle" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 			:focus="inputFocused" @focus="onInputFocus" @blur="onInputBlur" :auto-height="false"
 		></textarea>
@@ -41,6 +41,7 @@
 
 <script lang="uts" setup>
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
 	import uniAiDraftImages from '@/uni_modules/uni-ai-x/components/uni-ai-draft-images.uvue'
 
