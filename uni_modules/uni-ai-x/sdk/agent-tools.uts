@@ -180,7 +180,7 @@ function toolDefinitions(): UTSJSONObject[] {
 	} as UTSJSONObject))
 }
 
-function requestModel(url: string, token: string, data: UTSJSONObject, callbacks: CustomProviderCallbacks): Promise<UTSJSONObject> {
+function requestModel(url: string, token: string, data: UTSJSONObject, callbacks: CustomProviderCallbacks, onVisibleChunk: () => void): Promise<UTSJSONObject> {
 	return new Promise<UTSJSONObject>((resolve, reject) => {
 		const startedAt = Date.now()
 		console.log('[uni-ai-x][model] request', JSON.stringify({ url: url, model: data['model'], messageCount: (data['messages'] as UTSJSONObject[]).length, toolChoice: data['tool_choice'] }))
@@ -194,7 +194,10 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 			if (delta == null) return
 			const text = delta.content ?? ''
 			if (text.length > 0) content += text
-			if (text.length > 0 || (delta.reasoning_content ?? '').length > 0) callbacks.onChunk?.(chunk)
+			if (text.length > 0 || (delta.reasoning_content ?? '').length > 0) {
+				onVisibleChunk()
+				callbacks.onChunk?.(chunk)
+			}
 			const fragments = delta.tool_calls ?? [] as ChunkToolCall[]
 			fragments.forEach((fragment: ChunkToolCall) => {
 				const index = fragment.index
@@ -411,7 +414,11 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					body['tool_choice'] = 'auto'
 				}
 				if (modelConfig?.thinking == true) body['thinking'] = { type: thinking == false ? 'disabled' : 'enabled' }
-				const response = await requestModel(provider.baseURL!, token, body, callbacks)
+				const response = await requestModel(provider.baseURL!, token, body, callbacks, () => {
+					if (!mcpStatusActive) return
+					callbacks.onToolStatus?.('')
+					mcpStatusActive = false
+				})
 				const choices = response['choices'] as UTSJSONObject[] | null
 				const message = choices?.[0]?.['message'] as UTSJSONObject | null
 				if (message == null) throw new Error('模型没有返回消息')

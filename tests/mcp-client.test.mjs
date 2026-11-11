@@ -122,7 +122,7 @@ test('agent exposes and calls MCP weather tools', async () => {
     [modelEvent({ tool_calls: [{ index: 0, id: 'enable', type: 'function', function: { name: 'enable_mcp__weather', arguments: '{}' } }] })],
     [modelEvent({ tool_calls: [{ index: 0, id: 'geo', type: 'function', function: { name: 'weather__geocode_location', arguments: '{"name":"Beijing"}' } }] })],
     [modelEvent({ tool_calls: [{ index: 0, id: 'forecast', type: 'function', function: { name: 'weather__get_weather_forecast', arguments: '{"latitude":39.9,"longitude":116.4}' } }] })],
-    [modelEvent({ content: '北京现在晴，12°C。' })],
+    [modelEvent({ reasoning_content: '先核对天气数据。' }), modelEvent({ content: '北京现在晴，12°C。' })],
   ];
   const tools = [
     { name: 'geocode_location', description: 'Find coordinates for a city', inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } },
@@ -161,9 +161,14 @@ test('agent exposes and calls MCP weather tools', async () => {
   });
   const chunks = [];
   const statuses = [];
+  const events = [];
   const success = await new QiniuToolAdapter().request([{ role: 'user', content: '北京现在的天气' }], 'test', 'chat', {
-    onChunk(chunk) { chunks.push(chunk.choices[0].delta.content); },
-    onToolStatus(status) { statuses.push(status); },
+    onChunk(chunk) {
+      const delta = chunk.choices[0].delta;
+      if (delta.content) chunks.push(delta.content);
+      events.push(delta.reasoning_content ? 'reasoning' : 'content');
+    },
+    onToolStatus(status) { statuses.push(status); events.push(status ? 'status' : 'clear'); },
     onError(error) { throw new Error(error.errMsg); },
   });
   assert.equal(success, true);
@@ -187,6 +192,7 @@ test('agent exposes and calls MCP weather tools', async () => {
     '天气查询工具 · 获取实时天气 · 天气数据已获取，正在生成回答',
     '',
   ]);
+  assert.deepEqual(events.slice(-4), ['status', 'clear', 'reasoning', 'content']);
 });
 
 test('MCP transport failures retry visibly, while tool errors go back to the model', async () => {
