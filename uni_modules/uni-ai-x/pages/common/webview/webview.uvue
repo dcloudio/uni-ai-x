@@ -2,13 +2,13 @@
 <template>
 	<view class="nav-bar">
 		<view class="nav-bar-left">
-			<uni-icons type="left" size="20" color="#000" @click="back"></uni-icons>
+			<uni-ai-icon name="chevron-left-outline" size="20" color="#000" @click="back" />
 		</view>
 		<text class="nav-bar-title">{{title}}</text>
 		<view class="nav-bar-right">
 			<!-- #ifndef MP -->
 			<view class="external-browser-button" hover-class="external-browser-button-active" @click.stop="openInExternalBrowser">
-				<uni-ai-icon class="external-browser-icon" code="e797" size="24" color="#000"></uni-ai-icon>
+				<uni-ai-icon class="external-browser-icon" name="globe-outline" size="24" color="#000" />
 			</view>
 			<!-- #endif -->
 		</view>
@@ -17,6 +17,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	// #ifdef APP
 	import { openSchema } from '@/uni_modules/uts-openSchema'

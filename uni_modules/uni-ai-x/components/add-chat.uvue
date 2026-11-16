@@ -1,11 +1,12 @@
 <template>
 	<view class="add-chat" @click="addChat">
-		<uni-ai-icon class="icon" code="e907" :color="canAddChat ? 'var(--text-primary)':'var(--text-disabled)'" :size="size"></uni-ai-icon>
+		<uni-ai-icon class="icon" name="new-chat-outline" :color="canAddChat ? 'var(--text-primary)':'var(--text-disabled)'" :size="size" />
 		<slot></slot>
 	</view>
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import uniAi from '../sdk';
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	

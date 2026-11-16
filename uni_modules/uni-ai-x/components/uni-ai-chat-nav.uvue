@@ -1,6 +1,6 @@
 <template>
 	<view class="chat-nav">
-		<uni-ai-icon @click="changeMenu" code="e622" color="var(--text-primary)" size="20"></uni-ai-icon>
+		<uni-ai-icon @click="changeMenu" name="panel-left-outline" color="var(--text-primary)" size="20" />
 		<text class="chat-nav-title" :max-lines="1" flatten>{{title}}</text>
 		<!-- #ifndef MP-WEIXIN -->
 		<add-chat></add-chat>
@@ -12,6 +12,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import addChat from '@/uni_modules/uni-ai-x/components/add-chat.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'

@@ -4,12 +4,13 @@
 		<view v-for="source in msg.search!.sources" :key="source.id" class="source-row" @click="emit('open', source.id)">
 			<text class="source-number">[{{source.id}}]</text>
 			<text class="source-title">{{source.title}}</text>
-			<uni-icons type="right" size="13" color="#888" />
+			<uni-ai-icon name="chevron-right-outline" size="13" color="#888" />
 		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import { MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	const props = defineProps<{ msg: MsgItem }>()

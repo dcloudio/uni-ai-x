@@ -9,7 +9,7 @@
 			>
 				<text class="menu-box-chat-item-title" :max-lines="1" :class="chat.id == activeChatId ? 'menu-box-chat-item-title-active' : ''">{{chat.title == '新对话' ? tr('新对话', 'New chat') : chat.title}}</text>
 				<view class="menu-box-more-box" @click.stop="longpress(chat)">
-					<uni-icons type="more-filled" size="14" :color="uiTheme == 'light' ? '#999' : '#ccc'"></uni-icons>
+					<uni-ai-icon name="ellipsis-outline" size="14" :color="uiTheme == 'light' ? '#999' : '#ccc'" />
 				</view>
 			</list-item>
 		</list-view>
@@ -20,13 +20,14 @@
 				<text v-else class="menu-box-to-login">{{tr('未登录', 'Sign in')}}</text>
 			</view>
 			<view class="menu-box-btn-group" @click="toSetting">
-				<uni-icons class="menu-box-setting-icon" type="gear-filled" size="20" :color="uiTheme == 'light' ? '#666' : '#FFF'"></uni-icons>
+				<uni-ai-icon class="menu-box-setting-icon" name="settings-outline" size="20" :color="uiTheme == 'light' ? '#666' : '#FFF'" />
 			</view>
 		</view>
 	</view>
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import {uniAi, ChatItem, Userinfo, uiTheme} from '@/uni_modules/uni-ai-x/sdk/'
 	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import {userCenterPage} from '@/uni_modules/uni-ai-x/config.uts'

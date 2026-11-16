@@ -4,13 +4,13 @@
 		<view class="source-sheet">
 			<view class="sheet-header">
 				<text class="sheet-title">{{tr('搜索结果', 'Search results')}}</text>
-				<view class="sheet-close" @click="emit('close')"><uni-icons type="closeempty" size="23" color="#888" /></view>
+				<view class="sheet-close" @click="emit('close')"><uni-ai-icon name="close-outline" size="23" color="#888" /></view>
 			</view>
 			<scroll-view class="sheet-scroll" direction="vertical" :scroll-into-view="scrollTarget">
 				<view v-for="source in sources" :key="source.id" :id="'search-result-' + source.id" class="sheet-source" hover-class="sheet-source-pressed" @click="openWebLink(source.url)">
 					<view class="source-meta">
 						<view class="site-icon">
-							<uni-icons type="link" size="18" color="#999" />
+							<uni-ai-icon name="link-outline" size="18" color="#999" />
 							<image v-if="!failedIcons.includes(source.id)" class="site-image" :src="siteOrigin(source.url) + '/favicon.ico'" mode="aspectFit" @error="iconFailed(source.id)" />
 						</view>
 						<text class="site-name" :max-lines="1">{{source.source.length > 0 ? source.source : siteName(source.url)}}</text>
@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="uts">
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import { SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { openWebLink } from '@/uni_modules/uni-ai-x/sdk/open-web-link.uts'
