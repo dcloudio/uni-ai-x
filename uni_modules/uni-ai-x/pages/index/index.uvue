@@ -95,7 +95,8 @@
 	}
 
 	const openSetting = () => {
-		uniAiXSettingRef.value?.$callMethod('open')
+		closeMenu()
+		uni.navigateTo({ url: '/uni_modules/uni-ai-x/pages/settings/settings' })
 	}
 
 	// 模型不支持图像理解时，点击"去设置"直接打开模型选择弹窗

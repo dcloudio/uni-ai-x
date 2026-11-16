@@ -1,0 +1,8 @@
+<template>
+	<uni-ai-x-setting ref="settingsRef" :settings-page="true"></uni-ai-x-setting>
+</template>
+
+<script setup lang="uts">
+	const settingsRef = ref<ComponentPublicInstance | null>(null)
+	onBackPress((): boolean => settingsRef.value?.$callMethod('dismissPopup') == true)
+</script>
