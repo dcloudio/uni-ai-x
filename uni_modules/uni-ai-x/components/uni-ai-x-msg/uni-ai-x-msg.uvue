@@ -9,7 +9,7 @@
 			<view class="msg-segment-think-content">
 				<view class="msg-root-think-content-header" @click.stop="changeThinkContent">
 					<text class="msg-root-think-content-title" flatten>{{tr('深度思考', 'Thinking')}}</text>
-					<uni-icons :type="hideThinkContent ? 'down' : 'up'" size="14" color="#888"></uni-icons>
+					<uni-ai-icon :name="hideThinkContent ? 'chevron-down-outline' : 'chevron-up-outline'" size="14" color="#888" />
 				</view>
 				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
 					<text class="msg-root-think-content-text" flatten>{{msg.thinkContent}}</text>
@@ -18,12 +18,12 @@
 		</template>
 		<view v-else-if="part.kind == 'error' && isToolErrorCard" class="weather-tool-card weather-tool-card-error" flatten>
 			<view class="weather-tool-card-heading" flatten>
-				<uni-icons type="info-filled" size="18" color="#d95b55" flatten />
+				<uni-ai-icon name="info-outline" size="18" color="#d95b55" />
 				<text class="weather-tool-card-title" flatten>{{isWeatherToolError ? tr('天气查询失败', 'Weather lookup failed') : tr('MCP 服务失败', 'MCP service failed')}}</text>
 			</view>
 			<text class="weather-tool-card-detail" flatten>{{weatherErrorText}}</text>
 			<view v-if="isLastAiMsg" class="weather-tool-card-retry" @click.stop="retryWeather">
-				<uni-icons type="refresh" size="16" color="#ffffff" flatten />
+				<uni-ai-icon name="refresh-outline" size="16" color="#ffffff" />
 				<text class="weather-tool-card-retry-text" flatten>{{tr('重试', 'Retry')}}</text>
 			</view>
 		</view>
@@ -75,6 +75,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import {uniAi, MsgItem, messageToolBarVisible, calendarConfirmationRevision, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'

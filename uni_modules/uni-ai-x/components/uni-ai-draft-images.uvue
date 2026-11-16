@@ -13,13 +13,14 @@
 				</view>
 			</view>
 			<view class="draft-image-close-btn">
-				<uni-icons type="closeempty" size="8" color="#FFF" @click="removeImg(index)"></uni-icons>
+				<uni-ai-icon name="close-outline" size="8" color="#FFF" @click="removeImg(index)" />
 			</view>
 		</view>
 	</scroll-view>
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 

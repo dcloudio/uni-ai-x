@@ -41,14 +41,14 @@
 			</view>
 		</view>
 		<view v-else class="chat-extension-input-collapsed" @click.stop="togglePanel">
-			<uni-icons type="up" size="14" color="var(--text-secondary)"></uni-icons>
+			<uni-ai-icon name="chevron-up-outline" size="14" color="var(--text-secondary)" />
 			<text class="chat-extension-input-collapsed-text">{{tr('显示工具栏', 'Show tools')}}</text>
 		</view>
 		<view v-if="aiState == 'processing'" class="chat-extension-input-status-row">
 			<text class="chat-extension-input-status-text">{{statusText}}</text>
 			<view class="chat-extension-input-stop-slot">
 				<view class="chat-extension-input-stop" :style="{visibility: aiState == 'processing' ? 'visible' : 'hidden'}" @click.stop="stop">
-					<uni-ai-icon code="e691" color="#FFF" size="14"></uni-ai-icon>
+					<uni-ai-icon name="stop-fill" color="#FFF" size="14" />
 				</view>
 			</view>
 		</view>
@@ -60,6 +60,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import uniAi, { messageToolBarVisible } from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'

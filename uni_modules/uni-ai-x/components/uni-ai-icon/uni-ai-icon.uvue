@@ -1,76 +1,48 @@
 <template>
-	<text :style="{ color: color, 'font-size': iconSize }" @click="_onClick" class="uni-ai-icon">{{unicode}}</text>
+	<image class="uni-ai-icon" :src="source" :style="{ width: iconSize, height: iconSize }"
+		mode="aspectFit" @click="onClick" />
 </template>
 
-<script lang="uts" setup>
-	// #ifdef APP
-	function decodeUnicode(code: string): string {
-	  // 将字符串分割成 Unicode 编码的字符
-	  let codes = code.split('%u');
-	  // 遍历字符数组
-	  let chars = codes.map(code => {
-	    // 转换为十六进制
-	    let hexCode = parseInt(code, 16);
-	    // 将 UTF-16 编码转换为字符
-	    return String.fromCharCode(hexCode);
-	  });
-	  // 将字符数组转换成字符串
-	  return chars.join('');
-	}
-	// #endif
-	const getVal = (val: string) :string => {
-		const reg = /^[0-9]*$/g
-		return (typeof val == 'number' ||　reg.test(val) )? val + 'px' : val;
-	}
-	
-	type UniAiIconProps = {
+<script setup lang="uts">
+	import { artwork } from './artwork.uts'
+	import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+
+	const props = withDefaults(defineProps<{
+		name?: string
 		code?: string
-		color?: string
 		size?: string
-	}
-	
-	const props = withDefaults(defineProps<UniAiIconProps>(), {
-		code: '',
-		color: '#333333',
-		size: '16'
-	})
-	
-	const emit = defineEmits<{
-		'click': [e: UniEvent]
-	}>()
-	
-	const unicode = computed<string>(() => {
-		// #ifdef APP
-		return decodeUnicode(props.code)
-		// #endif
-		// #ifndef APP
-		return unescape(`%u${props.code}`) as string
-		// #endif
-	})
-	
+		color?: string
+	}>(), { name: '', code: '', size: '16', color: 'var(--text-primary)' })
+	const emit = defineEmits<{ 'click': [event: UniEvent] }>()
+	const onClick = (event: UniEvent) => { emit('click', event) }
 	const iconSize = computed<string>(() => {
-		return getVal(props.size)
+		return /^[0-9.]+$/.test(props.size) ? props.size + 'px' : props.size
 	})
-	
-	const _onClick = (e: UniEvent) => {
-		emit('click', e)
-	}
+	// Existing code callers remain supported; named icons take precedence.
+	const legacyNames = new Map<string, string>([
+		['e639', 'think-outline'], ['e797', 'globe-outline'],
+		['e691', 'stop-fill'], ['e627', 'send-outline'],
+		['e622', 'panel-left-outline'], ['e907', 'new-chat-outline'],
+		['e60c', 'copy-outline'], ['e633', 'refresh-outline']
+	])
+	const source = computed<string>(() => {
+		const dark = uiTheme.value == 'dark'
+		let color = props.color
+		// SVG images cannot inherit CSS variables; resolve the app's icon palette here.
+		if (color == 'var(--text-primary)') color = dark ? '#ffffff' : '#333333'
+		if (color == 'var(--text-secondary)') color = dark ? '#e0e0e0' : '#666666'
+		if (color == 'var(--text-tertiary)') color = dark ? '#b0b0b0' : '#999999'
+		if (color == 'var(--text-disabled)') color = dark ? '#666666' : '#cccccc'
+		if (color == 'var(--accent-primary)') color = dark ? '#4d94ff' : '#0066cc'
+		const name = props.name.length > 0 ? props.name : (legacyNames.get(props.code) ?? '')
+		const svg = (artwork.get(name) ?? '').replaceAll('currentColor', color)
+		if (svg.length == 0) return ''
+		return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+	})
 </script>
 
 <style>
-@font-face {
-  // #ifdef WEB
-  font-display: swap;
-  // #endif
-  font-family: "uni-ai-icon";
-  src: url('/uni_modules/uni-ai-x/static/font/iconfont.ttf');
-}
 .uni-ai-icon {
-  font-family: uni-ai-icon !important;
-  font-size: 16px;
-  font-style: normal;
-  /* #ifdef H5 */
-  cursor: pointer;
-  /* #endif */
+	flex-shrink: 0;
 }
 </style>

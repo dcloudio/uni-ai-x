@@ -3,7 +3,7 @@
 		<view class="uni-code-msg-code-header">
 			<text class="uni-code-msg-language" flatten>{{language}}</text>
 			<view class="uni-code-msg-copy-btn" @click.stop="copyCode">
-				<uni-ai-icon class="uni-code-msg-copy-icon" code="e60c" size="12" color="#f4f4f4"/>
+				<uni-ai-icon class="uni-code-msg-copy-icon" name="copy-outline" size="12" color="#f4f4f4" />
 				<text class="uni-code-msg-copy-text" flatten>{{tr('复制代码', 'Copy code')}}</text>
 			</view>
 		</view>
@@ -19,6 +19,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 

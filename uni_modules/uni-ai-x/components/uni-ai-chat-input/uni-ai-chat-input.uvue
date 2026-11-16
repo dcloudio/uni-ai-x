@@ -17,12 +17,7 @@
 			:title="isFullscreen ? tr('退出全屏输入', 'Exit full screen') : tr('全屏输入', 'Full screen')"
 			<!-- #endif -->
 		>
-			<view class="chat-input-fullscreen-icon">
-				<view class="chat-input-fullscreen-corner chat-input-fullscreen-corner-top"
-					:class="isFullscreen ? 'chat-input-fullscreen-corner-top-collapse' : ''"></view>
-				<view class="chat-input-fullscreen-corner chat-input-fullscreen-corner-bottom"
-					:class="isFullscreen ? 'chat-input-fullscreen-corner-bottom-collapse' : ''"></view>
-			</view>
+			<uni-ai-icon :name="isFullscreen ? 'compact-outline' : 'fullscreen-outline'" size="16" color="#9b9b9b" />
 		</view>
 		<textarea id="chat-input-textarea" class="chat-input-textarea" :class="isFullscreen ? 'chat-input-textarea-expanded' : ''"
 			:style="{height: isFullscreen ? expandedTextareaHeight : '50px'}" v-model="chatInputContent" :placeholder="tr('给 uni-ai-x 发送消息', 'Message uni-ai-x')"
@@ -40,6 +35,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
@@ -212,52 +208,7 @@
 	z-index: 3;
 }
 
-.chat-input-fullscreen-icon {
-	position: relative;
-	width: 16px;
-	height: 16px;
-}
 
-.chat-input-fullscreen-corner {
-	position: absolute;
-	width: 6px;
-	height: 6px;
-	border-color: #9b9b9b;
-	border-style: solid;
-	border-width: 0;
-}
-
-.chat-input-fullscreen-corner-top {
-	top: 1px;
-	right: 1px;
-	border-top-width: 2px;
-	border-right-width: 2px;
-}
-
-.chat-input-fullscreen-corner-bottom {
-	bottom: 1px;
-	left: 1px;
-	border-bottom-width: 2px;
-	border-left-width: 2px;
-}
-
-.chat-input-fullscreen-corner-top-collapse {
-	top: 1px;
-	right: 1px;
-	border-top-width: 0;
-	border-right-width: 0;
-	border-bottom-width: 2px;
-	border-left-width: 2px;
-}
-
-.chat-input-fullscreen-corner-bottom-collapse {
-	bottom: 1px;
-	left: 1px;
-	border-bottom-width: 0;
-	border-left-width: 0;
-	border-top-width: 2px;
-	border-right-width: 2px;
-}
 
 .chat-input-edit-tip {
 	flex-direction: row;

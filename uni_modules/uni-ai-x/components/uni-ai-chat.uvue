@@ -9,15 +9,15 @@
 					<text class="chat-box-welcome-text" flatten>{{tr('问答、编程、翻译与创作。', 'Ask, code, translate, create.')}}</text>
 					<view class="chat-box-welcome-actions">
 						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo">
-							<uni-icons class="chat-box-welcome-demo-icon" type="list" size="20" color="var(--accent-primary)" />
+							<uni-ai-icon class="chat-box-welcome-demo-icon" name="checklist-outline" size="20" color="var(--accent-primary)" />
 							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例', 'Explore the Markdown demo')}}</text>
-							<uni-icons type="right" size="16" color="var(--text-tertiary)" />
+							<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
 						</view>
 						<template v-if="showToolExamples">
 							<view v-for="item in welcomePrompts" :key="item.label" class="chat-box-welcome-demo-btn" @click="sendWelcomePrompt(item.prompt)">
-								<uni-icons class="chat-box-welcome-demo-icon" :type="item.icon" size="20" color="var(--accent-primary)" />
+								<uni-ai-icon class="chat-box-welcome-demo-icon" :name="item.icon" size="20" color="var(--accent-primary)" />
 								<text class="chat-box-welcome-demo-btn-text">{{ item.label }}</text>
-								<uni-icons type="right" size="16" color="var(--text-tertiary)" />
+								<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
 							</view>
 						</template>
 					</view>
@@ -45,7 +45,7 @@
 					<add-chat-btn />
 				</view>
 				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
-					<uni-icons type="down" size="15" color="var(--text-secondary)"></uni-icons>
+					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
 			</view>
 			<uni-ai-chat-extension-input v-if="hasInputExtension" />
@@ -68,6 +68,7 @@
 </template>
 
 <script lang="uts" setup>
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import type { ComputedRef } from 'vue'
 	import {uniAi, MsgItem, uiTheme, calendarConfirmationRevision} from '@/uni_modules/uni-ai-x/sdk/'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
@@ -905,10 +906,10 @@
 		server.id == 'weather' && server.url.length > 0 &&
 		(server.tools == null || (server.tools.includes('openmeteo_search_locations') && server.tools.includes('openmeteo_get_forecast')))
 	)) {
-		prompts.push({ label: tr('MCP 示例：查天气', 'MCP example: Weather'), icon: 'search', prompt: tr('帮我查一下北京现在的天气', 'What is the weather in Beijing right now?') })
+		prompts.push({ label: tr('MCP 示例：查天气', 'MCP example: Weather'), icon: 'search-outline', prompt: tr('帮我查一下北京现在的天气', 'What is the weather in Beijing right now?') })
 	}
 	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
-	prompts.push({ label: tr('工具调用示例：创建日程提醒', 'Tool example: Calendar reminder'), icon: 'calendar', prompt: tr('帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒', 'Create a test calendar reminder in 15 minutes, lasting 30 minutes, with an alert 5 minutes before.') })
+	prompts.push({ label: tr('工具调用示例：创建日程提醒', 'Tool example: Calendar reminder'), icon: 'alarm-clock-outline', prompt: tr('帮我在 15 分钟后创建一个“测试日程”提醒，持续 30 分钟，提前 5 分钟提醒', 'Create a test calendar reminder in 15 minutes, lasting 30 minutes, with an alert 5 minutes before.') })
 	// #endif
 		return prompts
 	})
