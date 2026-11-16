@@ -9,6 +9,14 @@
 				"disableScroll": true
 			}
 		},
+		{
+			"path": "uni_modules/uni-ai-x/pages/settings/settings",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "设置",
+				"disableScroll": true
+			}
+		},
 		// #ifdef APP || WEB
 		{
 			"path" : "uni_modules/uni-ai-x/pages/common/webview/webview",

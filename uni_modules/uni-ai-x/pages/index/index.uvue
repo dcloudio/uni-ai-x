@@ -94,8 +94,32 @@
 		setMenu(false)
 	}
 
+	// #ifdef APP
+	let settingsMenuCloseTimer = -1
+	const finishSettingsMenuClose = () => {
+		if (settingsMenuCloseTimer < 0) return
+		clearTimeout(settingsMenuCloseTimer)
+		settingsMenuCloseTimer = -1
+		closeMenu()
+	}
+	// 快速返回时立即完成收起，避免延迟任务影响返回后的菜单操作。
+	onShow(finishSettingsMenuClose)
+	onUnmounted(finishSettingsMenuClose)
+	// #endif
+
 	const openSetting = () => {
-		uniAiXSettingRef.value?.$callMethod('open')
+		// #ifndef APP
+		closeMenu()
+		// #endif
+		uni.navigateTo({
+			url: '/uni_modules/uni-ai-x/pages/settings/settings',
+			success: () => {
+				// #ifdef APP
+				// 默认转场约 300ms；等设置页覆盖主页面后再收起底下的菜单。
+				settingsMenuCloseTimer = setTimeout(finishSettingsMenuClose, 350)
+				// #endif
+			}
+		})
 	}
 
 	// 模型不支持图像理解时，点击"去设置"直接打开模型选择弹窗
