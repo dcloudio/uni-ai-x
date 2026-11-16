@@ -48,9 +48,9 @@ web pc端：
 
 ### Android端demo：
 
-<img width="200px" src="https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/download_ai_x_v3.png"/>
+<img width="200px" src="https://web-ext-storage.dcloud.net.cn/uni-app-x/uni-ai-x/uni-ai-x-portal-qrcode.png"/>
 
-扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/ext/uni-ai-x/__UNI__8A096E7_0917211824.apk)
+扫码或[点此下载](https://web-ext-storage.dcloud.net.cn/uni-app-x/uni-ai-x/uni-ai-x-portal.html)
 
 ## 交流群  
 更多问题欢迎[点此](https://im.dcloud.net.cn/#/?joinGroup=68511b0b7ae60eb5c891cfbc)加入uni-ai官方交流群
