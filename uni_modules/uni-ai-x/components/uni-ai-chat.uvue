@@ -41,9 +41,7 @@
 				<!-- #ifdef APP-HARMONY -->
 				<loading v-if="showPendingLoading && pendingSpinnerVisible" class="chat-box-pending-loading" :style="pendingSpinnerStyle" :paused="false" />
 				<!-- #endif -->
-				<view class="chat-box-add-chat" :style="{visibility: scrollInBottom && state != 'processing' ? 'visible' : 'hidden'}">
-					<add-chat-btn />
-				</view>
+
 				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
 					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
@@ -93,7 +91,6 @@
 	// #ifdef APP-IOS
 	import { takeAiWorkerRebuildResultsJson } from '@/uni_modules/uni-ai-x'
 	// #endif
-	import addChatBtn from '@/uni_modules/uni-ai-x/components/add-chat-btn.uvue'
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
 	import uniAiChatExtensionInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-extension-input/uni-ai-chat-extension-input.uvue'
@@ -1095,13 +1092,13 @@
 }
 
 .chat-box-welcome-logo {
-	width: 50px;
-	height: 50px;
-	margin-bottom: 20px;
+	width: 44px;
+	height: 44px;
+	margin-bottom: 18px;
 }
 
 .chat-box-welcome-title {
-	font-size: 24px;
+	font-size: 23px;
 	font-weight: bold;
 	color: var(--text-primary);
 	margin-bottom: 10px;
@@ -1119,21 +1116,21 @@
 
 .chat-box-welcome-actions {
 	width: 100%;
-	max-width: 440px;
+	max-width: 360px;
 	margin-top: 20px;
 	flex-direction: column;
 }
 
 .chat-box-welcome-demo-btn {
 	width: 100%;
-	min-height: 52px;
+	min-height: 48px;
 	margin: 5px 0;
 	padding: 8px 12px;
 	box-sizing: border-box;
 	flex-direction: row;
 	align-items: center;
 	border: 1px solid var(--border-color);
-	border-radius: 26px;
+	border-radius: 16px;
 	background-color: var(--bg-primary);
 }
 

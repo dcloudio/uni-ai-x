@@ -1,9 +1,9 @@
 <template>
 	<view class="chat-nav">
-		<uni-ai-icon @click="changeMenu" name="panel-left-outline" color="var(--text-primary)" size="20" />
+		<view class="chat-nav-action" @click="changeMenu"><uni-ai-icon name="menu-outline" color="var(--text-primary)" size="20" /></view>
 		<text class="chat-nav-title" :max-lines="1" flatten>{{title}}</text>
 		<!-- #ifndef MP-WEIXIN -->
-		<add-chat></add-chat>
+		<add-chat class="chat-nav-action" />
 		<!-- #endif -->
 		<!-- #ifdef MP-WEIXIN -->
 		<view></view>
@@ -45,15 +45,19 @@
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	padding: 10px;
+	padding: 6px 12px;
+	min-height: 52px;
 }
+
+.chat-nav-action { width: 40px; height: 40px; align-items: center; justify-content: center; flex-shrink: 0; }
 
 .chat-nav-title {
 	flex: 1;
-	margin: 0 10px;
-	font-size: 16px;
+	margin: 0 4px;
+	font-size: 15px;
+	font-weight: 500;
 	color: var(--text-primary);
-	text-align: center;
+	text-align: left;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
