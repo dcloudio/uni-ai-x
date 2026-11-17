@@ -1,0 +1,90 @@
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+import { DocumentAttachment } from '@/uni_modules/uni-ai-x/types.uts'
+
+export function supportsDeepSeekApps(provider: string, model: string): boolean {
+	return provider == 'deepseek' && model == 'deepseek-flash' && llmModelMap.get(provider)?.baseURL == 'https://api.deepseek.com/chat/completions'
+}
+
+export async function deepSeekToken(): Promise<string> {
+	const provider = llmModelMap.get('deepseek')
+	if (provider?.getToken == null || provider.baseURL != 'https://api.deepseek.com/chat/completions') throw new Error('请配置 DeepSeek 官方线路')
+	return await provider.getToken!()
+}
+
+export function documentPurpose(name: string): string {
+	const extension = name.toLowerCase().split('.').pop() ?? ''
+	if (['txt', 'md', 'csv', 'json', 'xml', 'yaml', 'yml', 'html', 'js', 'ts', 'py', 'xlsx', 'xls', 'epub', 'mobi'].includes(extension)) return 'user_data'
+	if (['pdf', 'doc', 'docx', 'ppt', 'pptx', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff'].includes(extension)) return 'rich_layout_recognition'
+	throw new Error('不支持此文件格式，请选择 PDF、Office、图片或文本文件')
+}
+
+export async function uploadDeepSeekDocument(path: string, name: string, onTask: (task: UploadTask) => void): Promise<DocumentAttachment> {
+	const purpose = documentPurpose(name)
+	const token = await deepSeekToken()
+	return await new Promise<DocumentAttachment>((resolve, reject) => {
+		const task = uni.uploadFile({
+			url: 'https://api.deepseek.com/files', filePath: path, name: 'file',
+			formData: { purpose: purpose }, header: { Authorization: 'Bearer ' + token }, timeout: 240000,
+			success: (response) => {
+				try {
+					if (response.statusCode != 200) throw new Error('文件解析失败（HTTP ' + response.statusCode.toString() + '）')
+					const body = JSON.parse<UTSJSONObject>(response.data) as UTSJSONObject
+					const id = body['id'] as string | null
+					if (id == null || !id.startsWith('file-api-')) throw new Error('文件接口没有返回有效 ID')
+					resolve({ id: id, name: name, provider: 'deepseek' })
+				} catch (error) { reject(error) }
+			}, fail: (_error) => reject(new Error('文件上传失败，请重试'))
+		})
+		onTask(task)
+	})
+}
+
+export function parseOcrPages(data: string): string {
+	const body = JSON.parse<UTSJSONObject>(data) as UTSJSONObject
+	const pages = body['pages'] as UTSJSONObject[] | null
+	if (pages == null || pages.length == 0) throw new Error('没有识别到页面')
+	if (pages.some((page) => page['finish_reason'] != 'stop')) throw new Error('部分页面识别不完整，请拆分文件后重试')
+	const text = pages.map((page): string => (page['text'] as string | null) ?? '').join('\n\n').trim()
+	if (text.length == 0) throw new Error('没有识别到文字')
+	return text
+}
+
+export async function recognizeDeepSeekFile(path: string, onTask: (task: UploadTask) => void): Promise<string> {
+	const token = await deepSeekToken()
+	return await new Promise<string>((resolve, reject) => {
+		const task = uni.uploadFile({
+			url: 'https://api.deepseek.com/v1/tools/ocr', filePath: path, name: 'file',
+			formData: { purpose: 'text_recognition' }, header: { Authorization: 'Bearer ' + token }, timeout: 240000,
+			success: (response) => {
+				try {
+					if (response.statusCode != 200) throw new Error('文字识别失败（HTTP ' + response.statusCode.toString() + '）')
+					resolve(parseOcrPages(response.data))
+				} catch (error) { reject(error) }
+			}, fail: (_error) => reject(new Error('识字上传失败，请重试'))
+		})
+		onTask(task)
+	})
+}
+
+export async function synthesizeDeepSeekSpeech(text: string, onTask: (task: RequestTask) => void): Promise<ArrayBuffer> {
+	if (text.trim().length == 0) throw new Error('没有可朗读的文字')
+	let characters = 0
+	for (let index = 0; index < text.length; index++) characters += /[\u4e00-\u9fff]/.test(text[index]) ? 2 : 1
+	if (characters > 10000) throw new Error('内容过长，请复制需要朗读的部分后重试')
+	const token = await deepSeekToken()
+	return await new Promise<ArrayBuffer>((resolve, reject) => {
+		const task = uni.request({
+			url: 'https://api.deepseek.com/v1/tools/tts', method: 'POST', responseType: 'arraybuffer', timeout: 90000,
+			header: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+			data: { text: text, voice_id: 'stella', format: 'wav', filter_markdown: true },
+			success: (response: RequestSuccess<ArrayBuffer>) => {
+				const bytes = response.data
+				if (response.statusCode != 200 || bytes == null || bytes.byteLength <= 44) { reject(new Error('语音合成失败（HTTP ' + response.statusCode.toString() + '）')); return }
+				const view = new DataView(bytes)
+				if (view.getUint32(0, false) != 0x52494646 || view.getUint32(8, false) != 0x57415645) { reject(new Error('语音接口未返回完整 WAV 音频')); return }
+				resolve(bytes)
+			}, fail: (_error) => reject(new Error('语音合成请求失败'))
+		})
+		onTask(task)
+	})
+}

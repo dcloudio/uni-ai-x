@@ -1083,6 +1083,7 @@ class UniAi {
 		return this.answerQuestion(aiMsgItem)
 	}
 	resetMsg(msg: MsgItem) {
+		msg.serverToolCalls = undefined
 		msg.renderSnapshot = undefined
 		msg.search = null
 		msg.toolConfirmation = null
@@ -1109,6 +1110,7 @@ class UniAi {
 		aiMsgItem.toolConfirmation = null
 		aiMsgItem.toolStatus = ''
 		aiMsgItem.toolResultText = ''
+		aiMsgItem.serverToolCalls = undefined
 		this.streamingAiMsg = aiMsgItem
 		this.activeAnswerMsg = aiMsgItem
 		const answerGeneration = this.answerGeneration
@@ -1121,6 +1123,23 @@ class UniAi {
 			return this.answerGeneration == answerGeneration && chat != null && chat.id == aiMsgItem.chat_id && this.activeAnswerMsg == aiMsgItem
 		}
 		const runnerCallbacks: RequestAiRunnerCallbacks = {
+			onContentFilter: () => {
+				if (!isActiveAiMsg()) return
+				aiMsgItem.body = ''; aiMsgItem.thinkContent = ''
+				aiMsgItem.markdownHtml = ''; aiMsgItem.markdownBlocks = ''; aiMsgItem.markdownAst = ''
+				aiMsgItem.serverToolCalls = []; aiMsgItem.search = null
+				// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+				uniAiMdStreamReset(aiMsgItem._id)
+				aiMsgItem.renderSnapshot = undefined
+				aiMsgItem.uniAiMdRevision = (aiMsgItem.uniAiMdRevision ?? 0) + 1
+				// #endif
+				this.updateMsg2Storage(aiMsgItem)
+			},
+			onServerTools: (calls) => {
+				if (!isActiveAiMsg()) return
+				aiMsgItem.serverToolCalls = calls
+				this.updateMsg2Storage(aiMsgItem)
+			},
 			onSearch: (search) => {
 				if (!isActiveAiMsg()) return
 				aiMsgItem.search = search

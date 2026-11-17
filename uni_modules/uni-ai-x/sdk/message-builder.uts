@@ -29,7 +29,8 @@ export function buildAiMessages(chatItem: ChatItem): RequestAiCoMessage[] {
 		}
 		messages.push({
 			role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
-			content
+			content,
+			server_tool_calls: item.from_uid == 'uni-ai' ? item.serverToolCalls : undefined
 		})
 	})
 	return messages

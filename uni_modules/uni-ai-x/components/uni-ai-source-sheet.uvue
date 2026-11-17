@@ -19,6 +19,10 @@
 						<text class="source-number">{{source.id}}</text>
 					</view>
 					<text class="sheet-source-title" :max-lines="2">{{source.title}}</text>
+					<view v-if="source.imageUrl != null" class="source-preview-slot">
+						<text v-if="failedPreviews.includes(source.id)" class="source-preview-fallback">{{tr('图片暂不可用', 'Image unavailable')}}</text>
+						<image v-else class="source-preview" :src="source.imageUrl!" mode="aspectFit" @error="previewFailed(source.id)" />
+					</view>
 					<text v-if="source.content.length > 0" class="sheet-summary" :max-lines="2">{{source.content}}</text>
 				</view>
 			</scroll-view>
@@ -34,6 +38,8 @@
 	const props = defineProps<{ sources: SearchSource[], selectedId: number }>()
 	const emit = defineEmits<{ 'close': [] }>()
 	const failedIcons = ref<number[]>([])
+	const failedPreviews = ref<number[]>([])
+	function previewFailed(id: number) { if (!failedPreviews.value.includes(id)) failedPreviews.value.push(id) }
 	const scrollTarget = ref('')
 	function siteOrigin(url: string): string {
 		const match = /^https?:\/\/[^/?#]+/i.exec(url)
@@ -69,6 +75,9 @@
 	.source-number { font-size: 11px; line-height: 20px; text-align: center; width: 22px; height: 20px; border-radius: 10px; background-color: var(--bg-secondary); color: var(--text-tertiary); flex-shrink: 0; }
 	.sheet-source-title { font-size: 16px; line-height: 24px; color: var(--text-primary); text-overflow: ellipsis; }
 	.sheet-summary { font-size: 14px; line-height: 23px; color: var(--text-tertiary); margin-top: 10px; text-overflow: ellipsis; }
+	.source-preview-slot { width: 160px; height: 120px; margin-top: 10px; background-color: var(--bg-secondary); align-items: center; justify-content: center; }
+	.source-preview { width: 160px; height: 120px; }
+	.source-preview-fallback { color: var(--text-tertiary); font-size: 12px; }
 	/* #ifdef WEB */
 	.sheet-source { cursor: pointer; }
 	.site-name, .source-date { display: block; min-width: 0; white-space: nowrap; overflow: hidden; }
