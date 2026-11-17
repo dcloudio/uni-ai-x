@@ -2,7 +2,7 @@
 	<view class="chat-box uni-theme-root">
 		<uni-ai-chat-nav @change-menu="changeMenu" />
 		<view class="chat-box-chat" :class="showMenu ? 'chat-box-chat-showMenu' : ''" ref="chat">
-			<view id="chat-scroll-box" class="chat-box-scroll-view-box">
+			<view id="chat-scroll-box" class="chat-box-scroll-view-box" :class="floatingComposer ? 'chat-box-scroll-view-box-floating' : ''">
 				<view class="chat-box-welcome-msg-box" v-if="msgList.length == 0" flatten>
 					<image class="chat-box-welcome-logo" src="@/uni_modules/uni-ai-x/static/uni-chat-logo.png" flatten/>
 					<text class="chat-box-welcome-title" flatten>{{tr('嗨！我是 UNI-AI', 'Hi, I am UNI-AI')}}</text>
@@ -31,24 +31,24 @@
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
 					<!-- #ifdef MP-WEIXIN -->
-					<list-item style="height:35px;" id="msg-list-bottom"></list-item>
+					<list-item id="msg-list-bottom"><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
 					<!-- #endif -->
 					<!-- #ifndef MP-WEIXIN -->
-					<list-item style="height:35px;" id="last-msg-a" v-show="bottomAnchorId == 'last-msg-a'"></list-item>
-					<list-item style="height:35px;" id="last-msg-b" v-show="bottomAnchorId == 'last-msg-b'"></list-item>
+					<list-item id="last-msg-a" v-if="bottomAnchorId == 'last-msg-a'"><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
+					<list-item id="last-msg-b" v-else><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
 					<!-- #endif -->
 				</list-view>
 				<!-- #ifdef APP-HARMONY -->
 				<loading v-if="showPendingLoading && pendingSpinnerVisible" class="chat-box-pending-loading" :style="pendingSpinnerStyle" :paused="false" />
 				<!-- #endif -->
 
-				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" @click="scrollToLastMsg(true)">
+				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: (floatingComposer ? composerHeight + 10 : 10) + 'px'}" @click="scrollToLastMsg(true)">
 					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
 			</view>
 			<uni-ai-chat-extension-input v-if="hasInputExtension" />
-			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
-			<text class="chat-box-tip" flatten>{{tr('内容由ai生成，仅供参考', 'AI generated content may be inaccurate')}}</text>
+			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" @layout-height="updateComposerHeight" />
+			<text v-if="!floatingComposer" class="chat-box-tip" flatten>{{tr('内容由ai生成，仅供参考', 'AI generated content may be inaccurate')}}</text>
 		</view>
 		<view v-if="pendingCalendarMessage != null" class="calendar-confirmation-overlay" @click.stop="blockCalendarOverlay">
 			<view class="calendar-confirmation-modal uni-theme-root" @click.stop="blockCalendarOverlay">
@@ -142,6 +142,18 @@
 	let mouseScrollTimer = 0
 	let mouseScroll = false
 	const hasInputExtension = getChatInputExtension() != null
+    let floatingComposer = false
+    // #ifdef WEB || APP-ANDROID
+    floatingComposer = !hasInputExtension
+    // #endif
+    const composerHeight = ref<number>(140)
+    const bottomSpacerHeight = computed<number>(() => floatingComposer ? composerHeight.value + 16 : 35)
+    function updateComposerHeight(height: number) {
+        if (Math.abs(composerHeight.value - height) < 1) return
+        composerHeight.value = height
+        nextTick(() => { if (autoToLastMsg) scrollToLastMsg(false) })
+    }
+
 	
 	const state = computed<string>(() => {
 		return uniAi.currentChat?.state ?? 'none'
@@ -990,6 +1002,7 @@
 }
 
 .chat-box-chat {
+	justify-content: flex-end;
 	flex: 1;
 	position: relative;
 }
@@ -1055,6 +1068,14 @@
 .chat-box-scroll-view-box {
 	flex: 1;
 	position: relative;
+}
+
+.chat-box-scroll-view-box-floating {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 .chat-box-msg-list {

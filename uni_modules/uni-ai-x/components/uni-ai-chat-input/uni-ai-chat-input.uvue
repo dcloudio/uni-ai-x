@@ -1,5 +1,6 @@
 <template>
 	<view id="chat-composer-shell" class="composer-shell">
+    <view v-show="keyboardHeight == 0 && !isFullscreenLayout && !voiceHolding" class="composer-bottom-mask" :style="{height: (46 + composerSafeBottom) + 'px'}" />
 	<view id="chat-input-container" class="chat-input" :class="[isFullscreenLayout ? 'chat-input-fullscreen' : '', voiceHolding ? (composerState.voiceCancel ? 'chat-input-canceling' : 'chat-input-recording') : '', keyboardHeight > 0 ? 'chat-input-keyboard-open' : '']"
 		:style="{height: chatInputHeight, width: isFullscreenLayout ? fullscreenInputWidth : 'auto'}">
 		<uni-ai-draft-images v-if="uniAi.imgList.length > 0 && !voiceHolding" />
@@ -38,6 +39,9 @@
 			:style="{height: keyboardHeight + 'px'}"></view>
 	</view>
     <uni-ai-attachment-panel v-show="composerState.attachments && !voiceHolding && !isFullscreen" />
+    <view v-show="keyboardHeight == 0 && !isFullscreenLayout && !voiceHolding" class="composer-footer" :style="{height: (22 + composerSafeBottom) + 'px', paddingBottom: composerSafeBottom + 'px'}">
+        <text class="composer-footer-text">{{tr('内容由 AI 生成，请仔细甄别', 'AI generated content. Please verify.')}}</text>
+    </view>
     </view>
 </template>
 
@@ -55,10 +59,15 @@
 
 	const emit = defineEmits<{
 		'scroll-to-last-msg': []
+        'layout-height': [height: number]
 	}>()
 
 	const voiceHolding = computed<boolean>(() => composerState.voicePhase == 'starting' || composerState.voicePhase == 'recording')
 	const keyboardHeight = ref<number>(0)
+    const composerSafeBottom = ref<number>(0)
+    // #ifdef APP-ANDROID
+    composerSafeBottom.value = uni.getWindowInfo().safeAreaInsets.bottom
+    // #endif
 	const isFullscreen = ref<boolean>(false)
 	const isFullscreenLayout = ref<boolean>(false)
 	const inputFocused = ref<boolean>(false)
@@ -165,12 +174,45 @@
 			})
 		}
 	}
+    // Observe the complete composer, including drafts, the keyboard and attachment panel.
+    // Fullscreen removes its card from normal flow; retain the last ordinary height.
+    // #ifdef WEB
+    let layoutObserver: ResizeObserver | null = null
+    // #endif
+    // #ifdef APP-ANDROID
+    let layoutObserver: UniResizeObserver | null = null
+    // #endif
+    // #ifdef WEB || APP-ANDROID
+    function reportComposerHeight() {
+        if (isFullscreenLayout.value) return
+        const height = uni.getElementById('chat-composer-shell')?.getBoundingClientRect().height ?? 0
+        if (height > 0) emit('layout-height', height)
+    }
+    onMounted(() => {
+        nextTick(() => {
+            const shell = uni.getElementById('chat-composer-shell')
+            if (shell == null) return
+            // #ifdef WEB
+            layoutObserver = new ResizeObserver(() => { reportComposerHeight() })
+            // #endif
+            // #ifdef APP-ANDROID
+            layoutObserver = new UniResizeObserver((_entries: UniResizeObserverEntry[]) => { reportComposerHeight() })
+            // #endif
+            layoutObserver?.observe(shell)
+            reportComposerHeight()
+        })
+    })
+    onUnmounted(() => { layoutObserver?.disconnect(); layoutObserver = null })
+    // #endif
 
 </script>
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 .composer-shell { position: relative; z-index: 30; flex-shrink: 0; background-color: transparent; }
+.composer-bottom-mask { position: absolute; left: 0; right: 0; bottom: 0; background-color: var(--bg-primary); }
+.composer-footer { position: relative; height: 22px; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; background-color: var(--bg-primary); }
+.composer-footer-text { font-size: 10px; line-height: 14px; color: var(--text-tertiary); }
 
 .chat-input {
 	position: absolute;
