@@ -1,0 +1,219 @@
+<template>
+	<view class="voice-input" :class="holdingUI ? 'voice-input-holding' : ''"
+		@touchstart.stop.prevent="touchStart" @touchmove.stop.prevent="touchMove" @touchend.stop.prevent="release" @touchcancel.stop.prevent="cancel"
+		<!-- #ifdef WEB -->
+		@mousedown.stop.prevent="mouseStart" @contextmenu.prevent="cancel"
+		<!-- #endif -->
+	>
+        <text class="voice-label" :class="holdingUI ? 'voice-label-holding' : ''" :style="{color: holdingUI ? (canceling ? '#df525c' : '#ffffff') : 'var(--text-primary)'}">{{label}}</text>
+        <uni-ai-audio-indicator v-if="phase != 'idle'" :wide="phase == 'recording'" :loading="phase != 'recording'" :color="holdingUI ? (canceling ? '#df525c' : '#ffffff') : '#969ba5'" />
+	</view>
+</template>
+
+<script setup lang="uts">
+import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+import { transcribeAudioFile } from '@/uni_modules/uni-ai-x/sdk/speech-input.uts'
+import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
+import { documentDrafts } from '@/uni_modules/uni-ai-x/sdk/document-drafts.uts'
+import uniAiAudioIndicator from './uni-ai-audio-indicator.uvue'
+// #ifdef WEB
+import { encodeSpeechWav } from '@/uni_modules/uni-ai-x/sdk/speech-input.uts'
+// #endif
+
+const phase = computed<string>({ get: () => composerState.voicePhase, set: (value: string) => { composerState.voicePhase = value } })
+const canceling = computed<boolean>({ get: () => composerState.voiceCancel, set: (value: boolean) => { composerState.voiceCancel = value } })
+const holdingUI = computed<boolean>(() => phase.value == 'recording' || phase.value == 'starting')
+const label = computed<string>(() => phase.value == 'recording' ? (canceling.value ? tr('松手取消', 'Release to cancel') : tr('松手发送，上滑取消', 'Release to send, slide up to cancel')) : phase.value == 'recognizing' ? tr('正在识别…', 'Transcribing…') : phase.value == 'starting' ? tr('正在准备麦克风…', 'Preparing microphone…') : tr('按住说话', 'Hold to talk'))
+let disposed = false
+let held = false
+let canceled = false
+let startY = 0
+let startedAt = 0
+let chatId = ''
+let timer = 0
+let lastTouch = 0
+let uploadTask: UploadTask | null = null
+// #ifdef WEB
+let recorder: MediaRecorder | null = null
+let stream: MediaStream | null = null
+// #endif
+// #ifndef WEB
+let recorder: RecorderManager | null = null
+// #endif
+
+function fail(message: string) {
+	if (disposed) return
+	held = false
+	phase.value = 'idle'
+	uni.showToast({ title: message, icon: 'none' })
+}
+
+async function recognize(path: string) {
+	if (disposed) return
+	if (canceled || uniAi.currentChat?.id != chatId) { phase.value = 'idle'; return }
+	phase.value = 'recognizing'
+	try {
+		const text = await transcribeAudioFile(path, (task: UploadTask) => {
+			if (disposed) task.abort()
+			else uploadTask = task
+		})
+		if (disposed) return
+		if (uniAi.currentChat?.id != chatId) { fail(tr('会话已切换，请重新录音', 'Chat changed. Record again.')); return }
+		if (text.trim().length == 0) { fail(tr('没有听清，请重试', 'No speech detected. Try again.')); return }
+		const chat = uniAi.currentChat!
+		const current = chat.inputContent
+		chat.inputContent = current + (current.length > 0 ? '\n' : '') + text
+		phase.value = 'idle'
+		if (chat.state == 'processing' || !uniAi.imgList.every(img => img.uploadPercent == 100) || documentDrafts.pending.some(item => item.chatId == chat.id)) {
+			uni.showToast({ title: tr('语音已转为文字，请等待后发送', 'Speech saved. Send when ready.'), icon: 'none' })
+			return
+		}
+		uniAi.sendMsg(chat.inputContent)
+		chat.inputContent = ''
+	} catch (_error) { fail(tr('语音识别失败，请重试', 'Transcription failed. Try again.')) }
+	finally { uploadTask = null }
+}
+
+function stopRecording() {
+	if (timer != 0) clearTimeout(timer)
+	timer = 0
+	// #ifdef WEB
+	if (recorder?.state == 'recording') recorder!.stop()
+	stream?.getTracks().forEach((track) => track.stop())
+	stream = null
+	// #endif
+	// #ifndef WEB
+	recorder?.stop()
+	// #endif
+}
+
+function release() {
+	if (!held) return
+	held = false
+	canceled = canceled || canceling.value || phase.value == 'starting'
+	if (!canceled && Date.now() - startedAt < 500) {
+		canceled = true
+		uni.showToast({ title: tr('说话时间太短，请按住说话', 'Hold longer to record'), icon: 'none' })
+	}
+	// Feedback happens on release, before the recorder callback or network request.
+	if (phase.value == 'recording') {
+		phase.value = canceled ? 'starting' : 'recognizing'
+		stopRecording()
+	}
+}
+function cancel() { canceled = true; release() }
+function touchStart(event: TouchEvent) {
+	lastTouch = Date.now()
+	if (event.touches.length > 0) begin(event.touches[0].screenY)
+}
+function touchMove(event: TouchEvent) {
+	if (held && event.touches.length > 0) canceling.value = startY - event.touches[0].screenY > 60
+}
+// #ifdef WEB
+function mouseStart(event: MouseEvent) {
+	if (Date.now() - lastTouch < 800) return
+	begin(event.screenY)
+}
+function mouseMove(event: MouseEvent) { if (held) canceling.value = startY - event.screenY > 60 }
+function windowBlur() { cancel() }
+onMounted(() => {
+	document.addEventListener('mouseup', release)
+	document.addEventListener('mousemove', mouseMove)
+	window.addEventListener('blur', windowBlur)
+})
+// #endif
+
+async function begin(y: number) {
+	if (phase.value != 'idle' || uniAi.currentChat == null) return
+	if (uniAi.currentChat!.state == 'processing') { uni.showToast({ title: tr('请等待回答完成', 'Wait for the answer to finish'), icon: 'none' }); return }
+	held = true; canceled = false; canceling.value = false; startY = y
+	composerState.attachments = false
+	chatId = uniAi.currentChat!.id
+	phase.value = 'starting'
+	// #ifdef WEB
+	try {
+		if (typeof MediaRecorder == 'undefined' || navigator.mediaDevices == null) throw new Error('Recording unavailable')
+		stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+		if (disposed || !held) { stopRecording(); phase.value = 'idle'; return }
+		const chunks: Blob[] = []
+		recorder = new MediaRecorder(stream!)
+		recorder!.ondataavailable = (event) => { if (event.data.size > 0) chunks.push(event.data) }
+		recorder!.onerror = () => { canceled = true; stopRecording(); fail(tr('录音失败，请重试', 'Recording failed. Try again.')) }
+		recorder!.onstop = async () => {
+			if (disposed) return
+			if (canceled) { phase.value = 'idle'; return }
+			phase.value = 'recognizing'
+			let audio: AudioContext | null = null
+			let path = ''
+			try {
+				audio = new AudioContext()
+				const decoded = await audio!.decodeAudioData(await new Blob(chunks).arrayBuffer())
+				path = URL.createObjectURL(encodeSpeechWav(decoded.getChannelData(0), decoded.sampleRate))
+				await recognize(path)
+			} catch (_error) { fail(tr('无法处理录音，请重试', 'Could not process recording. Try again.')) }
+			finally {
+				if (path.length > 0) URL.revokeObjectURL(path)
+				await audio?.close()
+			}
+		}
+		recorder!.start()
+		startedAt = Date.now()
+		phase.value = 'recording'
+		timer = setTimeout(() => release(), 60000)
+	} catch (_error) {
+		canceled = true; stopRecording()
+		fail(tr('无法使用麦克风，请检查权限', 'Microphone unavailable. Check permissions.'))
+	}
+	// #endif
+	// #ifndef WEB
+	try {
+		if (recorder == null) {
+			recorder = uni.getRecorderManager()
+			recorder!.onStart(() => {
+				if (disposed || !held) { canceled = true; stopRecording(); return }
+				startedAt = Date.now(); phase.value = 'recording'
+			})
+			recorder!.onStop((event) => {
+				if (timer != 0) clearTimeout(timer)
+				timer = 0
+				held = false
+				if (disposed) return
+				if (canceled || phase.value == 'starting') { phase.value = 'idle'; return }
+				void recognize(event.tempFilePath)
+			})
+			recorder!.onError((_error) => fail(tr('录音失败，请检查麦克风权限', 'Recording failed. Check microphone permission.')))
+		}
+		recorder!.start({ duration: 60000, format: 'wav', sampleRate: 16000, numberOfChannels: 1 })
+	} catch (_error) { fail(tr('当前平台无法录音', 'Recording unavailable on this platform')) }
+	// #endif
+}
+
+watch(() => uniAi.currentChat?.id, () => { cancel(); uploadTask?.abort() })
+onUnmounted(() => {
+	disposed = true; canceled = true; held = false
+	stopRecording()
+	uploadTask?.abort()
+	phase.value = 'idle'
+	// #ifdef WEB
+	document.removeEventListener('mouseup', release)
+	document.removeEventListener('mousemove', mouseMove)
+	window.removeEventListener('blur', windowBlur)
+	// #endif
+	// #ifndef WEB
+	recorder?.offStart()
+	recorder?.offStop()
+	recorder?.offError()
+	// #endif
+})
+</script>
+
+<style>
+.voice-input { height: 46px; border-bottom: 1px solid var(--border-secondary); margin-bottom: 4px; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 0; }
+.voice-label { font-size: 15px; color: var(--text-primary); }
+.voice-input-holding { height: 230px; border-bottom-width: 0; margin-bottom: 0; justify-content: flex-end; padding-bottom: 52px; }
+.voice-label-holding { font-size: 14px; margin-bottom: 30px; }
+/* #ifdef WEB */
+.voice-input { user-select: none; touch-action: none; cursor: pointer; }
+/* #endif */
+</style>

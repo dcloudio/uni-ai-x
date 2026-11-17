@@ -1,0 +1,52 @@
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+
+export function parseTranscription(statusCode: number, data: string): string {
+	if (statusCode < 200 || statusCode >= 300) throw new Error('语音识别失败（HTTP ' + statusCode.toString() + '）')
+	const body = JSON.parse<UTSJSONObject>(data) as UTSJSONObject
+	const text = body['text'] as string | null
+	if (typeof text != 'string' || text.trim().length == 0) throw new Error('没有识别到文字，请重新录音')
+	return text.trim()
+}
+
+export async function transcribeAudioFile(filePath: string, onTask: (task: UploadTask) => void): Promise<string> {
+	const provider = llmModelMap.get('qiniu')
+	if (provider?.getToken == null) throw new Error('请先配置七牛临时 Token')
+	const token = await provider.getToken!()
+	return await new Promise<string>((resolve, reject) => {
+		const task = uni.uploadFile({
+			url: 'https://api.qnaigc.com/v1/audio/transcriptions',
+			filePath: filePath,
+			name: 'file',
+			formData: { model: 'qwen/qwen-audio-3.0-asr-flash' },
+			header: { Authorization: 'Bearer ' + token },
+			timeout: 60000,
+			success: (response) => {
+				try { resolve(parseTranscription(response.statusCode, response.data)) }
+				catch (error) { reject(error) }
+			},
+			fail: (_error) => reject(new Error('语音上传失败，请重试'))
+		})
+		onTask(task)
+	})
+}
+
+// #ifdef WEB
+export function encodeSpeechWav(samples: Float32Array, sampleRate: number): Blob {
+	const bytes = new ArrayBuffer(44 + samples.length * 2)
+	const view = new DataView(bytes)
+	const writeText = (offset: number, text: string) => {
+		for (let index = 0; index < text.length; index++) view.setUint8(offset + index, text.charCodeAt(index))
+	}
+	writeText(0, 'RIFF'); view.setUint32(4, bytes.byteLength - 8, true)
+	writeText(8, 'WAVE'); writeText(12, 'fmt '); view.setUint32(16, 16, true)
+	view.setUint16(20, 1, true); view.setUint16(22, 1, true)
+	view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true)
+	view.setUint16(32, 2, true); view.setUint16(34, 16, true)
+	writeText(36, 'data'); view.setUint32(40, samples.length * 2, true)
+	for (let index = 0; index < samples.length; index++) {
+		const value = Math.max(-1, Math.min(1, samples[index]))
+		view.setInt16(44 + index * 2, value < 0 ? value * 32768 : value * 32767, true)
+	}
+	return new Blob([bytes], { type: 'audio/wav' })
+}
+// #endif
