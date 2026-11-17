@@ -1,0 +1,55 @@
+import { reactive } from 'vue'
+import uniAi from './index.uts'
+import { uploadDeepSeekDocument } from './deepseek-app-api.uts'
+
+export type PendingDocument = {
+	key: string
+	chatId: string
+	name: string
+	path: string
+	phase: string
+	progress: number
+	error: string
+}
+export const documentDrafts = reactive({ pending: [] as PendingDocument[] })
+const tasks = new Map<string, UploadTask>()
+
+export function removePendingDocument(key: string) {
+	const index = documentDrafts.pending.findIndex((item) => item.key == key)
+	if (index >= 0) documentDrafts.pending.splice(index, 1)
+	tasks.get(key)?.abort()
+	tasks.delete(key)
+}
+
+export async function retryPendingDocument(key: string) {
+	const item = documentDrafts.pending.find((entry) => entry.key == key)
+	if (item == null || (item.phase != 'failed' && item.phase != 'queued')) return
+	const chat = uniAi.chat.datas.find((entry) => entry.id == item.chatId)
+	if (chat == null) { removePendingDocument(key); return }
+	item.phase = 'uploading'; item.progress = 0; item.error = ''
+	try {
+		const file = await uploadDeepSeekDocument(item.path, item.name, (task: UploadTask) => {
+			if (!documentDrafts.pending.some((entry) => entry.key == key)) { task.abort(); return }
+			tasks.set(key, task)
+			task.onProgressUpdate((event) => {
+				item.progress = event.progress
+				if (event.progress >= 100) item.phase = 'parsing'
+			})
+		})
+		if (!documentDrafts.pending.some((entry) => entry.key == key)) return
+		if (!uniAi.chat.datas.some((entry) => entry.id == chat.id)) { removePendingDocument(key); return }
+		if (chat.draftFiles == null) chat.draftFiles = []
+		chat.draftFiles!.push(file)
+		tasks.delete(key)
+		removePendingDocument(key)
+	} catch (error) {
+		if (!documentDrafts.pending.some((entry) => entry.key == key)) return
+		item.phase = 'failed'; item.error = `${error}`
+	} finally { tasks.delete(key) }
+}
+
+export function addPendingDocument(chatId: string, path: string, name: string) {
+	const key = Date.now().toString() + '-' + Math.random().toString().slice(2)
+	documentDrafts.pending.push({ key: key, chatId: chatId, name: name, path: path, phase: 'queued', progress: 0, error: '' })
+	void retryPendingDocument(key)
+}

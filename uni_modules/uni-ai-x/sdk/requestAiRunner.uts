@@ -258,6 +258,11 @@ class RequestAiRunner {
 	}
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string, updateTitleAfterDone: boolean = false) {
 		this.resetRequestState()
+		const hasDocuments = messages.some((message) => typeof message.content != 'string' && message.content.some((part) => part.type == 'file'))
+		if (hasDocuments && (llm.provider != 'deepseek' || llm.model != 'deepseek-flash')) {
+			this.handleRequestError({ errCode: 'document_provider_mismatch', errMsg: '此会话包含官方文件附件，请选择 DeepSeek 官方 Flash 模型' })
+			return
+		}
 		this.pendingTitleMessages = updateTitleAfterDone ? messages.slice(0) : null
 		this.pendingTitleLlm = updateTitleAfterDone ? llm : null
 
