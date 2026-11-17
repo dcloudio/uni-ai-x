@@ -22,7 +22,7 @@
 	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 	.search-sources { padding-top: 12px; padding-bottom: 8px; }
 	.sources-title { font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px; }
-	.source-row { flex-direction: row; align-items: center; min-height: 36px; padding: 5px 0; }
+	.source-row { flex-direction: row; align-items: center; min-height: 36px; box-sizing: border-box; padding: 0; }
 	.source-number { width: 28px; font-size: 12px; color: #6283a9; }
 	.source-title { flex: 1; font-size: 13px; line-height: 19px; color: var(--text-secondary); margin-right: 8px; }
 </style>

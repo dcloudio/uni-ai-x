@@ -47,9 +47,9 @@
 		</scroll-view>
 		<uni-popup ref="choicePopupRef" @close="choicePopupClosed">
 			<view class="uni-im-setting-choice-dialog">
-				<view class="uni-im-setting-choice-header">
-					<uni-ai-icon :name="choiceKind == 'language' ? 'globe-outline' : appearanceIcon" size="26" />
-					<text class="uni-im-setting-choice-title">{{choiceKind == 'language' ? tr('语言', 'Language') : tr('外观', 'Appearance')}}</text>
+				<view class="uni-im-setting-choice-header" :class="choiceKind == 'theme' ? 'uni-im-setting-choice-header-plain' : ''">
+					<uni-ai-icon v-if="choiceKind == 'language'" name="globe-outline" size="20" />
+					<text class="uni-im-setting-choice-title" :class="choiceKind == 'theme' ? 'uni-im-setting-choice-title-plain' : ''">{{choiceKind == 'language' ? tr('语言', 'Language') : tr('外观', 'Appearance')}}</text>
 				</view>
 				<scroll-view direction="vertical" class="uni-im-setting-choice-options">
 					<view v-for="option in choiceOptions" :key="option.value" class="uni-im-setting-choice-row" hover-class="uni-im-setting-item-active" @click="pendingChoice = option.value">
@@ -258,22 +258,24 @@
 .uni-im-setting-content { padding: 4px 16px 24px; padding-bottom: env(safe-area-inset-bottom); }
 .uni-im-setting-section-title { font-size: 13px; color: var(--text-tertiary); margin: 20px 16px 10px; }
 .uni-im-setting-card { border-radius: 16px; background-color: var(--bg-primary); overflow: hidden; }
-.uni-im-setting-item { min-height: 56px; flex-direction: row; align-items: center; padding: 14px 16px; }
+.uni-im-setting-item { height: 52px; flex-shrink: 0; box-sizing: border-box; flex-direction: row; align-items: center; padding: 0 16px; }
 .uni-im-setting-item-active { background-color: var(--bg-tertiary); }
 .uni-im-setting-label { margin-left: 14px; margin-right: 16px; font-size: 16px; color: var(--text-primary); flex-shrink: 0; }
 .uni-im-setting-value { flex: 1; font-size: 15px; color: var(--text-tertiary); margin-right: 8px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.uni-im-setting-choice-dialog { width: 600rpx; max-width: 360px; border-radius: 24px; background-color: var(--bg-primary); overflow: hidden; }
-.uni-im-setting-choice-header { align-items: center; padding: 24px 20px 18px; border-bottom: 1px solid var(--border-secondary); }
-.uni-im-setting-choice-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-top: 14px; }
+.uni-im-setting-choice-dialog { width: 530rpx; max-width: 320px; border-radius: 20px; background-color: var(--bg-primary); overflow: hidden; }
+.uni-im-setting-choice-header { height: 80px; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-secondary); }
+.uni-im-setting-choice-header-plain { height: 56px; }
+.uni-im-setting-choice-title { font-size: 16px; line-height: 22px; font-weight: 500; color: var(--text-primary); margin-top: 8px; }
+.uni-im-setting-choice-title-plain { margin-top: 0; }
 .uni-im-setting-choice-options { max-height: 360px; }
-.uni-im-setting-choice-row { min-height: 60px; padding: 14px 20px; flex-direction: row; align-items: center; }
-.uni-im-setting-choice-radio { width: 22px; height: 22px; border-radius: 11px; border: 2px solid var(--text-secondary); justify-content: center; align-items: center; flex-shrink: 0; }
+.uni-im-setting-choice-row { height: 50px; box-sizing: border-box; flex-shrink: 0; padding: 0 18px; flex-direction: row; align-items: center; }
+.uni-im-setting-choice-radio { width: 18px; height: 18px; border-radius: 9px; border: 1.5px solid var(--text-secondary); justify-content: center; align-items: center; flex-shrink: 0; }
 .uni-im-setting-choice-radio-selected { border-color: var(--text-primary); }
-.uni-im-setting-choice-dot { width: 12px; height: 12px; border-radius: 6px; background-color: var(--text-primary); }
-.uni-im-setting-choice-label { flex: 1; font-size: 17px; color: var(--text-primary); margin-left: 18px; }
+.uni-im-setting-choice-dot { width: 10px; height: 10px; border-radius: 5px; background-color: var(--text-primary); }
+.uni-im-setting-choice-label { flex: 1; font-size: 15px; line-height: 22px; color: var(--text-primary); margin-left: 16px; }
 .uni-im-setting-choice-note { padding: 0 20px 16px; font-size: 13px; color: var(--text-secondary); }
-.uni-im-setting-choice-confirm { min-height: 56px; align-items: center; justify-content: center; border-top: 1px solid var(--border-secondary); }
-.uni-im-setting-choice-confirm-text { font-size: 18px; font-weight: 500; color: var(--accent-primary); }
+.uni-im-setting-choice-confirm { height: 48px; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; border-top: 1px solid var(--border-secondary); }
+.uni-im-setting-choice-confirm-text { font-size: 16px; font-weight: 500; color: var(--accent-primary); }
 
 .uni-im-setting-choose-llm-model {
 	width: 650rpx;
