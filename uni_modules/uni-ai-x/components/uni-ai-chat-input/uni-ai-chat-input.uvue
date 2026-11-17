@@ -1,16 +1,17 @@
 <template>
 	<view id="chat-composer-shell" class="composer-shell">
-	<view id="chat-input-container" class="chat-input" :class="[isFullscreenLayout ? 'chat-input-fullscreen' : '', keyboardHeight > 0 ? 'chat-input-keyboard-open' : '']"
+	<view id="chat-input-container" class="chat-input" :class="[isFullscreenLayout ? 'chat-input-fullscreen' : '', voiceHolding ? (composerState.voiceCancel ? 'chat-input-canceling' : 'chat-input-recording') : '', keyboardHeight > 0 ? 'chat-input-keyboard-open' : '']"
 		:style="{height: chatInputHeight, width: isFullscreenLayout ? fullscreenInputWidth : 'auto'}">
-		<uni-ai-draft-images v-if="uniAi.imgList.length > 0" />
-		<uni-ai-draft-documents />
-		<view v-if="isEditingMsg" class="chat-input-edit-tip">
+		<uni-ai-draft-images v-if="uniAi.imgList.length > 0 && !voiceHolding" />
+		<uni-ai-draft-documents v-show="!voiceHolding" />
+		<view v-if="isEditingMsg && !voiceHolding" class="chat-input-edit-tip">
 			<text class="chat-input-edit-tip-text" flatten>{{tr('正在编辑消息，发送后将替换该消息及之后的对话', 'Editing this message will replace it and all later replies.')}}</text>
 			<view class="chat-input-edit-tip-cancel" @click="cancelEdit">
 				<text class="chat-input-edit-tip-cancel-text">{{tr('取消', 'Cancel')}}</text>
 			</view>
 		</view>
-		<view class="chat-input-editor">
+		<uni-ai-voice-input v-if="composerState.voice" />
+		<view v-else class="chat-input-editor">
 		<view v-if="chatInputContent.length > 0 || isFullscreen" class="chat-input-fullscreen-btn" @click.stop="toggleFullscreen"
 			@touchstart.stop="prepareFullscreenToggle"
 			<!-- #ifdef WEB -->
@@ -28,7 +29,7 @@
 			:focus="inputFocused" @focus="onInputFocus" @blur="onInputBlur" :auto-height="false"
 		></textarea>
 		</view>
-		<view class="chat-input-toolbar" :class="isFullscreenLayout ? 'chat-input-toolbar-fullscreen' : ''"
+		<view v-show="!voiceHolding" class="chat-input-toolbar" :class="isFullscreenLayout ? 'chat-input-toolbar-fullscreen' : ''"
 			:style="{bottom: isFullscreenLayout ? (keyboardHeight > 0 ? (keyboardHeight + 5) + 'px' : 'env(safe-area-inset-bottom)') : 'auto'}">
 			<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
 		</view>
@@ -36,12 +37,13 @@
 			:class="keyboardHeight > 0 ? 'chat-input-keyboard-cover-keyboard' : ''"
 			:style="{height: keyboardHeight + 'px'}"></view>
 	</view>
-    <uni-ai-attachment-panel v-show="composerState.attachments && !isFullscreen" />
+    <uni-ai-attachment-panel v-show="composerState.attachments && !voiceHolding && !isFullscreen" />
     </view>
 </template>
 
 <script lang="uts" setup>
 	import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
+	import uniAiVoiceInput from '../uni-ai-voice-input.uvue'
 	import uniAiAttachmentPanel from '../uni-ai-attachment-panel.uvue'
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
@@ -55,6 +57,7 @@
 		'scroll-to-last-msg': []
 	}>()
 
+	const voiceHolding = computed<boolean>(() => composerState.voicePhase == 'starting' || composerState.voicePhase == 'recording')
 	const keyboardHeight = ref<number>(0)
 	const isFullscreen = ref<boolean>(false)
 	const isFullscreenLayout = ref<boolean>(false)
@@ -89,6 +92,10 @@
 		}
 	}
 
+	watch(() => composerState.voice, () => {
+        if (isFullscreen.value) toggleFullscreen()
+        inputFocused.value = false
+    })
     watch(() => uniAi.currentChat?.id, () => { composerState.attachments = false })
 
 	function scrollToLastMsg() {
@@ -189,6 +196,8 @@
 }
 
 .chat-input-keyboard-open { margin-bottom: 0; }
+.chat-input-canceling { margin: 0; border-radius: 20px 20px 0 0; background-image: linear-gradient(to bottom, #ffffff, #ffcdd7); }
+.chat-input-recording { margin: 0; border-radius: 20px 20px 0 0; background-image: linear-gradient(to bottom, #ffffff, #3979ff); }
 
 .chat-input-fullscreen {
 	margin: 0;

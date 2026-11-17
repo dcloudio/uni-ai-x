@@ -16,6 +16,7 @@
         </view>
         <view class="composer-actions">
             <view class="composer-toggle" @click="toggleAttachments"><uni-ai-icon :name="composerState.attachments ? 'close-circle-outline' : 'plus-circle-outline'" size="26" color="var(--text-secondary)" /></view>
+            <view class="composer-toggle" @click="toggleVoice"><uni-ai-icon :name="composerState.voice ? 'keyboard-outline' : 'voice-outline'" size="26" color="var(--text-secondary)" /></view>
 		<view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active"
 			@click="stop">
             <uni-ai-icon name="stop-fill" color="#FFF" size="14" />
@@ -158,6 +159,12 @@ const setWebSearch = () => {
 function toggleAttachments() {
     if (composerState.voicePhase != 'idle') return
     composerState.attachments = !composerState.attachments
+    uni.getElementById('chat-input-textarea')?.blur()
+}
+function toggleVoice() {
+    if (composerState.voicePhase != 'idle') return
+    composerState.voice = !composerState.voice
+    composerState.attachments = false
     uni.getElementById('chat-input-textarea')?.blur()
 }
 

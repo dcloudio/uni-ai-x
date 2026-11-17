@@ -1,0 +1,27 @@
+<template>
+	<view class="audio-indicator" :style="{width: wide ? '250px' : '20px'}">
+		<view v-if="loading" class="audio-spinner" :style="{transform: 'rotate(' + (frame * 30) + 'deg)', borderTopColor: color}" />
+		<view v-else class="audio-bars">
+			<view v-for="(bar, index) in bars" :key="index" class="audio-bar" :style="{height: (wide ? bar : bar * 0.85) + 'px', backgroundColor: color}" />
+		</view>
+	</view>
+</template>
+<script setup lang="uts">
+const props = withDefaults(defineProps<{ loading?: boolean, color?: string, wide?: boolean }>(), { loading: false, color: '#536dfe', wide: false })
+const frame = ref(0)
+const bars = computed<number[]>(() => {
+    const values: number[] = []
+    const count = props.wide ? 45 : 5
+    for (let index = 0; index < count; index++) values.push(4 + (Math.sin(frame.value * 0.7 - index * 1.1) + 1) * 7)
+    return values
+})
+let timer = 0
+onMounted(() => { timer = setInterval(() => { frame.value = (frame.value + 1) % 120 }, 100) })
+onUnmounted(() => { clearInterval(timer) })
+</script>
+<style>
+.audio-indicator { width: 28px; height: 28px; align-items: center; justify-content: center; flex-shrink: 0; }
+.audio-bars { height: 24px; flex-direction: row; align-items: center; justify-content: center; }
+.audio-bar { width: 2px; margin: 0 1px; border-radius: 2px; }
+.audio-spinner { width: 17px; height: 17px; border: 2px solid #d5d7dc; border-radius: 20px; }
+</style>
