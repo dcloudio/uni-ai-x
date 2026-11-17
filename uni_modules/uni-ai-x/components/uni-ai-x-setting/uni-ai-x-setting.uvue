@@ -43,6 +43,16 @@
 					</view>
 				</view>
 				<!-- #endif -->
+                <!-- #ifndef APP -->
+                <text class="uni-im-setting-section-title">{{tr('关于', 'About')}}</text>
+                <view class="uni-im-setting-card">
+                    <view class="uni-im-setting-item">
+                        <uni-ai-icon name="info-outline" size="22" />
+                        <text class="uni-im-setting-label">{{tr('当前版本', 'Version')}}</text>
+                        <text class="uni-im-setting-value">{{currentAppVersion}}</text>
+                    </view>
+                </view>
+                <!-- #endif -->
 			</view>
 		</scroll-view>
 		<uni-popup ref="choicePopupRef" @close="choicePopupClosed">
@@ -187,8 +197,8 @@
 
 	// #ifdef APP
 	const checkingUpdate = ref<boolean>(false)
-	const currentAppVersion = uni.getAppBaseInfo().appVersion
 	// #endif
+	const currentAppVersion = uni.getAppBaseInfo().appVersion ?? ''
 
     const modelListHeight = ref('360px')
     const isSelectedModel = (provider: string, modelId: string): boolean => uniAi.llm.provider == provider && uniAi.llm.model == modelId
