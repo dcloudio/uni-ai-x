@@ -2,6 +2,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
+test('DeepSeek Search uses its own payload and normalizes summary and site fields', async () => {
+  let request;
+  const { webSearchForRequest } = loadUts('uni_modules/uni-ai-x/sdk/web-search.uts', ['webSearchForRequest'], {
+    uni: { request(options) {
+      request = options;
+      queueMicrotask(() => options.success({ statusCode: 200, data: { results: [
+        { title: 'Official', url: 'https://example.test/official', content: '', summary: 'Verified summary', site_name: 'Official site' },
+      ] } }));
+      return {};
+    } },
+  });
+  const result = await webSearchForRequest('a'.repeat(140), 'token', 'https://api.qnaigc.com/v1/tools/search', [{ role: 'user', content: 'question' }]);
+  assert.equal(request.data.query.length, 128);
+  assert.equal(request.data.count, 8);
+  assert.equal(request.data.need_content, true);
+  assert.equal(request.data.search_type, undefined);
+  assert.equal(result.sources[0].content, 'Verified summary');
+  assert.equal(result.sources[0].source, 'Official site');
+});
+
 test('Android search accepts a JSON response and injects numbered sources', async () => {
   let requestOptions;
   let registeredTask;
