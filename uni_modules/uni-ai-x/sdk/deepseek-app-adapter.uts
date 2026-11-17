@@ -1,0 +1,144 @@
+import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+import { Chunk, CustomProviderAdapter, CustomProviderCallbacks, RequestAiCoMessage, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
+import { registerCustomProvider } from './provider-registry.uts'
+import { SseStreamParser } from './sse.uts'
+import { supportsDeepSeekApps } from './deepseek-app-api.uts'
+
+export function buildDeepSeekAppBody(messages: RequestAiCoMessage[], model: string, search: boolean, thinking?: boolean): UTSJSONObject {
+	const history = messages.slice(0)
+	// The UI creates the empty answer slot before requesting; it is not a model input.
+	while (history.length > 0) {
+		const last = history[history.length - 1]
+		if (last.role != 'assistant' || typeof last.content != 'string' || (last.content as string).trim().length > 0) break
+		history.pop()
+	}
+	const body: UTSJSONObject = { model: model, messages: history, stream: true, thinking: { type: thinking == false ? 'disabled' : 'enabled' } }
+	if (model == 'deepseek-flash') {
+		body['safety_check'] = { level: 'high' }
+		const tools: UTSJSONObject[] = [{ type: 'deepseek_read_url' }]
+		if (search) tools.push({ type: 'deepseek_web_search' })
+		body['tools'] = tools
+	}
+	return body
+}
+
+export class DeepSeekAppAdapter extends CustomProviderAdapter {
+	override async request(messages: RequestAiCoMessage[], model: string, _chatId: string, callbacks: CustomProviderCallbacks, thinking?: boolean): Promise<boolean> {
+		let safetyRefused = false
+		try {
+			const provider = llmModelMap.get('deepseek')
+			if (provider?.getToken == null || provider.baseURL != 'https://api.deepseek.com/chat/completions') throw new Error('DeepSeek 官方接口未配置')
+			const token = await provider.getToken!()
+			if (callbacks.isCancelled?.() == true) return false
+			const body = buildDeepSeekAppBody(messages, model, callbacks.webSearch == true, thinking)
+			return await new Promise<boolean>((resolve, reject) => {
+				let settled = false
+				let chunkReceived = false
+				let refused = false
+				let visible = false
+				const sources: SearchSource[] = []
+				const addSource = (value: UTSJSONObject) => {
+					const url = value['url'] as string | null
+					if (url == null || !/^https?:\/\//i.test(url) || sources.some((source) => source.url == url)) return
+					const imageUrl = (value['image_url'] as string | null) ?? ''
+					sources.push({ id: sources.length + 1, url: url, title: (value['title'] as string | null) ?? url, content: (value['snippet'] as string | null) ?? '', source: (value['site_name'] as string | null) ?? '', date: (value['published_at'] as string | null) ?? '', imageUrl: /^https?:\/\//i.test(imageUrl) ? imageUrl : undefined })
+				}
+				const collectCalls = (steps: UTSJSONObject[]) => {
+					steps.forEach((step) => {
+						const calls = step['calls'] as UTSJSONObject[] | null
+						calls?.forEach((call) => {
+							const results = call['sources'] as UTSJSONObject[] | null
+							results?.forEach(addSource)
+							const page = call['page'] as UTSJSONObject | null
+							if (page != null) addSource(page)
+						})
+					})
+				}
+				const parser = new SseStreamParser((chunk: Chunk) => {
+					if (settled || callbacks.isCancelled?.() == true) return
+					const choice = chunk.choices?.[0]
+					if (choice == null) return
+					if (choice.finish_reason == 'content_filter') refused = true
+					if (choice.finish_reason == 'length') { settled = true; reject(new Error('回答达到长度限制，请缩小问题范围重试')); return }
+					const event = choice.server_tool_event
+					if (event?.['type'] == 'call_started') callbacks.onToolStatus?.('正在检索资料')
+					const delta = choice.delta
+					if (delta == null) return
+					if (delta.server_tool_calls != null) {
+						collectCalls(delta.server_tool_calls!)
+						callbacks.onServerTools?.(delta.server_tool_calls!)
+					}
+					delta.annotations?.forEach((annotation) => {
+						const citation = annotation['url_citation'] as UTSJSONObject | null
+						if (citation != null) addSource(citation)
+					})
+					if ((delta.content ?? '').length > 0) visible = true
+					callbacks.onChunk?.(chunk)
+				}, (error: UTSJSONObject) => {
+					if (settled) return
+					settled = true
+					reject(new Error((error['message'] as string | null) ?? 'DeepSeek 流式请求失败'))
+				}, () => {
+					if (settled) return
+					settled = true
+					if (callbacks.isCancelled?.() == true) { resolve(false); return }
+					if (refused) {
+						safetyRefused = true
+						callbacks.onServerTools?.([])
+						reject(new Error('内容安全审核未通过，请调整问题后重试'))
+						return
+					}
+					if (!visible) { reject(new Error('模型没有生成回答，请重试')); return }
+					if (sources.length > 0) {
+						callbacks.onSearch?.({ status: 'complete', query: '', sources: sources, error: '' })
+						callbacks.onChunk?.({ choices: [{ delta: { content: '\n\n来源：' + sources.map((source) => '[' + source.id.toString() + ']').join(' ') } }] })
+					}
+					callbacks.onToolStatus?.('')
+					callbacks.onDone?.({})
+					resolve(true)
+				})
+				const task = uni.request({
+					url: provider.baseURL!, method: 'POST', data: body, dataType: 'text', timeout: 180000,
+					// @ts-ignore chunked requests are supported on Web and App.
+					enableChunked: true,
+					header: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+					success: (response: RequestSuccess<any>) => {
+						if (settled) return
+						if (response.statusCode != 200) {
+							settled = true
+							let message = 'DeepSeek 请求失败（HTTP ' + response.statusCode.toString() + '）'
+							try {
+								const errorBody = typeof response.data == 'string' ? JSON.parse<UTSJSONObject>(response.data as string) as UTSJSONObject : response.data as UTSJSONObject
+								const error = errorBody['error'] as UTSJSONObject | null
+								const detail = (error?.['message'] as string | null) ?? ''
+								if (detail.includes('Content Exists Risk')) { safetyRefused = true; message = '内容安全审核未通过，请调整问题后重试' }
+								else if (detail.length > 0) message += '：' + detail.slice(0, 500)
+							} catch (_error) { }
+							reject(new Error(message)); return
+						}
+						if (!chunkReceived && typeof response.data == 'string') parser.pushText(response.data as string)
+						parser.finish()
+					}, fail: (_error) => { if (!settled) { settled = true; reject(new Error('DeepSeek 网络请求失败')) } }
+				})
+				// @ts-ignore
+				task.onChunkReceived((chunk: RequestTaskOnChunkReceivedListenerResult) => { chunkReceived = true; parser.push(chunk.data) })
+				callbacks.onTaskCreate?.(task)
+			})
+		} catch (error) {
+			if (callbacks.isCancelled?.() == true) return false
+			callbacks.onToolStatus?.('')
+			callbacks.onError?.({ errCode: safetyRefused ? 'content_filter' : 'deepseek_request_failed', errMsg: `${error}` })
+			return false
+		}
+	}
+}
+
+export function installDeepSeekApps() {
+	if (!supportsDeepSeekApps('deepseek', 'deepseek-flash')) return
+	const officialProvider = llmModelMap.get('deepseek')!
+	const flash = officialProvider.models.find((model) => model.modelId == 'deepseek-flash')
+	if (flash != null) flash.image = true
+	registerCustomProvider('deepseek', new DeepSeekAppAdapter())
+}
+
+installDeepSeekApps()

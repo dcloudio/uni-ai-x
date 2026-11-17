@@ -49,6 +49,7 @@ export type ChatItem = {
 	title: string,
 	state: string,
 	inputContent: string,
+	draftFiles?: DocumentAttachment[],
 	msgList: MsgItem[],
 	update_time: number
 }
@@ -75,6 +76,8 @@ export type ChunkChoiceDelta = {
 	content: string,
 	reasoning_content?: string,
 	tool_calls?: ChunkToolCall[]
+	server_tool_calls?: UTSJSONObject[]
+	annotations?: UTSJSONObject[]
 }
 export type ChunkMessage = {
 	content: string
@@ -82,6 +85,8 @@ export type ChunkMessage = {
 export type ChunkChoice = {
 	delta?: ChunkChoiceDelta
 	message?: ChunkMessage
+	server_tool_event?: UTSJSONObject
+	finish_reason?: string
 }
 type Output = {
 	text: string
@@ -100,6 +105,7 @@ export type SearchSource = {
 	content: string
 	source: string
 	date: string
+	imageUrl?: string
 }
 
 export type MessageSearch = {
@@ -130,6 +136,8 @@ export type MsgItem = {
 	toolConfirmation?: CalendarToolConfirmation | null
 	toolResultText?: string
 	img_url_list?: string[]
+	file_list?: DocumentAttachment[]
+	serverToolCalls?: UTSJSONObject[]
 	thinkContent?: string
 	from_uid: string
 	state: number
@@ -165,6 +173,13 @@ export type BaseMsgItem = {
 	from_uid: string
 	about_msg_id?: string
 	img_url_list?: string[]
+	file_list?: DocumentAttachment[]
+}
+
+export type DocumentAttachment = {
+	id: string
+	name: string
+	provider: string
 }
 
 // 消息对象，含：消息列表、是否还有更多消息、是否正在加载更多消息、加载更多消息方法
@@ -189,13 +204,18 @@ export type ImgParse = {
 }
 
 // 多模态内容
-export type MultiModalContent = (TextParse | ImgParse)[]
+export type FileParse = {
+	type: 'file'
+	file_id: string
+}
+export type MultiModalContent = (TextParse | ImgParse | FileParse)[]
 // 请求ai对话消息
 export type RequestAiCoMessage = {
 	// 来自谁：用户或ai
 	role : "user" | "assistant"
 	// 内容
 	content : string | MultiModalContent
+	server_tool_calls?: UTSJSONObject[]
 }
 
 // 用户
@@ -233,6 +253,7 @@ export type ImgItem = {
 
 // 自定义提供商适配器回调
 export type CustomProviderCallbacks = {
+	onServerTools?: (calls: UTSJSONObject[]) => void,
 	webSearch ?: boolean,
 	onSearch ?: (search: MessageSearch) => void,
 	onTaskCreate ?: (task: RequestTask) => void,

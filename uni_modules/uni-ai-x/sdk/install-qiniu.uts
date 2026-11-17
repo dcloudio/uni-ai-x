@@ -1,0 +1,26 @@
+import { registerOptionalProvider } from '@/uni_modules/uni-ai-x/config.uts'
+
+// Keep an existing Qiniu configuration; also offer the gateway when the user
+// currently defaults to another provider.
+registerOptionalProvider('qiniu', {
+	models: [
+        { modelId: 'deepseek/deepseek-v4.1-flash', name: 'DeepSeek Flash', thinking: true, toolCall: true, image: true },
+        { modelId: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro', thinking: true },
+        { modelId: 'bytedance/doubao-seed-2-1-pro', name: 'Doubao Seed 2.1 Pro', thinking: true, toolCall: true, image: true },
+        { modelId: 'bytedance/doubao-seed-2-1-turbo', name: 'Doubao Seed 2.1 Turbo', thinking: true, toolCall: true, image: true },
+        { modelId: 'z-ai/glm-5.3', name: 'GLM 5.3', thinking: true, toolCall: true },
+        { modelId: 'z-ai/glm-5.3-flash', name: 'GLM 5.3 Flash', thinking: true, toolCall: true, image: true },
+        { modelId: 'minimax/minimax-m2.7', name: 'MiniMax M2.7', thinking: true, toolCall: true }
+    ],
+	baseURL: 'https://api.qnaigc.com/v1/chat/completions',
+	webSearchURL: 'https://api.qnaigc.com/v1/tools/search',
+	async getToken(): Promise<string> {
+		const service = uniCloud.importObject('uni-ai-x-co', { customUI: true })
+		const response = await service.getTmpToken({ provider: 'qiniu' })
+		if (response.errCode != 0) throw new Error('获取 uni AI 网关临时 Token 失败')
+		const data = response['data'] as UTSJSONObject | null
+		const token = data?.['token'] as string | null
+		if (token == null || token.length == 0) throw new Error('uni AI 网关临时 Token 为空')
+		return token
+	}
+})

@@ -38,54 +38,69 @@ export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userin
  * 默认以第一个为默认模型
  */
 const llmModelMap = new Map<string, Provider>([
-	// 七牛
+	// DeepSeek 官方直连（本地联调配置）
 	[
-		'qiniu', {
+		'deepseek', {
 			models: [
-				{ modelId: 'deepseek/deepseek-v4.1-flash', name: 'deepseek-v4.1-flash', thinking: true, toolCall: true, image: true},
-				{ modelId: 'deepseek/deepseek-v4-pro', name: "deepseek-v4-pro", thinking: true},
-				{ modelId: 'bytedance/doubao-seed-2-1-pro', name: "doubao-seed-2-1-pro", thinking: true, toolCall: true, image: true},
-				{ modelId: 'bytedance/doubao-seed-2-1-turbo', name: "doubao-seed-2-1-turbo", thinking: true, toolCall: true, image: true},
-				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true, toolCall: true},
-				{ modelId: 'z-ai/glm-5.3-flash', name: "glm-5.3-flash", thinking: true, toolCall: true, image: true},
-				{ modelId: 'minimax/minimax-m2.7', name: "minimax-m2.7", thinking: true, toolCall: true},
+				{ modelId: 'deepseek-flash', name: 'DeepSeek Flash', thinking: true },
+				{ modelId: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', thinking: true }
 			],
-			baseURL: "https://openai.qiniu.com/v1/chat/completions",
-			webSearchURL: "https://api.qnaigc.com/v1/search/web",
+			baseURL: 'https://api.deepseek.com/chat/completions',
 			async getToken(): Promise<string> {
-
-			
-				// unicloud项目 通过uni-ai-x-co 获取临时token
-				const uniAiChatCo = uniCloud.importObject("uni-ai-x-co", { customUI: true })
-				try {
-					const getTmpTokenRes = await uniAiChatCo.getTmpToken({provider: "qiniu"})
-					if (getTmpTokenRes.errCode != 0) {
-						throw new Error('获取临时token失败: ' + getTmpTokenRes.errCode + ' ' + getTmpTokenRes.errMsg)
-					}
-					const tokenData = getTmpTokenRes['data'] as UTSJSONObject | null
-					const tmpToken = tokenData == null ? '' : (tokenData['token'] as string | null) ?? ''
-					return tmpToken
-				} catch (e: any) {
-					console.error('uni-ai-x-co 请求失败', e?.errCode ?? '', e?.errMsg ?? e?.message ?? '')
-					throw new Error('获取临时token失败')
-				}
-				
-			
-				// 非 unicloud项目 请求自己的服务器的接口得到临时 token 例如
-				/*
-				const res = await uni.request({
-					url: 'https://your-server.com/get-token',
-					method: 'GET'
-				})
-				if (res.statusCode != 200) {
-					throw new Error('获取临时token失败')
-				}
-				const tmpToken = res.getString('data.token', '')
-				return tmpToken
-				*/
+				// 请通过自己的服务端获取凭据，本地联调 Key 不纳入版本库。
+				throw new Error('请配置 DeepSeek 官方访问凭据')
 			}
 		}
 	]
+	// 原 uni-AI 网关配置保留；恢复时取消以下逐行注释，并注释上面的直连配置。
+// 	// 七牛
+// 	[
+// 		'qiniu', {
+// 			models: [
+// 				{ modelId: 'deepseek/deepseek-v4.1-flash', name: 'deepseek-v4.1-flash', thinking: true, toolCall: true, image: true},
+// 				{ modelId: 'deepseek/deepseek-v4-pro', name: "deepseek-v4-pro", thinking: true},
+// 				{ modelId: 'bytedance/doubao-seed-2-1-pro', name: "doubao-seed-2-1-pro", thinking: true, toolCall: true, image: true},
+// 				{ modelId: 'bytedance/doubao-seed-2-1-turbo', name: "doubao-seed-2-1-turbo", thinking: true, toolCall: true, image: true},
+// 				{ modelId: 'z-ai/glm-5.3', name: "glm-5.3", thinking: true, toolCall: true},
+// 				{ modelId: 'z-ai/glm-5.3-flash', name: "glm-5.3-flash", thinking: true, toolCall: true, image: true},
+// 				{ modelId: 'minimax/minimax-m2.7', name: "minimax-m2.7", thinking: true, toolCall: true},
+// 			],
+// 			baseURL: "https://openai.qiniu.com/v1/chat/completions",
+// 			webSearchURL: "https://api.qnaigc.com/v1/search/web",
+// 			async getToken(): Promise<string> {
+//
+//
+// 				// unicloud项目 通过uni-ai-x-co 获取临时token
+// 				const uniAiChatCo = uniCloud.importObject("uni-ai-x-co", { customUI: true })
+// 				try {
+// 					const getTmpTokenRes = await uniAiChatCo.getTmpToken({provider: "qiniu"})
+// 					if (getTmpTokenRes.errCode != 0) {
+// 						throw new Error('获取临时token失败: ' + getTmpTokenRes.errCode + ' ' + getTmpTokenRes.errMsg)
+// 					}
+// 					const tokenData = getTmpTokenRes['data'] as UTSJSONObject | null
+// 					const tmpToken = tokenData == null ? '' : (tokenData['token'] as string | null) ?? ''
+// 					return tmpToken
+// 				} catch (e: any) {
+// 					console.error('uni-ai-x-co 请求失败', e?.errCode ?? '', e?.errMsg ?? e?.message ?? '')
+// 					throw new Error('获取临时token失败')
+// 				}
+//
+//
+// 				// 非 unicloud项目 请求自己的服务器的接口得到临时 token 例如
+// 				/*
+// 				const res = await uni.request({
+// 					url: 'https://your-server.com/get-token',
+// 					method: 'GET'
+// 				})
+// 				if (res.statusCode != 200) {
+// 					throw new Error('获取临时token失败')
+// 				}
+// 				const tmpToken = res.getString('data.token', '')
+// 				return tmpToken
+// 				*/
+// 			}
+// 		}
+// 	]
 	/*,
 	// 阿里云百炼
 	[

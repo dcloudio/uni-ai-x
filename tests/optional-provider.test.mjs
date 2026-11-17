@@ -10,7 +10,8 @@ function baseConfig() {
 
 test('optional assistant registers first without duplicating the provider on repeated install', () => {
   const config = baseConfig();
-  assert.equal(config.defaultLLM.provider, 'qiniu');
+  assert.equal(config.defaultLLM.provider, config.providerNameList[0]);
+  assert.equal(config.defaultLLM.model, config.llmModelMap.get(config.defaultLLM.provider).models[0].modelId);
   assert.equal(config.llmModelMap.has('Uni小助手'), false);
 
   const adapters = new Map();

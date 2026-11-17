@@ -1,6 +1,7 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, CalendarToolConfirmation, MessageSearch, SearchSource } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
+import { installDeepSeekApps } from './deepseek-app-adapter.uts'
 import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 import {
@@ -31,6 +32,8 @@ import { logBlockPayload } from '@/uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-
 // #endif
 
 export type RequestAiRunnerCallbacks = {
+	onContentFilter?: () => void,
+	onServerTools?: (calls: UTSJSONObject[]) => void,
 	onSearch?: (search: MessageSearch) => void,
 	onMarkdownHtml: (html: string) => void,
 	onMarkdownBlocks: (blocks: string) => void,
@@ -217,6 +220,12 @@ class RequestAiRunner {
 		if (errCode == 'data_inspection_failed') {
 			errMsg = '数据检查失败，疑似包含敏感信息'
 		}
+		if (errCode == 'content_filter') {
+			if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
+			this.bodyEmitTimer = 0
+			this.msgBody = ''; this.thinkContent = ''
+			this.callbacks?.onContentFilter?.()
+		}
 		if (this.userAbort == false) {
 			this.callbacks?.onErrorMsg(errMsg)
 		}
@@ -268,7 +277,7 @@ class RequestAiRunner {
 		// #endif
 		// #endif
 
-		const modelSupportsSearchTools = (llm.provider == 'qiniu' && llmModelMap.get(llm.provider)?.models.find((model) => model.modelId == llm.model)?.toolCall == true)
+		const modelSupportsSearchTools = (llm.provider == 'deepseek' && llm.model == 'deepseek-flash') || (llm.provider == 'qiniu' && llmModelMap.get(llm.provider)?.models.find((model) => model.modelId == llm.model)?.toolCall == true)
 		if (llm.webSearch == true && !modelSupportsSearchTools) {
 			this.searchThenRequestAi(messages, llm, chat_id)
 			return
@@ -312,6 +321,7 @@ class RequestAiRunner {
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
+		installDeepSeekApps()
 		installAgentTools()
 		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (getCustomProvider(llm.provider) == null) {
@@ -626,6 +636,7 @@ class RequestAiRunner {
 		const requestVersion = this.workerRequestVersion
 		const isCancelled = (): boolean => this.userAbort || requestVersion != this.workerRequestVersion
 		const callbacks: CustomProviderCallbacks = {
+			onServerTools: (calls: UTSJSONObject[]) => { if (!isCancelled()) this.callbacks?.onServerTools?.(calls) },
 			webSearch: options.llm.webSearch,
 			onSearch: (search: MessageSearch) => { if (!isCancelled()) this.callbacks?.onSearch?.(search) },
 			onTaskCreate: (task: RequestTask) => { if (isCancelled()) task.abort(); else options.onTaskCreate?.(task) },
