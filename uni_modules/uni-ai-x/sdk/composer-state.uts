@@ -1,0 +1,5 @@
+import { reactive } from 'vue'
+
+// Shared by the editor and its toolbar; recording itself stays owned by the mounted editor.
+type ComposerState = { voice: boolean, attachments: boolean, voicePhase: string, voiceCancel: boolean }
+export const composerState = reactive<ComposerState>({ voice: false, attachments: false, voicePhase: 'idle', voiceCancel: false })

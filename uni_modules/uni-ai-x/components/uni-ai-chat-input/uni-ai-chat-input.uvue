@@ -1,13 +1,16 @@
 <template>
-	<view id="chat-input-container" class="chat-input" :class="isFullscreenLayout ? 'chat-input-fullscreen' : ''"
-		:style="{height: chatInputHeight}">
-		<uni-ai-draft-images />
+	<view id="chat-composer-shell" class="composer-shell">
+	<view id="chat-input-container" class="chat-input" :class="[isFullscreenLayout ? 'chat-input-fullscreen' : '', keyboardHeight > 0 ? 'chat-input-keyboard-open' : '']"
+		:style="{height: chatInputHeight, width: isFullscreenLayout ? fullscreenInputWidth : 'auto'}">
+		<uni-ai-draft-images v-if="uniAi.imgList.length > 0" />
+		<uni-ai-draft-documents />
 		<view v-if="isEditingMsg" class="chat-input-edit-tip">
 			<text class="chat-input-edit-tip-text" flatten>{{tr('正在编辑消息，发送后将替换该消息及之后的对话', 'Editing this message will replace it and all later replies.')}}</text>
 			<view class="chat-input-edit-tip-cancel" @click="cancelEdit">
 				<text class="chat-input-edit-tip-cancel-text">{{tr('取消', 'Cancel')}}</text>
 			</view>
 		</view>
+		<view class="chat-input-editor">
 		<view v-if="chatInputContent.length > 0 || isFullscreen" class="chat-input-fullscreen-btn" @click.stop="toggleFullscreen"
 			@touchstart.stop="prepareFullscreenToggle"
 			<!-- #ifdef WEB -->
@@ -20,10 +23,11 @@
 			<uni-ai-icon :name="isFullscreen ? 'compact-outline' : 'fullscreen-outline'" size="16" color="#9b9b9b" />
 		</view>
 		<textarea id="chat-input-textarea" class="chat-input-textarea" :class="isFullscreen ? 'chat-input-textarea-expanded' : ''"
-			:style="{height: isFullscreen ? expandedTextareaHeight : '50px'}" v-model="chatInputContent" :placeholder="tr('给 uni-ai-x 发送消息', 'Message uni-ai-x')"
+			:style="{height: isFullscreen ? expandedTextareaHeight : '46px'}" v-model="chatInputContent" :placeholder="tr('发消息或按住说话', 'Message or hold to talk')"
 			:adjust-position="false" :hold-keyboard="isFullscreen || keepKeyboardForToggle" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 			:focus="inputFocused" @focus="onInputFocus" @blur="onInputBlur" :auto-height="false"
 		></textarea>
+		</view>
 		<view class="chat-input-toolbar" :class="isFullscreenLayout ? 'chat-input-toolbar-fullscreen' : ''"
 			:style="{bottom: isFullscreenLayout ? (keyboardHeight > 0 ? (keyboardHeight + 5) + 'px' : 'env(safe-area-inset-bottom)') : 'auto'}">
 			<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
@@ -32,14 +36,20 @@
 			:class="keyboardHeight > 0 ? 'chat-input-keyboard-cover-keyboard' : ''"
 			:style="{height: keyboardHeight + 'px'}"></view>
 	</view>
+    <uni-ai-attachment-panel v-show="composerState.attachments && !isFullscreen" />
+    </view>
 </template>
 
 <script lang="uts" setup>
+	import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
+	import uniAiAttachmentPanel from '../uni-ai-attachment-panel.uvue'
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import uniAi from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import inputToolBar from '@/uni_modules/uni-ai-x/components/input-tool-bar.uvue'
 	import uniAiDraftImages from '@/uni_modules/uni-ai-x/components/uni-ai-draft-images.uvue'
+
+	import uniAiDraftDocuments from '@/uni_modules/uni-ai-x/components/uni-ai-draft-documents.uvue'
 
 	const emit = defineEmits<{
 		'scroll-to-last-msg': []
@@ -54,6 +64,7 @@
 	const layoutTransitioning = ref<boolean>(false)
 	const expandedTextareaHeight = ref<string>('0px')
 	const chatInputHeight = ref<string>('auto')
+	const fullscreenInputWidth = ref<string>('auto')
 	let normalChatInputHeight: string = 'auto'
 	let layoutTransitionTimer: number = 0
 	const chatInputContent = computed<string>({
@@ -78,6 +89,8 @@
 		}
 	}
 
+    watch(() => uniAi.currentChat?.id, () => { composerState.attachments = false })
+
 	function scrollToLastMsg() {
 		emit('scroll-to-last-msg')
 	}
@@ -90,6 +103,7 @@
 	}
 
 	function onInputFocus() {
+		composerState.attachments = false
 		inputFocused.value = true
 		restoreFocusAfterToggle.value = false
 		scrollToLastMsg()
@@ -118,6 +132,7 @@
 			const currentHeight = chatInput?.getBoundingClientRect().height ?? 0
 			normalChatInputHeight = currentHeight > 0 ? currentHeight + 'px' : 'auto'
 			chatInputHeight.value = normalChatInputHeight
+			fullscreenInputWidth.value = uni.getWindowInfo().windowWidth + 'px'
 			isFullscreenLayout.value = true
 			expandedTextareaHeight.value = uni.getWindowInfo().windowHeight + 'px'
 			nextTick(() => {
@@ -143,10 +158,12 @@
 			})
 		}
 	}
+
 </script>
 
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+.composer-shell { position: relative; z-index: 30; flex-shrink: 0; background-color: transparent; }
 
 .chat-input {
 	position: absolute;
@@ -159,29 +176,44 @@
 	bottom: 0;
 	flex-direction: column;
 	background-color: var(--bg-primary);
-	padding: 15px 15px 5px 15px;
-	border-radius: 15px 15px 0 0;
-	border: 1px solid var(--border-secondary);
+	padding: 10px 10px 8px;
+	margin: 6px 12px 0;
+	border-radius: 24px;
+	border: 1px solid var(--border-color);
+	box-sizing: border-box;
+	overflow: hidden;
 	z-index: 30;
 	transition-property: height;
 	transition-duration: 140ms;
 	transition-timing-function: ease-out;
 }
 
+.chat-input-keyboard-open { margin-bottom: 0; }
+
 .chat-input-fullscreen {
+	margin: 0;
+	border-radius: 0;
 	position: fixed;
 	right: 0;
 	bottom: 0;
-	left: 0;
-	width: 100%;
+	left: auto;
 	z-index: 1000;
 	overflow: hidden;
+}
+
+.chat-input-editor {
+	position: relative;
+	background-color: transparent;
+	margin-bottom: 2px;
+	flex-shrink: 0;
 }
 
 .chat-input-textarea {
 	max-height: 200px;
 	width: 100%;
-	padding-right: 48px;
+	padding: 2px 28px 2px 6px;
+	font-size: 15px;
+	line-height: 23px;
 	box-sizing: border-box;
 	color: var(--text-primary);
 }
@@ -192,8 +224,8 @@
 
 .chat-input-fullscreen-btn {
 	position: absolute;
-	top: 12px;
-	right: 12px;
+	top: 0;
+	right: 0;
 	width: 36px;
 	height: 36px;
 	justify-content: center;
@@ -239,12 +271,12 @@
 }
 
 .chat-input-placeholder {
-	color: var(--text-disabled);
+	color: var(--text-tertiary);
 }
 
 .chat-input-keyboard-cover {
 	/* #ifdef APP-ANDROID */
-	margin-bottom: env(safe-area-inset-bottom);
+	margin-bottom: 0;
 	/* #endif */
 	/* #ifndef APP-ANDROID */
 	padding-bottom: env(safe-area-inset-bottom);
@@ -280,8 +312,8 @@
 
 @media screen and (min-device-width:960px){
 	.chat-input {
-		border-radius: 15px;
-		margin: 10px;
+		border-radius: 24px;
+		margin: 12px 20px 0;
 		margin-top: 0;
 	}
 }

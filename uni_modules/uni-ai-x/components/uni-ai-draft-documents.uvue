@@ -1,0 +1,46 @@
+<template>
+	<scroll-view v-if="files.length > 0 || pending.length > 0" class="draft-documents" direction="horizontal" :show-scrollbar="false">
+		<view v-for="file in files" :key="file.id" class="document-card">
+			<view class="document-kind"><text class="document-kind-label">{{extension(file.name)}}</text></view>
+			<view class="document-info"><text class="document-name">{{file.name}}</text><text class="document-status">{{tr('已就绪', 'Ready')}}</text></view>
+			<view class="document-remove" @click.stop="removeFile(file.id)"><uni-ai-icon name="close-outline" size="14" color="var(--text-secondary)" /></view>
+		</view>
+		<view v-for="item in pending" :key="item.key" class="document-card" :class="item.phase == 'failed' ? 'document-card-failed' : ''">
+			<view class="document-kind"><text class="document-kind-label">{{extension(item.name)}}</text></view>
+			<view class="document-info" @click="retry(item.key)"><text class="document-name">{{item.name}}</text><text class="document-status" :class="item.phase == 'failed' ? 'document-status-failed' : ''">{{status(item)}}</text></view>
+			<view class="document-remove" @click.stop="removePendingDocument(item.key)"><uni-ai-icon name="close-outline" size="14" color="var(--text-secondary)" /></view>
+		</view>
+	</scroll-view>
+</template>
+<script setup lang="uts">
+import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+import { DocumentAttachment } from '@/uni_modules/uni-ai-x/types.uts'
+import { documentDrafts, PendingDocument, removePendingDocument, retryPendingDocument } from '@/uni_modules/uni-ai-x/sdk/document-drafts.uts'
+import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
+const files = computed<DocumentAttachment[]>(() => uniAi.currentChat?.draftFiles ?? [])
+const pending = computed<PendingDocument[]>(() => documentDrafts.pending.filter((item) => item.chatId == uniAi.currentChat?.id))
+function extension(name: string): string { return (name.split('.').pop() ?? 'FILE').toUpperCase().slice(0, 5) }
+function status(item: PendingDocument): string {
+	if (item.phase == 'failed') return tr('解析失败，点此重试', 'Failed. Tap to retry')
+	if (item.phase == 'parsing') return tr('正在解析…', 'Processing…')
+	return tr('上传中 ', 'Uploading ') + item.progress.toString() + '%'
+}
+function removeFile(id: string) {
+	const chat = uniAi.currentChat
+	if (chat?.draftFiles != null) chat.draftFiles = chat.draftFiles!.filter((file) => file.id != id)
+}
+function retry(key: string) { void retryPendingDocument(key) }
+</script>
+<style>
+.draft-documents { height: 72px; flex-shrink: 0; flex-direction: row; margin-bottom: 8px; }
+.document-card { width: 208px; height: 68px; flex-shrink: 0; margin-right: 8px; padding: 10px; border: 1px solid var(--border-secondary); border-radius: 14px; flex-direction: row; align-items: center; background-color: var(--bg-primary); }
+.document-card-failed { border-color: #d94747; }
+.document-kind { width: 34px; height: 36px; flex-shrink: 0; border-radius: 6px; background-color: #edf3ff; align-items: center; justify-content: center; }
+.document-kind-label { font-size: 10px; font-weight: bold; color: #3c76e4; }
+.document-info { flex: 1; min-width: 0; margin-left: 8px; }
+.document-name { font-size: 13px; line-height: 20px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.document-status { font-size: 11px; line-height: 18px; color: var(--text-secondary); }
+.document-status-failed { color: #d94747; }
+.document-remove { width: 28px; height: 40px; flex-shrink: 0; align-items: center; justify-content: center; }
+</style>

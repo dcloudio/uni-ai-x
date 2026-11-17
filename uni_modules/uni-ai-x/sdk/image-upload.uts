@@ -62,7 +62,7 @@ function updateUploadedImageUrl(file: UniCloudChooseAndUploadFileItem) {
 	})
 }
 
-export function uploadDraftImages(currentModel: LLMModel) {
+export function uploadDraftImages(currentModel: LLMModel, source: string = '') {
 	if (!ensureImageModel(currentModel)) {
 		return
 	}
@@ -76,7 +76,7 @@ export function uploadDraftImages(currentModel: LLMModel) {
 	}
 
 	uniCloud.chooseAndUploadFile({
-		sourceType: ['album', 'camera'],
+		sourceType: source.length > 0 ? [source] : ['album', 'camera'],
 		count: 9 - uniAi.imgList.length,
 		sizeType: ['compressed'],
 		type: 'image',

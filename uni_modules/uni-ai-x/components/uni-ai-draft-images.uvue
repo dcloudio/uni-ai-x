@@ -1,22 +1,11 @@
 <template>
-	<scroll-view class="draft-images" direction="horizontal" v-show="uniAi.imgList.length > 0">
-		<view class="draft-image-item" v-for="(img, index) in uniAi.imgList" :key="img.path">
-			<view class="draft-image-content">
-				<image class="draft-image" :src="img.path" mode="aspectFill"></image>
-				<view class="draft-image-info">
-					<text class="draft-image-name">{{img.name}}</text>
-					<text class="draft-image-upload-percent" v-if="img.uploadPercent < 100">{{tr('上传中：', 'Uploading: ')}}{{img.uploadPercent}}%</text>
-					<template v-else>
-						<text class="draft-image-type">{{img.type}}</text>
-						<text class="draft-image-size">{{img.size}}</text>
-					</template>
-				</view>
-			</view>
-			<view class="draft-image-close-btn">
-				<uni-ai-icon name="close-outline" size="8" color="#FFF" @click="removeImg(index)" />
-			</view>
-		</view>
-	</scroll-view>
+    <scroll-view class="draft-images" direction="horizontal" :show-scrollbar="false" v-show="uniAi.imgList.length > 0">
+        <view class="draft-image-item" v-for="(img, index) in uniAi.imgList" :key="img.path">
+            <image class="draft-image" :src="img.path" mode="aspectFill" />
+            <text v-if="img.uploadPercent < 100" class="draft-image-progress">{{img.uploadPercent}}%</text>
+            <view class="draft-image-close-btn" @click.stop="removeImg(index)"><uni-ai-icon name="close-outline" size="11" color="#ffffff" /></view>
+        </view>
+    </scroll-view>
 </template>
 
 <script lang="uts" setup>
@@ -29,79 +18,10 @@
 	}
 </script>
 
-<style lang="scss">
-@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
-
-.draft-images {
-	flex-direction: row;
-	align-items: center;
-	justify-content: flex-start;
-	flex-wrap: wrap;
-	overflow: visible;
-	margin: -15px -15px 0 -15px;
-	padding: 5px;
-	padding-top: 0;
-}
-
-.draft-image-item {
-	position: relative;
-	overflow: visible;
-}
-
-.draft-image-content {
-	margin-top: 5px;
-	margin-right: 10px;
-	border: 1px solid var(--border-secondary);
-	border-radius: 10px;
-	padding: 5px;
-	flex-direction: row;
-	align-items: center;
-}
-
-.draft-image {
-	width: 25px;
-	height: 25px;
-	border-radius: 10px;
-}
-
-.draft-image-info {
-	padding-left: 5px;
-	width: 100px;
-	flex-direction: row;
-	flex-wrap: wrap;
-}
-
-.draft-image-name,
-.draft-image-size,
-.draft-image-type,
-.draft-image-upload-percent {
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	font-size: 10px;
-	color: var(--text-secondary);
-}
-
-.draft-image-name {
-	font-size: 12px;
-	color: var(--text-primary);
-	width: 100%;
-}
-
-.draft-image-size,
-.draft-image-upload-percent {
-	margin-left: 5px;
-}
-
-.draft-image-close-btn {
-	position: absolute;
-	top: 3px;
-	right: 5px;
-	background-color: #ff5555;
-	justify-content: center;
-	align-items: center;
-	border-radius: 100px;
-	width: 12px;
-	height: 12px;
-}
+<style>
+.draft-images { height: 80px; flex-direction: row; flex-shrink: 0; margin-bottom: 8px; }
+.draft-image-item { width: 72px; height: 72px; margin-right: 8px; position: relative; flex-shrink: 0; }
+.draft-image { width: 72px; height: 72px; border-radius: 13px; border: 1px solid var(--border-secondary); }
+.draft-image-close-btn { position: absolute; right: 3px; top: 3px; width: 22px; height: 22px; border-radius: 12px; background-color: #62656a; align-items: center; justify-content: center; }
+.draft-image-progress { position: absolute; left: 5px; bottom: 5px; padding: 2px 4px; color: #ffffff; font-size: 11px; background-color: #62656a; border-radius: 5px; }
 </style>
