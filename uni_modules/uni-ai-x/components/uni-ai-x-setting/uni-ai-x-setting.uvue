@@ -68,21 +68,34 @@
 			</view>
 		</uni-popup>
 		<uni-popup ref="modelPopupRef" @close="modelPopupVisible = false">
-			<view class="uni-im-setting-choose-llm-model">
-				<text class="uni-im-setting-choose-title">{{tr('选择AI模型', 'Choose AI model')}}</text>
-				<scroll-view direction="horizontal" class="uni-im-setting-scroll-view">
-					<view v-for="provider in providerNameList" :key="provider">
-						<view v-for="(llmMode, i) in llmModelMap.get(provider)!.models" :key="i" @click="radioChange(provider, llmMode.modelId)" class="uni-im-setting-model-item">
-							<uni-ai-icon class="uni-im-setting-radio" name="check-circle-fill" size="18" :color="uniAi.llm.model == llmMode.modelId && provider == uniAi.llm.provider ? '#007AFF' : '#DDD'" />
-							<text class="uni-im-setting-model-text">{{llmMode.name ?? llmMode.modelId}}</text>
-							<text class="uni-im-setting-tag" v-if="llmMode.thinking">{{tr('思考', 'Reasoning')}}</text>
-							<text class="uni-im-setting-tag" v-if="llmMode.image">{{tr('图片理解', 'Vision')}}</text>
-							<text class="uni-im-setting-tag" v-if="llmMode.toolCall">{{tr('工具调用', 'Tools')}}</text>
-						</view>
-					</view>
-				</scroll-view>
-			</view>
-		</uni-popup>
+            <view class="model-picker">
+                <view class="model-picker-header">
+                    <text class="model-picker-title">{{tr('选择 AI 模型', 'Choose AI model')}}</text>
+                    <text class="model-picker-subtitle">{{tr('选择适合当前任务的模型', 'Choose a model for your task')}}</text>
+                    <view class="model-picker-close" @click="closeModelPopup"><uni-ai-icon name="close-outline" size="18" color="var(--text-tertiary)" /></view>
+                </view>
+                <scroll-view direction="vertical" class="model-picker-scroll" :style="{height: modelListHeight}" :show-scrollbar="false">
+                    <view v-for="provider in providerNameList" :key="provider" class="model-picker-group">
+                        <text class="model-picker-provider">{{providerLabel(provider)}}</text>
+                        <view v-for="model in llmModelMap.get(provider)!.models" :key="model.modelId" class="model-picker-card" :class="isSelectedModel(provider, model.modelId) ? 'model-picker-card-selected' : ''" @click="radioChange(provider, model.modelId)">
+                            <view class="model-picker-main">
+                                <view class="model-picker-info">
+                                    <text class="model-picker-name">{{model.name ?? model.modelId}}</text>
+                                    <text class="model-picker-description">{{modelDescription(model.modelId)}}</text>
+                                </view>
+                                <view class="model-picker-radio" :class="isSelectedModel(provider, model.modelId) ? 'model-picker-radio-selected' : ''"><view class="model-picker-dot" :style="{opacity: isSelectedModel(provider, model.modelId) ? 1 : 0}" /></view>
+                            </view>
+                            <view v-if="model.thinking || model.image || model.toolCall" class="model-picker-tags">
+                                <text v-if="model.thinking" class="model-picker-tag">{{tr('深度思考', 'Reasoning')}}</text>
+                                <text v-if="model.image" class="model-picker-tag">{{tr('图片理解', 'Vision')}}</text>
+                                <text v-if="model.toolCall" class="model-picker-tag">{{tr('工具调用', 'Tools')}}</text>
+                            </view>
+                        </view>
+                    </view>
+                </scroll-view>
+                <view class="model-picker-footer"><text class="model-picker-footer-text">{{tr('选择后立即生效', 'Your selection takes effect immediately')}}</text></view>
+            </view>
+        </uni-popup>
 	</view>
 </template>
 
@@ -177,7 +190,23 @@
 	const currentAppVersion = uni.getAppBaseInfo().appVersion
 	// #endif
 
+    const modelListHeight = ref('360px')
+    const isSelectedModel = (provider: string, modelId: string): boolean => uniAi.llm.provider == provider && uniAi.llm.model == modelId
+    const providerLabel = (provider: string): string => {
+        if (provider == 'deepseek') return tr('DeepSeek 官方', 'DeepSeek Official')
+        if (provider == 'qiniu') return tr('uni AI 网关', 'uni AI Gateway')
+        return provider
+    }
+    const modelDescription = (modelId: string): string => {
+        if (modelId.toLowerCase().includes('flash')) return tr('日常问答与快速响应', 'Everyday questions and quick responses')
+        if (modelId.toLowerCase().includes('pro')) return tr('复杂任务与深入分析', 'Complex tasks and detailed analysis')
+        return tr('问答、创作与任务处理', 'Questions, writing and tasks')
+    }
+
 	const openModelPopup = () => {
+        let count = 0
+        providerNameList.forEach((provider: string) => { count += llmModelMap.get(provider)?.models.length ?? 0 })
+        modelListHeight.value = Math.min(count * 112 + providerNameList.length * 36, Math.floor(uni.getWindowInfo().windowHeight * 0.56)) + 'px'
 		modelPopupVisible.value = true
 		modelPopupRef.value?.$callMethod('open')
 	}
@@ -277,52 +306,25 @@
 .uni-im-setting-choice-confirm { height: 48px; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; border-top: 1px solid var(--border-secondary); }
 .uni-im-setting-choice-confirm-text { font-size: 16px; font-weight: 500; color: var(--accent-primary); }
 
-.uni-im-setting-choose-llm-model {
-	width: 650rpx;
-	border-radius: 5px;
-	background-color: var(--bg-primary);
-	padding: 10px 0;
-}
-
-.uni-im-setting-choose-title {
-	padding-bottom: 5px;
-	text-align: center;
-	font-size: 16px;
-	font-weight: bold;
-	color: var(--text-primary);
-}
-
-.uni-im-setting-scroll-view {
-	padding: 0 15px;
-	max-height: 550rpx;
-}
-
-.uni-im-setting-model-item {
-	padding: 5px;
-	flex-direction: row;
-	align-items: center;
-}
-
-.uni-im-setting-radio {
-}
-
-.uni-im-setting-model-text {
-	margin-left: 5px;
-	color: var(--text-secondary);
-	font-size: 14px;
-	flex-shrink: 1;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.uni-im-setting-tag {
-	font-size: 12px;
-	margin-left: 5px;
-	color: var(--accent-primary);
-	border: 1px solid var(--accent-primary);
-	border-radius: 5px;
-	padding: 1px 2px;
-	transform: scale(0.8);
-}
+.model-picker { width: 686rpx; max-width: 440px; border-radius: 24px; background-color: var(--bg-primary); overflow: hidden; }
+.model-picker-header { position: relative; align-items: center; padding: 24px 42px 18px; flex-shrink: 0; }
+.model-picker-title { font-size: 19px; line-height: 26px; font-weight: 600; color: var(--text-primary); text-align: center; }
+.model-picker-subtitle { font-size: 13px; line-height: 20px; margin-top: 6px; color: var(--text-tertiary); text-align: center; }
+.model-picker-close { position: absolute; top: 12px; right: 10px; width: 36px; height: 36px; align-items: center; justify-content: center; }
+.model-picker-scroll { padding: 0 20px; box-sizing: border-box; flex-shrink: 0; }
+.model-picker-group { padding-bottom: 8px; }
+.model-picker-provider { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text-secondary); margin: 0 4px 10px; }
+.model-picker-card { padding: 14px; margin-bottom: 10px; border: 1px solid var(--border-secondary); border-radius: 14px; background-color: var(--bg-primary); box-sizing: border-box; }
+.model-picker-card-selected { border-color: var(--accent-primary); background-color: var(--input-btn-active-bg); }
+.model-picker-main { flex-direction: row; align-items: center; }
+.model-picker-info { flex: 1; min-width: 0; }
+.model-picker-name { font-size: 16px; line-height: 22px; font-weight: 600; color: var(--text-primary); }
+.model-picker-description { font-size: 12px; line-height: 18px; margin-top: 3px; color: var(--text-tertiary); }
+.model-picker-radio { width: 19px; height: 19px; border: 1.5px solid var(--text-tertiary); border-radius: 10px; margin-left: 10px; flex-shrink: 0; align-items: center; justify-content: center; }
+.model-picker-radio-selected { border-color: var(--accent-primary); }
+.model-picker-dot { width: 11px; height: 11px; border-radius: 6px; background-color: var(--accent-primary); }
+.model-picker-tags { flex-direction: row; flex-wrap: wrap; margin-top: 10px; }
+.model-picker-tag { font-size: 11px; line-height: 16px; padding: 1px 6px; margin-right: 5px; margin-bottom: 2px; border: 1px solid var(--border-secondary); border-radius: 5px; color: var(--accent-primary); }
+.model-picker-footer { height: 44px; align-items: center; justify-content: center; flex-shrink: 0; }
+.model-picker-footer-text { font-size: 12px; color: var(--text-tertiary); }
 </style>
