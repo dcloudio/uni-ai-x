@@ -1,0 +1,27 @@
+<template>
+	<view class="speech-output" @click="toggle">
+        <uni-ai-audio-indicator v-if="active" :loading="speechPlayback.phase == 'loading'" :color="speechPlayback.phase == 'loading' ? '#969ba5' : '#536dfe'" />
+        <uni-ai-icon v-else name="waveform-outline" size="20" :color="uiTheme == 'dark' ? '#b0b0b0' : '#8a8a8a'" />
+    </view>
+</template>
+<script setup lang="uts">
+import uniAiAudioIndicator from './uni-ai-audio-indicator.uvue'
+import uniAiIcon from './uni-ai-icon/uni-ai-icon.uvue'
+import uniAi, { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+import { supportsDeepSeekApps } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-api.uts'
+import { speechPlayback, stopAnswerSpeech, playAnswerSpeech } from '@/uni_modules/uni-ai-x/sdk/speech-output.uts'
+const props = defineProps<{ messageId: string, text: string }>()
+const active = computed<boolean>(() => speechPlayback.owner == props.messageId)
+function toggle() {
+	if (speechPlayback.owner == props.messageId) { stopAnswerSpeech(props.messageId); return }
+	if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) { uni.showToast({ title: tr('朗读需选择 DeepSeek 官方 Flash 模型', 'Choose official DeepSeek Flash for speech'), icon: 'none' }); return }
+	if (uniAi.currentChat?.state == 'processing') { uni.showToast({ title: tr('请等待回答完成', 'Wait for the answer to finish'), icon: 'none' }); return }
+	void playAnswerSpeech(props.messageId, props.text)
+}
+onUnmounted(() => stopAnswerSpeech(props.messageId))
+</script>
+<style>
+.speech-output { width: 32px; height: 36px; margin-top: 6px; margin-right: 4px; align-items: center; justify-content: center; flex-shrink: 0; }
+.speech-output-label { color: var(--text-secondary); font-size: 12px; }
+</style>

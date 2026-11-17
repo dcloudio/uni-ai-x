@@ -1,12 +1,14 @@
 <template>
 	<view class="uni-ai-tool-bar uni-theme-root" :style="toolBarStyle">
 		<!-- 复制按钮、重新回答按钮 -->
-		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg && !isWeatherToolError">
-			<uni-ai-icon name="refresh-outline" size="20" :color="toolBarIconColor" />
-		</view>
 		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="copy">
 			<uni-ai-icon name="copy-outline" size="20" :color="toolBarIconColor" />
 		</view>
+		<uni-ai-speech-output v-if="msg.from_uid == 'uni-ai' && msg.body.length > 0" :messageId="msg._id" :text="msg.body" />
+		<view class="uni-ai-tool-bar-btn uni-ai-tool-bar-retry" :style="toolBarButtonStyle + 'margin-left:auto;margin-right:0;'" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg && !isWeatherToolError">
+			<uni-ai-icon name="refresh-outline" size="20" :color="toolBarIconColor" />
+		</view>
+
 		<!-- <view class="btn"  @click="deleteMsg" v-if="aiState != 'processing'">
 			<uni-ai-icon class="delete" name="trash-outline" size="22" color="#999" />
 		</view> -->
@@ -15,6 +17,7 @@
 
 <script lang="uts" setup>
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
+	import uniAiSpeechOutput from '@/uni_modules/uni-ai-x/components/uni-ai-speech-output.uvue'
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts';
 	
@@ -41,7 +44,7 @@
 	})
 
 	const toolBarIconColor = computed<string>(() => {
-		return uiTheme.value == 'dark' ? '#b0b0b0' : '#999999'
+		return uiTheme.value == 'dark' ? '#b0b0b0' : '#8a8a8a'
 	})
 
 	const toolBarStyle = computed<string>(() => {
@@ -49,7 +52,7 @@
 	})
 
 	const toolBarButtonStyle = computed<string>(() => {
-		return 'width:30px;height:30px;align-items:center;justify-content:center;flex-shrink:0;margin-top:5px;margin-right:15px;'
+		return 'width:32px;height:36px;align-items:center;justify-content:center;flex-shrink:0;margin-top:6px;margin-right:4px;'
 	})
 
 	const copyToClipboard = (text: string) => {

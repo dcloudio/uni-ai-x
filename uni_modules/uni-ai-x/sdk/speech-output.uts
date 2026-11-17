@@ -1,0 +1,61 @@
+import { reactive } from 'vue'
+import { synthesizeDeepSeekSpeech } from './deepseek-app-api.uts'
+
+export const speechPlayback = reactive({ owner: '', phase: 'idle' })
+let version = 0
+let task: RequestTask | null = null
+let audio: InnerAudioContext | null = null
+let path = ''
+
+export function stopAnswerSpeech(owner: string = '') {
+	if (owner.length > 0 && speechPlayback.owner != owner) return
+	version++
+	task?.abort(); task = null
+	audio?.destroy(); audio = null
+	if (path.length > 0) {
+		// #ifdef WEB
+		URL.revokeObjectURL(path)
+		// #endif
+		// #ifndef WEB
+		uni.getFileSystemManager().unlink({ filePath: path })
+		// #endif
+	}
+	path = ''
+	speechPlayback.owner = ''; speechPlayback.phase = 'idle'
+}
+
+export async function playAnswerSpeech(owner: string, text: string) {
+	stopAnswerSpeech()
+	const current = version
+	speechPlayback.owner = owner; speechPlayback.phase = 'loading'
+	try {
+		const bytes = await synthesizeDeepSeekSpeech(text, (request: RequestTask) => { if (version != current) request.abort(); else task = request })
+		if (version != current) return
+		task = null
+		// #ifdef WEB
+		path = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }))
+		// #endif
+		// #ifndef WEB
+		const savedPath = uni.env.CACHE_PATH + '/uni-ai-speech-' + Date.now().toString() + '.wav'
+		await new Promise<void>((resolve, reject) => {
+			uni.getFileSystemManager().writeFile({ filePath: savedPath, data: bytes, success: (_result) => resolve(), fail: (_error) => reject(new Error('音频保存失败')) })
+		})
+		if (version != current) { uni.getFileSystemManager().unlink({ filePath: savedPath }); return }
+		path = savedPath
+		// #endif
+		audio = uni.createInnerAudioContext()
+		audio!.onEnded(() => stopAnswerSpeech(owner))
+		audio!.onError((_error) => {
+			if (version != current) return
+			stopAnswerSpeech(owner)
+			uni.showToast({ title: '音频播放失败，请重试', icon: 'none' })
+		})
+		audio!.onPlay(() => { if (version == current) speechPlayback.phase = 'playing' })
+		audio!.src = path
+		audio!.play()
+	} catch (error) {
+		if (version != current) return
+		stopAnswerSpeech(owner)
+		uni.showToast({ title: `${error}`, icon: 'none' })
+	}
+}
