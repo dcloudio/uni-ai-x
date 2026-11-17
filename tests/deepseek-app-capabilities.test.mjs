@@ -109,11 +109,12 @@ test('safety refusal and cancellation cannot be reported as a successful answer'
   }
 });
 
-test('message history retains server tool signatures for follow-up questions', () => {
+test('message history retains file IDs and server tool signatures for follow-up questions', () => {
   const { buildAiMessages } = loadUts('uni_modules/uni-ai-x/sdk/message-builder.uts', ['buildAiMessages']);
   const messages = buildAiMessages({ msgList: [
     { from_uid: 'user', body: 'Summarize', file_list: [{ id: 'file-api-test', name: 'report.pdf', provider: 'deepseek' }] },
     { from_uid: 'uni-ai', body: 'Answer', serverToolCalls: [{ calls: [{ signature: 'opaque-signature' }] }] },
   ] });
+  assert.equal(messages[0].content.find(p => p.type === 'file').file_id, 'file-api-test');
   assert.equal(messages[1].server_tool_calls[0].calls[0].signature, 'opaque-signature');
 });

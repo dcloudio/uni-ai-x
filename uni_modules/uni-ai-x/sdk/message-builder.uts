@@ -27,6 +27,11 @@ export function buildAiMessages(chatItem: ChatItem): RequestAiCoMessage[] {
 		if (item.from_uid != 'uni-ai' && (item.img_url_list?.length ?? 0) > 0) {
 			content = buildMultimodalContent(item.body, item.img_url_list!)
 		}
+		if (item.from_uid != 'uni-ai' && (item.file_list?.length ?? 0) > 0) {
+			const parts: MultiModalContent = typeof content == 'string' ? [{ type: 'text', text: body }] : content as MultiModalContent
+			item.file_list!.forEach((file) => { parts.push({ type: 'file', file_id: file.id }) })
+			content = parts
+		}
 		messages.push({
 			role: item.from_uid == 'uni-ai' ? 'assistant' : 'user',
 			content,

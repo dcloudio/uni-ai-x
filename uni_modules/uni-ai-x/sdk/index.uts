@@ -1050,6 +1050,12 @@ class UniAi {
 		// 编辑重发：先删除被编辑消息及其之后的所有消息，再发送新消息
 		const editingMsgId = this.editingMsgId
 		const editingImgList = this.editingState.imgList.slice(0)
+		const editingFiles = this.currentChat!.msgList.find((item) => item._id == editingMsgId)?.file_list
+		const files = (this.currentChat!.draftFiles ?? editingFiles ?? []).slice(0)
+		if (files.length > 0 && (this.llm.provider != 'deepseek' || this.llm.model != 'deepseek-flash')) {
+			uni.showToast({ title: '附件问答需要选择 DeepSeek 官方 Flash 模型', icon: 'none' })
+			return
+		}
 		if (editingMsgId != '') {
 			this.cancelEditMsg()
 			if (this.currentChat!.state == 'processing') {
@@ -1062,6 +1068,10 @@ class UniAi {
 		let baseUserMsg: BaseMsgItem = {
 			body: inputContent,
 			from_uid: this.currentUser._id ?? 'tmp_user_'
+		}
+		if (files.length > 0) {
+			baseUserMsg.file_list = files
+			this.currentChat!.draftFiles = []
 		}
 		// 如果有图片
 		if (this.imgList.length > 0) {

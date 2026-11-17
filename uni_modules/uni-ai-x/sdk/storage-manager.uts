@@ -81,6 +81,7 @@ function snapshotMessage(message: MsgItem): MsgItem {
 		rendered: message.rendered, thinkContent: message.thinkContent,
 		about_msg_id: message.about_msg_id, error_msg: message.error_msg,
 		img_url_list: message.img_url_list?.slice(),
+		file_list: message.file_list?.map((file) => ({ id: file.id, name: file.name, provider: file.provider })),
 		serverToolCalls: message.serverToolCalls,
 		markdownHtml: '', markdownAst: '', markdownBlocks: '', uniAiMdRevision: 0,
 		renderSnapshot: message.renderSnapshot,
