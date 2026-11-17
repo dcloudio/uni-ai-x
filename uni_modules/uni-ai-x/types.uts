@@ -233,6 +233,10 @@ export type ImgItem = {
 
 // 自定义提供商适配器回调
 export type CustomProviderCallbacks = {
+	webSearch ?: boolean,
+	onSearch ?: (search: MessageSearch) => void,
+	onTaskCreate ?: (task: RequestTask) => void,
+	isCancelled ?: () => boolean,
 	onChunk ?: (chunkObj : Chunk) => void,
 	onToolStatus ?: (status : string) => void,
 	onToolConfirm ?: (details : CalendarToolConfirmation) => void,

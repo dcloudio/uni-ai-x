@@ -268,7 +268,8 @@ class RequestAiRunner {
 		// #endif
 		// #endif
 
-		if (llm.webSearch == true) {
+		const modelSupportsSearchTools = (llm.provider == 'qiniu' && llmModelMap.get(llm.provider)?.models.find((model) => model.modelId == llm.model)?.toolCall == true)
+		if (llm.webSearch == true && !modelSupportsSearchTools) {
 			this.searchThenRequestAi(messages, llm, chat_id)
 			return
 		}
@@ -622,21 +623,29 @@ class RequestAiRunner {
 		// 适配器会先通过 onError 回调上报具体错误，这里记录上报状态，
 		// 避免 runner 再用通用错误覆盖具体错误，造成同一次失败被重复上报
 		let errorReported = false
+		const requestVersion = this.workerRequestVersion
+		const isCancelled = (): boolean => this.userAbort || requestVersion != this.workerRequestVersion
 		const callbacks: CustomProviderCallbacks = {
-			onChunk: options.onChunk,
-			onToolStatus: (status: string) => this.callbacks?.onToolStatus?.(status),
-			onToolConfirm: (details: CalendarToolConfirmation) => this.callbacks?.onToolConfirm?.(details),
+			webSearch: options.llm.webSearch,
+			onSearch: (search: MessageSearch) => { if (!isCancelled()) this.callbacks?.onSearch?.(search) },
+			onTaskCreate: (task: RequestTask) => { if (isCancelled()) task.abort(); else options.onTaskCreate?.(task) },
+			isCancelled: isCancelled,
+			onChunk: (chunk: Chunk) => { if (!isCancelled()) options.onChunk?.(chunk) },
+			onToolStatus: (status: string) => { if (!isCancelled()) this.callbacks?.onToolStatus?.(status) },
+			onToolConfirm: (details: CalendarToolConfirmation) => { if (!isCancelled()) this.callbacks?.onToolConfirm?.(details) },
 			onError: (err : UTSJSONObject) => {
+				if (isCancelled()) return
 				errorReported = true
 				options.onError?.(err)
 			},
-			onDone: options.onDone
+			onDone: (data: UTSJSONObject) => { if (!isCancelled()) options.onDone?.(data) }
 		}
 		const currentChatId = options.chat_id ?? ''
 		let success = false
 		try {
 			success = await adapter.request(options.messages, options.llm.model, currentChatId, callbacks, options.llm.thinking)
 		} catch (e) {
+			if (callbacks.isCancelled?.() == true) return {}
 			console.error('自定义提供商请求异常', e)
 			if (!errorReported) {
 				const errInfo: UTSJSONObject = {
@@ -647,6 +656,7 @@ class RequestAiRunner {
 			}
 			return {}
 		}
+		if (callbacks.isCancelled?.() == true) return {}
 		if (!success) {
 			if (!errorReported) {
 				const errInfo: UTSJSONObject = {

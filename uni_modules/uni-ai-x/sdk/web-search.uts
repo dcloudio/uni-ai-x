@@ -16,7 +16,10 @@ export type WebSearchResult = {
 	url?: string,
 	content?: string,
 	date?: string,
-	source?: string
+	source?: string,
+	summary?: string,
+	snippet?: string,
+	site_name?: string
 }
 
 type WebSearchData = {
@@ -25,6 +28,7 @@ type WebSearchData = {
 }
 
 type WebSearchResponse = {
+	results?: WebSearchResult[],
 	success?: boolean,
 	message?: string,
 	data?: WebSearchData
@@ -55,16 +59,16 @@ export function lastUserQuestionText(messages: RequestAiCoMessage[]): string {
 export function webSearch(query: string, token: string, searchURL: string,
 	maxResults: number = WEB_SEARCH_MAX_RESULTS, onTask?: (task: RequestTask) => void): Promise<WebSearchResult[]> {
 	return new Promise<WebSearchResult[]>((resolve, reject) => {
+		const deepseekSearch = searchURL.endsWith('/tools/search')
+		const requestData: UTSJSONObject = deepseekSearch
+			? { query: query.slice(0, 128), count: maxResults, need_content: true }
+			: { query: query, max_results: maxResults, search_type: 'web' }
 		const task = uni.request({
 			url: searchURL,
 			method: 'POST',
 			dataType: 'json',
 			timeout: 20000,
-			data: {
-				query: query,
-				max_results: maxResults,
-				search_type: 'web'
-			},
+			data: requestData,
 			header: {
 				'Authorization': 'Bearer ' + token,
 				'Content-Type': 'application/json'
@@ -81,6 +85,11 @@ export function webSearch(query: string, token: string, searchURL: string,
 					parsed = JSON.parse<WebSearchResponse>(textBody) as WebSearchResponse
 				} catch (_error) {
 					reject(new Error('搜索响应解析失败（HTTP ' + res.statusCode.toString() + '）'))
+					return
+				}
+				if (deepseekSearch) {
+					if (!Array.isArray(parsed.results)) { reject(new Error('搜索响应缺少结果列表')); return }
+					resolve(parsed.results!)
 					return
 				}
 				if (parsed.success != true) {
@@ -108,8 +117,8 @@ export function normalizeSearchSources(results: WebSearchResult[]): SearchSource
 		if (seen.has(key)) continue
 		seen.add(key)
 		sources.push({ id: sources.length + 1, title: (item.title ?? '').trim() || url,
-			url: url, content: (item.content ?? '').slice(0, 6000),
-			source: item.source ?? '', date: item.date ?? '' } as SearchSource)
+			url: url, content: ((item.content ?? '').length > 0 ? item.content! : item.summary ?? item.snippet ?? '').slice(0, 6000),
+			source: item.source ?? item.site_name ?? '', date: item.date ?? '' } as SearchSource)
 	}
 	return sources
 }

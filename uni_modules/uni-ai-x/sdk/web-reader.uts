@@ -1,0 +1,47 @@
+import { CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts'
+
+// Fetch is a separate Qiniu API, not a model-specific built-in tool.
+export async function readWebLink(argumentsText: string, token: string, callbacks: CustomProviderCallbacks): Promise<string> {
+	let url = ''
+	try {
+		const args = JSON.parse<UTSJSONObject>(argumentsText) as UTSJSONObject
+		url = (args['url'] as string).trim()
+	} catch (_error) {
+		return JSON.stringify({ error: '读取链接参数无效，请提供 url 字符串' })
+	}
+	if (url.length > 8192 || !/^https?:\/\/[^\s/@]+(?:[/?#][^\s]*)?$/i.test(url)) {
+		return JSON.stringify({ error: '只支持不含账号密码的 HTTP/HTTPS 网页链接' })
+	}
+	if (callbacks.isCancelled?.() == true) return ''
+	callbacks.onToolStatus?.('正在阅读网页')
+	return await new Promise<string>((resolve) => {
+		const task = uni.request({
+			url: 'https://api.qnaigc.com/v1/tools/fetch',
+			method: 'POST',
+			dataType: 'json',
+			timeout: 25000,
+			data: { url: url },
+			header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+			success: (response: RequestSuccess<any>) => {
+				if (callbacks.isCancelled?.() == true) { resolve(''); return }
+				if (response.statusCode < 200 || response.statusCode >= 300) {
+					resolve(JSON.stringify({ url: url, error: '无法读取网页（HTTP ' + response.statusCode.toString() + '），不要根据链接猜测网页内容' }))
+					return
+				}
+				try {
+					const body = typeof response.data == 'string' ? JSON.parse<UTSJSONObject>(response.data as string) as UTSJSONObject : response.data as UTSJSONObject
+					const content = body['content'] as string | null
+					if (typeof content != 'string' || content.trim().length == 0) throw new Error('网页没有正文')
+					// Bound external content before adding it to the model context.
+					resolve(JSON.stringify({ url: url, title: body['title'] ?? '', content: content.slice(0, 48000), truncated: content.length > 48000 }))
+				} catch (_error) {
+					resolve(JSON.stringify({ url: url, error: '网页未返回有效正文，不要根据链接猜测网页内容' }))
+				}
+			},
+			fail: (_error: RequestFail) => {
+				resolve(JSON.stringify({ url: url, error: '网页读取失败或超时，不要根据链接猜测网页内容' }))
+			}
+		})
+		callbacks.onTaskCreate?.(task)
+	})
+}

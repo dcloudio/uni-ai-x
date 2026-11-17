@@ -145,7 +145,7 @@ test('MCP weather and calendar in one turn still stream the weather result after
   assert.equal(success, true);
   assert.deepEqual(sequence, ['北京今天晴，当前12°C，', '最低4°C，最高15°C。', 'confirm:喝水', 'done']);
   assert.equal(requests.length, 3);
-  assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['create_calendar_reminder', 'enable_mcp__weather']);
+  assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['read_web_link', 'create_calendar_reminder', 'enable_mcp__weather']);
   assert.equal(requests[1].messages.at(-1).tool_call_id, 'enable');
   assert.equal(requests[2].messages.at(-1).content, '{"status":"pending"}');
 });
