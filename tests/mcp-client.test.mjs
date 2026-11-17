@@ -174,11 +174,11 @@ test('agent exposes and calls MCP weather tools', async () => {
   assert.equal(success, true);
   assert.equal(chunks.join(''), '北京现在晴，12°C。');
   assert.deepEqual(modelRequests[0].tools.map((tool) => tool.function.name), [
-    'create_calendar_reminder', 'enable_mcp__weather',
+    'read_web_link', 'create_calendar_reminder', 'enable_mcp__weather',
   ]);
   assert.equal(modelRequests[1].messages.at(-1).tool_call_id, 'enable');
   assert.deepEqual(modelRequests[1].tools.map((tool) => tool.function.name), [
-    'create_calendar_reminder', 'weather__geocode_location', 'weather__get_weather_forecast',
+    'read_web_link', 'create_calendar_reminder', 'weather__geocode_location', 'weather__get_weather_forecast',
   ]);
   assert.equal(modelRequests[2].messages.at(-1).tool_call_id, 'geo');
   assert.equal(modelRequests[3].messages.at(-1).tool_call_id, 'forecast');
@@ -349,5 +349,5 @@ test('ordinary questions answer in one model round without connecting to MCP', a
   assert.deepEqual(chunks, ['你好。']);
   assert.equal(requests.length, 1);
   assert.equal(connections, 0);
-  assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['create_calendar_reminder', 'enable_mcp__weather']);
+  assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['read_web_link', 'create_calendar_reminder', 'enable_mcp__weather']);
 });
