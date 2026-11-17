@@ -1,0 +1,56 @@
+<template>
+	<view class="document-input" @click="chooseAction">
+        <uni-ai-icon :name="ocr ? 'checklist-outline' : 'paperclip-outline'" size="24" color="var(--text-secondary)" />
+        <text class="document-label">{{busy ? tr('解析中', 'Processing') : ocr ? tr('识字', 'OCR') : tr('文件', 'File')}}</text>
+    </view>
+</template>
+<script setup lang="uts">
+import uniAiIcon from './uni-ai-icon/uni-ai-icon.uvue'
+import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
+import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+import { supportsDeepSeekApps, recognizeDeepSeekFile } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-api.uts'
+import { documentDrafts, addPendingDocument } from '@/uni_modules/uni-ai-x/sdk/document-drafts.uts'
+const props = withDefaults(defineProps<{ ocr?: boolean }>(), { ocr: false })
+const busy = ref(false)
+let disposed = false
+let uploadTask: UploadTask | null = null
+function chooseAction() {
+	if (busy.value) { uni.showToast({ title: tr('正在解析文件，请稍候', 'Processing file. Please wait.'), icon: 'none' }); return }
+	if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) {
+		uni.showToast({ title: tr('文件和识字需选择 DeepSeek 官方 Flash 模型', 'Choose official DeepSeek Flash for files and OCR'), icon: 'none' }); return
+	}
+	const actionIndex = props.ocr ? 1 : 0
+	const chat = uniAi.currentChat
+	if (chat == null) return
+	uni.chooseFile({ count: 1, type: 'all', success: (result) => {
+		if (result.tempFiles.length == 0) return
+		if (actionIndex == 0) composerState.attachments = false
+		const file = result.tempFiles[0]
+		if (file.size > 32 * 1024 * 1024) { uni.showToast({ title: tr('请选择 32MB 以内的文件', 'Choose a file smaller than 32MB'), icon: 'none' }); return }
+		if ((chat.draftFiles?.length ?? 0) + documentDrafts.pending.filter((item) => item.chatId == chat.id).length >= 20 && actionIndex == 0) { uni.showToast({ title: tr('每次最多 20 个附件', 'Up to 20 attachments'), icon: 'none' }); return }
+		if (actionIndex == 0) {
+			addPendingDocument(chat.id, file.path, file.name)
+			if (chat.inputContent.length == 0) chat.inputContent = tr('请总结附件内容。', 'Summarize the attached document.')
+			return
+		}
+		busy.value = true
+		const onTask = (task: UploadTask) => { if (disposed) task.abort(); else uploadTask = task }
+		const run = async () => {
+			try {
+				const text = await recognizeDeepSeekFile(file.path, onTask)
+				if (disposed) return
+				chat.inputContent += (chat.inputContent.length > 0 ? '\n' : '') + text
+				composerState.attachments = false
+			} catch (error) { if (!disposed) uni.showToast({ title: `${error}`, icon: 'none' }) }
+			finally { busy.value = false; uploadTask = null }
+		}
+		void run()
+	} })
+}
+onUnmounted(() => { disposed = true; uploadTask?.abort() })
+</script>
+<style>
+.document-input { width: 100%; height: 82px; align-items: center; justify-content: center; flex-shrink: 0; }
+.document-label { font-size: 14px; margin-top: 6px; color: var(--text-secondary); }
+</style>

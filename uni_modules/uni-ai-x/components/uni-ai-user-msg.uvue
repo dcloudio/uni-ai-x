@@ -1,6 +1,7 @@
 <template>
 	<view class="user-msg uni-theme-root">
 		<text class="user-msg-text" flatten>{{msg.body}}</text>
+		<text v-for="file in documentFiles" :key="file.id" class="user-file-name">{{file.name}}</text>
 		<view class="user-msg-img-group" v-if="msg.img_url_list != null">
 			<image class="user-msg-img" v-for="(img, index) in msg.img_url_list" @click="previewImage(index)" :key="index" :src="img" mode="aspectFill"></image>
 		</view>
@@ -9,11 +10,13 @@
 
 <script lang="uts" setup>
 	import { MsgItem } from '@/uni_modules/uni-ai-x/sdk'
+	import { DocumentAttachment } from '@/uni_modules/uni-ai-x/types.uts'
 
 	type UniAiUserMsgProps = {
 		msg: MsgItem
 	}
 	const props = defineProps<UniAiUserMsgProps>()
+	const documentFiles = computed<DocumentAttachment[]>(() => props.msg.file_list ?? [])
 	function previewImage(index: number) {
 		if (props.msg.img_url_list == null) return
 		uni.previewImage({
@@ -28,14 +31,15 @@
 
 .user-msg {
 	align-items: flex-end;
-	padding: 10px;
+	padding: 10px 14px;
 }
+.user-file-name { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
 .user-msg-text {
-	font-size: 16px;
+	font-size: 15px;
 	max-width: 600rpx;
-	padding: 12px;
-	border-radius: 15px 15px 0 15px;
+	padding: 10px 14px;
+	border-radius: 18px 18px 5px 18px;
 	background-color: var(--user-msg-bg);
 	color: var(--text-primary);
 	/* #ifdef WEB */

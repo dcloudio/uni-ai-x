@@ -1,0 +1,35 @@
+<template>
+	<view class="attachment-panel">
+		<view class="attachment-entry" @click="chooseImage('camera')">
+			<uni-ai-icon name="camera-outline" size="24" color="var(--text-secondary)" />
+			<text class="attachment-label">{{tr('拍照', 'Camera')}}</text>
+		</view>
+		<view class="attachment-entry" @click="chooseImage('album')">
+			<uni-ai-icon name="photo-outline" size="24" color="var(--text-secondary)" />
+			<text class="attachment-label">{{tr('相册', 'Photos')}}</text>
+		</view>
+		<view class="attachment-entry"><uni-ai-document-input /></view>
+		<view class="attachment-entry"><uni-ai-document-input :ocr="true" /></view>
+	</view>
+</template>
+<script setup lang="uts">
+import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import { llmModelMap, type LLMModel } from '../config'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
+import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts'
+import uniAiIcon from './uni-ai-icon/uni-ai-icon.uvue'
+import uniAiDocumentInput from './uni-ai-document-input.uvue'
+function chooseImage(source: string) {
+	const provider = llmModelMap.get(uniAi.llm.provider)
+	const model = provider?.models.find(item => item.modelId == uniAi.llm.model)
+	if (model == null) return
+	uploadDraftImages(model as LLMModel, source)
+	composerState.attachments = false
+}
+</script>
+<style>
+.attachment-panel { flex-direction: row; padding: 10px 14px 12px; flex-shrink: 0; }
+.attachment-entry { flex: 1; height: 82px; margin: 0 4px; border-radius: 16px; background-color: var(--input-btn-bg); align-items: center; justify-content: center; }
+.attachment-label { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
+</style>
