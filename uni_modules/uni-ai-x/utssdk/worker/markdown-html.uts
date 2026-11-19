@@ -74,10 +74,14 @@ export type MarkdownHtmlBlock = {
 	codeTokens?: MarkdownHtmlCodeToken[][]
 	mermaidImageSource?: string
 	mermaidRenderTheme?: string
+	mermaidRenderFailed?: boolean
+	mermaidImageWidth?: number
+	mermaidImageHeight?: number
 	mathImageSource?: string
 	mathImageWidth?: number
 	mathImageHeight?: number
 	mathRenderTheme?: string
+	mathRenderFailed?: boolean
 }
 
 export type MarkdownTableColors = {

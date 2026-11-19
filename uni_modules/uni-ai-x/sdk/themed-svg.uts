@@ -21,6 +21,7 @@ type PendingMermaidRender = {
 	timer: number
 }
 const pendingMermaidRenders = new Map<string, PendingMermaidRender>()
+const pendingMathRenders = new Map<string, PendingMermaidRender>()
 const MERMAID_CACHE_STORAGE_PREFIX = 'uni-ai-mermaid-cache-'
 const MERMAID_RENDER_TIMEOUT = 15000
 const SVG_CACHE_LIMIT = 64
@@ -236,12 +237,29 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 		deliverResult(callback, cached)
 		return
 	}
-	proxyWeb.callMethod({
-		action: 'mathSvgRender',
-		pureMathText: mathText,
-		theme: renderTheme,
-		rasterScale: workaround.rasterScale
-	}, (param: UTSJSONObject) => {
+	const pendingKey = proxyWeb.getGeneration().toString() + ':' + key
+	const pending = pendingMathRenders.get(pendingKey)
+	if (pending != null) {
+		proxyWeb.notifyRequest()
+		pending.callbacks.push(callback)
+		return
+	}
+	const request: PendingMermaidRender = { callbacks: [callback], timer: 0 }
+	pendingMathRenders.set(pendingKey, request)
+	const param: UTSJSONObject = { action: 'mathSvgRender', pureMathText: mathText, theme: renderTheme, rasterScale: workaround.rasterScale }
+	const finish = (result: ThemedSvgResult, cacheable: boolean) => {
+		if (pendingMathRenders.get(pendingKey) != request) return
+		clearTimeout(request.timer)
+		proxyWeb.cancelMethod(param)
+		pendingMathRenders.delete(pendingKey)
+		if (cacheable && result.imageSource.length > 0) putSvgCache(mathCache, key, result)
+		for (const done of request.callbacks) deliverResult(done, result)
+	}
+	request.timer = setTimeout(() => {
+		finish({ imageSource: '', width: 0, height: 0, theme: renderTheme }, false)
+	}, MERMAID_RENDER_TIMEOUT)
+	proxyWeb.callMethod(param, (param: UTSJSONObject) => {
+		if (pendingMathRenders.get(pendingKey) != request) return
 		const hasTextElements = (param['hasTextElements'] as boolean | null) ?? false
 		prepareHarmonySvgImageSource(param['imageDataURL'] as string,
 			shouldUseFileSourceForSvg(hasTextElements),
@@ -252,10 +270,9 @@ export function renderMathSvgForTheme(mathText: string, theme: string, callback:
 					height: (param['height'] as number | null) ?? 0,
 					theme: (param['theme'] as string | null) ?? renderTheme
 				}
-				if (cacheable && result.imageSource.length > 0) putSvgCache(mathCache, key, result)
-				deliverResult(callback, result)
+				finish(result, cacheable)
 			})
-	})
+	}, () => pendingMathRenders.get(pendingKey) == request)
 }
 
 export function renderMermaidSvgForTheme(mermaidText: string, theme: string, callback: ThemedSvgCallback) {
@@ -300,34 +317,30 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 			timer: 0
 		}
 		pendingMermaidRenders.set(pendingKey, request)
+		const param: UTSJSONObject = {
+			action: 'renderMermaid', mermaidText, theme: renderTheme, rasterScale: workaround.rasterScale,
+			inlineComputedStyles, normalizeMermaidNodeText, normalizeMermaidEdgeLabels,
+			materializeMermaidPointEndMarkers, iosCoreSvgCompatibility, harmonyWorkaround: workaround.enabled
+		}
 		const finish = (result: ThemedSvgResult, cacheable: boolean) => {
 			const active = pendingMermaidRenders.get(pendingKey)
-			if (active == null) return
-			clearTimeout(active.timer)
+			if (active != request) return
+			clearTimeout(active!.timer)
+			proxyWeb.cancelMethod(param)
 			pendingMermaidRenders.delete(pendingKey)
 			if (cacheable && result.imageSource.length > 0) {
 				putSvgCache(mermaidCache, key, result)
 				writePersistentMermaidCache(key, result)
 			}
-			for (let index = 0; index < active.callbacks.length; index++) {
-				deliverResult(active.callbacks[index], result)
+			for (let index = 0; index < request.callbacks.length; index++) {
+				deliverResult(request.callbacks[index], result)
 			}
 		}
 		request.timer = setTimeout(() => {
 			finish({ imageSource: '', width: 0, height: 0, theme: renderTheme } as ThemedSvgResult, false)
 		}, MERMAID_RENDER_TIMEOUT)
-		proxyWeb.callMethod({
-			action: 'renderMermaid',
-			mermaidText,
-			theme: renderTheme,
-			rasterScale: workaround.rasterScale,
-			inlineComputedStyles,
-			normalizeMermaidNodeText,
-			normalizeMermaidEdgeLabels,
-			materializeMermaidPointEndMarkers,
-			iosCoreSvgCompatibility,
-			harmonyWorkaround: workaround.enabled
-		}, (param: UTSJSONObject) => {
+		proxyWeb.callMethod(param, (param: UTSJSONObject) => {
+			if (pendingMermaidRenders.get(pendingKey) != request) return
 			const hasTextElements = (param['hasTextElements'] as boolean | null) ?? false
 			prepareHarmonySvgImageSource(param['imageDataURL'] as string,
 				shouldUseFileSourceForSvg(hasTextElements),
@@ -340,7 +353,7 @@ export function renderMermaidSvgForTheme(mermaidText: string, theme: string, cal
 					}
 					finish(result, cacheable)
 				})
-		})
+		}, () => pendingMermaidRenders.get(pendingKey) == request)
 	}
 	// #ifdef APP-ANDROID
 	const epoch = proxyWeb.getGeneration()

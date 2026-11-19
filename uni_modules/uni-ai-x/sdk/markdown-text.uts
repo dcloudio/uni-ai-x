@@ -111,10 +111,17 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[], them
 	const result = [] as MarkdownTextRenderBlock[]
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
+		if (block.kind == 'math' && ((block.mathRenderFailed == true && block.mathRenderTheme == theme) || (block.isComplete && block.text.trim().length == 0))) {
+			result.push(createSpecialBlock('data-text', block.key, '', block.text))
+			continue
+		}
 		if (block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid') {
 			const prepared = createSpecialBlock(block.kind, block.key, block.html, block.text,
 				block.language, block.isComplete, block.columnWidths, block.rowTextWidths, block.codeTokens ?? [] as MarkdownToken[][],
 				block.mermaidImageSource ?? null, block.mermaidRenderTheme ?? null)
+			prepared.mermaidRenderFailed = (block.mermaidRenderFailed == true && block.mermaidRenderTheme == theme) || (block.isComplete && block.text.trim().length == 0)
+			prepared.svgWidth = block.mermaidImageWidth ?? 0
+			prepared.svgHeight = block.mermaidImageHeight ?? 0
 			if (block.kind == 'table') prepared.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, theme)
 			if (block.kind == 'code') {
 				prepared.codeHeight = (Math.max(1, block.text.replace(/\r\n/g, '\n').split('\n').length) * 22 + 16).toString() + 'px'

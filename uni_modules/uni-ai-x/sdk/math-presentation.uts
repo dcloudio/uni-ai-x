@@ -58,6 +58,7 @@ export function prepareMathPresentation(msg: MsgItem, theme: string, currentThem
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
 		if (block.kind != 'math' || !block.isComplete || block.text.trim().length == 0) continue
+		if (block.mathRenderFailed == true && block.mathRenderTheme == theme) continue
 		if ((block.mathImageSource ?? '').length > 0 && block.mathRenderTheme == theme) continue
 		const identity = msg._id + ':' + block.key
 		const request = proxyWeb.getGeneration().toString() + '\n' + theme + '\n' + block.text
@@ -69,7 +70,7 @@ export function prepareMathPresentation(msg: MsgItem, theme: string, currentThem
 			finishMessageRenderTask(msg._id, taskKey, taskToken)
 			if (pending.get(identity) != request) return
 			pending.delete(identity)
-			if (currentTheme() != theme || result.imageSource.length == 0) return
+			if (currentTheme() != theme) return
 			const latestJson = msg.markdownBlocks ?? ''
 			try {
 				const latest = JSON.parse<MarkdownHtmlBlock[]>(latestJson) as MarkdownHtmlBlock[]
@@ -78,6 +79,7 @@ export function prepareMathPresentation(msg: MsgItem, theme: string, currentThem
 					if (target.key != block.key || target.kind != 'math' || !target.isComplete || target.text != block.text) continue
 					if (target.mathImageSource == result.imageSource && target.mathRenderTheme == theme) return
 					target.mathImageSource = result.imageSource
+					target.mathRenderFailed = result.imageSource.length == 0
 					target.mathImageWidth = result.width
 					target.mathImageHeight = result.height
 					target.mathRenderTheme = theme

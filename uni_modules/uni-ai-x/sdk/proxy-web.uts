@@ -41,19 +41,23 @@ class ProxyWeb {
 	notifyRequest() {
 		this.requestListener?.()
 	}
-	callMethod(param : UTSJSONObject, callback : OnMsgFn) {
+	callMethod(param : UTSJSONObject, callback : OnMsgFn, isCurrent: (() => boolean) | null = null) {
 		// 让宿主知道本会话有渲染需求，取消可能已排队的释放
 		this.notifyRequest()
-		this.callMethodWithEpoch(param, callback, this.epoch)
+		this.callMethodWithEpoch(param, callback, this.epoch, isCurrent)
 	}
-	private callMethodWithEpoch(param : UTSJSONObject, callback : OnMsgFn, epoch : number) {
+	cancelMethod(param: UTSJSONObject) {
+		const requestId = param['requestId'] as string | null
+		if (requestId != null) this.callbackMap.delete((param['action'] as string) + '_callback_' + requestId)
+	}
+	private callMethodWithEpoch(param : UTSJSONObject, callback : OnMsgFn, epoch : number, isCurrent: (() => boolean) | null) {
 		// 会话已切换，丢弃旧会话的请求
-		if (epoch != this.epoch) return
+		if (epoch != this.epoch || (isCurrent != null && !isCurrent())) return
 		// 先判断 isInit 是否为 true
 		if (this.isInit == false) {
 			this.requestEnsure(epoch)
 			setTimeout(() => {
-				this.callMethodWithEpoch(param, callback, epoch)
+				this.callMethodWithEpoch(param, callback, epoch, isCurrent)
 			}, 1000)
 			return
 		}
