@@ -105,7 +105,7 @@ test('WebView generated Mermaid retains dimensions before notifying persistence'
   assert.equal(chart.mermaidImageSource, '/chart.png');
 });
 
-function store() {
+function store(reactive = value => value) {
   const timers = new Map();
   let timerId = 0;
   const work = [];
@@ -113,8 +113,9 @@ function store() {
   let parses = 0;
   const api = loadUts('uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['uniAiMdStreamBindMessage', 'uniAiMdStreamMarkComplete', 'uniAiMdStreamApply', 'uniAiMdStreamGetBlocks',
-      'uniAiMdStreamRequestRebuild', 'uniAiMdStreamRelease', 'uniAiMdStreamSetTheme', 'uniAiMdStreamIsSettled'], {
-      ref: value => ({ value }), reactive: value => value, ...pure,
+      'uniAiMdStreamRequestRebuild', 'uniAiMdStreamRelease', 'uniAiMdStreamSetTheme', 'uniAiMdStreamIsSettled', 'uniAiMdStreamGetRevision', 'uniAiMdStreamSetContext'], {
+      ref: value => ({ value }), reactive, ...pure,
+      ...loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts', ['uniAiMdHtmlBlocksToTextBlocks']),
       setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
       clearTimeout: id => timers.delete(id),
       UniAiMdHtmlStreamAdapter: class { reset() {} },
@@ -246,6 +247,7 @@ test('APP-HARMONY render assets persist and restore through the snapshot worker'
     'uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['persistCompleteEntry', 'streamEntries', 'uniAiMdStreamBindMessage', 'uniAiMdStreamGetBlocks'], {
       ref: value => ({ value }), reactive: value => value, ...pure,
+      ...loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts', ['uniAiMdHtmlBlocksToTextBlocks']),
       uniAiWorkerRuntime: { requestSnapshotWork: (request, callback) => work.push({ request, callback }) },
       UniAiMdHtmlStreamAdapter: class { reset() {} },
     }, ['APP', 'APP-HARMONY']);
@@ -281,6 +283,7 @@ test('in-flight snapshot work is deduplicated without dropping a newer version',
     'uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['persistCompleteEntry', 'streamEntries'], {
       ref: value => ({ value }), reactive: value => value, ...pure,
+      ...loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts', ['uniAiMdHtmlBlocksToTextBlocks']),
       setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
       clearTimeout: id => timers.delete(id),
       uniAiWorkerRuntime: { requestSnapshotWork: (request, callback) => work.push({ request, callback }) },
@@ -409,4 +412,68 @@ test('background message writes, history and deletion preserve FIFO order and re
   assert.equal(replies.at(-1).messages.length, 0);
   assert.deepEqual(removed, ['m']);
   assert.equal(data.has('uni-ai-msg-m'), false);
+});
+
+
+test('worker failure preserves delivered blocks, appends full source, and settles without retry', async () => {
+  const api = store();
+  await api.uniAiMdStreamBindMessage({ _id: 'failed', from_uid: 'uni-ai', body: 'complete source' }, () => {});
+  api.uniAiMdStreamApply('failed', [{ op: 3, kind: 'html', content: '<p>first</p>', index: 0 }]);
+  await Promise.resolve();
+  api.preparations[0].callback({ action: 'blocks', length: 1, settled: false, body: 'complete source', theme: 'light', windowWidth: 360,
+    changes: [{ index: 0, block: block({ text: 'first', html: '<p>first</p>' }) }] });
+  api.preparations[0].callback({ action: 'error' });
+  api.preparations[0].callback({ action: 'error' });
+  api.uniAiMdStreamMarkComplete('failed');
+  await Promise.resolve();
+  const blocks = api.uniAiMdStreamGetBlocks('failed');
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].html, '<p>first</p>');
+  assert.ok(blocks[1].text.endsWith('complete source'));
+  assert.equal(api.uniAiMdStreamIsSettled('failed'), true);
+  assert.equal(api.preparations.length, 1);
+  assert.equal(api.work.length, 0, 'failed presentations are never persisted as final snapshots');
+  const otherRevision = api.uniAiMdStreamGetRevision('other');
+  api.uniAiMdStreamSetContext('failed', 'complete source plus later text', []);
+  assert.ok(api.uniAiMdStreamGetBlocks('failed').at(-1).text.endsWith('plus later text'));
+  assert.equal(api.uniAiMdStreamGetRevision('other'), otherRevision);
+});
+
+test('worker failure before the first block still displays body arriving later', async () => {
+  const api = store();
+  await api.uniAiMdStreamBindMessage({ _id: 'empty-failure', from_uid: 'uni-ai', body: '' }, () => {});
+  api.uniAiMdStreamApply('empty-failure', [{ op: 3, kind: 'html', content: '', index: 0 }]);
+  await Promise.resolve();
+  api.preparations[0].callback({ action: 'error' });
+  api.uniAiMdStreamSetContext('empty-failure', 'later source', []);
+  api.uniAiMdStreamMarkComplete('empty-failure');
+  assert.equal(api.uniAiMdStreamGetBlocks('empty-failure')[0].text, 'later source');
+  assert.equal(api.uniAiMdStreamIsSettled('empty-failure'), true);
+});
+
+
+test('synchronous render watchers never see completion with the previous block revision', async () => {
+  let api, observe = () => {};
+  const reactive = map => new Proxy(map, { get(target, key) {
+    if (key === 'set') return (name, value) => { target.set(name, value); observe(); return target; };
+    const value = Reflect.get(target, key, target);
+    return typeof value === 'function' ? value.bind(target) : value;
+  } });
+  api = store(reactive);
+  await api.uniAiMdStreamBindMessage({ _id: 'sync', from_uid: 'uni-ai', body: 'complete source' }, () => {});
+  api.uniAiMdStreamMarkComplete('sync');
+  await Promise.resolve();
+  api.preparations[0].callback({ action: 'blocks', length: 1, settled: false, body: 'complete source', theme: 'light', windowWidth: 360,
+    changes: [{ index: 0, block: block({ text: 'first' }) }] });
+  let revision = api.uniAiMdStreamGetRevision('sync');
+  let cached = api.uniAiMdStreamGetBlocks('sync');
+  const completedLengths = [];
+  observe = () => {
+    const next = api.uniAiMdStreamGetRevision('sync');
+    if (next !== revision) { revision = next; cached = api.uniAiMdStreamGetBlocks('sync'); }
+    if (api.uniAiMdStreamIsSettled('sync')) completedLengths.push(cached.length);
+  };
+  api.preparations[0].callback({ action: 'error' });
+  assert.ok(completedLengths.length > 0);
+  assert.ok(completedLengths.every(length => length === 2), 'ready must be published after the new revision');
 });

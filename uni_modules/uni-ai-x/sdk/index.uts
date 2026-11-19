@@ -614,10 +614,10 @@ class UniAi {
 			this.refreshCurrentChatThemedImages()
 		})
 		watch(mathWindowWidth, () => {
-			// #ifdef APP-ANDROID
+			// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 			uniAiMdStreamSetLayoutWidth(mathWindowWidth.value)
 			// #endif
-			// #ifndef APP-ANDROID
+			// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 			this.currentChat?.msgList.forEach((msg: MsgItem) => { refreshMessagePresentation(msg, uiTheme.value) })
 			// #endif
 		})

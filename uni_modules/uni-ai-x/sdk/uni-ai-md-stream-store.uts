@@ -33,9 +33,7 @@ import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_mo
 
 export const uniAiMdPresentationRevision = ref<number>(0)
 const settledMessages = reactive(new Map<string, boolean>())
-// #ifdef APP-ANDROID
 const messageRevisions = reactive(new Map<string, number>())
-// #endif
 let presentationTheme = 'light'
 let presentationWidth = 360
 
@@ -56,6 +54,7 @@ type UniAiMdStreamEntry = {
 	preparationQueued: boolean
 	done: boolean
 	settled: boolean
+	failed: boolean
 	restored: boolean
 	restoring: boolean
 	savingVersion: number
@@ -107,7 +106,7 @@ function entryFor(msgId: string): UniAiMdStreamEntry {
 		pendingOps: [],
 		pendingDone: false,
 		preparationQueued: false,
-		done: false, settled: false, restored: false, restoring: false, savingVersion: -1, saveInFlightVersion: -1,
+		done: false, settled: false, failed: false, restored: false, restoring: false, savingVersion: -1, saveInFlightVersion: -1,
 		saveRetryCount: 0, saveRetryTimer: 0,
 		message: null, save: null
 	}
@@ -118,19 +117,20 @@ function entryFor(msgId: string): UniAiMdStreamEntry {
 }
 
 function notifyEntry(entry: UniAiMdStreamEntry) {
-	settledMessages.set(entry.messageId, !entry.restoring && !entry.preparationQueued && (entry.restored || (entry.done && entry.settled)))
+	// Native render watchers may run synchronously for each reactive write.
+	// Never expose ready=true with a cached snapshot from the previous revision.
+	settledMessages.set(entry.messageId, false)
 	entry.presentationRevision = uniAiMdPresentationRevision.value + 1
 	uniAiMdPresentationRevision.value = entry.presentationRevision
-	// #ifdef APP-ANDROID
 	messageRevisions.set(entry.messageId, entry.presentationRevision)
-	// #endif
+	settledMessages.set(entry.messageId, !entry.restoring && !entry.preparationQueued && (entry.restored || (entry.done && entry.settled)))
 	persistCompleteEntry(entry)
 }
 
 function persistCompleteEntry(entry: UniAiMdStreamEntry) {
 	// #ifdef APP-ANDROID || APP-HARMONY
 	const message = entry.message
-	if (message == null || entry.save == null || !entry.done || !entry.settled || entry.restored || entry.restoring || entry.textBlocks.length == 0) return
+	if (message == null || entry.save == null || !entry.done || !entry.settled || entry.failed || entry.restored || entry.restoring || entry.textBlocks.length == 0) return
 	if (entry.savingVersion == entry.preparationVersion &&
 		(message.renderSnapshot != null || entry.saveInFlightVersion == entry.preparationVersion || entry.saveRetryTimer != 0)) return
 	if (!entry.textBlocks.every((block: MarkdownTextRenderBlock): boolean => block.isComplete &&
@@ -228,13 +228,7 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 }
 
 export function uniAiMdStreamGetRevision(msgId: string): number {
-	// #ifdef APP-ANDROID
 	return messageRevisions.get(msgId) ?? 0
-	// #endif
-	// #ifndef APP-ANDROID
-	uniAiMdPresentationRevision.value
-	return streamEntries.get(msgId)?.presentationRevision ?? 0
-	// #endif
 }
 
 export function uniAiMdStreamIsSettled(msgId: string): boolean {
@@ -326,6 +320,9 @@ export function uniAiMdStreamSetLayoutWidth(width: number) {
 		// #ifdef APP-ANDROID
 		if (entry.preparationVersion > 0) prepareAndroidEntry(entry, [])
 		// #endif
+		// #ifndef APP-ANDROID
+		refreshEntry(entry, entry.done)
+		// #endif
 	})
 }
 
@@ -340,6 +337,17 @@ export function uniAiMdStreamSetContext(msgId: string, body: string, citationIds
 
 function prepareAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
 	if (entry.restored || entry.restoring) return
+	if (entry.failed) {
+		const index = entry.textBlocks.findIndex((block: MarkdownTextRenderBlock): boolean => block.key == 'render-fallback')
+		if (index >= 0) {
+			const raw = cloneBlock(entry.textBlocks[index])
+			raw.text = index > 0 ? '渲染失败，以下为完整原文：\n' + entry.body : entry.body
+			entry.textBlocks = entry.textBlocks.slice()
+			entry.textBlocks[index] = raw
+		}
+		notifyEntry(entry)
+		return
+	}
 	entry.settled = false
 	settledMessages.set(entry.messageId, false)
 	entry.preparationVersion += 1
@@ -364,8 +372,25 @@ function sendAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: bo
 		op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged
 	} as UTSJSONObject))
 	prepareAndroidPresentation(entry.workerId, wireOps, done, presentationTheme, (message: UTSJSONObject) => {
-		if (streamEntries.get(entry.messageId) != entry) return
+		if (streamEntries.get(entry.messageId) != entry || entry.failed) return
 		if (message['action'] == 'error') {
+			// Stop retrying the broken worker path. Keep already delivered content,
+			// settle unfinished special blocks as source, and leave copying available.
+			entry.failed = true
+			entry.settled = true
+			entry.textBlocks = entry.textBlocks.map((block: MarkdownTextRenderBlock): MarkdownTextRenderBlock => {
+				const fallback = cloneBlock(block)
+				if ((block.kind == 'code' && (block.codeHighlightedText ?? '') != block.text.replace(/\r\n/g, '\n')) ||
+					block.kind == 'math' || block.kind == 'mermaid') fallback.kind = 'data-text'
+				fallback.isComplete = true
+				return fallback
+			})
+			{
+				const fallbackText = entry.textBlocks.length > 0 ? '渲染失败，以下为完整原文：\n' + entry.body : entry.body
+				const raw = uniAiMdHtmlBlocksToTextBlocks([{ kind: 'data-text', key: 'render-fallback', html: '', text: fallbackText,
+					language: '', isComplete: true, columnWidths: [], rowTextWidths: [], svgSource: '', svgWidth: 0, svgHeight: 0, blockIndex: 0 }], true)
+				entry.textBlocks = entry.textBlocks.concat(raw)
+			}
 			notifyEntry(entry)
 			return
 		}
@@ -436,6 +461,7 @@ function rebuildRestoredEntry(entry: UniAiMdStreamEntry) {
 	entry.restored = false
 	entry.restoring = false
 	entry.preparationVersion = 0
+	entry.failed = false
 	entry.savingVersion = -1
 	entry.saveInFlightVersion = -1
 	entry.textBlocks = emptyBlocks()
@@ -615,9 +641,7 @@ export function uniAiMdStreamRelease(msgId: string): void {
 	// #endif
 	releaseCodeHighlightSessions(msgId)
 	streamEntries.delete(msgId)
-	// #ifdef APP-ANDROID
 	messageRevisions.delete(msgId)
-	// #endif
 	const index = streamEntryOrder.indexOf(msgId)
 	if (index >= 0) streamEntryOrder.splice(index, 1)
 	// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS

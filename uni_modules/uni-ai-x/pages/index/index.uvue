@@ -35,6 +35,7 @@
 	uniAi.restoreLanguage()
 	onShow(() => { uniAi.restoreLanguage() })
 	import { updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+	updateMathLayout(uni.getWindowInfo().windowWidth)
 	import { clearCodeHighlightCache, releaseCodeHighlightSessions } from '@/uni_modules/uni-ai-x/sdk/parseCode.uts'
 	// #ifdef APP-ANDROID
 	import { releaseAllUniAiMdStreams } from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
