@@ -2,6 +2,7 @@ import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import type { MarkdownTextRenderBlock, CodePresentationLine } from './markdown-text.uts'
 import { markdownCodeTokenToRichTextNodes } from './markdown-rich-text.uts'
 import { requestCachedCodeText, ParseCodeTextRes } from './parseCode.uts'
+import { beginMessageRenderTask, finishMessageRenderTask } from './message-render-tasks.uts'
 
 function escapeCodeHtml(text: string): string {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -129,11 +130,18 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const unchangedCount = completedText.startsWith(block.codeHighlightedText + '\n') ? highlightedCount : 0
 		const requestRevision = requestRevisions.get(block.key) ?? 0
 		const requestText = block.text
+		const taskKey = 'code:' + block.key
+		const taskToken = beginMessageRenderTask(messageId, taskKey)
 		requestCachedCodeText((result: ParseCodeTextRes) => {
-			if (result.error != null) return
+			finishMessageRenderTask(messageId, taskKey, taskToken)
 			const revisionKey = messageId + '\u001f' + block.key
 			if (codePreparationRevisions.get(revisionKey) != requestRevision || block.text != requestText) return
 			if (block.text.replace(/\r\n/g, '\n').split('\n').slice(0, count).join('\n') != completedText) return
+			if (result.error != null) {
+				block.codeHighlightedText = completedText
+				publish()
+				return
+			}
 			block.codeTokens = result.lines
 			block.codeHighlightedText = completedText
 			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()

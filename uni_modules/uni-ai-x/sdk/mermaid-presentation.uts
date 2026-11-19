@@ -1,4 +1,5 @@
 import { MsgItem } from '../types.uts'
+import { beginMessageRenderTask, finishMessageRenderTask } from './message-render-tasks.uts'
 // #ifdef APP || WEB
 import proxyWeb from './proxy-web.uts'
 // #endif
@@ -16,7 +17,7 @@ type CurrentTheme = () => string
 const pending = new Map<string, string>()
 
 // Native SVG is ready to display; unsupported diagrams use the existing WebView renderer.
-export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void) {
+export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], theme: string, changed: () => void, messageId: string = '') {
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
 		if (block.kind != 'mermaid' && block.kind != 'math') continue
@@ -29,7 +30,10 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 				// cache-file source as WebView generated SVGs.
 				// #ifdef APP-ANDROID
 				const nativeSvg = block.svgSource
+				const taskKey = 'native-svg:' + block.key
+				const taskToken = beginMessageRenderTask(messageId, taskKey)
 				prepareHarmonySvgImageSource(nativeSvg, true, (source: string, _cacheable: boolean) => {
+					finishMessageRenderTask(messageId, taskKey, taskToken)
 					block.mermaidImageSource = source
 					changed()
 				})
@@ -49,7 +53,10 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 			}
 			if (block.mermaidRenderFailed == true) continue
 		if ((block.mermaidImageSource ?? '').length > 0) continue
+		const taskKey = 'native-diagram:' + block.key
+		const taskToken = beginMessageRenderTask(messageId, taskKey)
 		const receive = (result: ThemedSvgResult) => {
+			finishMessageRenderTask(messageId, taskKey, taskToken)
 				if (result.imageSource.length == 0) {
 					block.mermaidRenderFailed = true
 					if (block.kind == 'math') block.kind = 'data-text'
@@ -86,7 +93,10 @@ export function prepareMermaidPresentation(msg: MsgItem, theme: string, currentT
 		const request = proxyWeb.getGeneration().toString() + '\n' + theme + '\n' + block.text
 		if (pending.get(identity) == request) continue
 		pending.set(identity, request)
+		const taskKey = 'mermaid:' + block.key
+		const taskToken = beginMessageRenderTask(msg._id, taskKey)
 		renderMermaidSvgForTheme(block.text, theme, (result: ThemedSvgResult) => {
+			finishMessageRenderTask(msg._id, taskKey, taskToken)
 			if (pending.get(identity) != request) return
 			pending.delete(identity)
 			if (currentTheme() != theme || result.imageSource.length == 0) return

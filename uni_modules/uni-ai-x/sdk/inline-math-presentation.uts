@@ -1,5 +1,6 @@
 import type { MarkdownTextRenderBlock } from './markdown-text.uts'
 import { prepareHarmonySvgImageSource } from './harmony-svg-workaround.uts'
+import { beginMessageRenderTask, finishMessageRenderTask } from './message-render-tasks.uts'
 
 // Harmony 的 rich-text 接收本地 SVG 文件路径：把 uni-ai-md 输出的公式 SVG data URL
 // 落盘并把 src 替换为文件路径。Android 由 uni-ai-md 直接交付内联 <svg>，不走这里。
@@ -15,7 +16,10 @@ export function prepareNativeInlineMathBlocks(messageId: string, blocks: Markdow
 			if (match == null) continue
 			const source = match[1] ?? ''
 			if (source.length == 0) continue
+			const taskKey = 'inline-math:' + block.key + ':' + source
+			const taskToken = beginMessageRenderTask(messageId, taskKey)
 			prepareHarmonySvgImageSource(source, true, (localSource: string, _cacheable: boolean) => {
+				finishMessageRenderTask(messageId, taskKey, taskToken)
 				if (localSource.length == 0 || localSource == source) return
 				const replacement = tag.replace(source, localSource)
 				block.html = block.html.split(tag).join(replacement)

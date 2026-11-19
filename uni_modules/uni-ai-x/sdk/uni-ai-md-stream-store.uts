@@ -6,6 +6,7 @@ import type { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdow
 import { ref, reactive } from 'vue'
 import { prepareCodeBlocks } from './code-presentation.uts'
 import { releaseCodeHighlightSessions } from './parseCode.uts'
+import { forgetMessageRenderTasks } from './message-render-tasks.uts'
 import { prepareNativeMermaidBlocks } from '@/uni_modules/uni-ai-x/sdk/mermaid-presentation.uts'
 import { prepareNativeInlineMathBlocks } from './inline-math-presentation.uts'
 // #ifdef APP-HARMONY
@@ -31,6 +32,7 @@ import { prepareAndroidPresentation, releaseAndroidPresentation } from '@/uni_mo
 // #endif
 
 export const uniAiMdPresentationRevision = ref<number>(0)
+const settledMessages = reactive(new Map<string, boolean>())
 // #ifdef APP-ANDROID
 const messageRevisions = reactive(new Map<string, number>())
 // #endif
@@ -116,6 +118,7 @@ function entryFor(msgId: string): UniAiMdStreamEntry {
 }
 
 function notifyEntry(entry: UniAiMdStreamEntry) {
+	settledMessages.set(entry.messageId, !entry.restoring && !entry.preparationQueued && (entry.restored || (entry.done && entry.settled)))
 	entry.presentationRevision = uniAiMdPresentationRevision.value + 1
 	uniAiMdPresentationRevision.value = entry.presentationRevision
 	// #ifdef APP-ANDROID
@@ -229,11 +232,18 @@ export function uniAiMdStreamGetRevision(msgId: string): number {
 	return messageRevisions.get(msgId) ?? 0
 	// #endif
 	// #ifndef APP-ANDROID
+	uniAiMdPresentationRevision.value
 	return streamEntries.get(msgId)?.presentationRevision ?? 0
 	// #endif
 }
 
+export function uniAiMdStreamIsSettled(msgId: string): boolean {
+	return settledMessages.get(msgId) ?? false
+}
+
 function refreshEntry(entry: UniAiMdStreamEntry, isDone: boolean = false): void {
+	entry.settled = false
+	settledMessages.set(entry.messageId, false)
 	const version = ++entry.preparationVersion
 	const blocks = uniAiMdHtmlBlocksToTextBlocks(entry.adapter.getBlocks(), isDone)
 	const isCurrent = (): boolean => streamEntries.get(entry.messageId) == entry && entry.preparationVersion == version
@@ -304,7 +314,7 @@ function finishRefreshEntry(entry: UniAiMdStreamEntry, prepared: MarkdownTextRen
 			if (!isCurrent()) return
 			entry.textBlocks = prepared.slice()
 			notifyEntry(entry)
-		})
+		}, entry.messageId)
 		notifyEntry(entry)
 	}
 
@@ -331,6 +341,7 @@ export function uniAiMdStreamSetContext(msgId: string, body: string, citationIds
 function prepareAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: boolean = false) {
 	if (entry.restored || entry.restoring) return
 	entry.settled = false
+	settledMessages.set(entry.messageId, false)
 	entry.preparationVersion += 1
 	for (const op of ops) entry.pendingOps.push({ op: op.op, kind: op.kind, content: op.content, index: op.index, unchanged: op.unchanged })
 	entry.pendingDone = entry.pendingDone || done
@@ -394,7 +405,7 @@ function sendAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: bo
 			entry.textBlocks = updated
 			notifyEntry(entry)
 		}
-		prepareNativeMermaidBlocks(changed, presentationTheme, publish)
+		prepareNativeMermaidBlocks(changed, presentationTheme, publish, entry.messageId)
 		notifyEntry(entry)
 	}, entry.body, entry.citationIds, presentationWidth)
 }
@@ -595,6 +606,8 @@ export function uniAiMdStreamReset(msgId: string): void {
 }
 
 export function uniAiMdStreamRelease(msgId: string): void {
+	forgetMessageRenderTasks(msgId)
+	settledMessages.delete(msgId)
 	const entry = streamEntries.get(msgId)
 	if (entry != null && entry.saveRetryTimer != 0) clearTimeout(entry.saveRetryTimer)
 	// #ifdef APP-ANDROID

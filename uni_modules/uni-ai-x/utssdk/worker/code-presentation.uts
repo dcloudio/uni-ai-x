@@ -152,10 +152,15 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const requestRevision = requestRevisions.get(block.key) ?? 0
 		const requestText = block.text
 		requestCachedCodeText((result: ParseCodeTextRes) => {
-			if (result.error != null) return
 			const revisionKey = messageId + '\u001f' + block.key
 			if (codePreparationRevisions.get(revisionKey) != requestRevision || block.text != requestText) return
 			if (block.text.replace(/\r\n/g, '\n').split('\n').slice(0, count).join('\n') != completedText) return
+			if (result.error != null) {
+				// Plain source is a terminal presentation too (for example, an unknown language).
+				block.codeHighlightedText = completedText
+				publish()
+				return
+			}
 			block.codeTokens = result.lines
 			block.codeHighlightedText = completedText
 			const lines = (block.codeLines ?? [] as CodePresentationLine[]).slice()

@@ -1,0 +1,70 @@
+import { reactive, watch, onUnmounted } from 'vue'
+
+type MessageRenderTasks = { revision: number, tasks: Map<string, number> }
+const messages = reactive(new Map<string, MessageRenderTasks>())
+const settledViewResources = new Map<string, Set<string>>()
+let sequence = 0
+
+// Tokens prevent an obsolete callback from completing a newer task in the same slot.
+export function beginMessageRenderTask(messageId: string, key: string): number {
+	const token = ++sequence
+	let state = messages.get(messageId)
+	if (state == null) {
+		messages.set(messageId, { revision: 0, tasks: new Map<string, number>() })
+		state = messages.get(messageId)!
+	}
+	state.tasks.set(key, token)
+	state.revision += 1
+	return token
+}
+
+export function finishMessageRenderTask(messageId: string, key: string, token: number) {
+	const state = messages.get(messageId)
+	if (state == null || state.tasks.get(key) != token) return
+	state.tasks.delete(key)
+	state.revision += 1
+}
+
+export function messageRenderTaskRevision(messageId: string): number {
+	return messages.get(messageId)?.revision ?? 0
+}
+
+export function hasMessageRenderTasks(messageId: string): boolean {
+	return (messages.get(messageId)?.tasks.size ?? 0) > 0
+}
+
+export function forgetMessageRenderTasks(messageId: string) {
+	messages.delete(messageId)
+	settledViewResources.delete(messageId)
+}
+
+// First resource loads block readiness; recycling an already settled resource does not.
+export function useMessageRenderTask(messageId: () => string, key: () => string, pending: () => boolean, resourceIdentity: () => string) {
+	let activeMessage = ''
+	let activeKey = ''
+	let activeResource = ''
+	let token = 0
+	const release = () => {
+		if (token != 0) finishMessageRenderTask(activeMessage, activeKey, token)
+		token = 0
+	}
+	watch(() => [messageId(), key(), pending().toString(), resourceIdentity()], () => {
+		const resource = resourceIdentity()
+		// Native list recycling can reload a previously settled image without unmounting
+		// the component. Its offscreen load callback must not block the message again.
+		if (token != 0 && activeMessage == messageId() && activeResource == resource && !pending() && resource.length > 0) {
+			let settled = settledViewResources.get(activeMessage)
+			if (settled == null) {
+				settled = new Set<string>()
+				settledViewResources.set(activeMessage, settled)
+			}
+			settled.add(resource)
+		}
+		release()
+		activeMessage = messageId()
+		activeKey = key()
+		activeResource = resource
+		if (activeMessage.length > 0 && pending() && (resource.length == 0 || settledViewResources.get(activeMessage)?.has(resource) != true)) token = beginMessageRenderTask(activeMessage, activeKey)
+	}, { immediate: true })
+	onUnmounted(release)
+}

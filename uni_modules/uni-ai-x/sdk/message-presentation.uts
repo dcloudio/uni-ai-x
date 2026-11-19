@@ -7,6 +7,7 @@ import { linkSearchCitations } from './search-citations.uts'
 import { linkMarkdownFootnotes } from './markdown-footnotes.uts'
 import { prepareCodeBlocks } from './code-presentation.uts'
 import { releaseCodeHighlightSessions } from './parseCode.uts'
+import { forgetMessageRenderTasks } from './message-render-tasks.uts'
 
 class MessagePresentation {
 	preparationVersion = 0
@@ -19,6 +20,7 @@ class MessagePresentation {
 	byKey = new Map<string, MarkdownTextRenderBlock>()
 	blocks = shallowRef<MarkdownTextRenderBlock[]>([] as MarkdownTextRenderBlock[])
 	layoutRevision = ref<number>(0)
+	revision = ref<number>(0)
 }
 
 const messages = new Map<string, MessagePresentation>()
@@ -37,12 +39,17 @@ export function readMessagePresentation(messageId: string): MarkdownTextRenderBl
 }
 
 export function forgetMessagePresentation(messageId: string) {
+	forgetMessageRenderTasks(messageId)
 	releaseCodeHighlightSessions(messageId)
 	messages.delete(messageId)
 }
 
 export function readMessageLayoutRevision(messageId: string): number {
 	return entry(messageId).layoutRevision.value
+}
+
+export function readMessagePresentationRevision(messageId: string): number {
+	return entry(messageId).revision.value
 }
 
 function sameBlockLayout(previous: MarkdownTextRenderBlock, next: MarkdownTextRenderBlock): boolean {
@@ -109,6 +116,7 @@ export function refreshMessagePresentation(msg: MsgItem, theme: string) {
 		cache.sources = sources
 		cache.byKey = byKey
 		cache.blocks.value = preparedBlocks
+		cache.revision.value += 1
 		if (layoutChanged) cache.layoutRevision.value += 1
 	}, previousBlocks)
 }

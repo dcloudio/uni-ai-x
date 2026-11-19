@@ -32,8 +32,9 @@
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
 			:code-text="part.block.text" :prepared-html="part.block.codeHtml ?? ''" :prepared-content-height="part.block.codeContentHeight ?? '22px'" :prepared-height="part.block.codeHeight ?? '38px'" :language="part.block.language" />
 		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
-			:src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.key" :code-text="part.block.text" :image-width="part.block.svgWidth" :image-height="part.block.svgHeight" :render-failed="part.block.mermaidRenderFailed" />
+			:message-id="msg._id" :src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.key" :code-text="part.block.text" :image-width="part.block.svgWidth" :image-height="part.block.svgHeight" :render-failed="part.block.mermaidRenderFailed" />
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
+			:message-id="msg._id" :render-key="part.key"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
 			:source-width="part.block.math?.sourceWidth ?? '160px'" :source-height="part.block.math?.sourceHeight ?? '44px'"
 			:source-identity="part.block.math?.sourceIdentity" :source-text="part.block.math?.sourceText"
@@ -79,6 +80,9 @@
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
+	import { hasMessageRenderTasks, messageRenderTaskRevision } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
+	import { readMessagePresentationRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
+	import { uniAiMdStreamGetRevision, uniAiMdStreamIsSettled } from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
 	import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	const loadingPaused = ref<boolean>(true)
 	onMounted(() => {
@@ -181,25 +185,59 @@
 
 	const toolbarDelayReady = ref<boolean>(false)
 	let toolbarDelayTimer = 0
-	watch(() => msg.value._id + ':' + msg.value.rendered.toString() + ':' + state.value + ':' + isLastAiMsg.value.toString() + ':' + calendarConfirmationRevision.value.toString(), () => {
+	let toolbarDelayVersion = 0
+	const isToolbarSegment = computed<boolean>(() => parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar'))
+	const toolbarPresentationStamp = computed<string>(() => {
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
+		return uniAiMdStreamGetRevision(msg.value._id).toString() + ':' + uniAiMdStreamIsSettled(msg.value._id).toString()
+		// #endif
+		// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
+		return readMessagePresentationRevision(msg.value._id).toString()
+		// #endif
+	})
+	const toolbarCanSettle = computed<boolean>(() => {
+		if (state.value == 'processing' || msg.value.toolConfirmation != null || !messageToolBarVisible.value || hasMessageRenderTasks(msg.value._id)) return false
+		if (!msg.value.rendered && (msg.value.toolResultText ?? '').length == 0) return false
+		// Tool-only and error replies have no Markdown presentation to settle.
+		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
+		if (msg.value.body.trim().length > 0 && msg.value.error_msg == null && !uniAiMdStreamIsSettled(msg.value._id)) return false
+		// #endif
+		return true
+	})
+	// Watch content directly, without serializing the message or Markdown AST.
+	watch(() => {
+		// Only the toolbar row subscribes to streaming content and task revisions.
+		if (!isToolbarSegment.value) return [] as string[]
+		return [msg.value._id, msg.value.body, msg.value.thinkContent ?? '', msg.value.error_msg ?? '',
+		msg.value.toolStatus ?? '', msg.value.toolResultText ?? '', msg.value.rendered.toString(), state.value,
+		msg.value.search?.status ?? '', msg.value.search?.error ?? '', (msg.value.search?.sources.length ?? 0).toString(),
+		isLastAiMsg.value.toString(), calendarConfirmationRevision.value.toString(), uiTheme.value,
+		toolbarPresentationStamp.value, messageRenderTaskRevision(msg.value._id).toString(), toolbarCanSettle.value.toString()]
+	}, () => {
+		const version = ++toolbarDelayVersion
 		if (toolbarDelayTimer != 0) {
 			clearTimeout(toolbarDelayTimer)
 			toolbarDelayTimer = 0
 		}
-		if (!isLastAiMsg.value || state.value == 'stop') {
+		toolbarDelayReady.value = false
+		if (!isToolbarSegment.value) return
+		if (!isLastAiMsg.value) {
 			toolbarDelayReady.value = true
 			return
 		}
-		toolbarDelayReady.value = false
-		// Tool-only replies have no Markdown blocks to mark as rendered.
-		if (state.value != 'processing' && (msg.value.rendered || (msg.value.toolResultText ?? '').length > 0)) {
+		if (!toolbarCanSettle.value) return
+		// Start the quiet period after Vue has committed the final presentation.
+		nextTick(() => {
+			if (version != toolbarDelayVersion || !toolbarCanSettle.value) return
 			toolbarDelayTimer = setTimeout(() => {
+				if (version != toolbarDelayVersion) return
 				toolbarDelayTimer = 0
-				toolbarDelayReady.value = true
+				if (toolbarCanSettle.value) toolbarDelayReady.value = true
 			}, 1000)
-		}
+		})
 	}, { immediate: true })
 	onUnmounted(() => {
+		toolbarDelayVersion += 1
 		if (toolbarDelayTimer != 0) clearTimeout(toolbarDelayTimer)
 	})
 
@@ -208,7 +246,9 @@
 		return msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && (msg.value.rendered || (msg.value.toolResultText ?? '').length > 0)))
 	})
 
-	const msgSegmentStyle = 'width:100%;min-height:0;box-sizing:border-box;padding-left:20px;padding-right:20px;'
+	// A zero-height pending row can be recycled before its quiet-period timer fires.
+	// Reserve the final toolbar height so readiness does not depend on list visibility.
+	const msgSegmentStyle = computed<string>(() => 'width:100%;min-height:' + (isToolbarSegment.value ? '42px' : '0') + ';box-sizing:border-box;padding-left:20px;padding-right:20px;')
 
 	const changeThinkContent = () => {
 		hideThinkContent.value = !hideThinkContent.value

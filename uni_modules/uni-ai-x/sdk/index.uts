@@ -1210,7 +1210,7 @@ class UniAi {
 				}
 				this.currentChat!.state = state
 				// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-				if (state == 'completed') {
+				if (state == 'completed' || state == 'stop') {
 					// 最终高亮和图片准备就绪后，由展示层提交完整快照。
 					uniAiMdStreamMarkComplete(aiMsgItem._id)
 					aiMsgItem.uniAiMdRevision = (aiMsgItem.uniAiMdRevision ?? 0) + 1

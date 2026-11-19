@@ -17,26 +17,28 @@ const converters = loadUts('uni_modules/uni-ai-x/sdk/markdown-text.uts',
 function setup() {
   const requests = [];
   const diagrams = [];
+  const tasks = loadUts('uni_modules/uni-ai-x/sdk/message-render-tasks.uts',
+    ['beginMessageRenderTask', 'finishMessageRenderTask', 'forgetMessageRenderTasks', 'hasMessageRenderTasks'], { reactive: value => value });
   const code = loadUts('uni_modules/uni-ai-x/sdk/code-presentation.uts', ['prepareCodeBlocks'], {
-    ...rich, requestCachedCodeText: (callback, messageId, key, text, language) => requests.push({ callback, messageId, key, text, language }),
+    ...tasks, ...rich, requestCachedCodeText: (callback, messageId, key, text, language) => requests.push({ callback, messageId, key, text, language }),
   });
   const mermaid = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
-    ref, renderMermaidSvgForTheme: (text, theme, callback) => diagrams.push({ text, theme, callback }),
+    ...tasks, ref, renderMermaidSvgForTheme: (text, theme, callback) => diagrams.push({ text, theme, callback }),
     prepareHarmonySvgImageSource: (source, _cacheable, callback) => callback(source, false),
   });
   const store = loadUts('uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['uniAiMdStreamApply', 'uniAiMdStreamGetBlocks', 'uniAiMdStreamGetRevision', 'uniAiMdStreamRelease', 'uniAiMdStreamApplyRebuild', 'uniAiMdStreamRequestRebuild', 'uniAiMdStreamSetTheme'], {
-      ref, ...code, ...mermaid, ...converters, UniAiMdHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
+      ...tasks, reactive: value => value, ref, ...code, ...mermaid, ...converters, UniAiMdHtmlStreamAdapter, requestAiWorkerMarkdownRebuild() {}, prepareNativeInlineMathBlocks() {}, releaseCodeHighlightSessions() {},
       pluginBackgroundFor: () => '#ffffff', prepareUniAiMdHtml: text => text,
       prepareHarmonySvgImageSource: (source, _cacheable, callback) => callback(source, false),
       linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
     }, ['APP', 'APP-HARMONY']);
   const legacy = loadUts('uni_modules/uni-ai-x/sdk/message-presentation.uts',
     ['refreshMessagePresentation', 'readMessagePresentation', 'forgetMessagePresentation'], {
-      ref, shallowRef: ref, ...code, ...converters, mathWindowWidth: ref(412), releaseCodeHighlightSessions() {},
+      ...tasks, ref, shallowRef: ref, ...code, ...converters, mathWindowWidth: ref(412), releaseCodeHighlightSessions() {},
       linkMarkdownFootnotes: text => text, linkSearchCitations: text => text,
     });
-  return { ...code, ...store, ...legacy, requests, diagrams };
+  return { ...tasks, ...code, ...store, ...legacy, requests, diagrams };
 }
 
 const op = (content, kind = 'html', index = 0) => ({ op: 3, content, kind, index, unchanged: false });

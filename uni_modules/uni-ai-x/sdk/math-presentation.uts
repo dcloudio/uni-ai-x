@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { beginMessageRenderTask, finishMessageRenderTask } from './message-render-tasks.uts'
 import { MsgItem } from '../types.uts'
 import { MarkdownHtmlBlock } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 import { estimateMaxLineTextWidth } from './text-width.uts'
@@ -62,7 +63,10 @@ export function prepareMathPresentation(msg: MsgItem, theme: string, currentThem
 		const request = proxyWeb.getGeneration().toString() + '\n' + theme + '\n' + block.text
 		if (pending.get(identity) == request) continue
 		pending.set(identity, request)
+		const taskKey = 'math:' + block.key
+		const taskToken = beginMessageRenderTask(msg._id, taskKey)
 		renderMathSvgForTheme(block.text.trim(), theme, (result: ThemedSvgResult) => {
+			finishMessageRenderTask(msg._id, taskKey, taskToken)
 			if (pending.get(identity) != request) return
 			pending.delete(identity)
 			if (currentTheme() != theme || result.imageSource.length == 0) return

@@ -16,10 +16,13 @@
     import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
     import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
     import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+    import { useMessageRenderTask } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
     // #ifndef MP-WEIXIN
     import { renderMathSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
     // #endif
     const props = defineProps<{
+        messageId?: string
+        renderKey?: string
         href?: string
         sourceWidth?: string
         sourceHeight?: string
@@ -49,6 +52,7 @@
     const windowWidth = ref<number>(0)
     const mathImageModeLatched = ref<boolean>((props.isClose ?? 0) == 1)
     const mathImageLoadFailed = ref<boolean>(false)
+    const mathRendering = ref<boolean>(false)
     let mathRenderRequestKey = ''
     let mathBufferLoadRequest = 0
     let mathSourceKey = ''
@@ -258,6 +262,7 @@
 	        const svgSource = props.svgSource ?? ''
 	        const isClosed = (props.isClose ?? 0) == 1
 	        if (!isClosed) {
+	            mathRendering.value = false
 	            mathRenderRequestKey = ''
 	            mathWasClosed = false
 	            mathImageModeLatched.value = false
@@ -280,6 +285,7 @@
 	            return
 	        }
 	        if (svgSource.length > 0 && isClosed) {
+	            mathRendering.value = false
 	            mathWasClosed = true
 	            mathImageModeLatched.value = true
 	            mathImageLoadFailed.value = false
@@ -307,6 +313,7 @@
 	        const sourceHref = props.href ?? ''
 	        if (sourceHref.length > 0 && activeImageHref.value.length == 0) queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
 	        if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
+	            mathRendering.value = false
 	            mathRenderRequestKey = ''
 	            queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
             return
@@ -314,8 +321,10 @@
         if (mathText.length == 0) return
         const requestKey = theme + '\n' + mathText
         mathRenderRequestKey = requestKey
+        mathRendering.value = true
         renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
             if (mathRenderRequestKey != requestKey || uiTheme.value != theme) return
+            mathRendering.value = false
             if (result.imageSource.length == 0) {
                 if (!imageReady.value) mathImageLoadFailed.value = true
                 return
@@ -335,6 +344,10 @@
     }, () => {
         syncMathImageTheme()
     }, { immediate: true })
+
+    useMessageRenderTask(() => props.messageId ?? '', () => 'math-image:' + (props.renderKey ?? ''),
+        () => mathRendering.value || pendingBuffer.value >= 0,
+        () => uiTheme.value + ':' + (props.href ?? '') + ':' + (props.svgSource ?? '') + ':' + (props.text ?? ''))
 
     onMounted(() => {
         windowWidth.value = uni.getWindowInfo().windowWidth

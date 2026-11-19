@@ -3,6 +3,8 @@ import test from 'node:test';
 import { loadUts } from './uts-loader.mjs';
 
 const plain = value => JSON.parse(JSON.stringify(value));
+const renderTasks = loadUts('uni_modules/uni-ai-x/sdk/message-render-tasks.uts',
+  ['beginMessageRenderTask', 'finishMessageRenderTask', 'forgetMessageRenderTasks'], { reactive: value => value });
 const pure = loadUts('uni_modules/uni-ai-x/utssdk/worker/render-snapshot.uts',
   ['renderContentKey', 'mapRenderResources', 'validRenderSnapshot', 'RENDER_ASSET_PREFIX', 'RENDER_SNAPSHOT_VERSION']);
 const block = (extra = {}) => ({ kind: 'html', key: 'html-1', html: '<p>hello</p>', text: '',
@@ -92,6 +94,7 @@ test('message image layout reserves the same proportional height independent of 
 
 test('WebView generated Mermaid retains dimensions before notifying persistence', () => {
   const { prepareNativeMermaidBlocks } = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
+    ...renderTasks,
     renderMermaidSvgForTheme: (text, theme, done) => done({ imageSource: '/chart.png', width: 640, height: 320 }),
   });
   const chart = block({ kind: 'mermaid', text: 'gantt' });
@@ -110,21 +113,37 @@ function store() {
   let parses = 0;
   const api = loadUts('uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['uniAiMdStreamBindMessage', 'uniAiMdStreamMarkComplete', 'uniAiMdStreamApply', 'uniAiMdStreamGetBlocks',
-      'uniAiMdStreamRequestRebuild', 'uniAiMdStreamRelease', 'uniAiMdStreamSetTheme'], {
+      'uniAiMdStreamRequestRebuild', 'uniAiMdStreamRelease', 'uniAiMdStreamSetTheme', 'uniAiMdStreamIsSettled'], {
       ref: value => ({ value }), reactive: value => value, ...pure,
       setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
       clearTimeout: id => timers.delete(id),
       UniAiMdHtmlStreamAdapter: class { reset() {} },
-      requestSnapshotWork: (request, callback) => work.push({ request, callback }),
+      uniAiWorkerRuntime: { requestSnapshotWork: (request, callback) => work.push({ request, callback }) },
       requestAiWorkerMarkdownRebuild: () => parses++,
       prepareAndroidPresentation: (id, ops, done, theme, callback) => preparations.push({ id, ops, done, theme, callback }),
-      releaseAndroidPresentation() {}, releaseCodeHighlightSessions() {},
+      ...renderTasks, releaseAndroidPresentation() {}, releaseCodeHighlightSessions() {},
       prepareNativeMermaidBlocks() {}, prepareNativeInlineMathBlocks() {}, pluginBackgroundFor: () => '#fff',
     });
   return { ...api, work, preparations, parses: () => parses, tick: () => {
     const callbacks = [...timers.values()]; timers.clear(); callbacks.forEach(fn => fn());
   } };
 }
+
+test('native readiness is revoked as soon as new preparation starts', async () => {
+  const api = store();
+  await api.uniAiMdStreamBindMessage({ _id: 'm', from_uid: 'uni-ai', body: 'hello' }, () => {});
+  api.uniAiMdStreamMarkComplete('m');
+  await Promise.resolve();
+  assert.equal(api.uniAiMdStreamIsSettled('m'), false);
+  api.preparations[0].callback({ action: 'blocks', length: 1, settled: true, body: 'hello', theme: 'light', windowWidth: 360,
+    changes: [{ index: 0, block: block() }] });
+  assert.equal(api.uniAiMdStreamIsSettled('m'), true);
+  api.uniAiMdStreamApply('m', [{ op: 3, kind: 'html', content: '<p>changed</p>', index: 1 }]);
+  assert.equal(api.uniAiMdStreamIsSettled('m'), false);
+  await Promise.resolve();
+  api.preparations[1].callback({ action: 'blocks', length: 1, settled: true, body: 'obsolete', theme: 'light', windowWidth: 360, changes: [] });
+  assert.equal(api.uniAiMdStreamIsSettled('m'), false);
+});
 
 test('failed diagram terminal state persists and asset errors retry without further stream events', async () => {
   const api = store();
@@ -163,6 +182,7 @@ test('asset retries stop after three retries and are cancelled when a message is
 test('failed native math becomes persistable source text and failed diagrams are not rendered again', () => {
   let renders = 0;
   const { prepareNativeMermaidBlocks } = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
+    ...renderTasks,
     renderMathSvgForTheme: (text, theme, done) => { renders++; done({ imageSource: '' }); },
     renderMermaidSvgForTheme: (text, theme, done) => { renders++; done({ imageSource: '' }); },
   });
@@ -181,7 +201,7 @@ test('APP-ANDROID message retry saves final snapshot and never overwrites a newe
   const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
     setTimeout: fn => timers.push(fn),
     saveAndroidMessageInBackground: (key, value, done) => writes.push({ value, done }),
-    requestSnapshotWork: (request, done) => writes.push({ value: request.message, done: ok => done({ ok }) }),
+    uniAiWorkerRuntime: { requestSnapshotWork: (request, done) => writes.push({ value: request.message, done: ok => done({ ok }) }) },
   }, ['APP', 'APP-ANDROID']);
   const manager = new StorageManager();
   const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
@@ -203,7 +223,7 @@ test('APP-HARMONY message writes persist synchronously and keep the newest conte
   const workerCalls = [];
   const { StorageManager } = loadUts('uni_modules/uni-ai-x/sdk/storage-manager.uts', ['StorageManager'], {
     uni: { setStorageSync: (key, value) => writes.push({ key, value }), removeStorageSync() {} },
-    requestSnapshotWork: request => workerCalls.push(request),
+    uniAiWorkerRuntime: { requestSnapshotWork: request => workerCalls.push(request) },
   }, ['APP', 'APP-HARMONY']);
   const manager = new StorageManager();
   const msg = { _id: 'm', chat_id: 'c', body: 'old', renderSnapshot: snapshot([block()]) };
@@ -226,7 +246,7 @@ test('APP-HARMONY render assets persist and restore through the snapshot worker'
     'uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts',
     ['persistCompleteEntry', 'streamEntries', 'uniAiMdStreamBindMessage', 'uniAiMdStreamGetBlocks'], {
       ref: value => ({ value }), reactive: value => value, ...pure,
-      requestSnapshotWork: (request, callback) => work.push({ request, callback }),
+      uniAiWorkerRuntime: { requestSnapshotWork: (request, callback) => work.push({ request, callback }) },
       UniAiMdHtmlStreamAdapter: class { reset() {} },
     }, ['APP', 'APP-HARMONY']);
   const message = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
@@ -263,7 +283,7 @@ test('in-flight snapshot work is deduplicated without dropping a newer version',
       ref: value => ({ value }), reactive: value => value, ...pure,
       setTimeout: fn => { timers.set(++timerId, fn); return timerId; },
       clearTimeout: id => timers.delete(id),
-      requestSnapshotWork: (request, callback) => work.push({ request, callback }),
+      uniAiWorkerRuntime: { requestSnapshotWork: (request, callback) => work.push({ request, callback }) },
       UniAiMdHtmlStreamAdapter: class { reset() {} },
     }, ['APP', 'APP-HARMONY']);
   const message = { _id: 'm', from_uid: 'uni-ai', body: 'hello' };
@@ -307,9 +327,11 @@ test('restart restores final blocks without invoking parsing and prevents an ove
   const api = store();
   const msg = { _id: 'm', from_uid: 'uni-ai', body: 'hello', renderSnapshot: snapshot([block()]) };
   const task = api.uniAiMdStreamBindMessage(msg, () => assert.fail('restore must not save again'));
+  assert.equal(api.uniAiMdStreamIsSettled('m'), false);
   assert.equal(api.uniAiMdStreamRequestRebuild('m', 'hello'), false);
   api.work[0].callback({ snapshot: msg.renderSnapshot });
   await task;
+  assert.equal(api.uniAiMdStreamIsSettled('m'), true);
   assert.equal(api.uniAiMdStreamGetBlocks('m')[0].html, '<p>hello</p>');
   assert.equal(api.uniAiMdStreamRequestRebuild('m', 'hello'), false);
   assert.equal(api.parses(), 0);
