@@ -5,7 +5,7 @@
 			>
 			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
 			<uni-ai-chat :show-menu="showMenu" @change-menu="changeMenu" @close-menu="closeMenu" @source="openSource"></uni-ai-chat>
-			<view class="uni-ai-menu-mask" :class="showMenu ? 'uni-ai-menu-mask-show' : ''" @click="closeMenu"></view>
+			<view v-if="showMenu" class="uni-ai-menu-mask uni-ai-menu-mask-show" @click="closeMenu"></view>
 			<fps v-if="showFps" />
 			<!-- #ifdef APP || WEB -->
 			<web-view v-if="showProxyWeb" class="uni-ai-proxy-web" id="proxy-web"
