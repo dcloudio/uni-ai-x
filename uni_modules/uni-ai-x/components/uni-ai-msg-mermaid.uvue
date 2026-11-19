@@ -14,7 +14,7 @@
 			<!-- #ifdef APP-ANDROID -->
 			<view v-if="sourceSelection != props.identity && props.src.length == 0 && !props.renderFailed && !showSource" :style="pendingImageStyle"><loading /></view>
 			<!-- #endif -->
-			<image v-if="sourceSelection != props.identity && props.src.length > 0" :key="props.identity + ':' + props.src" class="uni-mermaid-msg-image" :style="imageStyle" :src="props.src" mode="aspectFit" @load="onImageSettled" @error="onImageSettled" @click.stop="previewMermaidImage" />
+			<image v-if="!showSource && props.src.length > 0" :key="imageIdentity" class="uni-mermaid-msg-image" :style="imageStyle" :src="props.src" mode="aspectFit" @load="onImageSettled" @error="onImageFailed" @click.stop="previewMermaidImage" />
 			<view v-else-if="showSource" class="uni-mermaid-msg-code-source">
 				<text class="uni-mermaid-msg-code-text">{{props.codeText}}</text>
 			</view>
@@ -27,7 +27,7 @@
 import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
-import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
 import { useMessageRenderTask } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
 
@@ -46,17 +46,33 @@ const props = withDefaults(defineProps<{
 
 // Only user interaction changes local state; a recycled row cannot inherit another block's tab.
 const sourceSelection = ref<string>('')
-onMounted(() => { updateMathLayout(uni.getWindowInfo().windowWidth) })
+const imageIdentity = computed<string>(() => props.identity + ':' + props.src)
+const failedImage = ref<string>('')
 const showSource = computed<boolean>(() => {
-	// #ifdef APP-ANDROID
-	return sourceSelection.value == props.identity || props.src.length == 0
-	// #endif
-	// #ifndef APP-ANDROID
-	return sourceSelection.value == props.identity || props.src.length == 0
-	// #endif
+	return sourceSelection.value == props.identity || props.src.length == 0 || props.renderFailed == true || failedImage.value == imageIdentity.value
 })
 const settledImage = ref<string>('')
-function onImageSettled() { settledImage.value = props.identity + ':' + props.src }
+let imageLoadTimer = 0
+function clearImageLoadTimer() {
+    if (imageLoadTimer != 0) clearTimeout(imageLoadTimer)
+    imageLoadTimer = 0
+}
+watch(() => [imageIdentity.value, showSource.value.toString()], () => {
+    clearImageLoadTimer()
+    if (showSource.value || settledImage.value == imageIdentity.value) return
+    const identity = imageIdentity.value
+    imageLoadTimer = setTimeout(() => {
+        imageLoadTimer = 0
+        if (imageIdentity.value != identity) return
+        onImageFailed()
+    }, 15000)
+}, { immediate: true })
+onUnmounted(clearImageLoadTimer)
+function onImageSettled() { clearImageLoadTimer(); settledImage.value = imageIdentity.value }
+function onImageFailed() {
+	failedImage.value = imageIdentity.value
+	onImageSettled()
+}
 useMessageRenderTask(() => props.messageId ?? '', () => 'mermaid-image:' + props.identity + ':' + props.src,
 	() => !showSource.value && settledImage.value != props.identity + ':' + props.src,
 	() => props.src.length > 0 ? uiTheme.value + ':' + props.src : '')

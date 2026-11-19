@@ -38,6 +38,11 @@ export function forgetMessageRenderTasks(messageId: string) {
 	settledViewResources.delete(messageId)
 }
 
+export function isMessageViewResourceSettled(messageId: string, resource: string): boolean {
+	messageRenderTaskRevision(messageId)
+	return settledViewResources.get(messageId)?.has(resource) == true
+}
+
 // First resource loads block readiness; recycling an already settled resource does not.
 export function useMessageRenderTask(messageId: () => string, key: () => string, pending: () => boolean, resourceIdentity: () => string) {
 	let activeMessage = ''
@@ -52,19 +57,24 @@ export function useMessageRenderTask(messageId: () => string, key: () => string,
 		const resource = resourceIdentity()
 		// Native list recycling can reload a previously settled image without unmounting
 		// the component. Its offscreen load callback must not block the message again.
-		if (token != 0 && activeMessage == messageId() && activeResource == resource && !pending() && resource.length > 0) {
-			let settled = settledViewResources.get(activeMessage)
+		if (!pending() && messageId().length > 0 && resource.length > 0) {
+			let settled = settledViewResources.get(messageId())
 			if (settled == null) {
 				settled = new Set<string>()
-				settledViewResources.set(activeMessage, settled)
+				settledViewResources.set(messageId(), settled)
 			}
-			settled.add(resource)
+			if (!settled.has(resource)) {
+				settled.add(resource)
+				const state = messages.get(messageId())
+				if (state == null) messages.set(messageId(), { revision: 1, tasks: new Map<string, number>() })
+				else state.revision += 1
+			}
 		}
 		release()
 		activeMessage = messageId()
 		activeKey = key()
 		activeResource = resource
-		if (activeMessage.length > 0 && pending() && (resource.length == 0 || settledViewResources.get(activeMessage)?.has(resource) != true)) token = beginMessageRenderTask(activeMessage, activeKey)
+		if (activeMessage.length > 0 && pending() && (resource.length == 0 || settledViewResources.get(messageId())?.has(resource) != true)) token = beginMessageRenderTask(activeMessage, activeKey)
 	}, { immediate: true })
 	onUnmounted(release)
 }

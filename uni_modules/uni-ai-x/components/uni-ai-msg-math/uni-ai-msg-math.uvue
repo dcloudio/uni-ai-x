@@ -3,9 +3,9 @@
         :style="mathRootStyle"
         direction="horizontal" :show-scrollbar="false">
         <view class="math-el-content" :style="mathContentStyle" flatten>
-            <image v-if="buffer0Href.length > 0" :src="buffer0Href" class="math-el-image" mode="scaleToFill"
+            <image v-if="buffer0Href.length > 0" :key="buffer0Href" :src="buffer0Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
-            <image v-if="buffer1Href.length > 0" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
+            <image v-if="buffer1Href.length > 0" :key="buffer1Href" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer1ImageStyle" @load="onMathBuffer1Load" @error="onMathBuffer1Error" />
             <text v-if="showMathSource" class="math-el-source" :style="sourceTextStyle" flatten>{{props.text ?? ''}}</text>
         </view>
@@ -15,11 +15,9 @@
 <script lang="uts" setup>
     import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
     import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+    import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
     import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
     import { useMessageRenderTask } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
-    // #ifndef MP-WEIXIN
-    import { renderMathSvgForTheme, ThemedSvgResult } from '@/uni_modules/uni-ai-x/sdk/themed-svg.uts'
-    // #endif
     const props = defineProps<{
         messageId?: string
         renderKey?: string
@@ -49,14 +47,15 @@
     const buffer1Loaded = ref<boolean>(false)
     const activeBuffer = ref<number>(0)
     const pendingBuffer = ref<number>(-1)
-    const windowWidth = ref<number>(0)
     const mathImageModeLatched = ref<boolean>((props.isClose ?? 0) == 1)
     const mathImageLoadFailed = ref<boolean>(false)
-    const mathRendering = ref<boolean>(false)
-    let mathRenderRequestKey = ''
     let mathBufferLoadRequest = 0
     let mathSourceKey = ''
-    let mathWasClosed = false
+    let imageLoadTimer = 0
+    function clearImageLoadTimer() {
+        if (imageLoadTimer != 0) clearTimeout(imageLoadTimer)
+        imageLoadTimer = 0
+    }
 
     const activeImageHref = computed<string>(() => {
         return activeBuffer.value == 0 ? buffer0Href.value : buffer1Href.value
@@ -110,7 +109,7 @@
     })
 
     function visibleMathWidth(): number {
-        const currentWindowWidth = windowWidth.value > 0 ? windowWidth.value : uni.getWindowInfo().windowWidth
+        const currentWindowWidth = mathWindowWidth.value > 0 ? mathWindowWidth.value : uni.getWindowInfo().windowWidth
         return Math.max(160, Math.min(currentWindowWidth, 800) - 90)
     }
 
@@ -180,6 +179,7 @@
     })
 
     function resetMathImages() {
+        clearImageLoadTimer()
         mathBufferLoadRequest++
         buffer0Href.value = ''
         buffer0Width.value = 0
@@ -195,6 +195,7 @@
 
     function queueMathImage(href: string, width: number, height: number) {
         if (href.length == 0) return
+        clearImageLoadTimer()
         const safeWidth = Math.max(1, width)
         const safeHeight = Math.max(1, height)
         if (activeImageHref.value == href) {
@@ -228,6 +229,10 @@
             if (mathBufferLoadRequest != loadRequest || pendingBuffer.value != targetBuffer) return
             if (targetBuffer == 0) buffer0Href.value = href
             else buffer1Href.value = href
+            imageLoadTimer = setTimeout(() => {
+                imageLoadTimer = 0
+                if (mathBufferLoadRequest == loadRequest && pendingBuffer.value == targetBuffer) onMathBufferError(targetBuffer)
+            }, 15000)
         })
     }
 
@@ -235,6 +240,7 @@
         if (buffer == 0) buffer0Loaded.value = true
         else buffer1Loaded.value = true
         if (pendingBuffer.value != buffer) return
+        clearImageLoadTimer()
         activeBuffer.value = buffer
         pendingBuffer.value = -1
         mathImageLoadFailed.value = false
@@ -248,7 +254,10 @@
             buffer1Loaded.value = false
             if (activeBuffer.value != 1) buffer1Href.value = ''
         }
-        if (pendingBuffer.value == buffer) pendingBuffer.value = -1
+        if (pendingBuffer.value == buffer) {
+            clearImageLoadTimer()
+            pendingBuffer.value = -1
+        }
         if (!imageReady.value) mathImageLoadFailed.value = true
     }
 
@@ -257,101 +266,39 @@
     function onMathBuffer0Error(_event: ImageErrorEvent) { onMathBufferError(0) }
     function onMathBuffer1Error(_event: ImageErrorEvent) { onMathBufferError(1) }
 
-	    function syncMathImageTheme() {
-	        const mathText = props.sourceText ?? (props.text ?? '').trim()
-	        const svgSource = props.svgSource ?? ''
-	        const isClosed = (props.isClose ?? 0) == 1
-	        if (!isClosed) {
-	            mathRendering.value = false
-	            mathRenderRequestKey = ''
-	            mathWasClosed = false
-	            mathImageModeLatched.value = false
-	            mathImageLoadFailed.value = false
-	            resetMathImages()
-	            return
-	        }
-	        const sourceKey = props.sourceIdentity ?? (mathText + '\n' + svgSource + '\n' + (props.svgWidth ?? 0).toString()
-	            + '\n' + (props.svgHeight ?? 0).toString())
-	        if (mathSourceKey != sourceKey) {
-	            mathSourceKey = sourceKey
-	            mathImageLoadFailed.value = false
-	            resetMathImages()
-	        }
-	        if (svgSource.length > 0 && !isClosed) {
-	            mathWasClosed = false
-	            mathImageModeLatched.value = false
-	            mathRenderRequestKey = ''
-	            resetMathImages()
-	            return
-	        }
-	        if (svgSource.length > 0 && isClosed) {
-	            mathRendering.value = false
-	            mathWasClosed = true
-	            mathImageModeLatched.value = true
-	            mathImageLoadFailed.value = false
-	            mathRenderRequestKey = ''
-	            queueMathImage(svgSource, props.svgWidth ?? 1, props.svgHeight ?? 1)
-	            return
-	        }
-	        if (!isClosed) {
-	            if (mathWasClosed) resetMathImages()
-	            mathWasClosed = false
-	            mathImageModeLatched.value = false
-	            mathRenderRequestKey = ''
-	            return
-	        }
-	        mathWasClosed = true
-	        // #ifdef MP-WEIXIN
-	        // 微信小程序不支持隐藏 WebView，公式保留源码显示。
-	        mathImageModeLatched.value = false
-	        mathRenderRequestKey = ''
-	        return
-	        // #endif
-	        // #ifndef MP-WEIXIN
-	        mathImageModeLatched.value = true
-	        const theme = uiTheme.value
-	        const sourceHref = props.href ?? ''
-	        if (sourceHref.length > 0 && activeImageHref.value.length == 0) queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
-	        if (sourceHref.length > 0 && (props.renderTheme ?? '') == theme) {
-	            mathRendering.value = false
-	            mathRenderRequestKey = ''
-	            queueMathImage(sourceHref, props.width ?? 1, props.height ?? 1)
-            return
+    // Resource generation belongs to the presentation layer. Recycling a view
+    // only reloads the already prepared source; it never starts a renderer.
+    function syncMathImageTheme() {
+        const isClosed = (props.isClose ?? 0) == 1
+        const sourceKey = (props.messageId ?? '') + ':' + (props.renderKey ?? '') + ':'
+            + (props.text ?? '')
+        if (!isClosed || mathSourceKey != sourceKey) {
+            mathSourceKey = sourceKey
+            resetMathImages()
+            mathImageLoadFailed.value = false
         }
-        if (mathText.length == 0) return
-        const requestKey = theme + '\n' + mathText
-        mathRenderRequestKey = requestKey
-        mathRendering.value = true
-        renderMathSvgForTheme(mathText, theme, (result: ThemedSvgResult) => {
-            if (mathRenderRequestKey != requestKey || uiTheme.value != theme) return
-            mathRendering.value = false
-            if (result.imageSource.length == 0) {
-                if (!imageReady.value) mathImageLoadFailed.value = true
-                return
-            }
-            queueMathImage(result.imageSource, result.width, result.height)
-        })
-	        // #endif
+        const svgSource = props.svgSource ?? ''
+        const href = svgSource.length > 0 ? svgSource : (props.href ?? '')
+        mathImageModeLatched.value = isClosed && href.length > 0
+        if (!mathImageModeLatched.value) return
+        queueMathImage(href, svgSource.length > 0 ? (props.svgWidth ?? 1) : (props.width ?? 1),
+            svgSource.length > 0 ? (props.svgHeight ?? 1) : (props.height ?? 1))
     }
 
-	    watch((): string => {
-	        if (props.sourceIdentity != null) return uiTheme.value + ':' + (props.renderTheme ?? '') + ':' + props.sourceIdentity! + ':' + (props.isClose ?? 0).toString() + ':' + (props.href ?? '')
-	        return uiTheme.value + '\n' + (props.renderTheme ?? '') + '\n' + (props.text ?? '') + '\n'
-	            + (props.svgSource ?? '') + '\n' + (props.svgWidth ?? 0).toString() + '\n'
-	            + (props.svgHeight ?? 0).toString() + '\n'
-	            + (props.isClose ?? 0).toString() + '\n'
-	            + ((props.href ?? '').length > 0 ? '1' : '0')
-    }, () => {
+    watch(() => [props.messageId ?? '', props.renderKey ?? '', uiTheme.value,
+        props.text ?? '', props.svgSource ?? '', props.href ?? '', (props.svgWidth ?? 0).toString(),
+        (props.svgHeight ?? 0).toString(), (props.width ?? 0).toString(),
+        (props.height ?? 0).toString(), (props.isClose ?? 0).toString()], () => {
         syncMathImageTheme()
     }, { immediate: true })
 
-    useMessageRenderTask(() => props.messageId ?? '', () => 'math-image:' + (props.renderKey ?? ''),
-        () => mathRendering.value || pendingBuffer.value >= 0,
-        () => uiTheme.value + ':' + (props.href ?? '') + ':' + (props.svgSource ?? '') + ':' + (props.text ?? ''))
+    onUnmounted(() => { mathBufferLoadRequest++; clearImageLoadTimer() })
 
-    onMounted(() => {
-        windowWidth.value = uni.getWindowInfo().windowWidth
-    })
+    useMessageRenderTask(() => props.messageId ?? '', () => 'math-image:' + (props.renderKey ?? ''),
+        () => pendingBuffer.value >= 0,
+        () => (props.href ?? '').length > 0 || (props.svgSource ?? '').length > 0
+            ? uiTheme.value + ':' + (props.href ?? '') + ':' + (props.svgSource ?? '') + ':' + (props.text ?? '') : '')
+
 
 </script>
 
