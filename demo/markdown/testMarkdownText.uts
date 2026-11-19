@@ -55,12 +55,12 @@ let testMarkdownText = `# 完整 Markdown 功能演示
 | 状态 | 正常 |
 | 版本 | 1.0.0 |
 
-### 超宽长表格（用于横向滚动测试）
+### 宽表格（可横向滚动）
 
-| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
-|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
-| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |
-| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|
+| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 |
+| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 |
 
 ---
 
@@ -90,9 +90,8 @@ function fibonacci(n) {
 const result = fibonacci(10);
 alert(result);
 
-// 超长单行代码测试
-// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+// 向左滑动查看完整代码
+const doubled = [10, 20, 30, 40, 50, 60].map(value => value * 2).filter(x => x > 40);
 \`\`\`
 
 ---
