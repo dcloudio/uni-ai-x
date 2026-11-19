@@ -119,8 +119,7 @@
 	const chatInstance = getCurrentInstance()!.proxy!
 	// #endif
 	let scrollingT = 0
-	let scrollBottomCheckTimer = 0
-	let showScrollToBottomTimer = 0
+	let scrollBottomCheckQueued = false
 	const hasInputExtension = getChatInputExtension() != null
     let showComposerTip = true
     // #ifdef WEB || APP-ANDROID
@@ -627,28 +626,11 @@
 		currentScrollTop = 0
 		scrollTop.value = 0
 		scrollInBottom.value = true
-		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
 		showScrollToBottom.value = false
 	}
 	
 	function syncScrollToBottomBtn() {
-		if (msgList.value.length == 0) {
-			resetScrollStateForEmptyChat()
-			return
-		}
-		const shouldShow = !scrollInBottom.value && !scrolling.value
-		if (!shouldShow) {
-			showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
-			showScrollToBottom.value = false
-			return
-		}
-		if (showScrollToBottom.value || showScrollToBottomTimer != 0) {
-			return
-		}
-		showScrollToBottomTimer = setTimeout(() => {
-			showScrollToBottom.value = true
-			showScrollToBottomTimer = 0
-		}, 180)
+		showScrollToBottom.value = msgList.value.length > 0 && !scrollInBottom.value
 	}
 
 	function updateScrollInBottom() {
@@ -665,7 +647,7 @@
 				const bottom = result[1] as NodeInfo | null
 				if (list == null || bottom == null) return
 				const diff = (bottom.bottom ?? 0) - (list.bottom ?? 0)
-				scrollInBottom.value = diff < (scrollInBottom.value ? 60 : 30)
+				scrollInBottom.value = diff <= 1
 				syncScrollToBottomBtn()
 			})
 		})
@@ -675,7 +657,7 @@
 			const scrollList = uni.getElementById('msg-list')
 			if (scrollList != null) {
 				const diff: number = scrollList.scrollHeight - scrollList.scrollTop - scrollList.offsetHeight
-				const isInBottom = scrollInBottom.value ? diff < 60 : diff < 30
+				const isInBottom = diff <= 1
 				if (scrollInBottom.value != isInBottom) {
 					scrollInBottom.value = isInBottom
 				}
@@ -686,11 +668,12 @@
 	}
 
 	function setIsInScrollBottom() {
-		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
-		scrollBottomCheckTimer = setTimeout(() => {
-			scrollBottomCheckTimer = 0
-			updateScrollInBottom()
-		}, 180)
+		if (scrollBottomCheckQueued) return
+		scrollBottomCheckQueued = true
+		nextTick(() => {
+			scrollBottomCheckQueued = false
+			if (!viewDisposed) updateScrollInBottom()
+		})
 	}
 	
 	watch(chatActiveId, () => {
@@ -702,7 +685,6 @@
 		currentScrollTop = 0
 		scrollTop.value = 0
 		scrollInBottom.value = true
-		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
 		showScrollToBottom.value = false
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
@@ -832,11 +814,9 @@
 		// #ifdef APP-HARMONY
 		if (showPendingLoading.value) updatePendingSpinnerPosition()
 		// #endif
-		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
+		setIsInScrollBottom()
 		if (!scrolling.value) {
 			scrolling.value = true
-			showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
-			showScrollToBottom.value = false
 		}
 		scrollingT = clearTimer(scrollingT)
 		scrollingT = setTimeout(() => {
@@ -914,8 +894,6 @@
 		// #endif
 		// #endif
 		scrollingT = clearTimer(scrollingT)
-		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
-		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
 		// #ifdef APP-HARMONY
 		pendingSpinnerMeasureTimer = clearTimer(pendingSpinnerMeasureTimer)
 		// #endif
