@@ -22,32 +22,26 @@
 						</template>
 					</view>
 				</view>
-				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :initial-scroll-bottom="initialScrollBottom" :scroll-anchoring="true" :scroll-top="scrollTop" :scroll-into-view="scrollIntoViewId" id="msg-list"
-					:scroll-with-animation="scrollWithAnimation" @scroll="onScroll" @touchstart="setTouchState(true)" @touchend="onMsgListTouchEnd"
+				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
+					:scroll-with-animation="false" @scroll="onScroll" @scrollend="setIsInScrollBottom" @touchstart="cancelBottomScroll" @touchend="setIsInScrollBottom"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
 						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
 							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent" @source="openSource"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
-					<!-- #ifdef MP-WEIXIN -->
 					<list-item id="msg-list-bottom"><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
-					<!-- #endif -->
-					<!-- #ifndef MP-WEIXIN -->
-					<list-item id="last-msg-a" v-if="bottomAnchorId == 'last-msg-a'"><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
-					<list-item id="last-msg-b" v-else><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
-					<!-- #endif -->
 				</list-view>
 				<!-- #ifdef APP-HARMONY -->
 				<loading v-if="showPendingLoading && pendingSpinnerVisible" class="chat-box-pending-loading" :style="pendingSpinnerStyle" :paused="false" />
 				<!-- #endif -->
 
-				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: '10px'}" @click="scrollToLastMsg(true)">
+				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: '10px'}" @click="scrollToLastMsg">
 					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
 			</view>
 			<uni-ai-chat-extension-input v-if="hasInputExtension" />
-			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg(true)" />
+			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg" />
 			<text v-if="showComposerTip" class="chat-box-tip" flatten>{{tr('内容由ai生成，仅供参考', 'AI generated content may be inaccurate')}}</text>
 		</view>
 		<view v-if="pendingCalendarMessage != null" class="calendar-confirmation-overlay" @click.stop="blockCalendarOverlay">
@@ -117,30 +111,16 @@
 	}>()
 	
 	const scrollTop = ref<number>(0)
-	const initialScrollBottom = ref<boolean>(false)
-	const bottomAnchorId = ref<string>('last-msg-a')
-	const scrollIntoViewId = computed<string>(() => {
-		// #ifdef APP-HARMONY
-		return bottomAnchorId.value
-		// #endif
-		// #ifndef APP-HARMONY
-		return ''
-		// #endif
-	})
+	let currentScrollTop = 0
 	const scrollInBottom = ref<boolean>(true)
 	const showScrollToBottom = ref<boolean>(false)
-	const scrollWithAnimation = ref<boolean>(false)
-	const scrollTouch = ref<boolean>(false)
 	const scrolling = ref<boolean>(false)
 	// #ifdef MP-WEIXIN
 	const chatInstance = getCurrentInstance()!.proxy!
 	// #endif
-	let autoToLastMsg = false
 	let scrollingT = 0
 	let scrollBottomCheckTimer = 0
 	let showScrollToBottomTimer = 0
-	let mouseScrollTimer = 0
-	let mouseScroll = false
 	const hasInputExtension = getChatInputExtension() != null
     let showComposerTip = true
     // #ifdef WEB || APP-ANDROID
@@ -189,27 +169,12 @@
 
 	// Worker 重建完成后递增版本号，驱动渲染缓存失效与列表重算
 	const rebuildVersion = ref<number>(0)
-	// 重建导致列表内容高度突变，首帧原生视图可能未重绘：重建完成后主动触发一次滚底刷新
-	let rebuildScrollPending = false
-	let rebuildScrollTimer = 0
-
-	function scheduleRebuildScroll() {
-		if (rebuildScrollPending) return
-		rebuildScrollPending = true
-		rebuildScrollTimer = setTimeout(() => {
-			rebuildScrollTimer = 0
-			rebuildScrollPending = false
-			if (!autoToLastMsg || scrollTouch.value) return
-			scrollToLastMsg(false)
-		}, 60)
-	}
 
 	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	// Worker 重建完成回调：应用 ops 后驱动重算（页面环境无法调用 uni-ai-md，重建统一在 Worker 执行）
 	const onRebuildResult = (result: AiWorkerRebuildResult) => {
 		if (uniAiMdStreamApplyRebuild(result.msgId, parseAiWorkerOps(result.opsJson))) {
 			rebuildVersion.value += 1
-			scheduleRebuildScroll()
 		}
 	}
 	// #endif
@@ -604,23 +569,52 @@
 		return uniAi.chat.activeId
 	})
 	
-	function scrollToLastMsg(userClick: boolean){
-		if (msgList.value.length == 0) {
-			resetScrollStateForEmptyChat()
-			return
+	let bottomScrollVersion = 0
+	function cancelBottomScroll() { bottomScrollVersion += 1 }
+
+	async function scrollToLastMsg() {
+		cancelBottomScroll()
+		const version = bottomScrollVersion
+		const chatId = chatActiveId.value
+		let bottomChecks = 0
+		// A single click owns this bounded operation. Newly mounted virtual items
+		// can correct scrollHeight, so measure again instead of keeping a bottom anchor.
+		for (let attempt = 0; attempt < 30; attempt++) {
+			await nextTick()
+			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value || msgList.value.length == 0) return
+			let remaining = 0
+			let top = currentScrollTop
+			// #ifndef MP-WEIXIN
+			const list = uni.getElementById('msg-list')
+			if (list == null) return
+			top = list.scrollTop
+			remaining = Math.max(0, list.scrollHeight - list.getBoundingClientRect().height - top)
+			// #endif
+			// #ifdef MP-WEIXIN
+			remaining = await new Promise<number>((resolve) => {
+				const query = uni.createSelectorQuery().in(chatInstance)
+				query.select('#msg-list').boundingClientRect()
+				query.select('#msg-list-bottom').boundingClientRect()
+				query.exec((result) => {
+					const list = result[0] as NodeInfo | null
+					const bottom = result[1] as NodeInfo | null
+					resolve(Math.max(0, (bottom?.bottom ?? 0) - (list?.bottom ?? 0)))
+				})
+			})
+			// #endif
+			bottomChecks = remaining <= 1 ? bottomChecks + 1 : 0
+			if (bottomChecks >= 2) break
+			if (remaining > 1) {
+				scrollTop.value = top
+				await nextTick()
+				if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
+				scrollTop.value = top + remaining
+			}
+			await new Promise<void>((resolve) => { setTimeout(() => { resolve() }, 16) })
 		}
-		autoToLastMsg = true
-		scrollWithAnimation.value = userClick
-		bottomAnchorId.value = bottomAnchorId.value == 'last-msg-a' ? 'last-msg-b' : 'last-msg-a'
-		nextTick(() => {
-			if (viewDisposed || !autoToLastMsg) return
-			// 限幅在 10 万~20 万间震荡：流式期间每帧递增会累计到数百万，
-			// 超大 scrollTop 疑似导致 list-view 内部状态异常（既有 item 的子组件 props 更新丢失）
-			scrollTop.value = scrollTop.value > 100000 ? 100000 : scrollTop.value + 100000
-			scrollInBottom.value = true
-		})
+		setIsInScrollBottom()
 	}
-	
+
 	function clearTimer(timer: number): number {
 		if (timer != 0) {
 			clearTimeout(timer)
@@ -629,8 +623,8 @@
 	}
 
 	function resetScrollStateForEmptyChat() {
-		autoToLastMsg = false
-		scrollWithAnimation.value = false
+		cancelBottomScroll()
+		currentScrollTop = 0
 		scrollTop.value = 0
 		scrollInBottom.value = true
 		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
@@ -672,7 +666,6 @@
 				if (list == null || bottom == null) return
 				const diff = (bottom.bottom ?? 0) - (list.bottom ?? 0)
 				scrollInBottom.value = diff < (scrollInBottom.value ? 60 : 30)
-				if (scrollTouch.value) autoToLastMsg = diff <= 3
 				syncScrollToBottomBtn()
 			})
 		})
@@ -685,9 +678,6 @@
 				const isInBottom = scrollInBottom.value ? diff < 60 : diff < 30
 				if (scrollInBottom.value != isInBottom) {
 					scrollInBottom.value = isInBottom
-				}
-				if (scrollTouch.value || mouseScroll) {
-					autoToLastMsg = !(diff > 3)
 				}
 				syncScrollToBottomBtn()
 			}
@@ -704,20 +694,12 @@
 	}
 	
 	watch(chatActiveId, () => {
+		cancelBottomScroll()
 		messageComputations.clear()
 		markdownBlockCache.clear()
-		// Only existing history needs initial bottom positioning. Enabling it on an
-		// empty Android Vapor list can prevent later streamed rows from mounting.
-		initialScrollBottom.value = msgList.value.length > 0
 		messageRowCache.clear()
 		rowCache.clear()
-		// #ifdef APP-HARMONY
-		autoToLastMsg = msgList.value.length > 0
-		// #endif
-		// #ifndef APP-HARMONY
-		autoToLastMsg = false
-		// #endif
-		scrollWithAnimation.value = false
+		currentScrollTop = 0
 		scrollTop.value = 0
 		scrollInBottom.value = true
 		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
@@ -725,24 +707,15 @@
 		nextTick(() => {
 			if (lastMsg.value != null) lastMsg.value.rendered = true
 			if (msgList.value.length > 0) {
-				// #ifdef APP-HARMONY
-				scrollToLastMsg(false)
-				// #endif
 				updateScrollInBottom()
 			}
 		})
 	}, { deep: true, immediate: true })
 
-	watch((): number => msgList.value.length, (length: number, previousLength: number) => {
+	watch((): number => msgList.value.length, () => {
 		if (msgList.value.length == 0) {
 			resetScrollStateForEmptyChat()
 		}
-		// #ifdef APP-HARMONY
-		if (previousLength == 0 && length > 0) {
-			autoToLastMsg = true
-			nextTick(() => { scrollToLastMsg(false) })
-		}
-		// #endif
 		const activeIds = new Set<string>()
 		msgList.value.forEach((msg: MsgItem) => { activeIds.add(msg._id) })
 		messageRowCache.forEach((cached: MessageRowCache, id: string) => {
@@ -787,12 +760,6 @@
 		if (viewDisposed || chatId != chatActiveId.value) return
 		// #endif
 		setIsInScrollBottom()
-		if (!scrollTouch.value && autoToLastMsg) {
-			// #ifndef APP-ANDROID
-			await nextTick()
-			// #endif
-			scrollToLastMsg(false)
-		}
 	})
 	
 	const changeThinkContent = (_hideThinkContent: boolean) => {
@@ -860,7 +827,8 @@
 		emit('close-menu')
 	}
 	
-	const onScroll = () => {
+	const onScroll = (event: UniScrollEvent) => {
+		currentScrollTop = event.detail.scrollTop
 		// #ifdef APP-HARMONY
 		if (showPendingLoading.value) updatePendingSpinnerPosition()
 		// #endif
@@ -876,24 +844,6 @@
 			scrolling.value = false
 			updateScrollInBottom()
 		}, 180)
-	}
-
-	function onMsgListTouchEnd() {
-		setTouchState(false)
-		setIsInScrollBottom()
-	}
-
-	let touchClearTimer: number = 0
-	function setTouchState(state: boolean) {
-		touchClearTimer = clearTimer(touchClearTimer)
-		if (state) {
-			scrollTouch.value = true
-		} else {
-			touchClearTimer = setTimeout(() => {
-				scrollTouch.value = false
-				touchClearTimer = 0
-			}, 2000)
-		}
 	}
 
 	const runMarkdownDemo = async () => {
@@ -932,13 +882,8 @@
 		uniAi.sendMsg(prompt)
 		uniAi.currentChat!.inputContent = ''
 	}
-	const beforeRequestAi = () => {
-		autoToLastMsg = true
-		scrollToLastMsg(false)
-	}
 	
 	onMounted(() => {
-		uniAi.onBeforeRequestAi(beforeRequestAi)
 		// #ifdef APP-IOS
 		pollRebuildResults()
 		rebuildPollTimer = setInterval(pollRebuildResults, 100)
@@ -948,16 +893,6 @@
 		setAiWorkerRebuildListener(onRebuildResult)
 		// #endif
 		// #endif
-		// #ifdef H5
-		window.addEventListener('wheel', () => {
-			mouseScroll = true
-			mouseScrollTimer = clearTimer(mouseScrollTimer)
-			mouseScrollTimer = setTimeout(() => {
-				mouseScroll = false
-				mouseScrollTimer = 0
-			}, 1000)
-		})
-		// #endif
 
 		// #ifdef MP-WEIXIN
 		updateScrollInBottom()
@@ -966,10 +901,9 @@
 
 	onBeforeUnmount(() => {
 		viewDisposed = true
-		if (rebuildScrollTimer != 0) clearTimeout(rebuildScrollTimer)
+		cancelBottomScroll()
 		messageComputations.clear()
 		if (state.value == 'processing') uniAi.abortRequest()
-		uniAi.offBeforeRequestAi(beforeRequestAi)
 		// #ifdef APP-IOS
 		if (rebuildPollTimer != 0) clearInterval(rebuildPollTimer)
 		rebuildPollTimer = 0
@@ -982,8 +916,6 @@
 		scrollingT = clearTimer(scrollingT)
 		scrollBottomCheckTimer = clearTimer(scrollBottomCheckTimer)
 		showScrollToBottomTimer = clearTimer(showScrollToBottomTimer)
-		mouseScrollTimer = clearTimer(mouseScrollTimer)
-		touchClearTimer = clearTimer(touchClearTimer)
 		// #ifdef APP-HARMONY
 		pendingSpinnerMeasureTimer = clearTimer(pendingSpinnerMeasureTimer)
 		// #endif

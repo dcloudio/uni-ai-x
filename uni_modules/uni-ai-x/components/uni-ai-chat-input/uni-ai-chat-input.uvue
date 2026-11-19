@@ -122,7 +122,6 @@
 		composerState.attachments = false
 		inputFocused.value = true
 		restoreFocusAfterToggle.value = false
-		scrollToLastMsg()
 	}
 
 	function onInputBlur() {
