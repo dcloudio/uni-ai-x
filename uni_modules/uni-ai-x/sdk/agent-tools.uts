@@ -238,6 +238,9 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 		const task = uni.request({
 			url: url,
 			method: 'POST',
+			// #ifdef APP-ANDROID
+			firstIpv4: true,
+			// #endif
 			dataType: 'text',
 			// @ts-ignore enableChunked is available on Web and App request tasks.
 			enableChunked: true,

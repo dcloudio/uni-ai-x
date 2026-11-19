@@ -707,6 +707,9 @@ class RequestAiRunner {
 			requestData['thinking'] = thinkingParam
 		}
 		const requestTask: RequestTask = uni.request({
+			// #ifdef APP-ANDROID
+			firstIpv4: true,
+			// #endif
 			url: config.baseURL!,
 			method: 'POST',
 			dataType: 'text',

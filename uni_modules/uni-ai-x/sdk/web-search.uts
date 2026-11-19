@@ -65,6 +65,9 @@ export function webSearch(query: string, token: string, searchURL: string,
 			: { query: query, max_results: maxResults, search_type: 'web' }
 		const task = uni.request({
 			url: searchURL,
+			// #ifdef APP-ANDROID
+			firstIpv4: true,
+			// #endif
 			method: 'POST',
 			dataType: 'json',
 			timeout: 20000,

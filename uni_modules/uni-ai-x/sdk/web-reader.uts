@@ -17,6 +17,9 @@ export async function readWebLink(argumentsText: string, token: string, callback
 	return await new Promise<string>((resolve) => {
 		const task = uni.request({
 			url: 'https://api.qnaigc.com/v1/tools/fetch',
+			// #ifdef APP-ANDROID
+			firstIpv4: true,
+			// #endif
 			method: 'POST',
 			dataType: 'json',
 			timeout: 25000,

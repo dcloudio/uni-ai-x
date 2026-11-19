@@ -44,6 +44,9 @@ export class WorkerStreamRequest {
 		)
 
 		this.requestTask = uni.request({
+			// #ifdef APP-ANDROID
+			firstIpv4: true,
+			// #endif
 			url: url,
 			method: 'POST',
 			dataType: 'text',

@@ -78,6 +78,9 @@ export async function synthesizeDeepSeekSpeech(text: string, onTask: (task: Requ
 	return await new Promise<ArrayBuffer>((resolve, reject) => {
 		const task = uni.request({
 			url: 'https://api.deepseek.com/v1/tools/tts', method: 'POST', responseType: 'arraybuffer', timeout: 90000,
+			// #ifdef APP-ANDROID
+			firstIpv4: true,
+			// #endif
 			header: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
 			data: { text: text, voice_id: 'stella', format: 'wav', filter_markdown: true },
 			success: (response: RequestSuccess<ArrayBuffer>) => {
