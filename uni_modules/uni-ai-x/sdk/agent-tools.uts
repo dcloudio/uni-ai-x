@@ -390,7 +390,6 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 			return false
 		}
 		try {
-			const token = await provider.getToken!()
 			const history = JSON.parse<UTSJSONObject[]>(JSON.stringify(messages)) as UTSJSONObject[]
 			const now = new Date()
 			const modelConfig = provider.models.find((entry) => entry.modelId == model)
@@ -432,6 +431,8 @@ class QiniuToolAdapter extends CustomProviderAdapter {
 					body['tool_choice'] = 'auto'
 				}
 				if (modelConfig?.thinking == true) body['thinking'] = { type: thinking == false ? 'disabled' : 'enabled' }
+				const token = await provider.getToken!()
+				if (callbacks.isCancelled?.() == true) return false
 				const response = await requestModel(provider.baseURL!, token, body, callbacks, () => {
 					if (!mcpStatusActive) return
 					callbacks.onToolStatus?.('')

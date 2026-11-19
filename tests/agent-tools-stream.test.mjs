@@ -94,6 +94,8 @@ test('calendar confirmation is separate from the streamed answer and needs no se
 
 test('MCP weather and calendar in one turn still stream the weather result after tool calls', async () => {
   const sequence = [];
+  let tokenVersion = 0;
+  const authorizations = [];
   const start = new Date(Date.now() + 60 * 60 * 1000);
   const startAt = [start.getFullYear(), String(start.getMonth() + 1).padStart(2, '0'), String(start.getDate()).padStart(2, '0')].join('-')
     + ' ' + [String(start.getHours()).padStart(2, '0'), String(start.getMinutes()).padStart(2, '0')].join(':');
@@ -108,6 +110,8 @@ test('MCP weather and calendar in one turn still stream the weather result after
   const requests = [];
   const uni = {
     request(options) {
+      authorizations.push(options.header.Authorization);
+      assert.equal(options.header.Authorization, 'Bearer token-' + (requests.length + 1), 'each round must acquire a fresh token after potentially slow tools');
       const chunks = rounds.shift();
       assert.ok(chunks, 'unexpected model round');
       requests.push(structuredClone(options.data));
@@ -121,7 +125,7 @@ test('MCP weather and calendar in one turn still stream the weather result after
     },
   };
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
-    llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
+    llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token-' + (++tokenVersion), models: [{ modelId: 'test', toolCall: true }] }]]),
     CustomProviderAdapter: class {},
     SseStreamParser: TestSseParser,
     mcpServers: [{ id: 'weather', url: 'https://example.test/mcp', tools: ['openmeteo_get_forecast'] }],
@@ -145,6 +149,7 @@ test('MCP weather and calendar in one turn still stream the weather result after
   assert.equal(success, true);
   assert.deepEqual(sequence, ['北京今天晴，当前12°C，', '最低4°C，最高15°C。', 'confirm:喝水', 'done']);
   assert.equal(requests.length, 3);
+  assert.deepEqual(authorizations, ['Bearer token-1', 'Bearer token-2', 'Bearer token-3']);
   assert.deepEqual(requests[0].tools.map((tool) => tool.function.name), ['read_web_link', 'create_calendar_reminder', 'enable_mcp__weather']);
   assert.equal(requests[1].messages.at(-1).tool_call_id, 'enable');
   assert.equal(requests[2].messages.at(-1).content, '{"status":"pending"}');
