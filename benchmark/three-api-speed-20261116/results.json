@@ -1,0 +1,42 @@
+[
+  {
+    "run": 1,
+    "target": "deepseek",
+    "first_body_s": 0.608618552,
+    "reasoning_chars": 0,
+    "headers_s": 0.16762678200000003,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.6727596,
+    "body_output_s": 4.064141048,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 1,
+    "target": "bailian",
+    "first_body_s": null,
+    "reasoning_chars": 0,
+    "token_s": 0.18179777100000027,
+    "token_ttl_remaining_s": 59.390947103500366,
+    "success": false,
+    "http_status": 403,
+    "error": "{\"error\":{\"message\":\"Access to model denied. Please make sure you are eligible for using the model.\",\"id\":\"9ffaeb3f-d851-9eaf-8add-c46e669d6f08\",\"type\":\"AccessDenied.Unpurchased\",\"code\":\"AccessDenied.Unpurchased\"}}",
+    "total_s": 0.18570908700000022,
+    "body_output_s": null,
+    "content_chars": 0,
+    "exact_match": false,
+    "trim_match": false
+  }
+]

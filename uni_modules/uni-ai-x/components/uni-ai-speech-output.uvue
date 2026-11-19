@@ -1,24 +1,40 @@
 <template>
 	<view class="speech-output" @click="toggle">
         <uni-ai-audio-indicator v-if="active" :loading="speechPlayback.phase == 'loading'" :color="speechPlayback.phase == 'loading' ? '#969ba5' : '#536dfe'" />
-        <uni-ai-icon v-else name="waveform-outline" size="20" :color="uiTheme == 'dark' ? '#b0b0b0' : '#8a8a8a'" />
+        <uni-ai-icon v-else name="waveform-outline" size="20" :color="!available ? 'var(--text-disabled)' : uiTheme == 'dark' ? '#b0b0b0' : '#8a8a8a'" />
     </view>
 </template>
 <script setup lang="uts">
 import uniAiAudioIndicator from './uni-ai-audio-indicator.uvue'
 import uniAiIcon from './uni-ai-icon/uni-ai-icon.uvue'
-import uniAi, { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
+import uniAi, { uiTheme, getLlmDisplayName } from '@/uni_modules/uni-ai-x/sdk'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import { supportsDeepSeekApps } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-api.uts'
 import { speechPlayback, stopAnswerSpeech, playAnswerSpeech } from '@/uni_modules/uni-ai-x/sdk/speech-output.uts'
 const props = defineProps<{ messageId: string, text: string }>()
+const available = computed<boolean>(() => supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model))
 const active = computed<boolean>(() => speechPlayback.owner == props.messageId)
 function toggle() {
 	if (speechPlayback.owner == props.messageId) { stopAnswerSpeech(props.messageId); return }
-	if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) { uni.showToast({ title: tr('朗读需选择 DeepSeek 官方 Flash 模型', 'Choose official DeepSeek Flash for speech'), icon: 'none' }); return }
+	if (!available.value) {
+		const current = uniAi.llm.provider == 'qiniu' ? tr('你当前选择的是「Uni AI 网关 · ', 'You selected “Uni AI Gateway · ') + getLlmDisplayName(uniAi.llm) + tr('」，不支持此功能。', '”, which does not support this feature. ') : tr('你当前选择的模型不支持此功能。', 'The selected model does not support this feature. ')
+		uni.showModal({
+			title: tr('功能使用限制', 'Feature restriction'),
+			content: current + tr('是否切换到「DeepSeek 官方 · DeepSeek Flash」？', 'Switch to “DeepSeek Official · DeepSeek Flash”?'),
+			showCancel: true, cancelText: tr('暂不切换', 'Not now'), confirmText: tr('立即切换', 'Switch now'),
+			success: (result) => {
+				if (!result.confirm) return
+				if (!supportsDeepSeekApps('deepseek', 'deepseek-flash')) {
+					uni.showToast({ title: tr('尚未配置 DeepSeek 官网直连，请先完成配置', 'Configure the official DeepSeek connection first'), icon: 'none' }); return
+				}
+				uniAi.llm = { provider: 'deepseek', model: 'deepseek-flash', thinking: uniAi.llm.thinking, webSearch: uniAi.llm.webSearch }
+			}
+		}); return
+	}
 	if (uniAi.currentChat?.state == 'processing') { uni.showToast({ title: tr('请等待回答完成', 'Wait for the answer to finish'), icon: 'none' }); return }
 	void playAnswerSpeech(props.messageId, props.text)
 }
+watch(() => uniAi.llm.provider + ':' + uniAi.llm.model, () => stopAnswerSpeech(props.messageId))
 onUnmounted(() => stopAnswerSpeech(props.messageId))
 </script>
 <style>

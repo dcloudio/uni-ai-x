@@ -1,0 +1,16 @@
+{
+  "runs": 6,
+  "discarded": [
+    1
+  ],
+  "averaged": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "firstBodyMs": 1313.4,
+  "totalMs": 5022,
+  "outputMs": 3708.6
+}

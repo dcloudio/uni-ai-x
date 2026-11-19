@@ -1,0 +1,66 @@
+We need answer must output exactly given Markdown, no extra. Need comply. But need note first line in prompt: "待输出固定内容：" then content starts "# 完整 Markdown 功能演示". Also instruction says output directly from `# Markdown 全元素渲染测试文档`? Wait contradiction: Strict says output directly from `# Markdown 全元素渲染测试文档` start, but fixed content starts "# 完整 Markdown 功能演示". Need decide. User gave: "待输出固定内容：" then content. Also earlier says "输出直接从 `# Markdown 全元素渲染测试文档` 开始，直到文档末尾结束". But fixed content does not contain that heading. They say "禁止增减修改... 下面Markdown文本". Need output the fixed content exactly as provided after "待输出固定内容："? The instruction 4 says from `# Markdown 全元素渲染测试文档`, but there is no such text. This likely template error? Need follow fixed content. Critical: Must not add any text. We should output exactly the Markdown text starting "# 完整 Markdown 功能演示". Need preserve all. No code fences wrapping entire. But inside contains code fences. Need output exactly. Ensure no extra leading/trailing text. We must not wrap. Need maybe final answer only.
+
+Let's copy content exactly. Need be careful with tabs? In lists nested use tabs as shown. Preserve blank lines. Need include everything.
+
+We need ensure not accidentally alter. Let's reconstruct from prompt.
+
+The fixed content begins:
+# 完整 Markdown 功能演示
+
+---
+
+## 标题（1~6级）
+
+# 一级标题
+...
+Ends:
+以上就是所有 Markdown 语法的完整演示。✅
+
+Need output exactly. There are code blocks with ```javascript and closing ```. We can include them as raw, not wrapped.
+
+Need check if there is a markdown code block delimiter at "### JS 代码示例" and closing. The content has ```javascript and closing ```. That's fine. The final output will be interpreted in final, but Markdown renderer may render code blocks; but as plain text final should preserve. We are an API? It outputs final text. The platform may render markdown; but requirement is raw markdown. We output raw.
+
+Potential issue: The "待输出固定内容：" line should not be included. Yes.
+
+Let's output exactly. Need ensure no extra final newline? likely okay. No introduction.
+
+Let's verify every line. I'll create the final content.
+
+Double-check mathematical formulas, backslashes. Need preserve. For aligned:
+$$
+\begin{aligned}
+(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\
+\sum_{i=1}^{n} i &= \frac{n(n+1)}{2}
+\end{aligned}
+$$
+Need preserve backslashes.
+
+Matrix:
+$$
+\mathbf{A} = \begin{pmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} \\
+...
+\end{pmatrix}
+$$
+
+Chemical:
+$$\text{2H}_2 + \text{O}_2 \xrightarrow{\text{点燃}} 2\text{H}_2\text{O}$$
+
+$$\text{C}_6\text{H}_{12}\text{O}_6 + 6\text{O}_2 \rightarrow 6\text{CO}_2 + 6\text{H}_2\text{O}$$
+
+Long formula:
+$$
+\lim_{x \to \infty} \frac{\sum_{k=1}^{n} \left( \frac{1}{k^2} \right) \cdot \sqrt{2\pi} \cdot e^{-\frac{x^2}{2}}}{\sqrt{\int_{-\infty}^{\infty} e^{-x^2} dx}} = \frac{\Gamma(\frac{1}{2})}{2} \cdot \frac{\pi}{\sqrt{2}} \cdot \left( \frac{\partial}{\partial x} \ln(x^2 + y^2) \right)^n \quad \text{其中} \quad n \to \infty
+$$
+
+Need exactly.
+
+Also note headings use fullwidth parentheses （1~6级） maybe. Yes.
+
+"### 写法一：三个短横线" etc.
+
+Ending "以上就是所有 Markdown 语法的完整演示。✅" includes emoji. Ensure exact.
+
+No extra.
+
+Let's final. 

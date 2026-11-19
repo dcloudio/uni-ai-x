@@ -1,0 +1,56 @@
+
+	// PHONE_SPEED_TEMP_BEGIN
+	// #ifdef APP-ANDROID
+	const phoneSpeedPrompt = "【严格指令，禁止任何修改】你必须严格遵守：\n1. 禁止输出任何前置介绍、总结、对话文字；\n2. 禁止增减、修改、重排、精简下面Markdown文本，一字不差原样输出；\n3. 不要用```markdown包裹输出内容；\n4. 输出直接从 `# Markdown 全元素渲染测试文档` 开始，直到文档末尾结束，后面不能加任何文字。\n待输出固定内容：\n# 完整 Markdown 功能演示\n\n---\n\n## 标题（1~6级）\n\n# 一级标题\n## 二级标题\n### 三级标题\n#### 四级标题\n##### 五级标题\n###### 六级标题\n\n---\n\n## 列表\n\n### 无序列表\n- 第一项\n- 第二项\n\t- 嵌套项 1\n\t- 嵌套项 2\n\t\t- 第三层嵌套\n- 第三项\n\n### 有序列表\n1. 第一步\n2. 第二步\n\t1. 子步骤 A\n\t2. 子步骤 B\n3. 第三步\n\n### 任务复选框列表\n- [x] 已完成任务\n- [ ] 未完成任务\n- [ ] 另一个待办项\n- [x] 子任务已完成\n\n---\n\n## 表格\n\n### 普通表格\n\n| 姓名 | 年龄 | 城市 |\n|------|------|------|\n| 张三 | 25 | 北京 |\n| 李四 | 30 | 上海 |\n| 王五 | 28 | 深圳 |\n\n### 短表格\n\n| 项目 | 值 |\n|------|----|\n| 状态 | 正常 |\n| 版本 | 1.0.0 |\n\n### 超宽长表格（用于横向滚动测试）\n\n| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |\n|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|\n| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |\n| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |\n\n---\n\n## 块引用\n\n> 这是一段普通的引用文本。\n>\n> - 引用中的列表项\n> - 另一个列表项\n>\n> 引用文本的换行继续。\n> > 嵌套引用内容\n\n---\n\n## 代码块\n\n### JS 代码示例\n\n```javascript\n// 一个 JavaScript 示例\nfunction fibonacci(n) {\nif (n <= 1) return n;\nreturn fibonacci(n - 1) + fibonacci(n - 2);\n}\n\nconst result = fibonacci(10);\nalert(result);\n\n// 超长单行代码测试\n// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\nconst longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);\n```\n\n---\n\n## 超链接\n\n### 外部链接\n[访问百度](https://www.baidu.com)\n\n[打开 GitHub](https://github.com)\n\n### 相对路径链接\n[查看文档](./docs/readme.md)\n\n[项目主页](../index.html)\n\n---\n\n## 数学公式\n\n#### 代数公式\n\n$$\n\\begin{aligned}\n(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\\\\n\\sum_{i=1}^{n} i &= \\frac{n(n+1)}{2}\n\\end{aligned}\n$$\n\n#### 矩阵公式\n\n$$\n\\mathbf{A} = \\begin{pmatrix}\na_{11} & a_{12} & \\cdots & a_{1n} \\\\\na_{21} & a_{22} & \\cdots & a_{2n} \\\\\n\\vdots & \\vdots & \\ddots & \\vdots \\\\\na_{m1} & a_{m2} & \\cdots & a_{mn}\n\\end{pmatrix}\n$$\n\n#### 化学公式\n\n$$\\text{2H}_2 + \\text{O}_2 \\xrightarrow{\\text{点燃}} 2\\text{H}_2\\text{O}$$\n\n$$\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\rightarrow 6\\text{CO}_2 + 6\\text{H}_2\\text{O}$$\n\n#### 超长公式\n\n$$\n\\lim_{x \\to \\infty} \\frac{\\sum_{k=1}^{n} \\left( \\frac{1}{k^2} \\right) \\cdot \\sqrt{2\\pi} \\cdot e^{-\\frac{x^2}{2}}}{\\sqrt{\\int_{-\\infty}^{\\infty} e^{-x^2} dx}} = \\frac{\\Gamma(\\frac{1}{2})}{2} \\cdot \\frac{\\pi}{\\sqrt{2}} \\cdot \\left( \\frac{\\partial}{\\partial x} \\ln(x^2 + y^2) \\right)^n \\quad \\text{其中} \\quad n \\to \\infty\n$$\n\n---\n\n## 分割线\n\n### 写法一：三个短横线\n\n---\n\n### 写法二：三个星号\n\n***\n\n### 写法三：三个下划线\n\n___\n\n---\n\n## 其他特殊语法\n\n### 任务列表（完整示例）\n\n- [x] 支持 Markdown 语法\n- [x] 支持数学公式\n- [x] 支持 Mermaid 插件\n- [x] 支持代码高亮\n- [ ] 待实现功能\n- [ ] 更多功能\n\n### 脚注语法\n\n这里是一个带脚注的文本[^1]，这里还有一个[^2]。\n\n[^1]: 这是第一个脚注的详细说明。\n[^2]: 这是第二个脚注的内容。\n\n### 自动邮箱链接\n\n联系邮箱：<example@email.com>\n\n### 自动链接\n\n直接访问 https://www.example.com 可以看到效果。\n\n---\n\n以上就是所有 Markdown 语法的完整演示。✅"
+	const phoneSpeedExpected = "# 完整 Markdown 功能演示\n\n---\n\n## 标题（1~6级）\n\n# 一级标题\n## 二级标题\n### 三级标题\n#### 四级标题\n##### 五级标题\n###### 六级标题\n\n---\n\n## 列表\n\n### 无序列表\n- 第一项\n- 第二项\n\t- 嵌套项 1\n\t- 嵌套项 2\n\t\t- 第三层嵌套\n- 第三项\n\n### 有序列表\n1. 第一步\n2. 第二步\n\t1. 子步骤 A\n\t2. 子步骤 B\n3. 第三步\n\n### 任务复选框列表\n- [x] 已完成任务\n- [ ] 未完成任务\n- [ ] 另一个待办项\n- [x] 子任务已完成\n\n---\n\n## 表格\n\n### 普通表格\n\n| 姓名 | 年龄 | 城市 |\n|------|------|------|\n| 张三 | 25 | 北京 |\n| 李四 | 30 | 上海 |\n| 王五 | 28 | 深圳 |\n\n### 短表格\n\n| 项目 | 值 |\n|------|----|\n| 状态 | 正常 |\n| 版本 | 1.0.0 |\n\n### 超宽长表格（用于横向滚动测试）\n\n| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |\n|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|\n| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |\n| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |\n\n---\n\n## 块引用\n\n> 这是一段普通的引用文本。\n>\n> - 引用中的列表项\n> - 另一个列表项\n>\n> 引用文本的换行继续。\n> > 嵌套引用内容\n\n---\n\n## 代码块\n\n### JS 代码示例\n\n```javascript\n// 一个 JavaScript 示例\nfunction fibonacci(n) {\nif (n <= 1) return n;\nreturn fibonacci(n - 1) + fibonacci(n - 2);\n}\n\nconst result = fibonacci(10);\nalert(result);\n\n// 超长单行代码测试\n// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\nconst longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);\n```\n\n---\n\n## 超链接\n\n### 外部链接\n[访问百度](https://www.baidu.com)\n\n[打开 GitHub](https://github.com)\n\n### 相对路径链接\n[查看文档](./docs/readme.md)\n\n[项目主页](../index.html)\n\n---\n\n## 数学公式\n\n#### 代数公式\n\n$$\n\\begin{aligned}\n(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\\\\n\\sum_{i=1}^{n} i &= \\frac{n(n+1)}{2}\n\\end{aligned}\n$$\n\n#### 矩阵公式\n\n$$\n\\mathbf{A} = \\begin{pmatrix}\na_{11} & a_{12} & \\cdots & a_{1n} \\\\\na_{21} & a_{22} & \\cdots & a_{2n} \\\\\n\\vdots & \\vdots & \\ddots & \\vdots \\\\\na_{m1} & a_{m2} & \\cdots & a_{mn}\n\\end{pmatrix}\n$$\n\n#### 化学公式\n\n$$\\text{2H}_2 + \\text{O}_2 \\xrightarrow{\\text{点燃}} 2\\text{H}_2\\text{O}$$\n\n$$\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\rightarrow 6\\text{CO}_2 + 6\\text{H}_2\\text{O}$$\n\n#### 超长公式\n\n$$\n\\lim_{x \\to \\infty} \\frac{\\sum_{k=1}^{n} \\left( \\frac{1}{k^2} \\right) \\cdot \\sqrt{2\\pi} \\cdot e^{-\\frac{x^2}{2}}}{\\sqrt{\\int_{-\\infty}^{\\infty} e^{-x^2} dx}} = \\frac{\\Gamma(\\frac{1}{2})}{2} \\cdot \\frac{\\pi}{\\sqrt{2}} \\cdot \\left( \\frac{\\partial}{\\partial x} \\ln(x^2 + y^2) \\right)^n \\quad \\text{其中} \\quad n \\to \\infty\n$$\n\n---\n\n## 分割线\n\n### 写法一：三个短横线\n\n---\n\n### 写法二：三个星号\n\n***\n\n### 写法三：三个下划线\n\n___\n\n---\n\n## 其他特殊语法\n\n### 任务列表（完整示例）\n\n- [x] 支持 Markdown 语法\n- [x] 支持数学公式\n- [x] 支持 Mermaid 插件\n- [x] 支持代码高亮\n- [ ] 待实现功能\n- [ ] 更多功能\n\n### 脚注语法\n\n这里是一个带脚注的文本[^1]，这里还有一个[^2]。\n\n[^1]: 这是第一个脚注的详细说明。\n[^2]: 这是第二个脚注的内容。\n\n### 自动邮箱链接\n\n联系邮箱：<example@email.com>\n\n### 自动链接\n\n直接访问 https://www.example.com 可以看到效果。\n\n---\n\n以上就是所有 Markdown 语法的完整演示。✅"
+	let phoneSpeedTimer = 0
+	let phoneSpeedPoll = 0
+	let phoneSpeedRound = 0
+	function phoneSpeedRun() {
+		phoneSpeedRound += 1
+		uniAi.llm = { provider: 'deepseek', model: 'deepseek-flash', thinking: false, webSearch: false }
+		uniAi.addChat(false)
+		phoneSpeedTimer = setTimeout(() => {
+			const startedAt = Date.now()
+			let firstBody = -1
+			let firstThinking = -1
+			let processingSeen = false
+			console.log('[PhoneSpeed6Run20261116] start', JSON.stringify({ round: phoneSpeedRound, startedAt: startedAt, model: uniAi.llm.model }))
+			phoneSpeedPoll = setInterval(() => {
+				const chat = uniAi.currentChat
+				if (chat == null) return
+				if (chat.state == 'processing') processingSeen = true
+				const msg = chat.msgList.find((item: MsgItem): boolean => item.from_uid == 'uni-ai')
+				const elapsed = Date.now() - startedAt
+				if (msg != null) {
+					if (firstThinking < 0 && (msg.thinkContent ?? '').length > 0) {
+						firstThinking = elapsed
+						console.log('[PhoneSpeed6Run20261116] first-thinking', phoneSpeedRound, elapsed)
+					}
+					if (firstBody < 0 && msg.body.length > 0) {
+						firstBody = elapsed
+						console.log('[PhoneSpeed6Run20261116] first-body', phoneSpeedRound, elapsed)
+					}
+				}
+				if ((processingSeen && chat.state != 'processing') || elapsed > 90000) {
+					clearInterval(phoneSpeedPoll)
+					phoneSpeedPoll = 0
+					console.log('[PhoneSpeed6Run20261116] complete', JSON.stringify({ round: phoneSpeedRound, firstBodyMs: firstBody, firstThinkingMs: firstThinking, totalMs: elapsed, state: chat.state, bodyChars: msg?.body.length ?? 0, exactMatch: msg?.body == phoneSpeedExpected, rendered: msg?.rendered ?? false, error: msg?.error_msg ?? '' }))
+					if (msg != null) {
+						for (let offset = 0; offset < msg.body.length; offset += 500) {
+							console.log('[PhoneSpeed6Run20261116] body-part', JSON.stringify({ round: phoneSpeedRound, offset: offset, text: msg.body.slice(offset, offset + 500) }))
+						}
+					}
+					if (phoneSpeedRound < 6 && chat.state == 'completed') phoneSpeedTimer = setTimeout(phoneSpeedRun, 2000)
+				}
+			}, 50)
+			uniAi.sendMsg(phoneSpeedPrompt).catch((error) => { console.error('[PhoneSpeed6Run20261116] send-error', error) })
+		}, 500)
+	}
+	onMounted(() => { phoneSpeedTimer = setTimeout(phoneSpeedRun, 8000) })
+	onUnmounted(() => {
+		if (phoneSpeedTimer != 0) clearTimeout(phoneSpeedTimer)
+		if (phoneSpeedPoll != 0) clearInterval(phoneSpeedPoll)
+	})
+	// #endif
+	// PHONE_SPEED_TEMP_END

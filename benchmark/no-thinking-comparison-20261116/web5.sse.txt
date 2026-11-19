@@ -1,0 +1,2847 @@
+event: ready
+data: {"request_message_id":1,"response_message_id":2,"model_type":"default"}
+
+event: update_session
+data: {"updated_at":1794826799.70447}
+
+data: {"v":{"response":{"message_id":2,"parent_id":1,"model":"","role":"ASSISTANT","thinking_enabled":false,"ban_edit":false,"ban_regenerate":false,"status":"WIP","incomplete_message":null,"accumulated_token_usage":0,"feedback":null,"inserted_at":1794826799.689399,"search_enabled":false,"fragments":[{"id":2,"type":"RESPONSE","content":"#","references":[],"stage_id":1}],"conversation_mode":"DEFAULT","has_pending_fragment":false,"auto_continue":false,"search_triggered":false,"extra_search_providers":[]}}}
+
+data: {"p":"response/fragments/-1/content","o":"APPEND","v":" "}
+
+data: {"v":"完整"}
+
+data: {"v":" Mark"}
+
+data: {"v":"down"}
+
+data: {"v":" "}
+
+data: {"v":"功能"}
+
+data: {"v":"演示"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"标题"}
+
+data: {"v":"（"}
+
+data: {"v":"1"}
+
+data: {"v":"~"}
+
+data: {"v":"6"}
+
+data: {"v":"级"}
+
+data: {"v":"）\n\n"}
+
+data: {"v":"#"}
+
+data: {"v":" "}
+
+data: {"v":"一级"}
+
+data: {"v":"标题"}
+
+data: {"v":"\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"二级"}
+
+data: {"v":"标题"}
+
+data: {"v":"\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"三级"}
+
+data: {"v":"标题"}
+
+data: {"v":"\n"}
+
+data: {"v":"####"}
+
+data: {"v":" "}
+
+data: {"v":"四级"}
+
+data: {"v":"标题"}
+
+data: {"v":"\n"}
+
+data: {"v":"#####"}
+
+data: {"v":" "}
+
+data: {"v":"五"}
+
+data: {"v":"级"}
+
+data: {"v":"标题"}
+
+data: {"v":"\n"}
+
+data: {"v":"######"}
+
+data: {"v":" "}
+
+data: {"v":"六级"}
+
+data: {"v":"标题"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"列表"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"无序"}
+
+data: {"v":"列表"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" "}
+
+data: {"v":"第一"}
+
+data: {"v":"项"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" "}
+
+data: {"v":"第二"}
+
+data: {"v":"项"}
+
+data: {"v":"\n"}
+
+data: {"v":"\t"}
+
+data: {"v":"-"}
+
+data: {"v":" "}
+
+data: {"v":"嵌套"}
+
+data: {"v":"项"}
+
+data: {"v":" "}
+
+data: {"v":"1"}
+
+data: {"v":"\n"}
+
+data: {"v":"\t"}
+
+data: {"v":"-"}
+
+data: {"v":" "}
+
+data: {"v":"嵌套"}
+
+data: {"v":"项"}
+
+data: {"v":" "}
+
+data: {"v":"2"}
+
+data: {"v":"\n"}
+
+data: {"v":"\t"}
+
+data: {"v":"\t"}
+
+data: {"v":"-"}
+
+data: {"v":" "}
+
+data: {"v":"第三"}
+
+data: {"v":"层"}
+
+data: {"v":"嵌套"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" "}
+
+data: {"v":"第三"}
+
+data: {"v":"项"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"有序"}
+
+data: {"v":"列表"}
+
+data: {"v":"\n"}
+
+data: {"v":"1"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"第一步"}
+
+data: {"v":"\n"}
+
+data: {"v":"2"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"第二步"}
+
+data: {"v":"\n"}
+
+data: {"v":"\t"}
+
+data: {"v":"1"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"子"}
+
+data: {"v":"步骤"}
+
+data: {"v":" A"}
+
+data: {"v":"\n"}
+
+data: {"v":"\t"}
+
+data: {"v":"2"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"子"}
+
+data: {"v":"步骤"}
+
+data: {"v":" B"}
+
+data: {"v":"\n"}
+
+data: {"v":"3"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"第三步"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"任务"}
+
+data: {"v":"复选框"}
+
+data: {"v":"列表"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":"x"}
+
+data: {"v":"]"}
+
+data: {"v":" "}
+
+data: {"v":"已完成"}
+
+data: {"v":"任务"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":" ]"}
+
+data: {"v":" "}
+
+data: {"v":"未"}
+
+data: {"v":"完成任务"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":" ]"}
+
+data: {"v":" "}
+
+data: {"v":"另一个"}
+
+data: {"v":"待"}
+
+data: {"v":"办"}
+
+data: {"v":"项"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":"x"}
+
+data: {"v":"]"}
+
+data: {"v":" "}
+
+data: {"v":"子"}
+
+data: {"v":"任务"}
+
+data: {"v":"已完成"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"表格"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"普通"}
+
+data: {"v":"表格"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"姓名"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"年龄"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"城市"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"张三"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"25"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"北京"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"李"}
+
+data: {"v":"四"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"30"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"上海"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"王"}
+
+data: {"v":"五"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"28"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"深圳"}
+
+data: {"v":" |\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"短"}
+
+data: {"v":"表格"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"项目"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"值"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"----"}
+
+data: {"v":"|\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"状态"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"正常"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"版本"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"1"}
+
+data: {"v":"."}
+
+data: {"v":"0"}
+
+data: {"v":"."}
+
+data: {"v":"0"}
+
+data: {"v":" |\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"超"}
+
+data: {"v":"宽"}
+
+data: {"v":"长"}
+
+data: {"v":"表格"}
+
+data: {"v":"（"}
+
+data: {"v":"用于"}
+
+data: {"v":"横向"}
+
+data: {"v":"滚动"}
+
+data: {"v":"测试"}
+
+data: {"v":"）\n\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"1"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"2"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"3"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"4"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"5"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"6"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"7"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"8"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"9"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"10"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"11"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"12"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"13"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"14"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"列"}
+
+data: {"v":"15"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"-----"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|"}
+
+data: {"v":"------"}
+
+data: {"v":"|\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"1"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"2"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"3"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"4"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"5"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"6"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"7"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"8"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"9"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"10"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"11"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"12"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"13"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"14"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"数据"}
+
+data: {"v":"15"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"1"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"2"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"3"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"4"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"5"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"6"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"7"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"8"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"9"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"10"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"11"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"12"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"13"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"14"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"15"}
+
+data: {"v":" |\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"块"}
+
+data: {"v":"引用"}
+
+data: {"v":"\n\n"}
+
+data: {"v":">"}
+
+data: {"v":" "}
+
+data: {"v":"这是一"}
+
+data: {"v":"段"}
+
+data: {"v":"普通的"}
+
+data: {"v":"引用"}
+
+data: {"v":"文本"}
+
+data: {"v":"。\n"}
+
+data: {"v":">\n"}
+
+data: {"v":">"}
+
+data: {"v":" -"}
+
+data: {"v":" "}
+
+data: {"v":"引用"}
+
+data: {"v":"中的"}
+
+data: {"v":"列表"}
+
+data: {"v":"项"}
+
+data: {"v":"\n"}
+
+data: {"v":">"}
+
+data: {"v":" -"}
+
+data: {"v":" "}
+
+data: {"v":"另一个"}
+
+data: {"v":"列表"}
+
+data: {"v":"项"}
+
+data: {"v":"\n"}
+
+data: {"v":">\n"}
+
+data: {"v":">"}
+
+data: {"v":" "}
+
+data: {"v":"引用"}
+
+data: {"v":"文本"}
+
+data: {"v":"的"}
+
+data: {"v":"换"}
+
+data: {"v":"行"}
+
+data: {"v":"继续"}
+
+data: {"v":"。\n"}
+
+data: {"v":">"}
+
+data: {"v":" >"}
+
+data: {"v":" "}
+
+data: {"v":"嵌套"}
+
+data: {"v":"引用"}
+
+data: {"v":"内容"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"块"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" JS"}
+
+data: {"v":" "}
+
+data: {"v":"代码"}
+
+data: {"v":"示例"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"```"}
+
+data: {"v":"javascript"}
+
+data: {"v":"\n"}
+
+data: {"v":"//"}
+
+data: {"v":" "}
+
+data: {"v":"一个"}
+
+data: {"v":" JavaScript"}
+
+data: {"v":" "}
+
+data: {"v":"示例"}
+
+data: {"v":"\n"}
+
+data: {"v":"function"}
+
+data: {"v":" fibonacci"}
+
+data: {"v":"(n"}
+
+data: {"v":")"}
+
+data: {"v":" {\n"}
+
+data: {"v":"if"}
+
+data: {"v":" ("}
+
+data: {"v":"n"}
+
+data: {"v":" <="}
+
+data: {"v":" "}
+
+data: {"v":"1"}
+
+data: {"v":")"}
+
+data: {"v":" return"}
+
+data: {"v":" n"}
+
+data: {"v":";\n"}
+
+data: {"v":"return"}
+
+data: {"v":" fibonacci"}
+
+data: {"v":"(n"}
+
+data: {"v":" -"}
+
+data: {"v":" "}
+
+data: {"v":"1"}
+
+data: {"v":")"}
+
+data: {"v":" +"}
+
+data: {"v":" fibonacci"}
+
+data: {"v":"(n"}
+
+data: {"v":" -"}
+
+data: {"v":" "}
+
+data: {"v":"2"}
+
+data: {"v":");\n"}
+
+data: {"v":"}\n\n"}
+
+data: {"v":"const"}
+
+data: {"v":" result"}
+
+data: {"v":" ="}
+
+data: {"v":" fibonacci"}
+
+data: {"v":"("}
+
+data: {"v":"10"}
+
+data: {"v":");\n"}
+
+data: {"v":"alert"}
+
+data: {"v":"(result"}
+
+data: {"v":");\n\n"}
+
+data: {"v":"//"}
+
+data: {"v":" "}
+
+data: {"v":"超"}
+
+data: {"v":"长"}
+
+data: {"v":"单"}
+
+data: {"v":"行"}
+
+data: {"v":"代码"}
+
+data: {"v":"测试"}
+
+data: {"v":"\n"}
+
+data: {"v":"//"}
+
+data: {"v":" "}
+
+data: {"v":"下面"}
+
+data: {"v":"这"}
+
+data: {"v":"行"}
+
+data: {"v":"代码"}
+
+data: {"v":"非常"}
+
+data: {"v":"长"}
+
+data: {"v":"，"}
+
+data: {"v":"用于"}
+
+data: {"v":"测试"}
+
+data: {"v":"代码"}
+
+data: {"v":"块的"}
+
+data: {"v":"横向"}
+
+data: {"v":"滚动"}
+
+data: {"v":"功能"}
+
+data: {"v":"。"}
+
+data: {"v":"这里"}
+
+data: {"v":"包含"}
+
+data: {"v":"了很多"}
+
+data: {"v":"内容"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaaaaaa"}
+
+data: {"v":"aaaa"}
+
+data: {"v":"aa"}
+
+data: {"v":" b"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bb"}
+
+data: {"v":"bbb"}
+
+data: {"v":" c"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"cccc"}
+
+data: {"v":"ccc"}
+
+data: {"v":"\n"}
+
+data: {"v":"const"}
+
+data: {"v":" long"}
+
+data: {"v":"Line"}
+
+data: {"v":"Demo"}
+
+data: {"v":" ="}
+
+data: {"v":" ["}
+
+data: {"v":"1"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"2"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"3"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"4"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"5"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"6"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"7"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"8"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"9"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"10"}
+
+data: {"v":"]."}
+
+data: {"v":"map"}
+
+data: {"v":"(x"}
+
+data: {"v":" =>"}
+
+data: {"v":" x"}
+
+data: {"v":" *"}
+
+data: {"v":" "}
+
+data: {"v":"2"}
+
+data: {"v":")."}
+
+data: {"v":"filter"}
+
+data: {"v":"(x"}
+
+data: {"v":" =>"}
+
+data: {"v":" x"}
+
+data: {"v":" >"}
+
+data: {"v":" "}
+
+data: {"v":"10"}
+
+data: {"v":")."}
+
+data: {"v":"reduce"}
+
+data: {"v":"(("}
+
+data: {"v":"acc"}
+
+data: {"v":","}
+
+data: {"v":" x"}
+
+data: {"v":")"}
+
+data: {"v":" =>"}
+
+data: {"v":" acc"}
+
+data: {"v":" +"}
+
+data: {"v":" x"}
+
+data: {"v":","}
+
+data: {"v":" "}
+
+data: {"v":"0"}
+
+data: {"v":");\n"}
+
+data: {"v":"```\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"超"}
+
+data: {"v":"链接"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"外部"}
+
+data: {"v":"链接"}
+
+data: {"v":"\n"}
+
+data: {"v":"["}
+
+data: {"v":"访问"}
+
+data: {"v":"百度"}
+
+data: {"v":"]("}
+
+data: {"v":"https"}
+
+data: {"v":"://"}
+
+data: {"v":"www"}
+
+data: {"v":".ba"}
+
+data: {"v":"idu"}
+
+data: {"v":".com"}
+
+data: {"v":")\n\n"}
+
+data: {"v":"["}
+
+data: {"v":"打开"}
+
+data: {"v":" GitHub"}
+
+data: {"v":"]("}
+
+data: {"v":"https"}
+
+data: {"v":"://"}
+
+data: {"v":"github"}
+
+data: {"v":".com"}
+
+data: {"v":")\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"相对"}
+
+data: {"v":"路径"}
+
+data: {"v":"链接"}
+
+data: {"v":"\n"}
+
+data: {"v":"["}
+
+data: {"v":"查看"}
+
+data: {"v":"文档"}
+
+data: {"v":"](./"}
+
+data: {"v":"docs"}
+
+data: {"v":"/"}
+
+data: {"v":"read"}
+
+data: {"v":"me"}
+
+data: {"v":".md"}
+
+data: {"v":")\n\n"}
+
+data: {"v":"["}
+
+data: {"v":"项目"}
+
+data: {"v":"主页"}
+
+data: {"v":"](../"}
+
+data: {"v":"index"}
+
+data: {"v":".html"}
+
+data: {"v":")\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"数学"}
+
+data: {"v":"公式"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" "}
+
+data: {"v":"代数"}
+
+data: {"v":"公式"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"$$\n"}
+
+data: {"v":"\\begin"}
+
+data: {"v":"{aligned"}
+
+data: {"v":"}\n"}
+
+data: {"v":"(x"}
+
+data: {"v":" +"}
+
+data: {"v":" y"}
+
+data: {"v":")^"}
+
+data: {"v":"3"}
+
+data: {"v":" &="}
+
+data: {"v":" x"}
+
+data: {"v":"^"}
+
+data: {"v":"3"}
+
+data: {"v":" +"}
+
+data: {"v":" "}
+
+data: {"v":"3"}
+
+data: {"v":"x"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":"y"}
+
+data: {"v":" +"}
+
+data: {"v":" "}
+
+data: {"v":"3"}
+
+data: {"v":"xy"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":" +"}
+
+data: {"v":" y"}
+
+data: {"v":"^"}
+
+data: {"v":"3"}
+
+data: {"v":" \\\\\n"}
+
+data: {"v":"\\sum"}
+
+data: {"v":"_{"}
+
+data: {"v":"i"}
+
+data: {"v":"="}
+
+data: {"v":"1"}
+
+data: {"v":"}^{"}
+
+data: {"v":"n"}
+
+data: {"v":"}"}
+
+data: {"v":" i"}
+
+data: {"v":" &="}
+
+data: {"v":" \\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{n"}
+
+data: {"v":"(n"}
+
+data: {"v":"+"}
+
+data: {"v":"1"}
+
+data: {"v":")}{"}
+
+data: {"v":"2"}
+
+data: {"v":"}\n"}
+
+data: {"v":"\\end"}
+
+data: {"v":"{aligned"}
+
+data: {"v":"}\n"}
+
+data: {"v":"$$\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" "}
+
+data: {"v":"矩阵"}
+
+data: {"v":"公式"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"$$\n"}
+
+data: {"v":"\\mathbf"}
+
+data: {"v":"{A"}
+
+data: {"v":"}"}
+
+data: {"v":" ="}
+
+data: {"v":" \\"}
+
+data: {"v":"begin"}
+
+data: {"v":"{pmatrix"}
+
+data: {"v":"}\n"}
+
+data: {"v":"a"}
+
+data: {"v":"_{"}
+
+data: {"v":"11"}
+
+data: {"v":"}"}
+
+data: {"v":" &"}
+
+data: {"v":" a"}
+
+data: {"v":"_{"}
+
+data: {"v":"12"}
+
+data: {"v":"}"}
+
+data: {"v":" &"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdots"}
+
+data: {"v":" &"}
+
+data: {"v":" a"}
+
+data: {"v":"_{"}
+
+data: {"v":"1"}
+
+data: {"v":"n"}
+
+data: {"v":"}"}
+
+data: {"v":" \\\\\n"}
+
+data: {"v":"a"}
+
+data: {"v":"_{"}
+
+data: {"v":"21"}
+
+data: {"v":"}"}
+
+data: {"v":" &"}
+
+data: {"v":" a"}
+
+data: {"v":"_{"}
+
+data: {"v":"22"}
+
+data: {"v":"}"}
+
+data: {"v":" &"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdots"}
+
+data: {"v":" &"}
+
+data: {"v":" a"}
+
+data: {"v":"_{"}
+
+data: {"v":"2"}
+
+data: {"v":"n"}
+
+data: {"v":"}"}
+
+data: {"v":" \\\\\n"}
+
+data: {"v":"\\"}
+
+data: {"v":"vdots"}
+
+data: {"v":" &"}
+
+data: {"v":" \\"}
+
+data: {"v":"vdots"}
+
+data: {"v":" &"}
+
+data: {"v":" \\"}
+
+data: {"v":"dd"}
+
+data: {"v":"ots"}
+
+data: {"v":" &"}
+
+data: {"v":" \\"}
+
+data: {"v":"vdots"}
+
+data: {"v":" \\\\\n"}
+
+data: {"v":"a"}
+
+data: {"v":"_{"}
+
+data: {"v":"m"}
+
+data: {"v":"1"}
+
+data: {"v":"}"}
+
+data: {"v":" &"}
+
+data: {"v":" a"}
+
+data: {"v":"_{"}
+
+data: {"v":"m"}
+
+data: {"v":"2"}
+
+data: {"v":"}"}
+
+data: {"v":" &"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdots"}
+
+data: {"v":" &"}
+
+data: {"v":" a"}
+
+data: {"v":"_{"}
+
+data: {"v":"mn"}
+
+data: {"v":"}\n"}
+
+data: {"v":"\\end"}
+
+data: {"v":"{pmatrix"}
+
+data: {"v":"}\n"}
+
+data: {"v":"$$\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" "}
+
+data: {"v":"化学"}
+
+data: {"v":"公式"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"$$\\"}
+
+data: {"v":"text"}
+
+data: {"v":"{"}
+
+data: {"v":"2"}
+
+data: {"v":"H"}
+
+data: {"v":"}_"}
+
+data: {"v":"2"}
+
+data: {"v":" +"}
+
+data: {"v":" \\"}
+
+data: {"v":"text"}
+
+data: {"v":"{O"}
+
+data: {"v":"}_"}
+
+data: {"v":"2"}
+
+data: {"v":" \\"}
+
+data: {"v":"x"}
+
+data: {"v":"rightarrow"}
+
+data: {"v":"{\\"}
+
+data: {"v":"text"}
+
+data: {"v":"{"}
+
+data: {"v":"点燃"}
+
+data: {"v":"}}"}
+
+data: {"v":" "}
+
+data: {"v":"2"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{H"}
+
+data: {"v":"}_"}
+
+data: {"v":"2"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{O"}
+
+data: {"v":"}$$\n\n"}
+
+data: {"v":"$$\\"}
+
+data: {"v":"text"}
+
+data: {"v":"{C"}
+
+data: {"v":"}_"}
+
+data: {"v":"6"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{H"}
+
+data: {"v":"}_{"}
+
+data: {"v":"12"}
+
+data: {"v":"}\\"}
+
+data: {"v":"text"}
+
+data: {"v":"{O"}
+
+data: {"v":"}_"}
+
+data: {"v":"6"}
+
+data: {"v":" +"}
+
+data: {"v":" "}
+
+data: {"v":"6"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{O"}
+
+data: {"v":"}_"}
+
+data: {"v":"2"}
+
+data: {"v":" \\"}
+
+data: {"v":"rightarrow"}
+
+data: {"v":" "}
+
+data: {"v":"6"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{"}
+
+data: {"v":"CO"}
+
+data: {"v":"}_"}
+
+data: {"v":"2"}
+
+data: {"v":" +"}
+
+data: {"v":" "}
+
+data: {"v":"6"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{H"}
+
+data: {"v":"}_"}
+
+data: {"v":"2"}
+
+data: {"v":"\\text"}
+
+data: {"v":"{O"}
+
+data: {"v":"}$$\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" "}
+
+data: {"v":"超"}
+
+data: {"v":"长"}
+
+data: {"v":"公式"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"$$\n"}
+
+data: {"v":"\\"}
+
+data: {"v":"lim"}
+
+data: {"v":"_{"}
+
+data: {"v":"x"}
+
+data: {"v":" \\"}
+
+data: {"v":"to"}
+
+data: {"v":" \\"}
+
+data: {"v":"infty"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{\\"}
+
+data: {"v":"sum"}
+
+data: {"v":"_{"}
+
+data: {"v":"k"}
+
+data: {"v":"="}
+
+data: {"v":"1"}
+
+data: {"v":"}^{"}
+
+data: {"v":"n"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"left"}
+
+data: {"v":"("}
+
+data: {"v":" \\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{"}
+
+data: {"v":"1"}
+
+data: {"v":"}{"}
+
+data: {"v":"k"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"right"}
+
+data: {"v":")"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdot"}
+
+data: {"v":" \\"}
+
+data: {"v":"sqrt"}
+
+data: {"v":"{"}
+
+data: {"v":"2"}
+
+data: {"v":"\\pi"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdot"}
+
+data: {"v":" e"}
+
+data: {"v":"^{-\\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{x"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":"}{"}
+
+data: {"v":"2"}
+
+data: {"v":"}}"}
+
+data: {"v":"}{\\"}
+
+data: {"v":"sqrt"}
+
+data: {"v":"{\\"}
+
+data: {"v":"int"}
+
+data: {"v":"_{-\\"}
+
+data: {"v":"infty"}
+
+data: {"v":"}^{\\"}
+
+data: {"v":"infty"}
+
+data: {"v":"}"}
+
+data: {"v":" e"}
+
+data: {"v":"^{-"}
+
+data: {"v":"x"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":"}"}
+
+data: {"v":" dx"}
+
+data: {"v":"}}"}
+
+data: {"v":" ="}
+
+data: {"v":" \\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{\\"}
+
+data: {"v":"Gamma"}
+
+data: {"v":"(\\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{"}
+
+data: {"v":"1"}
+
+data: {"v":"}{"}
+
+data: {"v":"2"}
+
+data: {"v":"})"}
+
+data: {"v":"}{"}
+
+data: {"v":"2"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdot"}
+
+data: {"v":" \\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{\\"}
+
+data: {"v":"pi"}
+
+data: {"v":"}{\\"}
+
+data: {"v":"sqrt"}
+
+data: {"v":"{"}
+
+data: {"v":"2"}
+
+data: {"v":"}}"}
+
+data: {"v":" \\"}
+
+data: {"v":"cdot"}
+
+data: {"v":" \\"}
+
+data: {"v":"left"}
+
+data: {"v":"("}
+
+data: {"v":" \\"}
+
+data: {"v":"frac"}
+
+data: {"v":"{\\"}
+
+data: {"v":"partial"}
+
+data: {"v":"}{\\"}
+
+data: {"v":"partial"}
+
+data: {"v":" x"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"ln"}
+
+data: {"v":"(x"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":" +"}
+
+data: {"v":" y"}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":")"}
+
+data: {"v":" \\"}
+
+data: {"v":"right"}
+
+data: {"v":")^"}
+
+data: {"v":"n"}
+
+data: {"v":" \\"}
+
+data: {"v":"quad"}
+
+data: {"v":" \\"}
+
+data: {"v":"text"}
+
+data: {"v":"{"}
+
+data: {"v":"其中"}
+
+data: {"v":"}"}
+
+data: {"v":" \\"}
+
+data: {"v":"quad"}
+
+data: {"v":" n"}
+
+data: {"v":" \\"}
+
+data: {"v":"to"}
+
+data: {"v":" \\"}
+
+data: {"v":"infty"}
+
+data: {"v":"\n"}
+
+data: {"v":"$$\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"分割"}
+
+data: {"v":"线"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"写法"}
+
+data: {"v":"一"}
+
+data: {"v":"："}
+
+data: {"v":"三个"}
+
+data: {"v":"短"}
+
+data: {"v":"横"}
+
+data: {"v":"线"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"写法"}
+
+data: {"v":"二"}
+
+data: {"v":"："}
+
+data: {"v":"三个"}
+
+data: {"v":"星"}
+
+data: {"v":"号"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"***\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"写法"}
+
+data: {"v":"三"}
+
+data: {"v":"："}
+
+data: {"v":"三个"}
+
+data: {"v":"下"}
+
+data: {"v":"划线"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"__"}
+
+data: {"v":"_\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"##"}
+
+data: {"v":" "}
+
+data: {"v":"其他"}
+
+data: {"v":"特殊"}
+
+data: {"v":"语法"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"任务"}
+
+data: {"v":"列表"}
+
+data: {"v":"（"}
+
+data: {"v":"完整"}
+
+data: {"v":"示例"}
+
+data: {"v":"）\n\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":"x"}
+
+data: {"v":"]"}
+
+data: {"v":" "}
+
+data: {"v":"支持"}
+
+data: {"v":" Mark"}
+
+data: {"v":"down"}
+
+data: {"v":" "}
+
+data: {"v":"语法"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":"x"}
+
+data: {"v":"]"}
+
+data: {"v":" "}
+
+data: {"v":"支持"}
+
+data: {"v":"数学"}
+
+data: {"v":"公式"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":"x"}
+
+data: {"v":"]"}
+
+data: {"v":" "}
+
+data: {"v":"支持"}
+
+data: {"v":" M"}
+
+data: {"v":"ermaid"}
+
+data: {"v":" "}
+
+data: {"v":"插件"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":"x"}
+
+data: {"v":"]"}
+
+data: {"v":" "}
+
+data: {"v":"支持"}
+
+data: {"v":"代码"}
+
+data: {"v":"高"}
+
+data: {"v":"亮"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":" ]"}
+
+data: {"v":" "}
+
+data: {"v":"待"}
+
+data: {"v":"实现"}
+
+data: {"v":"功能"}
+
+data: {"v":"\n"}
+
+data: {"v":"-"}
+
+data: {"v":" ["}
+
+data: {"v":" ]"}
+
+data: {"v":" "}
+
+data: {"v":"更多"}
+
+data: {"v":"功能"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"脚"}
+
+data: {"v":"注"}
+
+data: {"v":"语法"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"这里"}
+
+data: {"v":"是一个"}
+
+data: {"v":"带"}
+
+data: {"v":"脚"}
+
+data: {"v":"注"}
+
+data: {"v":"的"}
+
+data: {"v":"文本"}
+
+data: {"v":"["}
+
+data: {"v":"^"}
+
+data: {"v":"1"}
+
+data: {"v":"]，"}
+
+data: {"v":"这里"}
+
+data: {"v":"还有一个"}
+
+data: {"v":"["}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":"]。\n\n"}
+
+data: {"v":"["}
+
+data: {"v":"^"}
+
+data: {"v":"1"}
+
+data: {"v":"]:"}
+
+data: {"v":" "}
+
+data: {"v":"这是"}
+
+data: {"v":"第一个"}
+
+data: {"v":"脚"}
+
+data: {"v":"注"}
+
+data: {"v":"的"}
+
+data: {"v":"详细"}
+
+data: {"v":"说明"}
+
+data: {"v":"。\n"}
+
+data: {"v":"["}
+
+data: {"v":"^"}
+
+data: {"v":"2"}
+
+data: {"v":"]:"}
+
+data: {"v":" "}
+
+data: {"v":"这是"}
+
+data: {"v":"第二个"}
+
+data: {"v":"脚"}
+
+data: {"v":"注"}
+
+data: {"v":"的内容"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"自动"}
+
+data: {"v":"邮箱"}
+
+data: {"v":"链接"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"联系"}
+
+data: {"v":"邮箱"}
+
+data: {"v":"："}
+
+data: {"v":"<"}
+
+data: {"v":"example"}
+
+data: {"v":"@"}
+
+data: {"v":"email"}
+
+data: {"v":".com"}
+
+data: {"v":">\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"自动"}
+
+data: {"v":"链接"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"直接"}
+
+data: {"v":"访问"}
+
+data: {"v":" https"}
+
+data: {"v":"://"}
+
+data: {"v":"www"}
+
+data: {"v":".example"}
+
+data: {"v":".com"}
+
+data: {"v":" "}
+
+data: {"v":"可以看到"}
+
+data: {"v":"效果"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"以上就是"}
+
+data: {"v":"所有"}
+
+data: {"v":" Mark"}
+
+data: {"v":"down"}
+
+data: {"v":" "}
+
+data: {"v":"语"}
+
+data: {"v":"法的"}
+
+data: {"v":"完整"}
+
+data: {"v":"演示"}
+
+data: {"v":"。"}
+
+data: {"v":"✅"}
+
+data: {"p":"response","o":"BATCH","v":[{"p":"accumulated_token_usage","v":2983},{"p":"quasi_status","v":"FINISHED"}]}
+
+data: {"p":"response/status","o":"SET","v":"FINISHED"}
+
+event: update_session
+data: {"updated_at":1794826803.5104449}
+
+event: title
+data: {"content":"Markdown渲染测试"}
+
+event: close
+data: {"click_behavior":"none","auto_resume":false}
+

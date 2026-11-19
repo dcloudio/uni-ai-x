@@ -1,6 +1,6 @@
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import uniAi from './index.uts'
-import { uploadDeepSeekDocument } from './deepseek-app-api.uts'
+import { supportsDeepSeekApps, uploadDeepSeekDocument } from './deepseek-app-api.uts'
 
 export type PendingDocument = {
 	key: string
@@ -28,6 +28,7 @@ export async function retryPendingDocument(key: string) {
 	if (chat == null) { removePendingDocument(key); return }
 	item.phase = 'uploading'; item.progress = 0; item.error = ''
 	try {
+		if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) throw new Error('当前方案不支持官方文档上传，请切回 DeepSeek 官方 Flash 后重试')
 		const file = await uploadDeepSeekDocument(item.path, item.name, (task: UploadTask) => {
 			if (!documentDrafts.pending.some((entry) => entry.key == key)) { task.abort(); return }
 			tasks.set(key, task)
@@ -35,8 +36,9 @@ export async function retryPendingDocument(key: string) {
 				item.progress = event.progress
 				if (event.progress >= 100) item.phase = 'parsing'
 			})
-		})
+		}, () => !supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model) || !documentDrafts.pending.some((entry) => entry.key == key))
 		if (!documentDrafts.pending.some((entry) => entry.key == key)) return
+		if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) throw new Error('方案已切换，文档上传已停止')
 		if (!uniAi.chat.datas.some((entry) => entry.id == chat.id)) { removePendingDocument(key); return }
 		if (chat.draftFiles == null) chat.draftFiles = []
 		chat.draftFiles!.push(file)
@@ -53,3 +55,12 @@ export function addPendingDocument(chatId: string, path: string, name: string) {
 	documentDrafts.pending.push({ key: key, chatId: chatId, name: name, path: path, phase: 'queued', progress: 0, error: '' })
 	void retryPendingDocument(key)
 }
+
+watch(() => uniAi.llm.provider + ':' + uniAi.llm.model, () => {
+	if (supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) return
+	documentDrafts.pending.forEach((item) => {
+		if (item.phase != 'uploading' && item.phase != 'parsing') return
+		tasks.get(item.key)?.abort()
+		item.phase = 'failed'; item.error = '方案已切换，文档上传已停止'
+	})
+})

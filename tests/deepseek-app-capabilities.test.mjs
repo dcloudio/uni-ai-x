@@ -118,3 +118,27 @@ test('message history retains file IDs and server tool signatures for follow-up 
   assert.equal(messages[0].content.find(p => p.type === 'file').file_id, 'file-api-test');
   assert.equal(messages[1].server_tool_calls[0].calls[0].signature, 'opaque-signature');
 });
+
+test('switching to gateway strips official tool signatures without changing stored history', () => {
+  const { prepareProviderMessages } = loadUts('uni_modules/uni-ai-x/sdk/message-builder.uts', ['prepareProviderMessages']);
+  const messages = [{role:'assistant',content:'answer',server_tool_calls:[{signature:'official-only'}]}];
+  const gateway = prepareProviderMessages(messages, false);
+  assert.equal(gateway[0].server_tool_calls, undefined);
+  assert.equal(gateway[0].content, 'answer');
+  assert.equal(messages[0].server_tool_calls[0].signature, 'official-only');
+  assert.equal(prepareProviderMessages(messages, true), messages);
+});
+
+test('gateway speech playback never invokes the official TTS implementation', async () => {
+  const {playAnswerSpeech} = loadUts('uni_modules/uni-ai-x/sdk/speech-output.uts', ['playAnswerSpeech'], {
+    reactive: value => value, uniAi: {llm:{provider:'qiniu',model:'test'}}, supportsDeepSeekApps: () => false,
+    synthesizeDeepSeekSpeech() { assert.fail('gateway must never borrow official TTS'); },
+  });
+  await playAnswerSpeech('message','hello');
+});
+test('cancelled official file and speech operations never send requests after obtaining a key', async () => {
+  const sdk = api({uploadFile() {assert.fail('cancelled upload');}, request() {assert.fail('cancelled TTS');}});
+  await assert.rejects(sdk.uploadDeepSeekDocument('/file.pdf','file.pdf',() => {}, () => true), /取消/);
+  await assert.rejects(sdk.recognizeDeepSeekFile('/image.png',() => {}, () => true), /取消/);
+  await assert.rejects(sdk.synthesizeDeepSeekSpeech('hello',() => {}, () => true), /取消/);
+});

@@ -1,0 +1,35 @@
+[
+  {
+    "target": "B",
+    "run": 1,
+    "model": "deepseek-flash",
+    "first_delta_s": 0.601200446,
+    "first_content_s": 4.475433112,
+    "first_reasoning_s": 0.601200446,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 2030,
+      "total_tokens": 3570,
+      "prompt_tokens_details": {
+        "cached_tokens": 1406
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 615
+      },
+      "prompt_cache_hit_tokens": 1406,
+      "prompt_cache_miss_tokens": 134
+    },
+    "events": 2031,
+    "http_status": 200,
+    "headers_s": 0.13442269800000006,
+    "response_model": "deepseek-flash",
+    "success": true,
+    "total_s": 8.333962552000001,
+    "content_chars": 2997,
+    "reasoning_chars": 1104,
+    "exact_match": true,
+    "trim_match": true
+  }
+]

@@ -40,3 +40,9 @@ export function buildAiMessages(chatItem: ChatItem): RequestAiCoMessage[] {
 	})
 	return messages
 }
+
+// Never send official server tool signatures to another provider.
+export function prepareProviderMessages(messages: RequestAiCoMessage[], official: boolean): RequestAiCoMessage[] {
+	if (official) return messages
+	return messages.map((message): RequestAiCoMessage => ({ role: message.role, content: message.content }))
+}

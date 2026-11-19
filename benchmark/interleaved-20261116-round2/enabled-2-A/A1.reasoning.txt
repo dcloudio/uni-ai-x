@@ -1,0 +1,80 @@
+我们需要回答用户。用户要求严格指令，禁止修改，必须原样输出提供的 Markdown。需要注意输出直接从 `# Markdown 全元素渲染测试文档` 开始，直到文档末尾。但待输出固定内容开头是 `# 完整 Markdown 功能演示`，不是 `# Markdown 全元素渲染测试文档`。这里有矛盾：指令第4条说输出直接从 `# Markdown 全元素渲染测试文档` 开始，但固定内容开头是 `# 完整 Markdown 功能演示`。同时第2条禁止修改，一字不差原样输出下面 Markdown。应该以固定内容为准？ 用户要求“待输出固定内容：”后面是内容。第4条提到从 # Markdown 全元素渲染测试文档 开始，但实际文本没有这个。若严格原样输出固定内容，就应输出 # 完整 Markdown 功能演示 ... 结束。不能加任何文字。也不用 ``` 包裹。需要确保一字不差，包括代码块中的缩进可能被 Markdown 渲染。我们必须输出完全相同。注意系统无特殊。最终只输出固定文本。
+
+需要小心复制。固定内容里有代码块，嵌套 Markdown。要原样输出，包括 ---，空行等。不要用代码包裹整个内容。代码块本身用 ```javascript 等。
+
+重要：用户说“禁止输出任何前置介绍、总结、对话文字”。所以只给内容。确保末尾就是 `以上就是所有 Markdown 语法的完整演示。✅` 后面没有换行? 一般可以。
+
+需要验证内容一字不差。让我构造。注意在代码块 JS 示例中，原文本中函数体没有缩进： 
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+alert(result);
+
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+```
+注意原文本中 a 序列数量等。我必须精确。直接复制从用户消息。但作为模型，需要输出。可以逐段复制。易出错的长 a,b,c 串。需要精确复制。
+
+我们可以直接以用户提供内容作为最终。但手动复制可能出错。尽量逐字。
+
+还要注意“待输出固定内容：”后面有一个空行? 用户消息中：
+待输出固定内容：
+# 完整 Markdown 功能演示
+
+---
+...
+所以输出从 # 完整...开始。不包含“待输出固定内容：”。第4条说从 # Markdown 全元素渲染测试文档 开始，但实际没有。若加上会修改内容。不行。
+
+需要确保表格分隔行中“|------|------|------|”等正确。 超宽表格：列11 和列12 分隔行使用 `|------|------|`? 原：
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
+注意列10 后是 `------` 六个? 原中 `| 列10 |` 对应 `|------|`? 我们需要原样。让我仔细从消息复制。
+
+我将逐行构建最终输出。确保不添加任何前言。
+
+最终消息只能内容。可以。
+
+潜在问题：Markdown 渲染中，整个输出如果包含 ``` 代码块，它会正常渲染，不会包裹整个。用户要求不要用 ```markdown 包裹输出内容，没问题。
+
+现在准备最终。需要小心 Unicode: ✅。 数学公式中的 \text, \mathbf, \begin{aligned} 等。反斜杠要原样。最终输出中会按字面显示，因为不是代码块，但文本中反斜杠就是反斜杠。没问题。
+
+注意用户提供的原内容中，代码块内 JS 函数体没有缩进，因为 Markdown 可能吞掉？ 原消息里：
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+```
+这里确实没有缩进。我原样。
+
+长行 a b c 串长度：原：
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+数一下 a 串： `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` 可能有 94 个 a? 我最好直接复制原字符串。在最终中我从用户消息复制。
+
+b 串 `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` 可能 96? 原中 96? 直接复制。
+
+c 串 `cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc` 可能 92? 直接复制。
+
+注意原消息中的 "这里包含了很多内容" 后紧跟 a 无空格? 原：`这里包含了很多内容aaaaaaaa...` 是的无空格。a 后有一个空格 b，b 后有一个空格 c。复制。
+
+还有数学公式： 
+$$
+\lim_{x \to \infty} \frac{\sum_{k=1}^{n} \left( \frac{1}{k^2} \right) \cdot \sqrt{2\pi} \cdot e^{-\frac{x^2}{2}}}{\sqrt{\int_{-\infty}^{\infty} e^{-x^2} dx}} = \frac{\Gamma(\frac{1}{2})}{2} \cdot \frac{\pi}{\sqrt{2}} \cdot \left( \frac{\partial}{\partial x} \ln(x^2 + y^2) \right)^n \quad \text{其中} \quad n \to \infty
+$$
+原样。
+
+脚注中 `[^1]` 和 `[^2]` 原样。
+
+链接 `<example@email.com>` 原样。
+
+末尾：`以上就是所有 Markdown 语法的完整演示。✅`
+
+现在最终。确保没有额外文字。

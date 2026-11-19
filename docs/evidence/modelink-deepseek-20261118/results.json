@@ -1,0 +1,760 @@
+{
+  "date": "2026-11-18",
+  "base_url": "https://api.qnaigc.com",
+  "model": "deepseek/deepseek-v4.1-flash",
+  "authentication": "UniCloud uni-ai-x-co.getTmpToken({provider:qiniu}); gateway temporary token only",
+  "deepseek_official_key_used": false,
+  "deepseek_official_endpoint_requested": false,
+  "results": [
+    {
+      "name": "baseline",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 0.71,
+      "curl_exit": 0,
+      "response_bytes": 355,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage"
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "OK",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "chatcmpl-171952345c924cfda099d5ea41453b47",
+      "suite": "primary"
+    },
+    {
+      "name": "unknown-tool-control",
+      "path": "/v1/chat/completions",
+      "http_status": 400,
+      "seconds": 0.82,
+      "curl_exit": 0,
+      "response_bytes": 241,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-d9616a68b8ad4a8aa31c375bd73cb5f3)",
+        "type": "invalid_request_error"
+      },
+      "suite": "primary"
+    },
+    {
+      "name": "native-search",
+      "path": "/v1/chat/completions",
+      "http_status": 400,
+      "seconds": 0.41,
+      "curl_exit": 0,
+      "response_bytes": 241,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-4f018a19bdcf4c7480711dfc084b3d87)",
+        "type": "invalid_request_error"
+      },
+      "suite": "primary"
+    },
+    {
+      "name": "native-thinking-search",
+      "path": "/v1/chat/completions",
+      "http_status": null,
+      "seconds": 55.02,
+      "curl_exit": 28,
+      "response_bytes": 0,
+      "transport_error": "curl: (28) Operation timed out after 55004 milliseconds with 0 bytes received\n",
+      "response_excerpt": "",
+      "suite": "primary"
+    },
+    {
+      "name": "native-read-url",
+      "path": "/v1/chat/completions",
+      "http_status": 400,
+      "seconds": 2.55,
+      "curl_exit": 0,
+      "response_bytes": 241,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-150183b11f6544859ef4d56123b22791)",
+        "type": "invalid_request_error"
+      },
+      "suite": "primary"
+    },
+    {
+      "name": "safety-valid",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 1.03,
+      "curl_exit": 0,
+      "response_bytes": 355,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage"
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "OK",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "chatcmpl-6c756ddb3a154b28a7822b7ca30a73b2",
+      "suite": "primary"
+    },
+    {
+      "name": "safety-invalid-control",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 0.75,
+      "curl_exit": 0,
+      "response_bytes": 355,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage"
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "OK",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "chatcmpl-4d1730b8152940c09f0ce91b188996ad",
+      "suite": "primary"
+    },
+    {
+      "name": "independent-search",
+      "path": "/v1/tools/search",
+      "http_status": 200,
+      "seconds": 0.67,
+      "curl_exit": 0,
+      "response_bytes": 1422,
+      "response_keys": [
+        "request_id",
+        "results"
+      ],
+      "usage": null,
+      "error": null,
+      "result_count": 2,
+      "suite": "primary"
+    },
+    {
+      "name": "independent-fetch",
+      "path": "/v1/tools/fetch",
+      "http_status": 200,
+      "seconds": 0.26,
+      "curl_exit": 0,
+      "response_bytes": 1409,
+      "response_keys": [
+        "content",
+        "request_id",
+        "title"
+      ],
+      "usage": null,
+      "error": null,
+      "suite": "primary"
+    },
+    {
+      "name": "official-files-v1",
+      "path": "/v1/files",
+      "http_status": 400,
+      "seconds": 0.09,
+      "curl_exit": 0,
+      "response_bytes": 95,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "invalid character '-' in numeric literal",
+        "type": "invalid_request_error"
+      },
+      "suite": "primary"
+    },
+    {
+      "name": "official-files-root",
+      "path": "/files",
+      "http_status": 404,
+      "seconds": 0.09,
+      "curl_exit": 0,
+      "response_bytes": 36,
+      "response_keys": [
+        "error_msg"
+      ],
+      "usage": null,
+      "error": null,
+      "suite": "primary"
+    },
+    {
+      "name": "document-file-url",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 1.5,
+      "curl_exit": 0,
+      "response_bytes": 497,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage"
+      ],
+      "usage": {
+        "prompt_tokens": 13,
+        "completion_tokens": 30,
+        "total_tokens": 43,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "附件好像没有成功传上来。请重新上传一下（或把文字直接粘贴到对话里），我马上帮你逐字读取并返回。",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "chatcmpl-8f2a7fc1ad3b40e6a46a93df71a7123b",
+      "suite": "primary"
+    },
+    {
+      "name": "independent-ocr",
+      "path": "/v1/tools/ocr",
+      "http_status": 404,
+      "seconds": 0.14,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "primary"
+    },
+    {
+      "name": "independent-tts",
+      "path": "/v1/tools/tts",
+      "http_status": 404,
+      "seconds": 0.13,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "primary"
+    },
+    {
+      "name": "official-asr",
+      "path": "/v1/tools/asr",
+      "http_status": 404,
+      "seconds": 0.12,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "primary",
+      "valid_speech_sample": false
+    },
+    {
+      "name": "gateway-qwen-asr",
+      "path": "/v1/audio/transcriptions",
+      "http_status": 200,
+      "seconds": 1.21,
+      "curl_exit": 0,
+      "response_bytes": 64,
+      "response_keys": [
+        "text",
+        "usage"
+      ],
+      "usage": {
+        "seconds": 0.0,
+        "type": "duration"
+      },
+      "error": null,
+      "text": "Đúng. ",
+      "suite": "primary",
+      "valid_speech_sample": false
+    },
+    {
+      "name": "native-thinking-search-retry",
+      "path": "/v1/chat/completions",
+      "http_status": 400,
+      "seconds": 2.66,
+      "curl_exit": 0,
+      "response_bytes": 241,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-19e81bf16d0c462ab46f82db1f07e4e5)",
+        "type": "invalid_request_error"
+      },
+      "suite": "routes"
+    },
+    {
+      "name": "messages-baseline",
+      "path": "/v1/messages",
+      "http_status": 200,
+      "seconds": 1.02,
+      "curl_exit": 0,
+      "response_bytes": 546,
+      "response_keys": [
+        "id",
+        "type",
+        "role",
+        "model",
+        "content",
+        "stop_reason",
+        "usage"
+      ],
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 14,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens_details": {
+          "thinking_tokens": 12
+        }
+      },
+      "error": null,
+      "id": "msg_ae241745a6cc469cad0e86f09d630c92",
+      "suite": "routes"
+    },
+    {
+      "name": "messages-native-search",
+      "path": "/v1/messages",
+      "http_status": 400,
+      "seconds": 2.58,
+      "curl_exit": 0,
+      "response_bytes": 250,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "The request parameter tools[0].function.name is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-960ec98be7574db88bb06c4c7dd3b32b)",
+        "type": "invalid_request_error"
+      },
+      "suite": "routes"
+    },
+    {
+      "name": "responses-baseline",
+      "path": "/v1/responses",
+      "http_status": 404,
+      "seconds": 0.16,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "routes"
+    },
+    {
+      "name": "responses-native-search",
+      "path": "/v1/responses",
+      "http_status": 404,
+      "seconds": 0.09,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "routes"
+    },
+    {
+      "name": "official-asr",
+      "path": "/v1/tools/asr",
+      "http_status": 404,
+      "seconds": 0.1,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "short-audio-control",
+      "valid_speech_sample": false
+    },
+    {
+      "name": "gateway-qwen-asr",
+      "path": "/v1/audio/transcriptions",
+      "http_status": 200,
+      "seconds": 0.77,
+      "curl_exit": 0,
+      "response_bytes": 61,
+      "response_keys": [
+        "text",
+        "usage"
+      ],
+      "usage": {
+        "seconds": 0.0,
+        "type": "duration"
+      },
+      "error": null,
+      "text": "The. ",
+      "suite": "short-audio-control",
+      "valid_speech_sample": false
+    },
+    {
+      "name": "official-asr",
+      "path": "/v1/tools/asr",
+      "http_status": 404,
+      "seconds": 0.23,
+      "curl_exit": 0,
+      "response_bytes": 60,
+      "response_keys": [
+        "message",
+        "status"
+      ],
+      "usage": null,
+      "error": null,
+      "status": false,
+      "suite": "verified-audio",
+      "valid_speech_sample": true
+    },
+    {
+      "name": "gateway-qwen-asr",
+      "path": "/v1/audio/transcriptions",
+      "http_status": 200,
+      "seconds": 1.57,
+      "curl_exit": 0,
+      "response_bytes": 166,
+      "response_keys": [
+        "text",
+        "usage"
+      ],
+      "usage": {
+        "seconds": 11.0,
+        "type": "duration"
+      },
+      "error": null,
+      "text": "and so, my fellow americans, ask not what your country can do for you, ask what you can do for your country. ",
+      "suite": "verified-audio",
+      "valid_speech_sample": true
+    }
+  ],
+  "responses": {
+    "primary/baseline": {
+      "id": "chatcmpl-171952345c924cfda099d5ea41453b47",
+      "object": "chat.completion",
+      "created": 1795009917,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      }
+    },
+    "primary/unknown-tool-control": {
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-d9616a68b8ad4a8aa31c375bd73cb5f3)",
+        "type": "invalid_request_error"
+      }
+    },
+    "primary/native-search": {
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-4f018a19bdcf4c7480711dfc084b3d87)",
+        "type": "invalid_request_error"
+      }
+    },
+    "primary/native-read-url": {
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-150183b11f6544859ef4d56123b22791)",
+        "type": "invalid_request_error"
+      }
+    },
+    "primary/safety-valid": {
+      "id": "chatcmpl-6c756ddb3a154b28a7822b7ca30a73b2",
+      "object": "chat.completion",
+      "created": 1795009987,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      }
+    },
+    "primary/safety-invalid-control": {
+      "id": "chatcmpl-4d1730b8152940c09f0ce91b188996ad",
+      "object": "chat.completion",
+      "created": 1795009988,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      }
+    },
+    "primary/independent-search": {
+      "request_id": "chatsearch-b7a9cd12b21341a1915eebe341035bb4",
+      "results": [
+        {
+          "title": "Download Python",
+          "site_name": "Python.org",
+          "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+          "authority": 4,
+          "rerank_score": 2.320354461669922,
+          "date": null,
+          "url": "https://www.python.org/downloads/?fw-lang=ruby#1",
+          "summary": "## Active Python releases\n\nPython version Maintenance status First released End of support Release schedule\n...\n- 3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\n...\nDownload the latest Python 3 source.",
+          "snippet": "3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619 ... Download the latest Python 3 source.",
+          "content": ""
+        },
+        {
+          "title": "Download Python - Notice: This page displays a fallback because interactive scripts did not run",
+          "site_name": "Python.org",
+          "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+          "authority": 4,
+          "rerank_score": 2.289104461669922,
+          "date": null,
+          "url": "https://www.python.org/downloads/?pubDate=20251202#1",
+          "summary": "## Active Python releases\n\nPython version Maintenance status First released End of support Release schedule\n...\n- 3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\n...\nDownload the latest Python 3 source.",
+          "snippet": "3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619 ... Download the latest Python 3 source.",
+          "content": ""
+        }
+      ]
+    },
+    "primary/independent-fetch": {
+      "content": "该域名仅用于文档示例，无需获得许可。这并非一项服务，请勿将其用于测试和监控目的。\n\nThis domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.\n\nهذا النطاق مُخصص للاستخدام في أمثلة التوثيق دون الحاجة إلى إذن. هذه ليست خدمة، يُرجى تجنب الاعتماد عليها لأغراض الاختبار والمراقبة.\n\nL’usage de ce domaine est réservé à des exemples de documentation, sans autorisation préalable. Il ne s’agit pas d’un service ; son utilisation à des fins de test ou de surveillance est à éviter.\n\nДанный домен предназначен для использования в примерах документации без необходимости получения предварительного разрешения. Это не сервис; не рекомендуется его использование для тестирования и мониторинга.\n\nEste dominio está destinado al uso en ejemplos de documentación sin necesidad de permiso. Esto no es un servicio; evitar utilizarlo para realizar pruebas o monitoreos.\nLearn more",
+      "request_id": "chatsearch-6a5db56ba12a46658f9fb5e8f9a39842",
+      "title": "Example Domain"
+    },
+    "primary/official-files-v1": {
+      "error": {
+        "message": "invalid character '-' in numeric literal",
+        "type": "invalid_request_error"
+      }
+    },
+    "primary/official-files-root": {
+      "error_msg": "404 Route Not Found"
+    },
+    "primary/document-file-url": {
+      "id": "chatcmpl-8f2a7fc1ad3b40e6a46a93df71a7123b",
+      "object": "chat.completion",
+      "created": 1795009998,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "附件好像没有成功传上来。请重新上传一下（或把文字直接粘贴到对话里），我马上帮你逐字读取并返回。"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 13,
+        "completion_tokens": 30,
+        "total_tokens": 43,
+        "prompt_tokens_details": {},
+        "completion_tokens_details": {}
+      }
+    },
+    "primary/independent-ocr": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "primary/independent-tts": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "primary/official-asr": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "primary/gateway-qwen-asr": {
+      "text": "Đúng. ",
+      "usage": {
+        "seconds": 0.0,
+        "type": "duration"
+      }
+    },
+    "routes/native-thinking-search-retry": {
+      "error": {
+        "message": "The request parameter tools[0].type is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-19e81bf16d0c462ab46f82db1f07e4e5)",
+        "type": "invalid_request_error"
+      }
+    },
+    "routes/messages-baseline": {
+      "id": "msg_ae241745a6cc469cad0e86f09d630c92",
+      "type": "message",
+      "role": "assistant",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "The user wants me to reply only \"OK\". Simple.",
+          "signature": "ae241745a6cc469cad0e86f09d630c92"
+        },
+        {
+          "type": "text",
+          "text": "OK"
+        }
+      ],
+      "stop_reason": "end_turn",
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 14,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens_details": {
+          "thinking_tokens": 12
+        }
+      }
+    },
+    "routes/messages-native-search": {
+      "error": {
+        "message": "The request parameter tools[0].function.name is invalid or missing. Please check the value of this parameter. (type: invalid_request_error) (request_id: chatcmpl-960ec98be7574db88bb06c4c7dd3b32b)",
+        "type": "invalid_request_error"
+      }
+    },
+    "routes/responses-baseline": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "routes/responses-native-search": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "short-audio-control/official-asr": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "short-audio-control/gateway-qwen-asr": {
+      "text": "The. ",
+      "usage": {
+        "seconds": 0.0,
+        "type": "duration"
+      }
+    },
+    "verified-audio/official-asr": {
+      "message": "not found or method not allowed",
+      "status": false
+    },
+    "verified-audio/gateway-qwen-asr": {
+      "text": "and so, my fellow americans, ask not what your country can do for you, ask what you can do for your country. ",
+      "usage": {
+        "seconds": 11.0,
+        "type": "duration"
+      }
+    }
+  }
+}

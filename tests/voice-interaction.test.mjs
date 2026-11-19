@@ -18,7 +18,7 @@ function harness() {
   const state = { voicePhase: 'idle', voiceCancel: false, attachments: false };
   const chat = { id: 'one', state: 'idle', inputContent: '' };
   const calls = [], notices = [], pending = [];
-  const ai = { currentChat: chat, imgList: [], sendMsg(text) { calls.push(text); } };
+  const ai = { llm: {provider: 'qiniu', model: 'test'}, currentChat: chat, imgList: [], sendMsg(text) { calls.push(text); } };
   const recorder = {
     onStart(fn) { this.started = fn; }, onStop(fn) { this.stopped = fn; }, onError(fn) { this.error = fn; },
     start() {}, stop() { this.stops = (this.stops ?? 0) + 1; },
@@ -30,7 +30,7 @@ function harness() {
     tr: cn => cn, onUnmounted() {}, watch(_getter, fn) { watches.push(fn); },
     Date: { now: () => clock }, clearTimeout() {}, setTimeout() { return 1; },
     uni: { getRecorderManager: () => recorder, showToast: value => notices.push(value.title) },
-    transcribeAudioFile: async () => { api.transcribes++; return '测试文字'; },
+    transcribeAudioFile: async () => { api.transcribes++; if (api.deferTranscription) return await new Promise(resolve => { api.resolveTranscription = resolve; }); return '测试文字'; },
   });
   api.transcribes = 0;
   return { api, state, ai, chat, recorder, calls, notices, pending, watches, advance: () => { clock += 1000; } };
@@ -73,4 +73,21 @@ test('switching chat during recording never sends to another conversation', asyn
   h.ai.currentChat = { id: 'two', inputContent: '' }; h.watches[0]();
   h.recorder.stopped({ tempFilePath: '/record.wav' }); await tick();
   assert.equal(h.api.transcribes, 0); assert.equal(h.calls.length, 0);
+});
+
+test('switching provider during recording cancels ASR instead of borrowing the old route', async () => {
+  const h = harness(); await h.api.begin(700); h.recorder.started(); h.advance();
+  h.ai.llm = { provider: 'deepseek', model: 'deepseek-flash' }; h.watches[1]();
+  h.recorder.stopped({ tempFilePath: '/record.wav' }); await tick();
+  assert.equal(h.api.transcribes, 0); assert.equal(h.calls.length, 0);
+});
+
+test('switching provider during recognition ignores even a late successful result', async () => {
+  const h = harness(); h.api.deferTranscription = true;
+  await h.api.begin(700); h.recorder.started(); h.advance(); h.api.release();
+  h.recorder.stopped({tempFilePath:'/record.wav'}); await tick();
+  assert.equal(h.api.transcribes, 1);
+  h.ai.llm.provider = 'deepseek'; h.watches[1]();
+  h.api.resolveTranscription('late text'); await tick();
+  assert.equal(h.chat.inputContent, ''); assert.equal(h.calls.length, 0);
 });

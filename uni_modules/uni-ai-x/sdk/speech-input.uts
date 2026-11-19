@@ -1,3 +1,4 @@
+import { supportsDeepSeekApps } from './deepseek-app-api.uts'
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
 
 export function parseTranscription(statusCode: number, data: string): string {
@@ -8,16 +9,19 @@ export function parseTranscription(statusCode: number, data: string): string {
 	return text.trim()
 }
 
-export async function transcribeAudioFile(filePath: string, onTask: (task: UploadTask) => void): Promise<string> {
-	const provider = llmModelMap.get('qiniu')
-	if (provider?.getToken == null) throw new Error('请先配置七牛临时 Token')
+export async function transcribeAudioFile(filePath: string, onTask: (task: UploadTask) => void, providerId: string, model: string, isCancelled?: () => boolean): Promise<string> {
+	const official = supportsDeepSeekApps(providerId, model)
+	if (!official && providerId != 'qiniu') throw new Error('当前方案未配置语音识别')
+	const provider = llmModelMap.get(providerId)
+	if (provider?.getToken == null) throw new Error('当前方案未配置语音识别凭据')
 	const token = await provider.getToken!()
+	if (isCancelled?.() == true) throw new Error('操作已取消')
 	return await new Promise<string>((resolve, reject) => {
 		const task = uni.uploadFile({
-			url: 'https://api.qnaigc.com/v1/audio/transcriptions',
+			url: official ? 'https://api.deepseek.com/v1/tools/asr' : 'https://api.qnaigc.com/v1/audio/transcriptions',
 			filePath: filePath,
 			name: 'file',
-			formData: { model: 'qwen/qwen-audio-3.0-asr-flash' },
+			formData: official ? {} : { model: 'qwen/qwen-audio-3.0-asr-flash' },
 			header: { Authorization: 'Bearer ' + token },
 			timeout: 60000,
 			success: (response) => {

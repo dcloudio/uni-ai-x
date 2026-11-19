@@ -4,8 +4,10 @@ import { loadUts } from './uts-loader.mjs';
 function harness() {
   const chat = { id: 'chat-a', draftFiles: [] };
   const attempts = [];
+  const watchers = [];
+  const ai = { llm: {provider: 'deepseek', model: 'deepseek-flash'}, chat: { datas: [chat] } };
   const sdk = loadUts('uni_modules/uni-ai-x/sdk/document-drafts.uts', ['documentDrafts', 'addPendingDocument', 'removePendingDocument', 'retryPendingDocument'], {
-    reactive: value => value, uniAi: { chat: { datas: [chat] } },
+    watch(_getter, callback) { watchers.push(callback); }, reactive: value => value, uniAi: ai, supportsDeepSeekApps: (provider) => provider === 'deepseek',
     uploadDeepSeekDocument(_path, name, onTask) {
       return new Promise((resolve, reject) => {
         const entry = { name, resolve, reject, aborted: false };
@@ -14,7 +16,7 @@ function harness() {
       });
     },
   });
-  return { ...sdk, chat, attempts };
+  return { ...sdk, chat, attempts, ai, watchers };
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
 test('document draft reports upload and parsing, then attaches only the completed file', async () => {
@@ -51,4 +53,23 @@ test('failed upload remains visible and can retry without duplicate attachments'
   await retry;
   assert.equal(h.chat.draftFiles.length, 1);
   assert.equal(h.documentDrafts.pending.length, 0);
+});
+
+test('retry after switching to gateway never calls official document upload', async () => {
+  const h = harness(); h.addPendingDocument('chat-a', '/sample.txt', 'sample.txt');
+  h.attempts[0].reject(new Error('offline')); await tick();
+  h.ai.llm.provider = 'qiniu';
+  await h.retryPendingDocument(h.documentDrafts.pending[0].key);
+  assert.equal(h.attempts.length, 1);
+  assert.equal(h.documentDrafts.pending[0].phase, 'failed');
+  assert.match(h.documentDrafts.pending[0].error, /当前方案/);
+});
+
+test('switching to gateway aborts an official upload and ignores a late attachment', async () => {
+  const h = harness(); h.addPendingDocument('chat-a', '/sample.txt', 'sample.txt');
+  h.ai.llm.provider = 'qiniu'; h.watchers[0]();
+  assert.equal(h.attempts[0].aborted, true);
+  h.attempts[0].resolve({id:'file-api-late',provider:'deepseek'}); await tick();
+  assert.equal(h.chat.draftFiles.length, 0);
+  assert.equal(h.documentDrafts.pending[0].phase, 'failed');
 });

@@ -18,9 +18,10 @@ export function documentPurpose(name: string): string {
 	throw new Error('不支持此文件格式，请选择 PDF、Office、图片或文本文件')
 }
 
-export async function uploadDeepSeekDocument(path: string, name: string, onTask: (task: UploadTask) => void): Promise<DocumentAttachment> {
+export async function uploadDeepSeekDocument(path: string, name: string, onTask: (task: UploadTask) => void, isCancelled?: () => boolean): Promise<DocumentAttachment> {
 	const purpose = documentPurpose(name)
 	const token = await deepSeekToken()
+	if (isCancelled?.() == true) throw new Error('操作已取消')
 	return await new Promise<DocumentAttachment>((resolve, reject) => {
 		const task = uni.uploadFile({
 			url: 'https://api.deepseek.com/files', filePath: path, name: 'file',
@@ -49,8 +50,9 @@ export function parseOcrPages(data: string): string {
 	return text
 }
 
-export async function recognizeDeepSeekFile(path: string, onTask: (task: UploadTask) => void): Promise<string> {
+export async function recognizeDeepSeekFile(path: string, onTask: (task: UploadTask) => void, isCancelled?: () => boolean): Promise<string> {
 	const token = await deepSeekToken()
+	if (isCancelled?.() == true) throw new Error('操作已取消')
 	return await new Promise<string>((resolve, reject) => {
 		const task = uni.uploadFile({
 			url: 'https://api.deepseek.com/v1/tools/ocr', filePath: path, name: 'file',
@@ -66,12 +68,13 @@ export async function recognizeDeepSeekFile(path: string, onTask: (task: UploadT
 	})
 }
 
-export async function synthesizeDeepSeekSpeech(text: string, onTask: (task: RequestTask) => void): Promise<ArrayBuffer> {
+export async function synthesizeDeepSeekSpeech(text: string, onTask: (task: RequestTask) => void, isCancelled?: () => boolean): Promise<ArrayBuffer> {
 	if (text.trim().length == 0) throw new Error('没有可朗读的文字')
 	let characters = 0
 	for (let index = 0; index < text.length; index++) characters += /[\u4e00-\u9fff]/.test(text[index]) ? 2 : 1
 	if (characters > 10000) throw new Error('内容过长，请复制需要朗读的部分后重试')
 	const token = await deepSeekToken()
+	if (isCancelled?.() == true) throw new Error('操作已取消')
 	return await new Promise<ArrayBuffer>((resolve, reject) => {
 		const task = uni.request({
 			url: 'https://api.deepseek.com/v1/tools/tts', method: 'POST', responseType: 'arraybuffer', timeout: 90000,

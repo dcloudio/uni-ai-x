@@ -1,0 +1,320 @@
+[
+  {
+    "run": 1,
+    "target": "bailian",
+    "first_body_s": 0.77374005,
+    "reasoning_chars": 0,
+    "token_s": 0.21683714799999998,
+    "token_ttl_remaining_s": 59.9773051738739,
+    "headers_s": 0.77362895,
+    "response_model": "deepseek-v4.1-flash-1017",
+    "usage": {
+      "prompt_tokens": 1514,
+      "total_tokens": 2929,
+      "completion_tokens": 1415,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "image_tokens": 0,
+        "text_tokens": 1514
+      },
+      "completion_tokens_details": {
+        "text_tokens": 1415
+      }
+    },
+    "success": true,
+    "total_s": 5.387519908,
+    "body_output_s": 4.613779858,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 1,
+    "target": "deepseek",
+    "first_body_s": 0.8542210099999998,
+    "reasoning_chars": 0,
+    "headers_s": 0.13130584199999973,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.809711216,
+    "body_output_s": 3.9554902060000003,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 2,
+    "target": "bailian",
+    "first_body_s": 0.6590238409999998,
+    "reasoning_chars": 0,
+    "token_s": 0.15628464599999958,
+    "token_ttl_remaining_s": 59.618019104003906,
+    "headers_s": 0.6589399819999997,
+    "response_model": "deepseek-v4.1-flash-1017",
+    "usage": {
+      "prompt_tokens": 1514,
+      "total_tokens": 2929,
+      "completion_tokens": 1415,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280,
+        "image_tokens": 0,
+        "text_tokens": 1514
+      },
+      "completion_tokens_details": {
+        "text_tokens": 1415
+      }
+    },
+    "success": true,
+    "total_s": 5.369568954,
+    "body_output_s": 4.710545113,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 2,
+    "target": "deepseek",
+    "first_body_s": 0.6064223979999994,
+    "reasoning_chars": 0,
+    "headers_s": 0.1346713279999996,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.388964683000001,
+    "body_output_s": 3.7825422850000017,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 3,
+    "target": "bailian",
+    "first_body_s": 0.6611431060000008,
+    "reasoning_chars": 0,
+    "token_s": 0.18481032800000108,
+    "token_ttl_remaining_s": 59.66813397407532,
+    "headers_s": 0.6610320850000022,
+    "response_model": "deepseek-v4.1-flash-1017",
+    "usage": {
+      "prompt_tokens": 1514,
+      "total_tokens": 2929,
+      "completion_tokens": 1415,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280,
+        "image_tokens": 0,
+        "text_tokens": 1514
+      },
+      "completion_tokens_details": {
+        "text_tokens": 1415
+      }
+    },
+    "success": true,
+    "total_s": 5.228737357,
+    "body_output_s": 4.567594250999999,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 3,
+    "target": "deepseek",
+    "first_body_s": 0.6448134540000012,
+    "reasoning_chars": 0,
+    "headers_s": 0.17692706000000058,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.510733394999999,
+    "body_output_s": 3.865919940999998,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 4,
+    "target": "bailian",
+    "first_body_s": 0.6739115170000005,
+    "reasoning_chars": 0,
+    "token_s": 0.16384862700000014,
+    "token_ttl_remaining_s": 59.75719404220581,
+    "headers_s": 0.6738002460000025,
+    "response_model": "deepseek-v4.1-flash-1017",
+    "usage": {
+      "prompt_tokens": 1514,
+      "total_tokens": 2929,
+      "completion_tokens": 1415,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280,
+        "image_tokens": 0,
+        "text_tokens": 1514
+      },
+      "completion_tokens_details": {
+        "text_tokens": 1415
+      }
+    },
+    "success": true,
+    "total_s": 5.1848575890000035,
+    "body_output_s": 4.510946072000003,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 4,
+    "target": "deepseek",
+    "first_body_s": 0.695218115000003,
+    "reasoning_chars": 0,
+    "headers_s": 0.13755742899999746,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.600933679000001,
+    "body_output_s": 3.9057155639999976,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 5,
+    "target": "bailian",
+    "first_body_s": 0.6567081599999938,
+    "reasoning_chars": 0,
+    "token_s": 0.19486783400000007,
+    "token_ttl_remaining_s": 59.76954197883606,
+    "headers_s": 0.6566375569999963,
+    "response_model": "deepseek-v4.1-flash-1017",
+    "usage": {
+      "prompt_tokens": 1514,
+      "total_tokens": 2929,
+      "completion_tokens": 1415,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280,
+        "image_tokens": 0,
+        "text_tokens": 1514
+      },
+      "completion_tokens_details": {
+        "text_tokens": 1415
+      }
+    },
+    "success": true,
+    "total_s": 5.568127020999995,
+    "body_output_s": 4.911418861000001,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 5,
+    "target": "deepseek",
+    "first_body_s": 0.7405702390000002,
+    "reasoning_chars": 0,
+    "headers_s": 0.15869391900000096,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.6072835090000055,
+    "body_output_s": 3.8667132700000053,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 6,
+    "target": "bailian",
+    "first_body_s": 0.6475320090000025,
+    "reasoning_chars": 0,
+    "token_s": 0.12881417399999862,
+    "token_ttl_remaining_s": 59.45877289772034,
+    "headers_s": 0.6474437950000009,
+    "response_model": "deepseek-v4.1-flash-1017",
+    "usage": {
+      "prompt_tokens": 1514,
+      "total_tokens": 2929,
+      "completion_tokens": 1415,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280,
+        "image_tokens": 0,
+        "text_tokens": 1514
+      },
+      "completion_tokens_details": {
+        "text_tokens": 1415
+      }
+    },
+    "success": true,
+    "total_s": 5.218464562999998,
+    "body_output_s": 4.570932553999995,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "run": 6,
+    "target": "deepseek",
+    "first_body_s": 0.5764002810000051,
+    "reasoning_chars": 0,
+    "headers_s": 0.15657118600000075,
+    "response_model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 1514,
+      "completion_tokens": 1414,
+      "total_tokens": 2928,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "prompt_cache_hit_tokens": 1280,
+      "prompt_cache_miss_tokens": 234
+    },
+    "success": true,
+    "total_s": 4.467392183000001,
+    "body_output_s": 3.890991901999996,
+    "content_chars": 2997,
+    "exact_match": true,
+    "trim_match": true
+  }
+]

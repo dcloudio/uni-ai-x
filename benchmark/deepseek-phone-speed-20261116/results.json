@@ -1,0 +1,50 @@
+[
+  {
+    "firstBodyMs": 1187,
+    "totalMs": 4601,
+    "stopSeen": true,
+    "finalControls": "展开|转至底部|打开侧边栏|自动朗读|开启新对话|上传文件|切换至语音|",
+    "run": 1,
+    "included": false
+  },
+  {
+    "firstBodyMs": 1202,
+    "totalMs": 5663,
+    "stopSeen": true,
+    "finalControls": "展开|转至底部|打开侧边栏|自动朗读|开启新对话|上传文件|切换至语音|",
+    "run": 2,
+    "included": true
+  },
+  {
+    "firstBodyMs": 1313,
+    "totalMs": 4501,
+    "stopSeen": true,
+    "finalControls": "展开|转至底部|打开侧边栏|自动朗读|开启新对话|上传文件|切换至语音|",
+    "run": 3,
+    "included": true
+  },
+  {
+    "firstBodyMs": 1032,
+    "totalMs": 5250,
+    "stopSeen": true,
+    "finalControls": "展开|转至底部|打开侧边栏|自动朗读|开启新对话|上传文件|切换至语音|",
+    "run": 4,
+    "included": true
+  },
+  {
+    "firstBodyMs": 1238,
+    "totalMs": 4649,
+    "stopSeen": true,
+    "finalControls": "展开|转至底部|打开侧边栏|自动朗读|开启新对话|上传文件|切换至语音|",
+    "run": 5,
+    "included": true
+  },
+  {
+    "firstBodyMs": 1782,
+    "totalMs": 5047,
+    "stopSeen": true,
+    "finalControls": "展开|转至底部|打开侧边栏|自动朗读|开启新对话|上传文件|切换至语音|",
+    "run": 6,
+    "included": true
+  }
+]

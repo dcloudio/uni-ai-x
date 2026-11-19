@@ -1,0 +1,37 @@
+{
+  "B": {
+    "successful": 1,
+    "attempted": 1,
+    "exact_matches": 1,
+    "first_delta_s": {
+      "mean": 0.7448386119999999,
+      "median": 0.7448386119999999,
+      "min": 0.7448386119999999,
+      "max": 0.7448386119999999
+    },
+    "first_content_s": {
+      "mean": 4.114869708,
+      "median": 4.114869708,
+      "min": 4.114869708,
+      "max": 4.114869708
+    },
+    "total_s": {
+      "mean": 8.000751012,
+      "median": 8.000751012,
+      "min": 8.000751012,
+      "max": 8.000751012
+    },
+    "content_chars": {
+      "mean": 2997,
+      "median": 2997,
+      "min": 2997,
+      "max": 2997
+    },
+    "reasoning_chars": {
+      "mean": 1658,
+      "median": 1658,
+      "min": 1658,
+      "max": 1658
+    }
+  }
+}

@@ -1,0 +1,276 @@
+[
+  {
+    "target": "A",
+    "run": 1,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "first_delta_s": 0.81784159,
+    "first_content_s": 11.803659321,
+    "first_reasoning_s": 0.81784159,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 2981,
+      "total_tokens": 4521,
+      "prompt_tokens_details": {},
+      "completion_tokens_details": {
+        "reasoning_tokens": 1567
+      }
+    },
+    "events": 765,
+    "http_status": 200,
+    "headers_s": 0.800653479,
+    "response_model": "deepseek/deepseek-v4.1-flash",
+    "success": true,
+    "total_s": 17.439097551,
+    "content_chars": 2997,
+    "reasoning_chars": 2948,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "target": "B",
+    "run": 1,
+    "model": "deepseek-flash",
+    "first_delta_s": 0.45843346299999865,
+    "first_content_s": 2.182160319000001,
+    "first_reasoning_s": 0.45843346299999865,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 1699,
+      "total_tokens": 3239,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 284
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 1540
+    },
+    "events": 1700,
+    "http_status": 200,
+    "headers_s": 0.17362824399999965,
+    "response_model": "deepseek-flash",
+    "success": true,
+    "total_s": 6.082778806,
+    "content_chars": 2997,
+    "reasoning_chars": 500,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "target": "A",
+    "run": 2,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "first_delta_s": null,
+    "first_content_s": null,
+    "first_reasoning_s": null,
+    "done": false,
+    "finish_reason": null,
+    "usage": null,
+    "events": 0,
+    "success": false,
+    "http_status": 401,
+    "error": "{\"error\":{\"message\":\"API key has expired\",\"type\":\"authentication_error\",\"code\":\"auth_api_key_expired\"}}",
+    "total_s": 0.16933803999999952,
+    "content_chars": 0,
+    "reasoning_chars": 0,
+    "exact_match": false,
+    "trim_match": false
+  },
+  {
+    "target": "B",
+    "run": 2,
+    "model": "deepseek-flash",
+    "first_delta_s": 0.7164463999999988,
+    "first_content_s": 3.069256568,
+    "first_reasoning_s": 0.7164463999999988,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 1802,
+      "total_tokens": 3342,
+      "prompt_tokens_details": {
+        "cached_tokens": 1406
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 387
+      },
+      "prompt_cache_hit_tokens": 1406,
+      "prompt_cache_miss_tokens": 134
+    },
+    "events": 1803,
+    "http_status": 200,
+    "headers_s": 0.2639191049999994,
+    "response_model": "deepseek-flash",
+    "success": true,
+    "total_s": 6.963176565999998,
+    "content_chars": 2997,
+    "reasoning_chars": 868,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "target": "A",
+    "run": 3,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "first_delta_s": null,
+    "first_content_s": null,
+    "first_reasoning_s": null,
+    "done": false,
+    "finish_reason": null,
+    "usage": null,
+    "events": 0,
+    "success": false,
+    "http_status": 401,
+    "error": "{\"error\":{\"message\":\"API key has expired\",\"type\":\"authentication_error\",\"code\":\"auth_api_key_expired\"}}",
+    "total_s": 0.14508422999999837,
+    "content_chars": 0,
+    "reasoning_chars": 0,
+    "exact_match": false,
+    "trim_match": false
+  },
+  {
+    "target": "B",
+    "run": 3,
+    "model": "deepseek-flash",
+    "first_delta_s": 0.7554931889999992,
+    "first_content_s": 3.1525519679999974,
+    "first_reasoning_s": 0.7554931889999992,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 1784,
+      "total_tokens": 3324,
+      "prompt_tokens_details": {
+        "cached_tokens": 1406
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 369
+      },
+      "prompt_cache_hit_tokens": 1406,
+      "prompt_cache_miss_tokens": 134
+    },
+    "events": 1785,
+    "http_status": 200,
+    "headers_s": 0.18532763600000024,
+    "response_model": "deepseek-flash",
+    "success": true,
+    "total_s": 7.046355777000002,
+    "content_chars": 2997,
+    "reasoning_chars": 639,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "target": "A",
+    "run": 4,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "first_delta_s": null,
+    "first_content_s": null,
+    "first_reasoning_s": null,
+    "done": false,
+    "finish_reason": null,
+    "usage": null,
+    "events": 0,
+    "success": false,
+    "http_status": 401,
+    "error": "{\"error\":{\"message\":\"API key has expired\",\"type\":\"authentication_error\",\"code\":\"auth_api_key_expired\"}}",
+    "total_s": 0.13608144700000224,
+    "content_chars": 0,
+    "reasoning_chars": 0,
+    "exact_match": false,
+    "trim_match": false
+  },
+  {
+    "target": "B",
+    "run": 4,
+    "model": "deepseek-flash",
+    "first_delta_s": 0.6874941139999962,
+    "first_content_s": 2.5418024999999957,
+    "first_reasoning_s": 0.6874941139999962,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 1725,
+      "total_tokens": 3265,
+      "prompt_tokens_details": {
+        "cached_tokens": 1406
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 310
+      },
+      "prompt_cache_hit_tokens": 1406,
+      "prompt_cache_miss_tokens": 134
+    },
+    "events": 1726,
+    "http_status": 200,
+    "headers_s": 0.16534234099999878,
+    "response_model": "deepseek-flash",
+    "success": true,
+    "total_s": 6.3675506469999945,
+    "content_chars": 2997,
+    "reasoning_chars": 568,
+    "exact_match": true,
+    "trim_match": true
+  },
+  {
+    "target": "A",
+    "run": 5,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "first_delta_s": null,
+    "first_content_s": null,
+    "first_reasoning_s": null,
+    "done": false,
+    "finish_reason": null,
+    "usage": null,
+    "events": 0,
+    "success": false,
+    "http_status": 401,
+    "error": "{\"error\":{\"message\":\"API key has expired\",\"type\":\"authentication_error\",\"code\":\"auth_api_key_expired\"}}",
+    "total_s": 0.20165226299999972,
+    "content_chars": 0,
+    "reasoning_chars": 0,
+    "exact_match": false,
+    "trim_match": false
+  },
+  {
+    "target": "B",
+    "run": 5,
+    "model": "deepseek-flash",
+    "first_delta_s": 0.5637665319999954,
+    "first_content_s": 2.5123792969999954,
+    "first_reasoning_s": 0.5637665319999954,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 1780,
+      "total_tokens": 3320,
+      "prompt_tokens_details": {
+        "cached_tokens": 1406
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 365
+      },
+      "prompt_cache_hit_tokens": 1406,
+      "prompt_cache_miss_tokens": 134
+    },
+    "events": 1781,
+    "http_status": 200,
+    "headers_s": 0.13104891599999746,
+    "response_model": "deepseek-flash",
+    "success": true,
+    "total_s": 6.308797599999998,
+    "content_chars": 2997,
+    "reasoning_chars": 648,
+    "exact_match": true,
+    "trim_match": true
+  }
+]

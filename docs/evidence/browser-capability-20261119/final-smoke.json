@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Script ran on page and returned:\n```json\n{\"provider\":\"deepseek\",\"model\":\"deepseek-flash\",\"state\":\"completed\",\"answer\":\"最终回归通过\\n\",\"requests\":[{\"url\":\"https://api.deepseek.com/chat/completions\",\"model\":\"deepseek-flash\",\"thinking\":{\"type\":\"disabled\"},\"safety\":{\"level\":\"high\"},\"tools\":[\"deepseek_read_url\"],\"started\":1795074186033,\"status\":200,\"ms\":1272}],\"favicon\":\"http://localhost:5173/static/logo.png\"}\n```"
+    }
+  ]
+}

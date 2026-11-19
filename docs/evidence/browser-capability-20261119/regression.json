@@ -1,0 +1,114 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "cases": [
+    {
+      "name": "cancel-image-regression",
+      "controlledCancelEvent": true,
+      "toasts": 0
+    },
+    {
+      "name": "gateway-image-after-fix",
+      "answer": "图片中的全部文字如下：\n\nCODE 83983327\nCOUNT 73\n"
+    },
+    {
+      "name": "final-gateway-hints",
+      "modals": [
+        {
+          "title": "功能使用限制",
+          "content": "你当前选择的是「Uni AI 网关 · DeepSeek Flash」。此功能必须选择「DeepSeek 官方 → DeepSeek Flash」才能使用，请在设置中切换。"
+        },
+        {
+          "title": "功能使用限制",
+          "content": "你当前选择的是「Uni AI 网关 · DeepSeek Flash」。此功能必须选择「DeepSeek 官方 → DeepSeek Flash」才能使用，请在设置中切换。"
+        },
+        {
+          "title": "功能使用限制",
+          "content": "你当前选择的是「Uni AI 网关 · DeepSeek Flash」。此功能必须选择「DeepSeek 官方 → DeepSeek Flash」才能使用，请在设置中切换。"
+        }
+      ],
+      "grey": [
+        "rgb(204, 204, 204)",
+        "rgb(204, 204, 204)"
+      ],
+      "noExtraRequests": true
+    },
+    {
+      "name": "switch-cancel",
+      "provider": "qiniu",
+      "requests": 1
+    },
+    {
+      "name": "switch-confirm",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "requests": 1
+    },
+    {
+      "name": "official-ocr-after-confirm",
+      "text": "CODE 83983327\nCOUNT 73",
+      "passed": true
+    },
+    {
+      "name": "official-tts-after-confirm",
+      "phase": "idle",
+      "status": 200
+    },
+    {
+      "name": "tts-final-playback-events",
+      "events": [
+        "loading",
+        "playing",
+        "idle"
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "url": "https://api.qnaigc.com/v1/chat/completions",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "thinking": {
+        "type": "disabled"
+      },
+      "tools": [
+        "read_web_link",
+        "enable_mcp__weather"
+      ],
+      "started": 1795073834909,
+      "status": 200,
+      "ms": 1286
+    },
+    {
+      "url": "https://api.deepseek.com/v1/tools/ocr",
+      "started": 1795074042720,
+      "status": 200,
+      "ms": 2278
+    },
+    {
+      "url": "https://api.deepseek.com/v1/tools/tts",
+      "started": 1795074061890,
+      "status": 200,
+      "ms": 2368
+    },
+    {
+      "url": "https://api.deepseek.com/v1/tools/tts",
+      "started": 1795074108546,
+      "status": 200,
+      "ms": 2137
+    }
+  ],
+  "modals": [
+    {
+      "title": "功能使用限制",
+      "content": "你当前选择的是「Uni AI 网关 · DeepSeek Flash」。此功能必须选择「DeepSeek 官方 → DeepSeek Flash」才能使用，请在设置中切换。"
+    },
+    {
+      "title": "功能使用限制",
+      "content": "你当前选择的是「Uni AI 网关 · DeepSeek Flash」，不支持此功能。是否切换到「DeepSeek 官方 · DeepSeek Flash」？"
+    },
+    {
+      "title": "功能使用限制",
+      "content": "你当前选择的是「Uni AI 网关 · DeepSeek Flash」，不支持此功能。是否切换到「DeepSeek 官方 · DeepSeek Flash」？"
+    }
+  ]
+}

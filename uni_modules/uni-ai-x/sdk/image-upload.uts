@@ -85,6 +85,9 @@ export function uploadDraftImages(currentModel: LLMModel, source: string = '') {
 	}).then((res: UniCloudChooseAndUploadFileResult) => {
 		res.tempFiles.forEach(updateUploadedImageUrl)
 	}).catch((error) => {
+		const message = (error as UTSJSONObject)['errMsg'] as string | null
+		if (message != null && /:(fail\s+)?cancel$/i.test(message.trim())) return
 		console.error('chooseAndUploadFile error', error)
+		uni.showToast({ title: '图片上传失败，请重试', icon: 'none' })
 	})
 }

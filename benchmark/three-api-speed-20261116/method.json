@@ -1,0 +1,34 @@
+{
+  "order": [
+    "deepseek",
+    "bailian",
+    "qiniu",
+    "deepseek",
+    "bailian",
+    "qiniu",
+    "deepseek",
+    "bailian",
+    "qiniu",
+    "deepseek",
+    "bailian",
+    "qiniu",
+    "deepseek",
+    "bailian",
+    "qiniu",
+    "deepseek",
+    "bailian",
+    "qiniu"
+  ],
+  "discarded_runs": [
+    1
+  ],
+  "prompt_sha256": "82faa71f8b940c6c61ee3d65cd7e5047749a364ed2b2ea3429537597f4729dc1",
+  "bailian_host": "https://ws-vpb0xezwi79yq5ai.cn-beijing.maas.aliyuncs.com",
+  "temporary_token_ttl_s": 60,
+  "bailian_model": "deepseek-v4.1-flash-1017",
+  "deepseek_model": "deepseek-flash",
+  "thinking": false,
+  "stream": true,
+  "max_tokens": 16384,
+  "timing": "Computer API; perf_counter before urlopen through SSE DONE/EOF; token acquisition excluded and measured separately"
+}

@@ -723,6 +723,9 @@ class UniAi {
 		}
 	}
 	private watchSetting() {
+		watch((): string => this.llm.provider + ':' + this.llm.model, () => {
+			this.abortRequest()
+		}, { flush: 'sync' })
 		watch((): Theme => this.setting.theme, (theme: Theme) => {
 			applyAppTheme(theme)
 		}, { immediate: true })

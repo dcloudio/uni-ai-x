@@ -31,6 +31,9 @@ let canceled = false
 let startY = 0
 let startedAt = 0
 let chatId = ''
+let providerId = ''
+let modelId = ''
+let recognitionVersion = 0
 let timer = 0
 let lastTouch = 0
 let uploadTask: UploadTask | null = null
@@ -51,14 +54,15 @@ function fail(message: string) {
 
 async function recognize(path: string) {
 	if (disposed) return
-	if (canceled || uniAi.currentChat?.id != chatId) { phase.value = 'idle'; return }
+	if (canceled || uniAi.currentChat?.id != chatId || uniAi.llm.provider != providerId || uniAi.llm.model != modelId) { phase.value = 'idle'; return }
 	phase.value = 'recognizing'
+	const version = ++recognitionVersion
 	try {
 		const text = await transcribeAudioFile(path, (task: UploadTask) => {
-			if (disposed) task.abort()
+			if (disposed || version != recognitionVersion) task.abort()
 			else uploadTask = task
-		})
-		if (disposed) return
+		}, providerId, modelId, () => disposed || canceled || version != recognitionVersion || uniAi.llm.provider != providerId || uniAi.llm.model != modelId)
+		if (disposed || canceled || version != recognitionVersion) return
 		if (uniAi.currentChat?.id != chatId) { fail(tr('会话已切换，请重新录音', 'Chat changed. Record again.')); return }
 		if (text.trim().length == 0) { fail(tr('没有听清，请重试', 'No speech detected. Try again.')); return }
 		const chat = uniAi.currentChat!
@@ -71,8 +75,8 @@ async function recognize(path: string) {
 		}
 		uniAi.sendMsg(chat.inputContent)
 		chat.inputContent = ''
-	} catch (_error) { fail(tr('语音识别失败，请重试', 'Transcription failed. Try again.')) }
-	finally { uploadTask = null }
+	} catch (_error) { if (version == recognitionVersion) fail(tr('语音识别失败，请重试', 'Transcription failed. Try again.')) }
+	finally { if (version == recognitionVersion) uploadTask = null }
 }
 
 function stopRecording() {
@@ -130,6 +134,7 @@ async function begin(y: number) {
 	held = true; canceled = false; canceling.value = false; startY = y
 	composerState.attachments = false
 	chatId = uniAi.currentChat!.id
+	providerId = uniAi.llm.provider; modelId = uniAi.llm.model
 	phase.value = 'starting'
 	// #ifdef WEB
 	try {
@@ -189,7 +194,12 @@ async function begin(y: number) {
 	// #endif
 }
 
-watch(() => uniAi.currentChat?.id, () => { cancel(); uploadTask?.abort() })
+function cancelForRouteChange() {
+	recognitionVersion++; canceled = true; held = false
+	stopRecording(); uploadTask?.abort(); uploadTask = null; phase.value = 'idle'
+}
+watch(() => uniAi.currentChat?.id, cancelForRouteChange)
+watch(() => uniAi.llm.provider + ':' + uniAi.llm.model, cancelForRouteChange)
 onUnmounted(() => {
 	disposed = true; canceled = true; held = false
 	stopRecording()

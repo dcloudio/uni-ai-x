@@ -1,6 +1,8 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, CalendarToolConfirmation, MessageSearch, SearchSource } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
+import { prepareProviderMessages } from './message-builder.uts'
+import { supportsDeepSeekApps } from './deepseek-app-api.uts'
 import { installDeepSeekApps } from './deepseek-app-adapter.uts'
 import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
@@ -259,10 +261,11 @@ class RequestAiRunner {
 	requestAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string, updateTitleAfterDone: boolean = false) {
 		this.resetRequestState()
 		const hasDocuments = messages.some((message) => typeof message.content != 'string' && message.content.some((part) => part.type == 'file'))
-		if (hasDocuments && (llm.provider != 'deepseek' || llm.model != 'deepseek-flash')) {
+		if (hasDocuments && !supportsDeepSeekApps(llm.provider, llm.model)) {
 			this.handleRequestError({ errCode: 'document_provider_mismatch', errMsg: '此会话包含官方文件附件，请选择 DeepSeek 官方 Flash 模型' })
 			return
 		}
+		messages = prepareProviderMessages(messages, supportsDeepSeekApps(llm.provider, llm.model))
 		this.pendingTitleMessages = updateTitleAfterDone ? messages.slice(0) : null
 		this.pendingTitleLlm = updateTitleAfterDone ? llm : null
 

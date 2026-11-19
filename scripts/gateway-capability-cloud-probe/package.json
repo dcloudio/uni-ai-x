@@ -1,0 +1,6 @@
+{
+  "name": "gateway-capability-probe",
+  "version": "1.0.0",
+  "extensions": { "uni-cloud-ai": {} },
+  "cloudfunction-config": { "timeout": 60, "memorySize": 256 }
+}

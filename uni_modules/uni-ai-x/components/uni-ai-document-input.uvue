@@ -1,29 +1,46 @@
 <template>
 	<view class="document-input" @click="chooseAction">
-        <uni-ai-icon :name="ocr ? 'checklist-outline' : 'paperclip-outline'" size="24" color="var(--text-secondary)" />
-        <text class="document-label">{{busy ? tr('解析中', 'Processing') : ocr ? tr('识字', 'OCR') : tr('文件', 'File')}}</text>
+        <uni-ai-icon :name="ocr ? 'checklist-outline' : 'paperclip-outline'" size="24" :color="available ? 'var(--text-secondary)' : 'var(--text-disabled)'" />
+        <text class="document-label" :class="!available ? 'document-label-disabled' : ''">{{busy ? tr('解析中', 'Processing') : ocr ? tr('识字', 'OCR') : tr('文件', 'File')}}</text>
     </view>
 </template>
 <script setup lang="uts">
 import uniAiIcon from './uni-ai-icon/uni-ai-icon.uvue'
 import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
-import uniAi from '@/uni_modules/uni-ai-x/sdk'
+import uniAi, { getLlmDisplayName } from '@/uni_modules/uni-ai-x/sdk'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import { supportsDeepSeekApps, recognizeDeepSeekFile } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-api.uts'
 import { documentDrafts, addPendingDocument } from '@/uni_modules/uni-ai-x/sdk/document-drafts.uts'
 const props = withDefaults(defineProps<{ ocr?: boolean }>(), { ocr: false })
+const available = computed<boolean>(() => supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model))
 const busy = ref(false)
 let disposed = false
 let uploadTask: UploadTask | null = null
 function chooseAction() {
-	if (busy.value) { uni.showToast({ title: tr('正在解析文件，请稍候', 'Processing file. Please wait.'), icon: 'none' }); return }
-	if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) {
-		uni.showToast({ title: tr('文件和识字需选择 DeepSeek 官方 Flash 模型', 'Choose official DeepSeek Flash for files and OCR'), icon: 'none' }); return
+	if (!available.value) {
+		const current = uniAi.llm.provider == 'qiniu' ? tr('你当前选择的是「Uni AI 网关 · ', 'You selected “Uni AI Gateway · ') + getLlmDisplayName(uniAi.llm) + tr('」，不支持此功能。', '”, which does not support this feature. ') : tr('你当前选择的模型不支持此功能。', 'The selected model does not support this feature. ')
+		uni.showModal({
+			title: tr('功能使用限制', 'Feature restriction'),
+			content: current + tr('是否切换到「DeepSeek 官方 · DeepSeek Flash」？', 'Switch to “DeepSeek Official · DeepSeek Flash”?'),
+			showCancel: true, cancelText: tr('暂不切换', 'Not now'), confirmText: tr('立即切换', 'Switch now'),
+			success: (result) => {
+				if (!result.confirm) return
+				if (!supportsDeepSeekApps('deepseek', 'deepseek-flash')) {
+					uni.showToast({ title: tr('尚未配置 DeepSeek 官网直连，请先完成配置', 'Configure the official DeepSeek connection first'), icon: 'none' }); return
+				}
+				uniAi.llm = { provider: 'deepseek', model: 'deepseek-flash', thinking: uniAi.llm.thinking, webSearch: uniAi.llm.webSearch }
+			}
+		}); return
 	}
+	if (busy.value) { uni.showToast({ title: tr('正在解析文件，请稍候', 'Processing file. Please wait.'), icon: 'none' }); return }
+
+	const providerId = uniAi.llm.provider
+	const modelId = uniAi.llm.model
 	const actionIndex = props.ocr ? 1 : 0
 	const chat = uniAi.currentChat
 	if (chat == null) return
 	uni.chooseFile({ count: 1, type: 'all', success: (result) => {
+		if (disposed || uniAi.currentChat?.id != chat.id || uniAi.llm.provider != providerId || uniAi.llm.model != modelId) return
 		if (result.tempFiles.length == 0) return
 		if (actionIndex == 0) composerState.attachments = false
 		const file = result.tempFiles[0]
@@ -38,8 +55,8 @@ function chooseAction() {
 		const onTask = (task: UploadTask) => { if (disposed) task.abort(); else uploadTask = task }
 		const run = async () => {
 			try {
-				const text = await recognizeDeepSeekFile(file.path, onTask)
-				if (disposed) return
+				const text = await recognizeDeepSeekFile(file.path, onTask, () => disposed || uniAi.llm.provider != providerId || uniAi.llm.model != modelId || uniAi.currentChat?.id != chat.id)
+				if (disposed || uniAi.llm.provider != providerId || uniAi.llm.model != modelId || uniAi.currentChat?.id != chat.id) return
 				chat.inputContent += (chat.inputContent.length > 0 ? '\n' : '') + text
 				composerState.attachments = false
 			} catch (error) { if (!disposed) uni.showToast({ title: `${error}`, icon: 'none' }) }
@@ -48,9 +65,11 @@ function chooseAction() {
 		void run()
 	} })
 }
+watch(() => uniAi.llm.provider + ':' + uniAi.llm.model, () => { uploadTask?.abort() })
 onUnmounted(() => { disposed = true; uploadTask?.abort() })
 </script>
 <style>
 .document-input { width: 100%; height: 82px; align-items: center; justify-content: center; flex-shrink: 0; }
 .document-label { font-size: 14px; margin-top: 6px; color: var(--text-secondary); }
+.document-label-disabled { color: var(--text-disabled); }
 </style>

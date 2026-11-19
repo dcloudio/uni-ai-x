@@ -1,0 +1,67 @@
+[
+  {
+    "run": 1,
+    "status": 200,
+    "settings": {
+      "model_type": "default",
+      "thinking_enabled": false,
+      "search_enabled": false
+    },
+    "first_content_s": 1.1478000000007451,
+    "total_s": 5.664900000002235,
+    "request_after_click_s": 0.0395,
+    "pageUrl": "https://chat.deepseek.com/a/chat/s/506f3a93-f055-4f18-82f4-82aa4989dd59"
+  },
+  {
+    "run": 2,
+    "status": 200,
+    "settings": {
+      "model_type": "default",
+      "thinking_enabled": false,
+      "search_enabled": false
+    },
+    "first_content_s": 1.08360000000149,
+    "total_s": 5.169199999999255,
+    "request_after_click_s": 0.0305,
+    "pageUrl": "https://chat.deepseek.com/a/chat/s/7dae2a71-ebf2-4b61-afc2-c290fce5ec6e"
+  },
+  {
+    "run": 3,
+    "status": 200,
+    "settings": {
+      "model_type": "default",
+      "thinking_enabled": false,
+      "search_enabled": false
+    },
+    "first_content_s": 0.797,
+    "total_s": 5.3715,
+    "request_after_click_s": 0.03160000000149012,
+    "pageUrl": "https://chat.deepseek.com/a/chat/s/7f500f91-037c-4796-9a18-ab278d577a90"
+  },
+  {
+    "run": 4,
+    "status": 200,
+    "settings": {
+      "model_type": "default",
+      "thinking_enabled": false,
+      "search_enabled": false
+    },
+    "first_content_s": 0.893,
+    "total_s": 4.78710000000149,
+    "request_after_click_s": 0.03230000000074506,
+    "pageUrl": "https://chat.deepseek.com/a/chat/s/14a04fb4-c0ab-4b5f-bdef-db48d4c1362d"
+  },
+  {
+    "run": 5,
+    "status": 200,
+    "settings": {
+      "model_type": "default",
+      "thinking_enabled": false,
+      "search_enabled": false
+    },
+    "first_content_s": 0.8924000000022352,
+    "total_s": 4.666300000000745,
+    "request_after_click_s": 0.026700000002980232,
+    "pageUrl": "https://chat.deepseek.com/a/chat/s/20fb6de4-de7c-4b8d-915a-7ae6c6c66dbb"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "order": [
+    "B"
+  ],
+  "thinking": {
+    "type": "enabled"
+  },
+  "stream": true,
+  "max_tokens": 16384,
+  "prompt_sha256": "82faa71f8b940c6c61ee3d65cd7e5047749a364ed2b2ea3429537597f4729dc1",
+  "prompt_chars": 3170,
+  "expected_chars": 2997,
+  "timing": "perf_counter; POST to first nonempty reasoning/content and EOF; excludes token acquisition",
+  "targets": [
+    {
+      "id": "B",
+      "url": "https://api.deepseek.com/chat/completions",
+      "model": "deepseek-flash"
+    }
+  ]
+}

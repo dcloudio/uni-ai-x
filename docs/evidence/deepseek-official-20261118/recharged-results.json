@@ -1,0 +1,1450 @@
+{
+  "date": "2026-11-18",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-flash",
+  "phase": "after recharge",
+  "authentication": "Existing official DeepSeek key; no gateway token",
+  "results": [
+    {
+      "name": "baseline",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 0.92,
+      "curl_exit": 0,
+      "response_bytes": 451,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "OK",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "3c536105-fd37-420d-b35c-e5512f416c69",
+      "suite": "capabilities"
+    },
+    {
+      "name": "unknown-tool-control",
+      "path": "/v1/chat/completions",
+      "http_status": 422,
+      "seconds": 0.16,
+      "curl_exit": 0,
+      "response_bytes": 305,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "Failed to deserialize the JSON body into the target type: tools[0].type: unknown variant `nonexistent_probe_tool`, expected `function` at line 1 column 204 (request_id: beffa297-b60b-4657-85a3-bc5cf357570e)",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "invalid_request_error"
+      },
+      "suite": "capabilities"
+    },
+    {
+      "name": "native-search",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 2.09,
+      "curl_exit": 0,
+      "response_bytes": 12046,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 7355,
+        "completion_tokens": 57,
+        "total_tokens": 7412,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7355,
+        "server_tool_use": {
+          "tool_search": 3,
+          "tool_fetch": 0,
+          "tool_image_search": 0
+        }
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content",
+        "annotations",
+        "server_tool_calls"
+      ],
+      "answer": "根据 Python 官方网站信息，最近的版本发布消息为 **Python 3.15.2**，发布日期为 **2026 年 10 月 25 日**。来源链接：https://www.python.org/downloads/windows/ ",
+      "server_tool_calls": [
+        {
+          "index": 0,
+          "calls": [
+            {
+              "index": 0,
+              "id": "srvtoolu_s_00_1846e60463074f98a9fa5e6fb866cc7c",
+              "type": "deepseek_web_search",
+              "kind": "search",
+              "action": {
+                "type": "search",
+                "queries": [
+                  "Python 官方网站 2026年 版本发布消息",
+                  "site:python.org 2026 release announcement",
+                  "Python 3.15 release date 2026"
+                ]
+              },
+              "status": "completed",
+              "sources": [
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/getit/windows/#1",
+                  "title": "Python Releases for Windows",
+                  "snippet": "Download using the Python install manager. ... - Download Installer (MSIX) ... Pre-releases - Python 3.16.0a2 - Nov. 10, 2026 ... 2026 - Python 3.15.0rc3 - Oct. ... 2026 - Python install manager 26.4 beta 3 - Sept.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://mail.python.org/archives/list/twisted@python.org/message/LUQ5M4SVWOORDKLHCVB7Y33DM7KAKOPH/",
+                  "title": "[Twisted] Twisted 26.10.0 release announcement",
+                  "snippet": "[Twisted] Twisted 26.10.0 release announcement 2026年10月30日 ... On behalf of the Twisted contributors I announce the release of Twisted 26.10.0. It contains a few security fixes...",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-10-29T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://peps.python.org/pep-0790/?featured_on=pythonbytes",
+                  "title": "PEP 790 – Python 3.15 Release Schedule | peps.python.org",
+                  "snippet": "3.15.0 schedule ... Actual ... Tuesday, 2026-01-13 ... - 3.15.0 final: Friday, 2026-10-09 ### Bugfix releases Actual: - 3.15.1: Wednesday, 2026-10-21 - 3.15.2 ... - 3.15.3: Tuesday, 2026-12-01",
+                  "site_name": "Python Enhancement Proposals",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-10-25T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/windows/?sl=#1",
+                  "title": "Python Releases for Windows - Notice: This page displays a fallback because interactive scripts did not run",
+                  "snippet": "Python 3.14.10 - Oct. 25, 2026 Download using the Python install manager. - Python 3.15.2 - Oct. 25 ... - Python 3.13.17 - Oct. 21, 2026",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://mail.python.org/archives/list/matplotlib-users@python.org/2026/4/",
+                  "title": "Matplotlib-users",
+                  "snippet": "by Elliott Sales de Andrade 2026年4月24日 ... Hi all, After an extended development stretch, we are pleased to announce the first release candidate of Matplotlib 3.11.0. The largest change within this release is a complete overhaul of text and font processing.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-04-23T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://python.github.io/python-docs-zh-tw/whatsnew/3.15.html#1",
+                  "title": "What's new in Python 3.15¶ - What's new in Python 3.15¶",
+                  "snippet": "updated to acceptfrozendict ... PEP 661: Add sentinel built-in type¶ A newsentinel ... PEP 799: A dedicated profiling package¶ A newprofiling module has been added to organize Python's built-in profiling tools under a single, coherent namespace. This module contains ... The profile module is deprecated and will be removed in Python 3.17. ... A new statistical sampling profiler (Tachyon) has been added asprofiling.sampling. ... Zero-overhead profiling ... Thread-aware profiling ... PEP 831: Frame pointers enabled by default¶ CPython is now built with frame pointers by default on platforms that support them. ... PEP 798: Unpacking in comprehensions¶ ... PEP 829: Package startup configuration files¶ ... can contain lines that both extend sys.path and execute arbitrary code when the line starts with import (followed by a space or tab). ... gets executed when Python starts up. As a step towards improving the ability to audit pre-start executable code, Python 3.15 introduces .start files which contain entry point specifications of the formpkg.mod:callable where pkg.mod is the import path to the given callable. When Python starts up, the callable is located and called with no arguments. import lines in .pth files are silently deprecated. When a matching .start file is found ... Thesite module also provides site.StartupState to batch startup ... PEP 803...",
+                  "site_name": "python.github.io",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/github.io",
+                  "published_at": "2026-10-08T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/source/#1",
+                  "title": "Python Source Releases for Source release - Notice: This page displays a fallback because interactive scripts did not run",
+                  "snippet": "Python 3.11.18 - Oct. 25, 2026 - Python 3.13.18 - Oct. 25, 2026 - Python 3.12.16 - Oct. 25, 2026",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2018-03-10T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://mail.python.org/archives/list/matplotlib-devel@python.org/message/7HC3ERFZIRHMR5NPWFGRVOSABQYOKWH4/",
+                  "title": "[Matplotlib-devel] [ANN] Matplotlib 3.11.0",
+                  "snippet": "[Matplotlib-devel] [ANN] Matplotlib 3.11.0 2026年6月12日 ... Hi all, We are pleased to announce the publication of the 3.11.0 meso release.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-06-11T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://peps.pythonlang.cn/pep-0790/#abstract",
+                  "title": "PEP 790 – Python 3.15 发布时间表 |",
+                  "snippet": "3.15.0 alpha 4：2026年1月13日，星期二 ... - 3.15.0 正式版 ... 错误修复版本 ... - 3.15.3：2026年12月1日，星期二",
+                  "site_name": "pythonlang.cn",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/pythonlang.cn",
+                  "published_at": "2026-10-25T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://pythondotorg.ingress.us-east-2.psfhosted.computer/doc/versions/#content",
+                  "title": "Welcome to Python.org",
+                  "snippet": "Python 3.10.22, released on 1 October 2026 - Python 3.10.21, released on 12 August 2026 - Python 3.10.20, released on 3 March 2026",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/psfhosted.computer",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://mail.python.org/archives/list/python-announce-list@python.org/message/LVSSUX3TYSFYPED22LHTDJDZHFIVOQM7/",
+                  "title": "[Python-announce] NumPy 2.5.0rc1 released",
+                  "snippet": "[Python-announce] NumPy 2.5.0rc1 released 2026年6月2日 ... Hi All, On behalf of the NumPy team, I'm pleased to announce the release of NumPy 2.5.0rc1. Numpy 2.5.0 is a transitional release. It drops support for Python 3.11...",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-06-01T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/doc/versions/",
+                  "title": "Welcome to Python.org",
+                  "snippet": "Python 3.13.1, released on 3 December 2024 - Python 3.13.0, released on 7 October 2024 ### Python 3.12 - Python 3.12.16, released on 25 October 2026 - Python 3.12.15, released on 30 September 2026 - Python 3.12.14, released on 12 August 2026 - Python 3.12.13, released on 3 March 2026 ... - Python 3.12.8, released on 3 December 2024 - Python 3.12.7, released on 1 October 2024 - Python 3.12.6, released on 6 September 2024 - Python 3.12.5, released on 6 August 2024 - Python 3.12.4, released on 6 June 2024 - Python 3.12.3, released on 9 April 2024 - Python 3.12.2, released on 6 February 2024 - Python 3.12.1, released on 8 December 2023 - Python 3.12.0, released on 2 October 2023 ### Python 3.11 - Python 3.11.18, released on 25 October 2026 - Python 3.11.17, released on 1 October 2026 - Python 3.11.16, released on 12 August 2026 - Python 3.11.15, released on 3 March 2026 - Python 3.11.14, released on 9 October 2025 - Python 3.11.13, released on 3 June 2025 ... - Python 3.11.11, released on 3 December 2024 - Python 3.11.10, released on 7 September 2024 - Python 3.11.9, released on 2 April 2024 - Python 3.11.8, released on 6 February 2024 - Python 3.11.7, released on 4 December 2023 - Python 3.11.6, released on 2 October 2023 - Python 3.11.5, released on 24 August 2023 - Python 3.11.4, released on 6 June 2023 - Python 3.11.3, released on 5 April 2023 - Python 3.11.2, released on 8 February 2023 - Python 3.11.1, released on 6 December 2022 - Python 3.11.0, released on 24 October 2022 ### Python 3.10 - Python 3.10.22, released on 1 October 2026 - Python 3.10.21, released on 12 August 2026 - Python 3.10.20, released on 3 March 2026 - Python 3.10.19, released on 9 October 2025 - Python 3.10.18, released on 3 June 2025 - Python 3.10.17, released on 8 April 2025 - Python 3.10.16, released on 3 December 2024 - Python 3.10.15, released on 7 September 2024 - Python 3.10.14, released on 19 March 2024 - Python 3.10.13, released on 24 August 2023 - Python 3.10.12, released on 6 June 2023 - Python 3.10.11, released on 5 April 2023 - Python 3.10.10, released on 8 February 2023 - Python 3.10.9, released on 6 December 2022 - Python 3.10.8, released on 11 October 2022 - Python 3.10.7, released on 6 September 2022 - Python 3.10.6, released on 2 August 2022 - Python 3.10.5, released on 6 June 2022 - Python 3.10.4, released on 24 March 2022 - Python 3.10.3, released on 16 March 2022 - Python 3.10.2, released on 14 January 2022 - Python 3.10.1, released on 6 December 2021 - Python 3.10.0, released on 4 October 2021 ### Python 3.9 - Python 3.9.25, released on 31 October 2025 - Python 3.9.24, released on 9 October 2025 ... released on 23 March 2022 ... - Python 3.9.9, released on 15 November 2021 ... released on 28 June 2021 ... released on 19 February 2021 - Python 3.9.1, released on 7 December 2020 - Python 3.9.0, released on 5 October 2020 ### Python 3.8 - Python 3.8.20, released on 6 September 2024 ... Python 3.7 - Python 3.7.17, released on 6 June 2023 ... Python 3.6 - Python 3.6.15, released on 4 September 2021 ... Python 3.5 ... released on 5 September 2020 ... Python 3.4 - Python 3.4.10, released on 18 March 2019 - Python 3.4.9 ...",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://pythondotorg.ingress.us-east-2.psfhosted.computer/downloads/release/python-31216/",
+                  "title": "Python Release Python 3.12.16",
+                  "snippet": "Python 3.12.16 Release date: Oct. 25, 2026 ## This is a security release of Python 3.12 ... Python 3.15 is now the latest feature release series of Python 3.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/psfhosted.computer",
+                  "published_at": "2026-10-24T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://mail.python.org/archives/list/python-announce-list@python.org/message/GULNW43RV4HQDJXOWMSUA5ELLLUWQIE7/",
+                  "title": "[Python-announce] NumPy 2.4.6 released.",
+                  "snippet": "[Python-announce] NumPy 2.4.6 released. 2026年5月19日 ... NumPy 2.4.6 is a quick release that fixes a regression discovered in the 2.4.5 release. This release supports Python versions 3.11-3.14.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-05-18T16:00:00+00:00"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool_calls": null,
+      "id": "a63c5ef2-393b-46b5-9736-a1940d97ec8e",
+      "suite": "capabilities"
+    },
+    {
+      "name": "native-thinking-search",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 7.29,
+      "curl_exit": 0,
+      "response_bytes": 7750,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 9888,
+        "completion_tokens": 893,
+        "total_tokens": 10781,
+        "prompt_tokens_details": {
+          "cached_tokens": 3968
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 617
+        },
+        "prompt_cache_hit_tokens": 3968,
+        "prompt_cache_miss_tokens": 5920,
+        "server_tool_use": {
+          "tool_search": 3,
+          "tool_fetch": 0,
+          "tool_image_search": 0
+        }
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content",
+        "reasoning_content",
+        "annotations",
+        "server_tool_calls"
+      ],
+      "answer": "根据 Python 官方网站的信息，最近的版本发布消息如下：\n\n*   **标题**：Python 3.15.2 final\n*   **日期**：2026年10月25日\n*   **来源链接**：[Python 3.15.2 Changelog](https://docs.python.org/release/3.15.2/whatsnew/changelog.html)\n\n此外，Python 3.14.10 版本也在同一天（2026年10月25日）发布，相关下载链接可在官方页面找到。",
+      "server_tool_calls": [
+        {
+          "index": 0,
+          "reasoning_content": "用户需要Python官方网站最近的版本发布消息。用户要求给出标题、日期和来源链接。为了确保信息全面，我需要同时进行多项搜索。我将同时搜索中文和英文的关键词，以获取最新的发布信息。",
+          "calls": [
+            {
+              "index": 0,
+              "id": "srvtoolu_ds_00_1478f09b1901471cad5122d1bfefa9a7",
+              "type": "deepseek_web_search",
+              "kind": "deep_search",
+              "action": {
+                "type": "search",
+                "queries": [
+                  "Python 最新版本发布 site:python.org",
+                  "Python 官方发布 最新版本 2026 site:python.org",
+                  "site:python.org Python release 2026"
+                ]
+              },
+              "status": "completed",
+              "sources": [
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/?fw-lang=ruby#1",
+                  "title": "Download Python",
+                  "snippet": "3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619 ... Download the latest Python 3 source.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/android/",
+                  "title": "Python Releases for Android",
+                  "snippet": "Stable Releases - Python 3.14.10 - Oct. 25, 2026 - Python 3.15.2 - Oct. 25, 2026 - Python 3.14.9 - Oct. 21, 2026",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/getit/windows/#1",
+                  "title": "Python Releases for Windows",
+                  "snippet": "Python Releases for Windows ## Stable Releases - Python 3.14.10 - Oct. 25, 2026 Download using the Python install manager. ... - Python 3.13.17 - Oct. 21, 2026",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/ios/",
+                  "title": "Python Releases for iOS",
+                  "snippet": "Python Releases for iOS Latest Python 3 Release - Python 3.15.2 Stable Releases Python 3.15.2 - Oct. 25, 2026 Download iOS XCframework Python 3.15.1 - Oct. 21...",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-10-24T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://docs.python.org/tr/3/whatsnew/3.15.html",
+                  "title": "What’s new in Python 3.15",
+                  "snippet": "Python 3.15 was released on 9 October 2026. For full details ... Python 3.15 is the latest stable release of the Python programming language, with a mix of changes to the language, the implementation, and the standard library.",
+                  "site_name": "Python documentation",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2026-10-08T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/source/#1",
+                  "title": "Python Source Releases for Source release - Notice: This page displays a fallback because interactive scripts did not run",
+                  "snippet": "Python Source Releases ## Stable Releases - Python 3.11.18 - Oct. 25, 2026 - Python 3.13.18 - Oct. 25, 2026 - Python 3.12.16 - Oct. 25, 2026",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2018-03-10T16:00:00+00:00"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/doc/versions/",
+                  "title": "Welcome to Python.org",
+                  "snippet": "Notice: This page displays a fallback because interactive scripts did not run. Possible causes include disabled JavaScript or failure to load scripts or stylesheets.  # Python documentation by version",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": null
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.python.org/downloads/macos/?trk=article-ssr-frontend-pulse_little-text-block#1",
+                  "title": "Python Releases for macOS - Notice: This page displays a fallback because interactive scripts did not run",
+                  "snippet": "Python Releases for macOS ## Stable Releases - Python 3.14.10 - Oct. 25, 2026 - Python 3.15.2 - Oct. 25, 2026 - Python 3.13.17 - Oct.",
+                  "site_name": "Python.org",
+                  "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                  "published_at": "2010-03-13T16:00:00+00:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "reasoning_content": "搜索结果显示了一些相关条目。结果0是“Download Python”，可能是一个下载页面，但发布日期不明确。结果1是“Changelog”，显示Python 3.14.9最终版于2026年10月21日发布。结果2是“Python Releases for Android”，显示稳定版本包括Python 3.14.10（2026年10月25日）和Python 3.15.2（2026年10月25日）。结果3是“Python Releases for Windows”，显示Python 3.14.10（2026年10月25日）。结果4是“Python Releases for iOS”，显示Python 3.15.2（2026年10月25日）。结果5是“What’s new in Python 3.15”，提到Python 3.15于2026年10月9日发布。结果0（来自另一个搜索）显示“Changelog”中Python 3.15.0最终版于2026年10月9日发布。结果0（来自第三个搜索）显示“Changelog”中Python 3.15.2最终版于2026年10月25日发布。\n\n用户想要一个最近的版本发布消息，包括标题、日期和来源链接。看起来最新的发布版本是Python 3.15.2，日期是2026年10月25日。或者，Python 3.15.0最终版是2026年10月9日。用户可能想要最新版本。为了全面获取信息，我们需要同时打开结果0（来自搜索2）、结果1（来自搜索0）和结果2（来自搜索0）进行详细查看。",
+          "calls": [
+            {
+              "index": 0,
+              "id": "srvtoolu_ds_01_dbfb4a20b9114f53b5fd3710440579f4",
+              "type": "deepseek_web_search",
+              "kind": "deep_search",
+              "action": {
+                "type": "open_page",
+                "url": "https://www.python.org/downloads/android/"
+              },
+              "status": "completed",
+              "page": {
+                "url": "https://www.python.org/downloads/android/",
+                "title": "Python Releases for Android",
+                "published_at": null
+              }
+            }
+          ]
+        }
+      ],
+      "tool_calls": null,
+      "id": "f4cab493-50c9-40d7-abb9-f171f82b82c9",
+      "suite": "capabilities"
+    },
+    {
+      "name": "native-read-url",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 2.43,
+      "curl_exit": 0,
+      "response_bytes": 2939,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 321,
+        "completion_tokens": 38,
+        "total_tokens": 359,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 321,
+        "server_tool_use": {
+          "tool_search": 0,
+          "tool_fetch": 1,
+          "tool_image_search": 0
+        }
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content",
+        "server_tool_calls"
+      ],
+      "answer": "根据实际读取 https://example.com 的结果：\n\n- 网页标题：**Example Domain**\n- 正文第一句话：**该域名仅用于文档示例，无需获得许可。**",
+      "server_tool_calls": [
+        {
+          "index": 0,
+          "calls": [
+            {
+              "index": 0,
+              "id": "srvtoolu_rl_00_2a261e730af64072b5261bbf98f6cf1a",
+              "type": "deepseek_read_url",
+              "kind": "read_link",
+              "action": {
+                "type": "read_link",
+                "url": "https://example.com"
+              },
+              "status": "completed",
+              "page": {
+                "url": "https://example.com",
+                "title": "Example Domain",
+                "published_at": null
+              },
+              "signature": "0qzS8OUIdBpVBt/JPEvG8zWeC+fiptX+KenwS/47vmOR53PVx+teK7GHE8lhzaXGbbAHk50QbkSDKIdeCPQI9JL2/eKCNlngC4Mocos7B9/dgiwX9q5Aqb1JQVnOFBiqeHoeQ/MohvAj+L3lvcwhk0VQnNtOy0NvgtygXghVVebUfaT6s4zUGkHhP+sKRlcjz0wXELHnSAlZSlddz0bdgFi/pAgrKyzIRmXwcfB8YJ0tt9csn3cPAHblVBj9cpykZgL7I29SsKfU3kd1+aoevap8G/i+w/xXZALP31k+NwcwnUaCZ9fJdTDE3144zqD8+6o+nZ+rUQMNNJWOhxJueIJqI2mLZicurYExQZ1dliYDRA2tn1TkJXvekfSU9ZB/6umk8Sh+/Gxh1QdzsQ+euso/lIMKyyYIuCYjzyzsJ12Zi6pkSdEzfeQzx3pl/EDyc1SwqJz398PlAavtr+lmvMTLrDoj7o5mrA6RA/FWmSE5IamLE/DmuZS/ceT9FWBkWdeSIxnU9d3tndgTz+DC/9DI3qyxdP+IO9PAJz3ua/d1s+Iv0deKi/S6g/Go5hiDDSdzJNxslCy7fTdF6c5x2deiGqLfiiqM9xHrV79nMi/X4FvfWF4ca1MeLgYuQBWCUo+GFCE88ca/AA1NqCvh2PPK/x3jA7fAXQ4PEKprW5gmlNQY5en9VpQSRtqPBYojlowiYRx3j4bsynQb9emmq96BVvlaWjlh2QdA4K5LDQwtbrsthJ4lVcm87m00u2pmT3CN+m7qS3pBO/kjKNbcs5QOGWSdpNtendFCE6eMJSnq4G1pL9QYYtVEnQEp4blXYAeYEJ4FfUiePEu6A45Ygo+7A3UMk1/uZtthTBZVO1bUZZemTkEQN+7o1RH7m8TUABRsXivPttZGwFKLQjwdFyNktYf+KQ6jEClYRsSX5qAntLzRrdKKSWqJ7XNPaU6Yf9aEyrn28l33Hy0yk7mwJJeI61wDqt4Nr7rWyq584goFRAM3BsfLpb+ED4zyzTBSGRKz13K21X5bJeiOdY2huzzKRQg5zyfbx98thqTfwmedKDTGYsybBtY9naWGbg+fonfBJWo7/hD/AzoNOIUg1biAzZL+4RkKKasUzNvn3elAx7afiTebv8EYOOrcdSMr4Of0++b1LWF2eSn9RlAtrT63Voaq2e9FhFWs468UP2pgTnmCJoBnJN2inLjwc6eZEXSszGOv+X2fuKi3ST7rvboQ+ClrJLrSjfxjCF7R/kzrOaZnd+4+QawYwfpAE1dsl8shbf2RyIZ2jS4qHtaAplnq2/uKQhVacNaM2dPatsy2ZMa7XK9KSaoQfD1YJ8dqASi0/qCvPxT3TmFB7qv60uL1GcA4pLg+LTGIQytLkw1cLNMKpYSwkwIWNbNlLkFmARtZGnZXObJu40Tprj7MhUYUVWoSeHWgD4++3c033hfzNkyplEdV3vtd+icYr00hHmhBIvGI+WTD2kKEho4ZzlxdRyObda02h9cr4ARztKgC7EEG6PkWtqW0JYQffg84HBHd693LQsUvQ559OMTnp4BYZphUq20/BOfAb1hfeWlcpxXzm2jY89HBnF9wW94I9w/lTBOfIcXaMaEPshopj2+GY1bVMLYQZn2W8qc/LEBfNZRsWvY8pDcKB4w3MfVr5pg6VC5PNg4Mx9+fYoHmBsgM48I5Zk6eldh5Ns5VF4VYy/a9+awSPgB42T8lPobksns2N3cgyc5TsyeMmAYdelkZTkuG1quYGIyxG3RfZOjJ+cmbbawPO/m4tNu6nrHAhCkAonwnt5T+q85z+SYFXTIR4pv7RstqdgrJ8zeRsRVnMq+XjqEoBcyQtXi8yefkV3OzaJxFtHebe1Q3OZm/DXpvMLmaH2N62ZEhe4Yr0/CRcg=="
+            }
+          ]
+        }
+      ],
+      "tool_calls": null,
+      "id": "256cd359-c027-4aa8-8204-b45bdcd803a8",
+      "suite": "capabilities"
+    },
+    {
+      "name": "safety-valid",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 1.34,
+      "curl_exit": 0,
+      "response_bytes": 520,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "safety_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "OK",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "27d18ec0-5b13-449e-97ce-e1e3d8028849",
+      "suite": "capabilities"
+    },
+    {
+      "name": "safety-invalid-control",
+      "path": "/v1/chat/completions",
+      "http_status": 400,
+      "seconds": 0.14,
+      "curl_exit": 0,
+      "response_bytes": 195,
+      "response_keys": [
+        "error"
+      ],
+      "usage": null,
+      "error": {
+        "message": "safety_check: `level` must be `low` or `high` (request_id: 79612296-340c-4ec8-ba9b-3d2388a81984)",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "invalid_request_error"
+      },
+      "suite": "capabilities"
+    },
+    {
+      "name": "independent-search",
+      "path": "/v1/tools/search",
+      "http_status": 200,
+      "seconds": 0.61,
+      "curl_exit": 0,
+      "response_bytes": 1309,
+      "response_keys": [
+        "results"
+      ],
+      "usage": null,
+      "error": null,
+      "result_count": 2,
+      "suite": "capabilities"
+    },
+    {
+      "name": "independent-fetch",
+      "path": "/v1/tools/fetch",
+      "http_status": 200,
+      "seconds": 0.21,
+      "curl_exit": 0,
+      "response_bytes": 1350,
+      "response_keys": [
+        "content",
+        "title"
+      ],
+      "usage": null,
+      "error": null,
+      "suite": "capabilities"
+    },
+    {
+      "name": "official-files-root",
+      "path": "/files",
+      "http_status": 200,
+      "seconds": 2.29,
+      "curl_exit": 0,
+      "response_bytes": 160,
+      "response_keys": [
+        "id",
+        "object",
+        "bytes",
+        "created_at",
+        "filename",
+        "purpose"
+      ],
+      "usage": null,
+      "error": null,
+      "id": "file-api-b71f28c0-e5fe-4f3d-b1f8-1a3f5e2e3365",
+      "suite": "capabilities"
+    },
+    {
+      "name": "official-files-root-question",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 1.03,
+      "curl_exit": 0,
+      "response_bytes": 568,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 34,
+        "total_tokens": 94,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 60
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "根据文件内容：\n\n- **Verification code（验证码）**：CEDAR-5309CA2D13\n- **Quantity（数量）**：73",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "4ea24283-a191-435a-bcae-a7fb31083058",
+      "suite": "capabilities"
+    },
+    {
+      "name": "independent-ocr",
+      "path": "/v1/tools/ocr",
+      "http_status": 200,
+      "seconds": 2.38,
+      "curl_exit": 0,
+      "response_bytes": 310,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "purpose",
+        "page_count",
+        "pages",
+        "usage"
+      ],
+      "usage": {
+        "input_tokens": 401,
+        "output_tokens": 20,
+        "total_tokens": 421
+      },
+      "error": null,
+      "id": "ocr-ad6ba94b-95c8-4e36-8211-21f3050963c3",
+      "suite": "capabilities"
+    },
+    {
+      "name": "independent-tts",
+      "path": "/v1/tools/tts",
+      "http_status": 200,
+      "seconds": 1.0,
+      "curl_exit": 0,
+      "response_bytes": 136364,
+      "audio_wav": true,
+      "suite": "capabilities"
+    },
+    {
+      "name": "official-asr",
+      "path": "/v1/tools/asr",
+      "http_status": 200,
+      "seconds": 0.96,
+      "curl_exit": 0,
+      "response_bytes": 192,
+      "response_keys": [
+        "request_id",
+        "text",
+        "duration_ms"
+      ],
+      "usage": null,
+      "error": null,
+      "text": "And so, my fellow Americans. Ask not. What your country can do for you, ask what you can do for your country.",
+      "suite": "capabilities"
+    },
+    {
+      "name": "independent-ocr",
+      "path": "/v1/tools/ocr",
+      "http_status": 200,
+      "seconds": 2.16,
+      "curl_exit": 0,
+      "response_bytes": 281,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "purpose",
+        "page_count",
+        "pages",
+        "usage"
+      ],
+      "usage": {
+        "input_tokens": 125,
+        "output_tokens": 10,
+        "total_tokens": 135
+      },
+      "error": null,
+      "id": "ocr-582d3c2e-163f-463d-b99e-15955825df43",
+      "suite": "extra"
+    },
+    {
+      "name": "safety-refusal",
+      "path": "/v1/chat/completions",
+      "http_status": 200,
+      "seconds": 1.19,
+      "curl_exit": 0,
+      "response_bytes": 747,
+      "response_keys": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices",
+        "usage",
+        "system_fingerprint"
+      ],
+      "usage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 42,
+        "total_tokens": 57,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "safety_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 15
+      },
+      "error": null,
+      "finish_reason": "stop",
+      "message_keys": [
+        "role",
+        "content"
+      ],
+      "answer": "对不起，我无法提供这类信息。制作爆炸物是危险且非法的行为，可能对你自己和他人造成严重伤害。如果你有关于安全、法律或其他合法话题的问题，我很乐意帮助你。",
+      "server_tool_calls": null,
+      "tool_calls": null,
+      "id": "b0b26843-07bb-4112-9453-4dc3682b883f",
+      "suite": "extra"
+    },
+    {
+      "name": "official-asr",
+      "path": "/v1/tools/asr",
+      "http_status": 200,
+      "seconds": 0.82,
+      "curl_exit": 0,
+      "response_bytes": 124,
+      "response_keys": [
+        "request_id",
+        "text",
+        "duration_ms"
+      ],
+      "usage": null,
+      "error": null,
+      "text": "语音识别测试。今天是星期三。",
+      "suite": "extra"
+    },
+    {
+      "name": "account-balance",
+      "path": "/user/balance",
+      "http_status": 200,
+      "seconds": 0.13,
+      "curl_exit": 0,
+      "response_bytes": 133,
+      "response_keys": [
+        "is_available",
+        "balance_infos"
+      ],
+      "usage": null,
+      "error": null,
+      "suite": "balance"
+    }
+  ],
+  "responses": {
+    "capabilities/baseline": {
+      "id": "3c536105-fd37-420d-b35c-e5512f416c69",
+      "object": "chat.completion",
+      "created": 1795011828,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "capabilities/unknown-tool-control": {
+      "error": {
+        "message": "Failed to deserialize the JSON body into the target type: tools[0].type: unknown variant `nonexistent_probe_tool`, expected `function` at line 1 column 204 (request_id: beffa297-b60b-4657-85a3-bc5cf357570e)",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "invalid_request_error"
+      }
+    },
+    "capabilities/native-search": {
+      "id": "a63c5ef2-393b-46b5-9736-a1940d97ec8e",
+      "object": "chat.completion",
+      "created": 1795011829,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "根据 Python 官方网站信息，最近的版本发布消息为 **Python 3.15.2**，发布日期为 **2026 年 10 月 25 日**。来源链接：https://www.python.org/downloads/windows/ ",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url_citation": {
+                  "url": "https://www.python.org/downloads/windows/?sl=#1",
+                  "title": "Python Releases for Windows - Notice: This page displays a fallback because interactive scripts did not run",
+                  "start_index": 0,
+                  "end_index": 119
+                }
+              }
+            ],
+            "server_tool_calls": [
+              {
+                "index": 0,
+                "calls": [
+                  {
+                    "index": 0,
+                    "id": "srvtoolu_s_00_1846e60463074f98a9fa5e6fb866cc7c",
+                    "type": "deepseek_web_search",
+                    "kind": "search",
+                    "action": {
+                      "type": "search",
+                      "queries": [
+                        "Python 官方网站 2026年 版本发布消息",
+                        "site:python.org 2026 release announcement",
+                        "Python 3.15 release date 2026"
+                      ]
+                    },
+                    "status": "completed",
+                    "sources": [
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/getit/windows/#1",
+                        "title": "Python Releases for Windows",
+                        "snippet": "Download using the Python install manager. ... - Download Installer (MSIX) ... Pre-releases - Python 3.16.0a2 - Nov. 10, 2026 ... 2026 - Python 3.15.0rc3 - Oct. ... 2026 - Python install manager 26.4 beta 3 - Sept.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://mail.python.org/archives/list/twisted@python.org/message/LUQ5M4SVWOORDKLHCVB7Y33DM7KAKOPH/",
+                        "title": "[Twisted] Twisted 26.10.0 release announcement",
+                        "snippet": "[Twisted] Twisted 26.10.0 release announcement 2026年10月30日 ... On behalf of the Twisted contributors I announce the release of Twisted 26.10.0. It contains a few security fixes...",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-10-29T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://peps.python.org/pep-0790/?featured_on=pythonbytes",
+                        "title": "PEP 790 – Python 3.15 Release Schedule | peps.python.org",
+                        "snippet": "3.15.0 schedule ... Actual ... Tuesday, 2026-01-13 ... - 3.15.0 final: Friday, 2026-10-09 ### Bugfix releases Actual: - 3.15.1: Wednesday, 2026-10-21 - 3.15.2 ... - 3.15.3: Tuesday, 2026-12-01",
+                        "site_name": "Python Enhancement Proposals",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-10-25T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/windows/?sl=#1",
+                        "title": "Python Releases for Windows - Notice: This page displays a fallback because interactive scripts did not run",
+                        "snippet": "Python 3.14.10 - Oct. 25, 2026 Download using the Python install manager. - Python 3.15.2 - Oct. 25 ... - Python 3.13.17 - Oct. 21, 2026",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://mail.python.org/archives/list/matplotlib-users@python.org/2026/4/",
+                        "title": "Matplotlib-users",
+                        "snippet": "by Elliott Sales de Andrade 2026年4月24日 ... Hi all, After an extended development stretch, we are pleased to announce the first release candidate of Matplotlib 3.11.0. The largest change within this release is a complete overhaul of text and font processing.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-04-23T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://python.github.io/python-docs-zh-tw/whatsnew/3.15.html#1",
+                        "title": "What's new in Python 3.15¶ - What's new in Python 3.15¶",
+                        "snippet": "updated to acceptfrozendict ... PEP 661: Add sentinel built-in type¶ A newsentinel ... PEP 799: A dedicated profiling package¶ A newprofiling module has been added to organize Python's built-in profiling tools under a single, coherent namespace. This module contains ... The profile module is deprecated and will be removed in Python 3.17. ... A new statistical sampling profiler (Tachyon) has been added asprofiling.sampling. ... Zero-overhead profiling ... Thread-aware profiling ... PEP 831: Frame pointers enabled by default¶ CPython is now built with frame pointers by default on platforms that support them. ... PEP 798: Unpacking in comprehensions¶ ... PEP 829: Package startup configuration files¶ ... can contain lines that both extend sys.path and execute arbitrary code when the line starts with import (followed by a space or tab). ... gets executed when Python starts up. As a step towards improving the ability to audit pre-start executable code, Python 3.15 introduces .start files which contain entry point specifications of the formpkg.mod:callable where pkg.mod is the import path to the given callable. When Python starts up, the callable is located and called with no arguments. import lines in .pth files are silently deprecated. When a matching .start file is found ... Thesite module also provides site.StartupState to batch startup ... PEP 803...",
+                        "site_name": "python.github.io",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/github.io",
+                        "published_at": "2026-10-08T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/source/#1",
+                        "title": "Python Source Releases for Source release - Notice: This page displays a fallback because interactive scripts did not run",
+                        "snippet": "Python 3.11.18 - Oct. 25, 2026 - Python 3.13.18 - Oct. 25, 2026 - Python 3.12.16 - Oct. 25, 2026",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2018-03-10T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://mail.python.org/archives/list/matplotlib-devel@python.org/message/7HC3ERFZIRHMR5NPWFGRVOSABQYOKWH4/",
+                        "title": "[Matplotlib-devel] [ANN] Matplotlib 3.11.0",
+                        "snippet": "[Matplotlib-devel] [ANN] Matplotlib 3.11.0 2026年6月12日 ... Hi all, We are pleased to announce the publication of the 3.11.0 meso release.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-06-11T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://peps.pythonlang.cn/pep-0790/#abstract",
+                        "title": "PEP 790 – Python 3.15 发布时间表 |",
+                        "snippet": "3.15.0 alpha 4：2026年1月13日，星期二 ... - 3.15.0 正式版 ... 错误修复版本 ... - 3.15.3：2026年12月1日，星期二",
+                        "site_name": "pythonlang.cn",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/pythonlang.cn",
+                        "published_at": "2026-10-25T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://pythondotorg.ingress.us-east-2.psfhosted.computer/doc/versions/#content",
+                        "title": "Welcome to Python.org",
+                        "snippet": "Python 3.10.22, released on 1 October 2026 - Python 3.10.21, released on 12 August 2026 - Python 3.10.20, released on 3 March 2026",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/psfhosted.computer",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://mail.python.org/archives/list/python-announce-list@python.org/message/LVSSUX3TYSFYPED22LHTDJDZHFIVOQM7/",
+                        "title": "[Python-announce] NumPy 2.5.0rc1 released",
+                        "snippet": "[Python-announce] NumPy 2.5.0rc1 released 2026年6月2日 ... Hi All, On behalf of the NumPy team, I'm pleased to announce the release of NumPy 2.5.0rc1. Numpy 2.5.0 is a transitional release. It drops support for Python 3.11...",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-06-01T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/doc/versions/",
+                        "title": "Welcome to Python.org",
+                        "snippet": "Python 3.13.1, released on 3 December 2024 - Python 3.13.0, released on 7 October 2024 ### Python 3.12 - Python 3.12.16, released on 25 October 2026 - Python 3.12.15, released on 30 September 2026 - Python 3.12.14, released on 12 August 2026 - Python 3.12.13, released on 3 March 2026 ... - Python 3.12.8, released on 3 December 2024 - Python 3.12.7, released on 1 October 2024 - Python 3.12.6, released on 6 September 2024 - Python 3.12.5, released on 6 August 2024 - Python 3.12.4, released on 6 June 2024 - Python 3.12.3, released on 9 April 2024 - Python 3.12.2, released on 6 February 2024 - Python 3.12.1, released on 8 December 2023 - Python 3.12.0, released on 2 October 2023 ### Python 3.11 - Python 3.11.18, released on 25 October 2026 - Python 3.11.17, released on 1 October 2026 - Python 3.11.16, released on 12 August 2026 - Python 3.11.15, released on 3 March 2026 - Python 3.11.14, released on 9 October 2025 - Python 3.11.13, released on 3 June 2025 ... - Python 3.11.11, released on 3 December 2024 - Python 3.11.10, released on 7 September 2024 - Python 3.11.9, released on 2 April 2024 - Python 3.11.8, released on 6 February 2024 - Python 3.11.7, released on 4 December 2023 - Python 3.11.6, released on 2 October 2023 - Python 3.11.5, released on 24 August 2023 - Python 3.11.4, released on 6 June 2023 - Python 3.11.3, released on 5 April 2023 - Python 3.11.2, released on 8 February 2023 - Python 3.11.1, released on 6 December 2022 - Python 3.11.0, released on 24 October 2022 ### Python 3.10 - Python 3.10.22, released on 1 October 2026 - Python 3.10.21, released on 12 August 2026 - Python 3.10.20, released on 3 March 2026 - Python 3.10.19, released on 9 October 2025 - Python 3.10.18, released on 3 June 2025 - Python 3.10.17, released on 8 April 2025 - Python 3.10.16, released on 3 December 2024 - Python 3.10.15, released on 7 September 2024 - Python 3.10.14, released on 19 March 2024 - Python 3.10.13, released on 24 August 2023 - Python 3.10.12, released on 6 June 2023 - Python 3.10.11, released on 5 April 2023 - Python 3.10.10, released on 8 February 2023 - Python 3.10.9, released on 6 December 2022 - Python 3.10.8, released on 11 October 2022 - Python 3.10.7, released on 6 September 2022 - Python 3.10.6, released on 2 August 2022 - Python 3.10.5, released on 6 June 2022 - Python 3.10.4, released on 24 March 2022 - Python 3.10.3, released on 16 March 2022 - Python 3.10.2, released on 14 January 2022 - Python 3.10.1, released on 6 December 2021 - Python 3.10.0, released on 4 October 2021 ### Python 3.9 - Python 3.9.25, released on 31 October 2025 - Python 3.9.24, released on 9 October 2025 ... released on 23 March 2022 ... - Python 3.9.9, released on 15 November 2021 ... released on 28 June 2021 ... released on 19 February 2021 - Python 3.9.1, released on 7 December 2020 - Python 3.9.0, released on 5 October 2020 ### Python 3.8 - Python 3.8.20, released on 6 September 2024 ... Python 3.7 - Python 3.7.17, released on 6 June 2023 ... Python 3.6 - Python 3.6.15, released on 4 September 2021 ... Python 3.5 ... released on 5 September 2020 ... Python 3.4 - Python 3.4.10, released on 18 March 2019 - Python 3.4.9 ...",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://pythondotorg.ingress.us-east-2.psfhosted.computer/downloads/release/python-31216/",
+                        "title": "Python Release Python 3.12.16",
+                        "snippet": "Python 3.12.16 Release date: Oct. 25, 2026 ## This is a security release of Python 3.12 ... Python 3.15 is now the latest feature release series of Python 3.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/psfhosted.computer",
+                        "published_at": "2026-10-24T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://mail.python.org/archives/list/python-announce-list@python.org/message/GULNW43RV4HQDJXOWMSUA5ELLLUWQIE7/",
+                        "title": "[Python-announce] NumPy 2.4.6 released.",
+                        "snippet": "[Python-announce] NumPy 2.4.6 released. 2026年5月19日 ... NumPy 2.4.6 is a quick release that fixes a regression discovered in the 2.4.5 release. This release supports Python versions 3.11-3.14.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-05-18T16:00:00+00:00"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 7355,
+        "completion_tokens": 57,
+        "total_tokens": 7412,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7355,
+        "server_tool_use": {
+          "tool_search": 3,
+          "tool_fetch": 0,
+          "tool_image_search": 0
+        }
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "capabilities/native-thinking-search": {
+      "id": "f4cab493-50c9-40d7-abb9-f171f82b82c9",
+      "object": "chat.completion",
+      "created": 1795011831,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "根据 Python 官方网站的信息，最近的版本发布消息如下：\n\n*   **标题**：Python 3.15.2 final\n*   **日期**：2026年10月25日\n*   **来源链接**：[Python 3.15.2 Changelog](https://docs.python.org/release/3.15.2/whatsnew/changelog.html)\n\n此外，Python 3.14.10 版本也在同一天（2026年10月25日）发布，相关下载链接可在官方页面找到。",
+            "reasoning_content": "用户要求提供Python官方网站最近的版本发布消息，包括标题、日期和来源链接。根据已打开页面的信息，可以看到几个相关的发布版本。其中，Python 3.15.2最终版于2026年10月25日发布，来源是Changelog页面（docs.python.org）。另外，Python 3.14.10也于2026年10月25日发布，来源是Android发布页面（python.org）。用户可能想要一个最近的发布消息。我可以选择Python 3.15.2作为最新版本。标题可以定为“Python 3.15.2 最终版发布”，日期是2026年10月25日，来源链接是https://docs.python.org/release/3.15.2/whatsnew/changelog.html。另外，也可以提及Python 3.14.10。为了全面且简洁，我可以提供两个发布消息，但用户要求的是“一个标题、日期和来源链接”，所以只提供一个即可。我将选择Python 3.15.2作为最新版本进行报告。现在开始组织最终答案。",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url_citation": {
+                  "url": "https://www.python.org/downloads/android/",
+                  "title": "Python Releases for Android",
+                  "start_index": 0,
+                  "end_index": 245
+                }
+              }
+            ],
+            "server_tool_calls": [
+              {
+                "index": 0,
+                "reasoning_content": "用户需要Python官方网站最近的版本发布消息。用户要求给出标题、日期和来源链接。为了确保信息全面，我需要同时进行多项搜索。我将同时搜索中文和英文的关键词，以获取最新的发布信息。",
+                "calls": [
+                  {
+                    "index": 0,
+                    "id": "srvtoolu_ds_00_1478f09b1901471cad5122d1bfefa9a7",
+                    "type": "deepseek_web_search",
+                    "kind": "deep_search",
+                    "action": {
+                      "type": "search",
+                      "queries": [
+                        "Python 最新版本发布 site:python.org",
+                        "Python 官方发布 最新版本 2026 site:python.org",
+                        "site:python.org Python release 2026"
+                      ]
+                    },
+                    "status": "completed",
+                    "sources": [
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/?fw-lang=ruby#1",
+                        "title": "Download Python",
+                        "snippet": "3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619 ... Download the latest Python 3 source.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/android/",
+                        "title": "Python Releases for Android",
+                        "snippet": "Stable Releases - Python 3.14.10 - Oct. 25, 2026 - Python 3.15.2 - Oct. 25, 2026 - Python 3.14.9 - Oct. 21, 2026",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/getit/windows/#1",
+                        "title": "Python Releases for Windows",
+                        "snippet": "Python Releases for Windows ## Stable Releases - Python 3.14.10 - Oct. 25, 2026 Download using the Python install manager. ... - Python 3.13.17 - Oct. 21, 2026",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/ios/",
+                        "title": "Python Releases for iOS",
+                        "snippet": "Python Releases for iOS Latest Python 3 Release - Python 3.15.2 Stable Releases Python 3.15.2 - Oct. 25, 2026 Download iOS XCframework Python 3.15.1 - Oct. 21...",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-10-24T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://docs.python.org/tr/3/whatsnew/3.15.html",
+                        "title": "What’s new in Python 3.15",
+                        "snippet": "Python 3.15 was released on 9 October 2026. For full details ... Python 3.15 is the latest stable release of the Python programming language, with a mix of changes to the language, the implementation, and the standard library.",
+                        "site_name": "Python documentation",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2026-10-08T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/source/#1",
+                        "title": "Python Source Releases for Source release - Notice: This page displays a fallback because interactive scripts did not run",
+                        "snippet": "Python Source Releases ## Stable Releases - Python 3.11.18 - Oct. 25, 2026 - Python 3.13.18 - Oct. 25, 2026 - Python 3.12.16 - Oct. 25, 2026",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2018-03-10T16:00:00+00:00"
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/doc/versions/",
+                        "title": "Welcome to Python.org",
+                        "snippet": "Notice: This page displays a fallback because interactive scripts did not run. Possible causes include disabled JavaScript or failure to load scripts or stylesheets.  # Python documentation by version",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": null
+                      },
+                      {
+                        "type": "url",
+                        "url": "https://www.python.org/downloads/macos/?trk=article-ssr-frontend-pulse_little-text-block#1",
+                        "title": "Python Releases for macOS - Notice: This page displays a fallback because interactive scripts did not run",
+                        "snippet": "Python Releases for macOS ## Stable Releases - Python 3.14.10 - Oct. 25, 2026 - Python 3.15.2 - Oct. 25, 2026 - Python 3.13.17 - Oct.",
+                        "site_name": "Python.org",
+                        "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+                        "published_at": "2010-03-13T16:00:00+00:00"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "index": 1,
+                "reasoning_content": "搜索结果显示了一些相关条目。结果0是“Download Python”，可能是一个下载页面，但发布日期不明确。结果1是“Changelog”，显示Python 3.14.9最终版于2026年10月21日发布。结果2是“Python Releases for Android”，显示稳定版本包括Python 3.14.10（2026年10月25日）和Python 3.15.2（2026年10月25日）。结果3是“Python Releases for Windows”，显示Python 3.14.10（2026年10月25日）。结果4是“Python Releases for iOS”，显示Python 3.15.2（2026年10月25日）。结果5是“What’s new in Python 3.15”，提到Python 3.15于2026年10月9日发布。结果0（来自另一个搜索）显示“Changelog”中Python 3.15.0最终版于2026年10月9日发布。结果0（来自第三个搜索）显示“Changelog”中Python 3.15.2最终版于2026年10月25日发布。\n\n用户想要一个最近的版本发布消息，包括标题、日期和来源链接。看起来最新的发布版本是Python 3.15.2，日期是2026年10月25日。或者，Python 3.15.0最终版是2026年10月9日。用户可能想要最新版本。为了全面获取信息，我们需要同时打开结果0（来自搜索2）、结果1（来自搜索0）和结果2（来自搜索0）进行详细查看。",
+                "calls": [
+                  {
+                    "index": 0,
+                    "id": "srvtoolu_ds_01_dbfb4a20b9114f53b5fd3710440579f4",
+                    "type": "deepseek_web_search",
+                    "kind": "deep_search",
+                    "action": {
+                      "type": "open_page",
+                      "url": "https://www.python.org/downloads/android/"
+                    },
+                    "status": "completed",
+                    "page": {
+                      "url": "https://www.python.org/downloads/android/",
+                      "title": "Python Releases for Android",
+                      "published_at": null
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 9888,
+        "completion_tokens": 893,
+        "total_tokens": 10781,
+        "prompt_tokens_details": {
+          "cached_tokens": 3968
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 617
+        },
+        "prompt_cache_hit_tokens": 3968,
+        "prompt_cache_miss_tokens": 5920,
+        "server_tool_use": {
+          "tool_search": 3,
+          "tool_fetch": 0,
+          "tool_image_search": 0
+        }
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "capabilities/native-read-url": {
+      "id": "256cd359-c027-4aa8-8204-b45bdcd803a8",
+      "object": "chat.completion",
+      "created": 1795011839,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "根据实际读取 https://example.com 的结果：\n\n- 网页标题：**Example Domain**\n- 正文第一句话：**该域名仅用于文档示例，无需获得许可。**",
+            "server_tool_calls": [
+              {
+                "index": 0,
+                "calls": [
+                  {
+                    "index": 0,
+                    "id": "srvtoolu_rl_00_2a261e730af64072b5261bbf98f6cf1a",
+                    "type": "deepseek_read_url",
+                    "kind": "read_link",
+                    "action": {
+                      "type": "read_link",
+                      "url": "https://example.com"
+                    },
+                    "status": "completed",
+                    "page": {
+                      "url": "https://example.com",
+                      "title": "Example Domain",
+                      "published_at": null
+                    },
+                    "signature": "0qzS8OUIdBpVBt/JPEvG8zWeC+fiptX+KenwS/47vmOR53PVx+teK7GHE8lhzaXGbbAHk50QbkSDKIdeCPQI9JL2/eKCNlngC4Mocos7B9/dgiwX9q5Aqb1JQVnOFBiqeHoeQ/MohvAj+L3lvcwhk0VQnNtOy0NvgtygXghVVebUfaT6s4zUGkHhP+sKRlcjz0wXELHnSAlZSlddz0bdgFi/pAgrKyzIRmXwcfB8YJ0tt9csn3cPAHblVBj9cpykZgL7I29SsKfU3kd1+aoevap8G/i+w/xXZALP31k+NwcwnUaCZ9fJdTDE3144zqD8+6o+nZ+rUQMNNJWOhxJueIJqI2mLZicurYExQZ1dliYDRA2tn1TkJXvekfSU9ZB/6umk8Sh+/Gxh1QdzsQ+euso/lIMKyyYIuCYjzyzsJ12Zi6pkSdEzfeQzx3pl/EDyc1SwqJz398PlAavtr+lmvMTLrDoj7o5mrA6RA/FWmSE5IamLE/DmuZS/ceT9FWBkWdeSIxnU9d3tndgTz+DC/9DI3qyxdP+IO9PAJz3ua/d1s+Iv0deKi/S6g/Go5hiDDSdzJNxslCy7fTdF6c5x2deiGqLfiiqM9xHrV79nMi/X4FvfWF4ca1MeLgYuQBWCUo+GFCE88ca/AA1NqCvh2PPK/x3jA7fAXQ4PEKprW5gmlNQY5en9VpQSRtqPBYojlowiYRx3j4bsynQb9emmq96BVvlaWjlh2QdA4K5LDQwtbrsthJ4lVcm87m00u2pmT3CN+m7qS3pBO/kjKNbcs5QOGWSdpNtendFCE6eMJSnq4G1pL9QYYtVEnQEp4blXYAeYEJ4FfUiePEu6A45Ygo+7A3UMk1/uZtthTBZVO1bUZZemTkEQN+7o1RH7m8TUABRsXivPttZGwFKLQjwdFyNktYf+KQ6jEClYRsSX5qAntLzRrdKKSWqJ7XNPaU6Yf9aEyrn28l33Hy0yk7mwJJeI61wDqt4Nr7rWyq584goFRAM3BsfLpb+ED4zyzTBSGRKz13K21X5bJeiOdY2huzzKRQg5zyfbx98thqTfwmedKDTGYsybBtY9naWGbg+fonfBJWo7/hD/AzoNOIUg1biAzZL+4RkKKasUzNvn3elAx7afiTebv8EYOOrcdSMr4Of0++b1LWF2eSn9RlAtrT63Voaq2e9FhFWs468UP2pgTnmCJoBnJN2inLjwc6eZEXSszGOv+X2fuKi3ST7rvboQ+ClrJLrSjfxjCF7R/kzrOaZnd+4+QawYwfpAE1dsl8shbf2RyIZ2jS4qHtaAplnq2/uKQhVacNaM2dPatsy2ZMa7XK9KSaoQfD1YJ8dqASi0/qCvPxT3TmFB7qv60uL1GcA4pLg+LTGIQytLkw1cLNMKpYSwkwIWNbNlLkFmARtZGnZXObJu40Tprj7MhUYUVWoSeHWgD4++3c033hfzNkyplEdV3vtd+icYr00hHmhBIvGI+WTD2kKEho4ZzlxdRyObda02h9cr4ARztKgC7EEG6PkWtqW0JYQffg84HBHd693LQsUvQ559OMTnp4BYZphUq20/BOfAb1hfeWlcpxXzm2jY89HBnF9wW94I9w/lTBOfIcXaMaEPshopj2+GY1bVMLYQZn2W8qc/LEBfNZRsWvY8pDcKB4w3MfVr5pg6VC5PNg4Mx9+fYoHmBsgM48I5Zk6eldh5Ns5VF4VYy/a9+awSPgB42T8lPobksns2N3cgyc5TsyeMmAYdelkZTkuG1quYGIyxG3RfZOjJ+cmbbawPO/m4tNu6nrHAhCkAonwnt5T+q85z+SYFXTIR4pv7RstqdgrJ8zeRsRVnMq+XjqEoBcyQtXi8yefkV3OzaJxFtHebe1Q3OZm/DXpvMLmaH2N62ZEhe4Yr0/CRcg=="
+                  }
+                ]
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 321,
+        "completion_tokens": 38,
+        "total_tokens": 359,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 321,
+        "server_tool_use": {
+          "tool_search": 0,
+          "tool_fetch": 1,
+          "tool_image_search": 0
+        }
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "capabilities/safety-valid": {
+      "id": "27d18ec0-5b13-449e-97ce-e1e3d8028849",
+      "object": "chat.completion",
+      "created": 1795011841,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 8,
+        "completion_tokens": 1,
+        "total_tokens": 9,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "safety_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "capabilities/safety-invalid-control": {
+      "error": {
+        "message": "safety_check: `level` must be `low` or `high` (request_id: 79612296-340c-4ec8-ba9b-3d2388a81984)",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "invalid_request_error"
+      }
+    },
+    "capabilities/independent-search": {
+      "results": [
+        {
+          "title": "Download Python",
+          "site_name": "Python.org",
+          "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+          "authority": 4,
+          "rerank_score": 2.320354461669922,
+          "date": null,
+          "url": "https://www.python.org/downloads/?fw-lang=ruby#1",
+          "summary": "## Active Python releases\n\nPython version Maintenance status First released End of support Release schedule\n...\n- 3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619\n...\nDownload the latest Python 3 source.",
+          "snippet": "3.10 end-of-life, last release was 3.10.22 Download 2021-10-04 2026-10-01 PEP 619 ... Download the latest Python 3 source.",
+          "content": ""
+        },
+        {
+          "title": "Python Releases for Windows - Notice: This page displays a fallback because interactive scripts did not run",
+          "site_name": "Python.org",
+          "site_icon": "https://cdn.deepseek.com/site-icons/python.org",
+          "authority": 4,
+          "rerank_score": 2.273479461669922,
+          "date": null,
+          "url": "https://www.python.org/downloads/windows/?sl=#1",
+          "summary": "# Python Releases for Windows\n\n## Stable Releases\n\n- Python 3.14.10 - Oct. 25, 2026\nDownload using the Python install manager.",
+          "snippet": "Python Releases for Windows ## Stable Releases - Python 3.14.10 - Oct. 25, 2026 Download using the Python install manager. ... 25, 2026 ... - Python 3.13.17 - Oct. 21, 2026",
+          "content": ""
+        }
+      ]
+    },
+    "capabilities/independent-fetch": {
+      "content": "该域名仅用于文档示例，无需获得许可。这并非一项服务，请勿将其用于测试和监控目的。\n\nThis domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.\n\nهذا النطاق مُخصص للاستخدام في أمثلة التوثيق دون الحاجة إلى إذن. هذه ليست خدمة، يُرجى تجنب الاعتماد عليها لأغراض الاختبار والمراقبة.\n\nL’usage de ce domaine est réservé à des exemples de documentation, sans autorisation préalable. Il ne s’agit pas d’un service ; son utilisation à des fins de test ou de surveillance est à éviter.\n\nДанный домен предназначен для использования в примерах документации без необходимости получения предварительного разрешения. Это не сервис; не рекомендуется его использование для тестирования и мониторинга.\n\nEste dominio está destinado al uso en ejemplos de documentación sin necesidad de permiso. Esto no es un servicio; evitar utilizarlo para realizar pruebas o monitoreos.\nLearn more",
+      "title": "Example Domain"
+    },
+    "capabilities/official-files-root": {
+      "id": "file-api-b71f28c0-e5fe-4f3d-b1f8-1a3f5e2e3365",
+      "object": "file",
+      "bytes": 1219,
+      "created_at": 1795011845,
+      "filename": "probe.docx",
+      "purpose": "text_recognition"
+    },
+    "capabilities/official-files-root-question": {
+      "id": "4ea24283-a191-435a-bcae-a7fb31083058",
+      "object": "chat.completion",
+      "created": 1795011846,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "根据文件内容：\n\n- **Verification code（验证码）**：CEDAR-5309CA2D13\n- **Quantity（数量）**：73"
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 60,
+        "completion_tokens": 34,
+        "total_tokens": 94,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 60
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "capabilities/independent-ocr": {
+      "id": "ocr-ad6ba94b-95c8-4e36-8211-21f3050963c3",
+      "object": "ocr.result",
+      "created": 1795011847,
+      "purpose": "text_recognition",
+      "page_count": 1,
+      "pages": [
+        {
+          "index": 0,
+          "text": "Verification code: CEDAR-5309CA2D13. Quantity: 73.\n",
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "input_tokens": 401,
+        "output_tokens": 20,
+        "total_tokens": 421
+      }
+    },
+    "capabilities/official-asr": {
+      "request_id": "94fbde5e-cda0-4e60-aeb4-fc313de55d6c",
+      "text": "And so, my fellow Americans. Ask not. What your country can do for you, ask what you can do for your country.",
+      "duration_ms": 11000
+    },
+    "extra/independent-ocr": {
+      "id": "ocr-582d3c2e-163f-463d-b99e-15955825df43",
+      "object": "ocr.result",
+      "created": 1795011920,
+      "purpose": "text_recognition",
+      "page_count": 1,
+      "pages": [
+        {
+          "index": 0,
+          "text": "CODE 80871833\nCOUNT 73",
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "input_tokens": 125,
+        "output_tokens": 10,
+        "total_tokens": 135
+      }
+    },
+    "extra/safety-refusal": {
+      "id": "b0b26843-07bb-4112-9453-4dc3682b883f",
+      "object": "chat.completion",
+      "created": 1795011922,
+      "model": "deepseek-flash",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "对不起，我无法提供这类信息。制作爆炸物是危险且非法的行为，可能对你自己和他人造成严重伤害。如果你有关于安全、法律或其他合法话题的问题，我很乐意帮助你。"
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 42,
+        "total_tokens": 57,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "safety_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 15
+      },
+      "system_fingerprint": "bc19ba97cbe016479903222bb1578db6"
+    },
+    "extra/official-asr": {
+      "request_id": "5e441ab9-b93b-43da-b32e-894c22e987dd",
+      "text": "语音识别测试。今天是星期三。",
+      "duration_ms": 2840
+    },
+    "balance/account-balance": {
+      "is_available": true,
+      "balance_infos": [
+        {
+          "currency": "CNY",
+          "total_balance": "1.96",
+          "granted_balance": "0.00",
+          "topped_up_balance": "1.96"
+        }
+      ]
+    }
+  },
+  "image_ocr_expected": "CODE 80871833\nCOUNT 73"
+}

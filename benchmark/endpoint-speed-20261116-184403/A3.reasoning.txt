@@ -1,0 +1,226 @@
+We need answer. User demands strict output exact Markdown text, no modifications. Need output from # 完整 Markdown 功能演示? Wait they say "待输出固定内容：" then content starts "# 完整 Markdown 功能演示". But instruction 4 says output directly from `# Markdown 全元素渲染测试文档` 开始，直到文档末尾结束，后面不能加任何文字。 There is inconsistency: fixed content starts "# 完整 Markdown 功能演示", not "# Markdown 全元素渲染测试文档". Also instruction 1-3 no extra. We must output exactly provided fixed content. Need not wrap. Need ensure no extra text. We must include all text exactly as provided. Need be careful with code fences inside content. Since final answer can contain code fences? They said don't use ```markdown包裹 output content. The content itself includes ```javascript and ```. We can output raw. Need preserve indentation/tabs? They provided tabs in nested lists. We can reproduce. Need preserve blank lines, separators. Need exact one-to-one.
+
+Potential issue: "禁止任何修改" and "输出直接从 `# Markdown 全元素渲染测试文档` 开始" conflicts with fixed content. If we follow fixed content, start with # 完整 Markdown 功能演示. The user explicitly says "待输出固定内容：" then content. I think we should output that content exactly. But instruction 4 says start from "# Markdown 全元素渲染测试文档". Hmm maybe they accidentally copied from another prompt. We must decide. They emphasize strict. The fixed content is explicit. We should output fixed content exactly; not add missing heading. But if evaluator expects exact content per "待输出固定内容", yes.
+
+Need check entire content for exactness. Let's rewrite carefully.
+
+Need not output any explanation. Final only content. Ensure no trailing spaces? Not important. But "一字不差原样输出". We must not modify. We should copy content exactly.
+
+Let's reproduce:
+
+# 完整 Markdown 功能演示
+
+---
+
+## 标题（1~6级）
+
+# 一级标题
+## 二级标题
+### 三级标题
+#### 四级标题
+##### 五级标题
+###### 六级标题
+
+---
+
+## 列表
+
+### 无序列表
+- 第一项
+- 第二项
+	- 嵌套项 1
+	- 嵌套项 2
+		- 第三层嵌套
+- 第三项
+
+### 有序列表
+1. 第一步
+2. 第二步
+	1. 子步骤 A
+	2. 子步骤 B
+3. 第三步
+
+### 任务复选框列表
+- [x] 已完成任务
+- [ ] 未完成任务
+- [ ] 另一个待办项
+- [x] 子任务已完成
+
+---
+
+## 表格
+
+### 普通表格
+
+| 姓名 | 年龄 | 城市 |
+|------|------|------|
+| 张三 | 25 | 北京 |
+| 李四 | 30 | 上海 |
+| 王五 | 28 | 深圳 |
+
+### 短表格
+
+| 项目 | 值 |
+|------|----|
+| 状态 | 正常 |
+| 版本 | 1.0.0 |
+
+### 超宽长表格（用于横向滚动测试）
+
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
+| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |
+| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |
+
+---
+
+## 块引用
+
+> 这是一段普通的引用文本。
+>
+> - 引用中的列表项
+> - 另一个列表项
+>
+> 引用文本的换行继续。
+> > 嵌套引用内容
+
+---
+
+## 代码块
+
+### JS 代码示例
+
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+alert(result);
+
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+```
+
+---
+
+## 超链接
+
+### 外部链接
+[访问百度](https://www.baidu.com)
+
+[打开 GitHub](https://github.com)
+
+### 相对路径链接
+[查看文档](./docs/readme.md)
+
+[项目主页](../index.html)
+
+---
+
+## 数学公式
+
+#### 代数公式
+
+$$
+\begin{aligned}
+(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\
+\sum_{i=1}^{n} i &= \frac{n(n+1)}{2}
+\end{aligned}
+$$
+
+#### 矩阵公式
+
+$$
+\mathbf{A} = \begin{pmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} \\
+a_{21} & a_{22} & \cdots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{m1} & a_{m2} & \cdots & a_{mn}
+\end{pmatrix}
+$$
+
+#### 化学公式
+
+$$\text{2H}_2 + \text{O}_2 \xrightarrow{\text{点燃}} 2\text{H}_2\text{O}$$
+
+$$\text{C}_6\text{H}_{12}\text{O}_6 + 6\text{O}_2 \rightarrow 6\text{CO}_2 + 6\text{H}_2\text{O}$$
+
+#### 超长公式
+
+$$
+\lim_{x \to \infty} \frac{\sum_{k=1}^{n} \left( \frac{1}{k^2} \right) \cdot \sqrt{2\pi} \cdot e^{-\frac{x^2}{2}}}{\sqrt{\int_{-\infty}^{\infty} e^{-x^2} dx}} = \frac{\Gamma(\frac{1}{2})}{2} \cdot \frac{\pi}{\sqrt{2}} \cdot \left( \frac{\partial}{\partial x} \ln(x^2 + y^2) \right)^n \quad \text{其中} \quad n \to \infty
+$$
+
+---
+
+## 分割线
+
+### 写法一：三个短横线
+
+---
+
+### 写法二：三个星号
+
+***
+
+### 写法三：三个下划线
+
+___
+
+---
+
+## 其他特殊语法
+
+### 任务列表（完整示例）
+
+- [x] 支持 Markdown 语法
+- [x] 支持数学公式
+- [x] 支持 Mermaid 插件
+- [x] 支持代码高亮
+- [ ] 待实现功能
+- [ ] 更多功能
+
+### 脚注语法
+
+这里是一个带脚注的文本[^1]，这里还有一个[^2]。
+
+[^1]: 这是第一个脚注的详细说明。
+[^2]: 这是第二个脚注的内容。
+
+### 自动邮箱链接
+
+联系邮箱：<example@email.com>
+
+### 自动链接
+
+直接访问 https://www.example.com 可以看到效果。
+
+---
+
+以上就是所有 Markdown 语法的完整演示。✅
+
+Need final exactly. Ensure no ```` wrapping. Need note code fence line has ```javascript. That's allowed. The final content contains code fences. That's okay; no outer wrapping.
+
+Check if there are trailing spaces? Not visible. The original has maybe blank line after ✅? We can end with ✅ no newline? final likely includes newline at end. Fine.
+
+Potential issue: user instruction says "输出直接从 `# Markdown 全元素渲染测试文档` 开始，直到文档末尾结束". But fixed content starts # 完整 Markdown 功能演示. If I output fixed content, may violate instruction 4. If I output # Markdown 全元素渲染测试文档 instead of first line, I'd modify fixed content. Which is more likely expected? They ask "待输出固定内容：" and "禁止任何修改". I think fixed content takes precedence. They also say "禁止增减、修改、重排、精简下面Markdown文本". So we must not change first line. We'll output as given.
+
+Need ensure exact text including Chinese punctuation. Let's craft final.
+
+Double-check all lines. In code block, function fibonacci braces indentation? Provided:
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+No indentation. We'll match.
+
+Long line: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+Need count? I'll copy from prompt. It has a lot of a's, b's, c's. I can copy exactly.
+
+Potential issue: The line "|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|" has various hyphen counts. We must preserve. I'll copy exactly from prompt.
+
+Let's produce final. 

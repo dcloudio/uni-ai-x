@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
-import { synthesizeDeepSeekSpeech } from './deepseek-app-api.uts'
+import uniAi from './index.uts'
+import { supportsDeepSeekApps, synthesizeDeepSeekSpeech } from './deepseek-app-api.uts'
 
 export const speechPlayback = reactive({ owner: '', phase: 'idle' })
 let version = 0
@@ -25,11 +26,12 @@ export function stopAnswerSpeech(owner: string = '') {
 }
 
 export async function playAnswerSpeech(owner: string, text: string) {
+	if (!supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) return
 	stopAnswerSpeech()
 	const current = version
 	speechPlayback.owner = owner; speechPlayback.phase = 'loading'
 	try {
-		const bytes = await synthesizeDeepSeekSpeech(text, (request: RequestTask) => { if (version != current) request.abort(); else task = request })
+		const bytes = await synthesizeDeepSeekSpeech(text, (request: RequestTask) => { if (version != current) request.abort(); else task = request }, () => version != current)
 		if (version != current) return
 		task = null
 		// #ifdef WEB

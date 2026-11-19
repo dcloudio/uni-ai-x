@@ -1,0 +1,449 @@
+我们需要回答用户。用户给定严格指令，要求禁止输出任何前置介绍、总结、对话文字；禁止增减修改重排精简 Markdown 文本，一字不差原样输出；不要用 ```markdown 包裹；输出直接从 `# Markdown 全元素渲染测试文档` 开始，直到文档末尾结束，后面不能加任何文字。待输出固定内容：然后给出从 "# 完整 Markdown 功能演示" 开始的完整文档。注意矛盾：指令说输出直接从 `# Markdown 全元素渲染测试文档` 开始，但待输出固定内容实际以 `# 完整 Markdown 功能演示` 开始。需要遵守“待输出固定内容”原样输出？ 用户强调禁止修改，待输出固定内容：包含整个文档。要求输出从 `# Markdown 全元素渲染测试文档` 开始，但待输出内容没有这个标题。可能是测试，直接输出提供的固定内容。必须一字不差。禁止添加任何文字。需要确保不包裹代码块。应输出整个给定文本，从 `# 完整 Markdown 功能演示` 开始到末尾。不能加任何额外文字。要小心精确复制，包括空行、缩进、代码块围栏等。我们不能在外部加任何说明。需要保持原样。有一个潜在问题是 Markdown 代码围栏内容本身包含 ```javascript ... ```，如果直接输出在消息中，会正常渲染，但要求原样输出即可。需要检查所有细节。
+
+用户提供的待输出固定内容：
+
+# 完整 Markdown 功能演示
+
+---
+
+## 标题（1~6级）
+
+# 一级标题
+## 二级标题
+### 三级标题
+#### 四级标题
+##### 五级标题
+###### 六级标题
+
+---
+
+## 列表
+
+### 无序列表
+- 第一项
+- 第二项
+	- 嵌套项 1
+	- 嵌套项 2
+		- 第三层嵌套
+- 第三项
+
+### 有序列表
+1. 第一步
+2. 第二步
+	1. 子步骤 A
+	2. 子步骤 B
+3. 第三步
+
+### 任务复选框列表
+- [x] 已完成任务
+- [ ] 未完成任务
+- [ ] 另一个待办项
+- [x] 子任务已完成
+
+---
+
+## 表格
+
+### 普通表格
+
+| 姓名 | 年龄 | 城市 |
+|------|------|------|
+| 张三 | 25 | 北京 |
+| 李四 | 30 | 上海 |
+| 王五 | 28 | 深圳 |
+
+### 短表格
+
+| 项目 | 值 |
+|------|----|
+| 状态 | 正常 |
+| 版本 | 1.0.0 |
+
+### 超宽长表格（用于横向滚动测试）
+
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
+| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |
+| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |
+
+---
+
+## 块引用
+
+> 这是一段普通的引用文本。
+>
+> - 引用中的列表项
+> - 另一个列表项
+>
+> 引用文本的换行继续。
+> > 嵌套引用内容
+
+---
+
+## 代码块
+
+### JS 代码示例
+
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+alert(result);
+
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+```
+
+---
+
+## 超链接
+
+### 外部链接
+[访问百度](https://www.baidu.com)
+
+[打开 GitHub](https://github.com)
+
+### 相对路径链接
+[查看文档](./docs/readme.md)
+
+[项目主页](../index.html)
+
+---
+
+## 数学公式
+
+#### 代数公式
+
+$$
+\begin{aligned}
+(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\
+\sum_{i=1}^{n} i &= \frac{n(n+1)}{2}
+\end{aligned}
+$$
+
+#### 矩阵公式
+
+$$
+\mathbf{A} = \begin{pmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} \\
+a_{21} & a_{22} & \cdots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{m1} & a_{m2} & \cdots & a_{mn}
+\end{pmatrix}
+$$
+
+#### 化学公式
+
+$$\text{2H}_2 + \text{O}_2 \xrightarrow{\text{点燃}} 2\text{H}_2\text{O}$$
+
+$$\text{C}_6\text{H}_{12}\text{O}_6 + 6\text{O}_2 \rightarrow 6\text{CO}_2 + 6\text{H}_2\text{O}$$
+
+#### 超长公式
+
+$$
+\lim_{x \to \infty} \frac{\sum_{k=1}^{n} \left( \frac{1}{k^2} \right) \cdot \sqrt{2\pi} \cdot e^{-\frac{x^2}{2}}}{\sqrt{\int_{-\infty}^{\infty} e^{-x^2} dx}} = \frac{\Gamma(\frac{1}{2})}{2} \cdot \frac{\pi}{\sqrt{2}} \cdot \left( \frac{\partial}{\partial x} \ln(x^2 + y^2) \right)^n \quad \text{其中} \quad n \to \infty
+$$
+
+---
+
+## 分割线
+
+### 写法一：三个短横线
+
+---
+
+### 写法二：三个星号
+
+***
+
+### 写法三：三个下划线
+
+___
+
+---
+
+## 其他特殊语法
+
+### 任务列表（完整示例）
+
+- [x] 支持 Markdown 语法
+- [x] 支持数学公式
+- [x] 支持 Mermaid 插件
+- [x] 支持代码高亮
+- [ ] 待实现功能
+- [ ] 更多功能
+
+### 脚注语法
+
+这里是一个带脚注的文本[^1]，这里还有一个[^2]。
+
+[^1]: 这是第一个脚注的详细说明。
+[^2]: 这是第二个脚注的内容。
+
+### 自动邮箱链接
+
+联系邮箱：<example@email.com>
+
+### 自动链接
+
+直接访问 https://www.example.com 可以看到效果。
+
+---
+
+以上就是所有 Markdown 语法的完整演示。✅
+
+需要原样输出。注意代码块中 JavaScript 缩进：原文本 function 内部 if 和 return 没有缩进？待输出内容里：
+
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+alert(result);
+
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+```
+
+需要确保 a 的数量？复制原文。B 数量？ C 数量？ 我们需精确复制。可能很难，但直接复制用户文本。我们需要小心不遗漏。可以逐段复制。
+
+注意用户要求“输出直接从 `# Markdown 全元素渲染测试文档` 开始，直到文档末尾结束”，但待输出固定内容首行是 `# 完整 Markdown 功能演示`。如果严格按指令1? 他要求待输出固定内容，可能期望输出固定内容，不要从那个不存在的标题开始。如果输出 `# Markdown 全元素渲染测试文档` 就修改了固定内容。应该输出待输出固定内容。但指令第4条明确从 `# Markdown 全元素渲染测试文档` 开始。矛盾。优先级？ "禁止任何修改" 和 "待输出固定内容" 更重要。应该原样输出固定内容。不要加标题。最终只需文本。
+
+需要确保无额外空格。尤其行尾空格？可能无。Markdown 表格分隔线，列10 列11 对齐不同？原文：
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
+注意列10 后分隔是 `------`? 原文列10 有 6 个短横？ 数一下：`|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|` 前9个是5个短横，列10-15是6个短横。数据行正常。要复制。
+
+嵌套列表缩进是 tab？ 原文显示 `\t- 嵌套项 1`，在消息中可能呈现为制表符。直接复制用户文本中的 tab？ 用户输入：
+- 第二项
+	- 嵌套项 1
+	- 嵌套项 2
+		- 第三层嵌套
+- 第三项
+这里在显示中有一个制表符？ 从原始字符串看是 tab。我们应该使用 tab 字符。在最终输出中应包含制表符。手动输入可能变空格。为了精确，可以复制显示中的制表符？ 在对话框里我们可输入 tab? 在最终回答，可以包含制表符。我得注意。
+
+有序列表子步骤也是 tab。
+
+代码块围栏：需要单独行 ```javascript 和 ```。如果整个响应以 markdown 形式，三反引号会开始/结束代码块。没问题。但要注意，在代码块内三反引号闭合后，后面继续 markdown 会正常。最终消息不能被 ```markdown 包裹。
+
+由于系统说 API 在最终。最终应无额外文字。我将逐字复制。
+
+潜在陷阱：指令说“输出直接从 `# Markdown 全元素渲染测试文档` 开始”，如果我不这样会被判定违规？ 但待输出固定内容首行是 # 完整 Markdown 功能演示。可能用户模板中有误。最安全是严格输出待输出固定内容。不能添加不存在的标题。不要解释。
+
+需要确保最后一行 "以上就是所有 Markdown 语法的完整演示。✅" 后面没有额外换行？ 可以有换行。不能加文字。
+
+现在生成最终。我会尽量精确。需要检查所有细节。
+
+可以手动写。但为了避免遗漏，我直接复制用户消息中从 "# 完整 Markdown 功能演示" 到末尾的内容。由于这是文本，我可以逐字。注意在代码块中，`if` 和 `return` 没有缩进。确保没有意外缩进。
+
+开始最终：
+
+# 完整 Markdown 功能演示
+
+---
+
+## 标题（1~6级）
+
+# 一级标题
+## 二级标题
+### 三级标题
+#### 四级标题
+##### 五级标题
+###### 六级标题
+
+---
+
+## 列表
+
+### 无序列表
+- 第一项
+- 第二项
+	- 嵌套项 1
+	- 嵌套项 2
+		- 第三层嵌套
+- 第三项
+
+### 有序列表
+1. 第一步
+2. 第二步
+	1. 子步骤 A
+	2. 子步骤 B
+3. 第三步
+
+### 任务复选框列表
+- [x] 已完成任务
+- [ ] 未完成任务
+- [ ] 另一个待办项
+- [x] 子任务已完成
+
+---
+
+## 表格
+
+### 普通表格
+
+| 姓名 | 年龄 | 城市 |
+|------|------|------|
+| 张三 | 25 | 北京 |
+| 李四 | 30 | 上海 |
+| 王五 | 28 | 深圳 |
+
+### 短表格
+
+| 项目 | 值 |
+|------|----|
+| 状态 | 正常 |
+| 版本 | 1.0.0 |
+
+### 超宽长表格（用于横向滚动测试）
+
+| 列1 | 列2 | 列3 | 列4 | 列5 | 列6 | 列7 | 列8 | 列9 | 列10 | 列11 | 列12 | 列13 | 列14 | 列15 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|------|------|------|------|------|------|
+| 数据1 | 数据2 | 数据3 | 数据4 | 数据5 | 数据6 | 数据7 | 数据8 | 数据9 | 数据10 | 数据11 | 数据12 | 数据13 | 数据14 | 数据15 |
+| 更多1 | 更多2 | 更多3 | 更多4 | 更多5 | 更多6 | 更多7 | 更多8 | 更多9 | 更多10 | 更多11 | 更多12 | 更多13 | 更多14 | 更多15 |
+
+---
+
+## 块引用
+
+> 这是一段普通的引用文本。
+>
+> - 引用中的列表项
+> - 另一个列表项
+>
+> 引用文本的换行继续。
+> > 嵌套引用内容
+
+---
+
+## 代码块
+
+### JS 代码示例
+
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+alert(result);
+
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+```
+
+---
+
+## 超链接
+
+### 外部链接
+[访问百度](https://www.baidu.com)
+
+[打开 GitHub](https://github.com)
+
+### 相对路径链接
+[查看文档](./docs/readme.md)
+
+[项目主页](../index.html)
+
+---
+
+## 数学公式
+
+#### 代数公式
+
+$$
+\begin{aligned}
+(x + y)^3 &= x^3 + 3x^2y + 3xy^2 + y^3 \\
+\sum_{i=1}^{n} i &= \frac{n(n+1)}{2}
+\end{aligned}
+$$
+
+#### 矩阵公式
+
+$$
+\mathbf{A} = \begin{pmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} \\
+a_{21} & a_{22} & \cdots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{m1} & a_{m2} & \cdots & a_{mn}
+\end{pmatrix}
+$$
+
+#### 化学公式
+
+$$\text{2H}_2 + \text{O}_2 \xrightarrow{\text{点燃}} 2\text{H}_2\text{O}$$
+
+$$\text{C}_6\text{H}_{12}\text{O}_6 + 6\text{O}_2 \rightarrow 6\text{CO}_2 + 6\text{H}_2\text{O}$$
+
+#### 超长公式
+
+$$
+\lim_{x \to \infty} \frac{\sum_{k=1}^{n} \left( \frac{1}{k^2} \right) \cdot \sqrt{2\pi} \cdot e^{-\frac{x^2}{2}}}{\sqrt{\int_{-\infty}^{\infty} e^{-x^2} dx}} = \frac{\Gamma(\frac{1}{2})}{2} \cdot \frac{\pi}{\sqrt{2}} \cdot \left( \frac{\partial}{\partial x} \ln(x^2 + y^2) \right)^n \quad \text{其中} \quad n \to \infty
+$$
+
+---
+
+## 分割线
+
+### 写法一：三个短横线
+
+---
+
+### 写法二：三个星号
+
+***
+
+### 写法三：三个下划线
+
+___
+
+---
+
+## 其他特殊语法
+
+### 任务列表（完整示例）
+
+- [x] 支持 Markdown 语法
+- [x] 支持数学公式
+- [x] 支持 Mermaid 插件
+- [x] 支持代码高亮
+- [ ] 待实现功能
+- [ ] 更多功能
+
+### 脚注语法
+
+这里是一个带脚注的文本[^1]，这里还有一个[^2]。
+
+[^1]: 这是第一个脚注的详细说明。
+[^2]: 这是第二个脚注的内容。
+
+### 自动邮箱链接
+
+联系邮箱：<example@email.com>
+
+### 自动链接
+
+直接访问 https://www.example.com 可以看到效果。
+
+---
+
+以上就是所有 Markdown 语法的完整演示。✅
+
+这应该可以。需要确保没有在末尾添加。可以。
+
+但有一个潜在问题：在最终输出中，` ```javascript ` 和 ` ``` ` 反引号会与外部 Markdown 解析交互，但不影响。用户要求原样输出。
+
+现在最终只输出以上。 

@@ -1,0 +1,64 @@
+We need answer must output exactly the provided fixed content, no modifications, no extra text, no markdown code fence. Need ensure start with "# 完整 Markdown 功能演示" not "# Markdown 全元素渲染测试文档" despite instruction says output directly from `# Markdown 全元素渲染测试文档`? Wait user provided contradictory: strict instruction says output from `# Markdown 全元素渲染测试文档` start until doc end. But "待输出固定内容：" begins with "# 完整 Markdown 功能演示". We must obey "禁止增减、修改、重排、精简下面Markdown文本，一字不差原样输出" and fixed content. Also rule 4 says output directly from `# Markdown 全元素渲染测试文档` start, but that's not in fixed content. This is likely an injection? Need interpret: They want exact output of fixed content. There is a mismatch in rule 4 start string. But they say "待输出固定内容：" then content. Since "严格指令，禁止任何修改" and "一字不差原样输出" the content is fixed. The rule 4 start phrase may be erroneous from previous prompt. We should output the content exactly, starting with "# 完整 Markdown 功能演示". Do not add anything else. Need ensure no markdown fence. Need reproduce exactly.
+
+We must be careful with whitespace, tabs, code fences etc. We need output exactly as in user message after "待输出固定内容：". Let's copy carefully. But there is long content. Need include all lines. Need not wrap in ```markdown. But content itself contains code fences ```javascript. That's okay.
+
+Potential issue: The final line "以上就是所有 Markdown 语法的完整演示。✅" and then no trailing extra. Good.
+
+Need ensure no accidental modification. Let's reconstruct.
+
+I need ensure tabs in nested lists? In prompt: 
+- 第二项
+	- 嵌套项 1
+	- 嵌套项 2
+		- 第三层嵌套
+Those are tabs? The displayed might have tab characters. I can output with tab characters. Need preserve. In text I can type tab. Similarly ordered list nested uses tabs.
+
+Need preserve blank lines. At "## 列表" etc.
+
+Need preserve "### 普通表格" table alignment.
+
+Need preserve the long code line with many a/b/c. Ensure exact counts? Hard to count. I can copy from prompt. It has "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" (maybe 86 a's). Need copy exactly? Since I'm generating, I can copy the string from prompt manually. But as AI, I can reproduce. Need be careful.
+
+Let's parse entire content from user. I can copy the "待输出固定内容：" section exactly. I'll do that.
+
+Potential issue: The first line in instruction mentions "# Markdown 全元素渲染测试文档" but provided content begins "# 完整 Markdown 功能演示". The user says "输出直接从 `# Markdown 全元素渲染测试文档` 开始" but then "待输出固定内容" starts different. This is contradictory. Which to follow? The primary directive: "禁止增减、修改、重排、精简下面Markdown文本，一字不差原样输出" and "待输出固定内容：" so output fixed content. Rule 4 seems maybe from a template, but if we output "# Markdown 全元素渲染测试文档" we'd violate fixed content. So output fixed content.
+
+Need not mention anything. Final only content.
+
+Let's output. Ensure no leading spaces before first #. No code fence around whole.
+
+Double-check code block: 
+```javascript
+// 一个 JavaScript 示例
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+alert(result);
+
+// 超长单行代码测试
+// 下面这行代码非常长，用于测试代码块的横向滚动功能。这里包含了很多内容aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+const longLineDemo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => x * 2).filter(x => x > 10).reduce((acc, x) => acc + x, 0);
+```
+Note indentation inside function: prompt has no indentation? It shows:
+function fibonacci(n) {
+if (n <= 1) return n;
+return fibonacci(n - 1) + fibonacci(n - 2);
+}
+Yes no indentation. I must preserve.
+
+Math: 
+$$
+\begin{aligned}
+...
+\end{aligned}
+$$
+Need preserve double dollar lines.
+
+Check footnotes: [^1] etc.
+
+At end: "以上就是所有 Markdown 语法的完整演示。✅" exactly.
+
+Now final. 

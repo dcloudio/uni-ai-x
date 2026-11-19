@@ -1,0 +1,910 @@
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"我们需要"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"回答用户。用户中文"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"给出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"严格指令，要求"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"禁止"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"修改，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"原样输出下面"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" Mark"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"down 文本，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"从 `"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"# Mark"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"down 全"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"元素渲染测试文档` "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"开始，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"直到文档末尾结束"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"，后面"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"不能加任何文字。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"但是"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"待输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定内容开头是 `"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"# 完整 Markdown "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"功能演示`，不是"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" `# Markdown 全"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"元素渲染测试文档`。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"存在"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"矛盾：指令4"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"说输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"直接从 `# Markdown "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"全元素渲染测试文档`"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 开始，但"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"内容从 `# "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"完整 Markdown 功能演示"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"` 开始。用户"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"要求“"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"待输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定内容："},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"”后是"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"整段。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"严格指令"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"禁止任何"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"修改，禁止"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"增减修改"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"重排精简"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" Mark"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"down 文本，一字"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"不差原样输出。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"应该输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"内容原样，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"从 `#"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 完整 Markdown 功能"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"演示` 开始。因为"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定内容"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"明确。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"需要不要"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"用"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" ```"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"markdown 包裹。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"不要加"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"任何文字。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"必须"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"原"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"样。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"需要特别"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"小心代码"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"块内包含"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" ```javascript"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 等。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"整个"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"如果直接"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"以"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" Mark"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"down 文本"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"，代码块会"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"正常。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"不能添加"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"末尾"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"文字"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。要确保"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"原"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"样，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"包括空"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"行、缩"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"进（"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"制表符？"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"）。需要"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"逐"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"字"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"复制。\n\n注意"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"潜在"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"问题：System"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 和"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" Developer"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 没有限制"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。我们应"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"执行用户"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。最终只"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"输出内容"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。\n\n需要确保从"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" `# 完整 Markdown"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 功能演示` 开始"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"，到 ✅"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 结束。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"不加"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"前后"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。\n\n需要原"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"样输出。检查"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"内容中代码"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"块 js"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 中代码"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"缩进："},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"原文"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"：\n```"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"javascript\n//"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 一个 JavaScript 示例"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"\nfunction fibonacci(n)"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" {\nif (n \u003c= "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"1) return n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":";\nreturn fibonacci"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"(n - 1) +"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" fibonacci(n - 2"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":");\n}\n\nconst result"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" = fibonacci(10);\nalert"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"(result);\n\n// 超长"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"单行代码测试"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"\n// "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"下面这行代码非常"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"长，用于"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"测试代码块的"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"横向滚动功能。这里包含"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"了很多内容"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"aaaaaaaa"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"...\nconst long"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"LineDemo = ["},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"1, 2, "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"3, 4, "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"5, 6, "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"7, 8, "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"9, 10].map"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"(x =\u003e x * 2"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":").filter(x =\u003e x \u003e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 10).reduce((acc"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":", x) =\u003e acc +"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" x, 0);\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"```\n注意 function"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 内"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" if"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" 没有缩"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"进，原"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"样"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。\n\n数学"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"公式原"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"样。\n\n关键"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"：用户说"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"直接从"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" `# Mark"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"down 全元素渲染"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"测试文档` 开始，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"但待"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"输出"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定内容没有"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"这个"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。如果我们加"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"这一行"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"会修改"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定内容，"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"违背"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"“"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"禁止"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"增减修改"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"”。固定"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"内容更具体"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。所以以"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"固定内容为准"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"。最终不要"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"加任何"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"标记。\n\n需要确保"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"没有意外"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"在"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"末尾空格。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Yes"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":".\n\nNow"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" final"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"."},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":" "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"#"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"完整"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" Markdown 功能"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"演示\n\n---\n\n## 标题"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"（1~"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"6级）\n\n#"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 一级标题\n##"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 二级标题\n### "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"三级标题\n#### 四级"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"标题\n##### 五级"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"标题\n###### 六级标题"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n---\n\n## 列表\n\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"### 无序列表\n-"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 第一项\n-"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 第二项\n\t-"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 嵌套项 "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"1\n\t- 嵌套"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"项 2\n\t\t"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"- 第三层嵌套\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"- 第三项\n\n###"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 有序列表\n1."},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 第一步\n2. "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"第二步\n\t1"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":". 子步骤 A"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\t2. 子"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"步骤 B\n3. "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"第三步\n\n### 任务"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"复选框列表\n- [x"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"] 已完成任务\n-"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" [ ] 未完成任务\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"- [ ] 另一个待"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"办项\n- [x"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"] 子任务已完成\n\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"---\n\n## 表格\n\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"### 普通表格\n\n|"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 姓名 | 年龄 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 城市 |\n|------|"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"------|------|\n| "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"张三 | 25 | "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"北京 |\n| 李四"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 30 | 上海"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" |\n| 王五 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 28 | 深圳 |\n\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"### 短"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"表格\n\n| 项目 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 值 |\n|------|"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"----|\n| 状态 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 正常 |\n| 版本"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 1.0."},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"0 |\n\n### 超宽"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"长表格（用于横向滚动"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"测试）\n\n| 列"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"1 | 列2 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 列3 | 列"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"4 | 列5 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 列6 | 列"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"7 | 列8 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 列9 | 列"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"10 | 列11 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 列12 | 列"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"13 | 列14 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 列15 |\n|-----"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"|-----|-----|-----"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"|-----|-----|-----"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"|-----|-----|------"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"|------|------|------"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"|------|------|\n|"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 数据1 | 数据"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"2 | 数据3 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 数据4 | 数据"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"5 | 数据6 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 数据7 | 数据"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"8 | 数据9 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 数据10 | 数据"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"11 | 数据12 |"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 数据13 | 数据"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"14 | 数据15 |\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"| 更多1"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 更多2 | "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"更多3 | 更多4"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 更多5 | "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"更多6 | 更多7"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 更多8 | "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"更多9 | 更多10"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 更多11 | "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"更多12 | 更多13"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" | 更多14 | "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"更多15 |\n\n---\n\n##"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 块引用\n\n\u003e "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"这是一段普通的引用"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"文本。\n\u003e\n\u003e -"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 引用中的"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"列表项\n\u003e - "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"另一个列表项\n\u003e\n\u003e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 引用文本的"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"换行继续。\n\u003e \u003e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 嵌套引用内容"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n---\n\n## 代码"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"块\n\n### JS"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 代码示例\n\n```javascript"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n// 一个"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" JavaScript 示例\nfunction fibonacci"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"(n) {\nif (n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \u003c= 1) return n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":";\nreturn fibonacci(n -"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 1) + fibonacci(n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" - 2);\n}\n\nconst"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" result = fibonacci(10);\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"alert(result);\n\n// 超"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"长单行代码测试\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"// 下面这行代码"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"非常长，用于"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"测试代码块的横向滚动"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"功能。这里"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"包含了很多内容aaaaaaaa"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"aa bbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbbbbbbbbb"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"bbbbb ccccccccccccc"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"cccccccccccccccccccccccc"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"cccccccccccccccccccccccc"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"cccccccccccccccccccccccc"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"ccccccc"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\nconst longLineDemo"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" = [1, 2"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":", 3, 4"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":", 5, 6"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":", 7, 8"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":", 9, 10"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"].map(x =\u003e x *"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 2).filter(x =\u003e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" x \u003e 10).reduce"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"((acc, x) =\u003e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" acc + x, 0"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":");\n```\n\n---\n\n## 超"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"链接\n\n### 外部"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"链接\n[访问百度"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"](https://www.baidu"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":".com)\n\n[打开"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" GitHub](https://github.com"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":")\n\n### 相对"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"路径链接\n[查看文档"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"](./docs/readme.md"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":")\n\n[项目主页"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"](../index.html)\n\n---\n\n##"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 数学公式\n\n####"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 代数公式\n\n$$\n\\begin"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"{aligned}\n(x"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" + y)^3 \u0026="},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" x^3 + 3"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"x^2y + "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"3xy^2 + y"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"^3 \\\\\n\\sum_{i"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"=1}^{n} i"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \u0026= \\frac{n(n+"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"1)}{2}\n\\end{aligned"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}\n$$\n\n#### 矩阵公式"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n$$\n\\mathbf"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"{A} = \\begin{pmatrix"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}\na_{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"11} \u0026 a_{12"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"} \u0026 \\cdots \u0026 a"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"_{1n} \\\\\na"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"_{21} \u0026 a_{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"22} \u0026 \\cdots \u0026"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" a_{2n} \\\\\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\\vdots \u0026 \\vdots \u0026"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \\ddots \u0026 \\vdots"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \\\\\na_{m1}"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \u0026 a_{m2}"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \u0026 \\cdots \u0026 a_{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"mn}\n\\end{pmatrix}\n$$\n\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"#### 化学公式"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n$$\\text{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"2H}_2 +"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \\text{O}_2 \\"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"xrightarrow{\\text{点燃"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}} "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"2\\text{H}_2\\text"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"{O}$$\n\n$$\\text{C"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}_6\\text{H}_{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"12}\\text{O}_6"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" + 6"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\\text{O}_2 \\rightarrow"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 6\\text{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"CO}_2 + 6"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\\text{H}_2\\text{O"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}$$\n\n#### 超长公式"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n$$\n\\lim"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"_{x \\to \\infty"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"} \\frac{\\"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"sum_{k=1}^{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"n} \\left"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"( \\frac{1}{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"k^2} \\right"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":") \\cdot \\sqrt{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"2\\pi} \\cdot e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"^{-\\frac{x^2}{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"2}}}{\\sqrt"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"{\\int_{-\\"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"infty}^{\\infty} e^{-"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"x^2} dx}}"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" = \\frac{\\"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"Gamma(\\frac{1"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}{2})}{"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"2} \\cdot \\frac"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"{\\pi}{\\sqrt{2"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"}} \\cdot \\left("},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \\frac{\\partial}{\\partial"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" x} \\ln(x"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"^2 + y^2"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":") \\right)^n \\"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"quad \\text{其中}"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" \\quad n \\to \\"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"infty\n$$\n\n---\n\n## "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"分割线\n\n### 写法"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"一：三个短"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"横线\n\n---\n\n###"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 写法二：三个星"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"号\n\n***\n\n### 写法"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"三：三个下划线\n\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"___\n\n---\n\n## 其他"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"特殊语法\n\n### 任务"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"列表（完整示例"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"）\n\n- [x] "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"支持 Markdown 语法\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"- [x] 支持"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"数学公式\n- [x"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"] 支持 Mermaid "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"插件\n- [x]"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 支持代码高亮\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"- [ ] 待实现"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"功能\n- [ ] "},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"更多功能\n\n### 脚"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"注语法\n\n这里"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"是一个带脚注的文本"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"[^1]，这里"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"还有一个[^2]。\n\n["},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"^1]: 这是第一个"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"脚注的详细说明。\n"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"[^2]: 这是"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"第二个脚注的内容。\n\n###"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" 自动邮箱链接"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n联系"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"邮箱：\u003cexample@email"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":".com\u003e\n\n### 自动链接"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"\n\n直接访问 https://www"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":".example.com 可以看到效果"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"。\n\n---\n\n以上就是所有"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":" Markdown 语法的完整"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"演示"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"✅"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"content":""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-e780bdf25bea4f23a9130bc1f304fd9e","object":"chat.completion.chunk","created":1794828893,"model":"deepseek/deepseek-v4.1-flash","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":1540,"completion_tokens":1976,"total_tokens":3516,"prompt_tokens_details":{"cached_tokens":1536},"completion_tokens_details":{"reasoning_tokens":562}}}
+
+data: [DONE]
+

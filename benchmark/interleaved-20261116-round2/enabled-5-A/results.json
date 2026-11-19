@@ -1,0 +1,33 @@
+[
+  {
+    "target": "A",
+    "run": 1,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "first_delta_s": 0.855103255,
+    "first_content_s": 7.255268487,
+    "first_reasoning_s": 0.855103255,
+    "done": true,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 1540,
+      "completion_tokens": 2328,
+      "total_tokens": 3868,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 914
+      }
+    },
+    "events": 556,
+    "http_status": 200,
+    "headers_s": 0.7982667929999999,
+    "response_model": "deepseek/deepseek-v4.1-flash",
+    "success": true,
+    "total_s": 12.707680138999999,
+    "content_chars": 2997,
+    "reasoning_chars": 3142,
+    "exact_match": true,
+    "trim_match": true
+  }
+]
