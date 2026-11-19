@@ -13,15 +13,19 @@ for (const kind of ['file','ocr','speech']) {
   const source=readFileSync(`uni_modules/uni-ai-x/components/${name}.uvue`,'utf8').split('<script setup lang="uts">')[1].split('</script>')[0].replace(/^import[^\n]*\n/gm,'');
   const ai={llm:{provider:'qiniu',model:'deepseek/deepseek-v4.1-flash'}};
   const modals=[];
+  const {requestOfficialFeatureSwitch}=loadUts('uni_modules/uni-ai-x/sdk/official-feature-switch.uts',['requestOfficialFeatureSwitch'],{
+   reactive:value=>value,uniAi:ai,supportsDeepSeekApps,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
+   uni:{showModal:options=>modals.push(options)},
+  },['WEB']);
   const sdk=vm.runInNewContext('(function(){'+stripTypeScriptTypes(source)+'\nreturn {available,run:'+(kind==='speech'?'toggle':'chooseAction')+'};})()',{
-   uniAi:ai,supportsDeepSeekApps,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
+   uniAi:ai,supportsDeepSeekApps,requestOfficialFeatureSwitch,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
    computed:fn=>({get value(){return fn();}}),ref:value=>({value}),watch(){},onUnmounted(){},
    defineProps:()=>({ocr:kind==='ocr',messageId:'answer'}),withDefaults:props=>props,speechPlayback:{owner:''},
    uni:{showModal:options=>modals.push(options),chooseFile(){assert.fail('unavailable tool must not open picker');}},
   });
   assert.equal(sdk.available.value,false);sdk.run();
   assert.match(modals[0].content,/Uni AI 网关 · DeepSeek Flash/);
-  assert.match(modals[0].content,/DeepSeek 官方 · DeepSeek Flash/);
+  assert.match(modals[0].content,/DeepSeek 官方直连 · DeepSeek Flash/);
   assert.equal(modals[0].cancelText,'暂不切换');
   assert.equal(modals[0].confirmText,'立即切换');
   modals[0].success({confirm:false,cancel:true});
@@ -34,3 +38,16 @@ for (const kind of ['file','ocr','speech']) {
   assert.equal(sdk.available.value,true);
  });
 }
+
+test('Android restriction closes locally and preserves flags when switching, without opening a native dialog',()=>{
+ const ai={llm:{provider:'qiniu',model:'deepseek/deepseek-v4.1-flash',thinking:true,webSearch:true}};
+ const {requestOfficialFeatureSwitch,resolveOfficialFeatureSwitch,officialFeatureSwitch}=loadUts('uni_modules/uni-ai-x/sdk/official-feature-switch.uts',['requestOfficialFeatureSwitch','resolveOfficialFeatureSwitch','officialFeatureSwitch'],{
+  reactive:value=>value,uniAi:ai,supportsDeepSeekApps,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
+  uni:{hideKeyboard(){},showModal(){assert.fail('Android must use the page confirmation');}},
+ });
+ requestOfficialFeatureSwitch();assert.equal(officialFeatureSwitch.visible,true);
+ resolveOfficialFeatureSwitch(false);assert.equal(officialFeatureSwitch.visible,false);assert.equal(ai.llm.provider,'qiniu');
+ requestOfficialFeatureSwitch();resolveOfficialFeatureSwitch(true);
+ assert.equal(officialFeatureSwitch.visible,false);assert.equal(ai.llm.provider,'deepseek');
+ assert.equal(ai.llm.thinking,true);assert.equal(ai.llm.webSearch,true);
+});

@@ -1,0 +1,30 @@
+<template>
+	<view v-if="officialFeatureSwitch.visible" class="restriction-overlay uni-theme-root" @click.stop="block">
+		<view class="restriction-dialog" @click.stop="block">
+			<text class="restriction-title">{{tr('功能使用限制', 'Feature restriction')}}</text>
+			<text class="restriction-content">{{officialFeatureSwitch.content}}</text>
+			<view class="restriction-actions">
+				<view class="restriction-button restriction-cancel" @click="resolveOfficialFeatureSwitch(false)"><text class="restriction-cancel-text">{{tr('暂不切换', 'Not now')}}</text></view>
+				<view class="restriction-button" @click="resolveOfficialFeatureSwitch(true)"><text class="restriction-confirm-text">{{tr('立即切换', 'Switch now')}}</text></view>
+			</view>
+		</view>
+	</view>
+</template>
+<script setup lang="uts">
+import { officialFeatureSwitch, resolveOfficialFeatureSwitch } from '@/uni_modules/uni-ai-x/sdk/official-feature-switch.uts'
+import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+function block() {}
+onUnmounted(() => { officialFeatureSwitch.visible = false })
+</script>
+<style lang="scss">
+@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
+.restriction-overlay { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 120; background-color: rgba(0,0,0,0.45); align-items: center; justify-content: center; }
+.restriction-dialog { width: 90%; max-width: 320px; background-color: var(--bg-primary); border-radius: 18px; overflow: hidden; }
+.restriction-title { text-align: center; font-size: 18px; font-weight: bold; color: var(--text-primary); margin: 28px 20px 18px; }
+.restriction-content { text-align: center; font-size: 16px; line-height: 25px; color: var(--text-secondary); margin: 0 24px 28px; }
+.restriction-actions { flex-direction: row; border-top: 1px solid var(--border-secondary); }
+.restriction-button { flex: 1; height: 54px; justify-content: center; align-items: center; }
+.restriction-cancel { border-right: 1px solid var(--border-secondary); }
+.restriction-cancel-text { font-size: 17px; color: var(--text-primary); }
+.restriction-confirm-text { font-size: 17px; font-weight: bold; color: var(--accent-primary); }
+</style>

@@ -15,11 +15,18 @@
 		</view>
 		<uni-ai-x-setting ref="uniAiXSettingRef"></uni-ai-x-setting>
 		<uni-ai-source-sheet v-if="sourceMessageId.length > 0" :sources="selectedSources" :selected-id="selectedSourceId" @close="closeSources" />
+		<!-- #ifdef APP-ANDROID -->
+		<uni-ai-official-feature-switch />
+		<!-- #endif -->
 	</view>
 </template>
 
 <script lang="uts" setup>
 	import uniAiMenu from '@/uni_modules/uni-ai-x/components/uni-ai-menu.uvue'
+	// #ifdef APP-ANDROID
+	import uniAiOfficialFeatureSwitch from '@/uni_modules/uni-ai-x/components/uni-ai-official-feature-switch.uvue'
+	import { officialFeatureSwitch, resolveOfficialFeatureSwitch } from '@/uni_modules/uni-ai-x/sdk/official-feature-switch.uts'
+	// #endif
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
 	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
@@ -75,6 +82,9 @@
 	const showFps: boolean = false
 	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null)
 	onBackPress((): boolean => {
+		// #ifdef APP-ANDROID
+		if (officialFeatureSwitch.visible) { resolveOfficialFeatureSwitch(false); return true }
+		// #endif
 		if (sourceMessageId.value.length > 0) {
 			closeSources()
 			return true

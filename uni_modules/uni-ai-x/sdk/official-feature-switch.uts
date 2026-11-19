@@ -1,0 +1,34 @@
+import { reactive } from 'vue'
+import uniAi, { getLlmDisplayName } from './index.uts'
+import { supportsDeepSeekApps } from './deepseek-app-api.uts'
+import { tr } from './locale.uts'
+
+export const officialFeatureSwitch = reactive({ visible: false, content: '' })
+
+export function resolveOfficialFeatureSwitch(confirm: boolean) {
+	officialFeatureSwitch.visible = false
+	if (!confirm) return
+	if (!supportsDeepSeekApps('deepseek', 'deepseek-flash')) {
+		uni.showToast({ title: tr('尚未配置 DeepSeek 官网直连，请先完成配置', 'Configure the official DeepSeek connection first'), icon: 'none' })
+		return
+	}
+	uniAi.llm = { provider: 'deepseek', model: 'deepseek-flash', thinking: uniAi.llm.thinking, webSearch: uniAi.llm.webSearch }
+}
+
+export function requestOfficialFeatureSwitch() {
+	const current = uniAi.llm.provider == 'qiniu'
+		? tr('你当前选择的是「Uni AI 网关 · ', 'You selected “Uni AI Gateway · ') + getLlmDisplayName(uniAi.llm) + tr('」，不支持此功能。', '”, which does not support this feature. ')
+		: tr('你当前选择的模型不支持此功能。', 'The selected model does not support this feature. ')
+	const content = current + tr('是否切换到「DeepSeek 官方直连 · DeepSeek Flash」？', 'Switch to “DeepSeek Official Direct · DeepSeek Flash”?')
+	// #ifdef APP-ANDROID
+	officialFeatureSwitch.content = content
+	officialFeatureSwitch.visible = true
+	// #endif
+	// #ifndef APP-ANDROID
+	uni.showModal({
+		title: tr('功能使用限制', 'Feature restriction'), content: content,
+		showCancel: true, cancelText: tr('暂不切换', 'Not now'), confirmText: tr('立即切换', 'Switch now'),
+		success: (result) => resolveOfficialFeatureSwitch(result.confirm)
+	})
+	// #endif
+}
