@@ -611,6 +611,102 @@ export function prepareMarkdownHtml(html: string, isDone: boolean = false): stri
 // uni-ai-md 输出流专用预处理：在富文本基础样式上补充段落 / 引用 / 表格 / 链接 / 图片的
 // 中性色样式。表格不参与列宽占位符处理：未闭合表格由 rich-text 自然布局，
 // 闭合后由表格组件按 prepareMarkdownTable 独立处理。
+function nativeQuoteContentHtml(source: string, theme: string): string {
+	let result = ''
+	let cursor = 0
+	let depth = 0
+	const lists = [] as number[]
+	const color = theme == 'dark' ? '#f3f4f6' : '#1b1c24'
+	const paragraphStyle = 'font-size:17px;line-height:28px;color:' + color + ';margin:20px 0;'
+	while (cursor < source.length) {
+		const start = source.indexOf('<', cursor)
+		if (start < 0) { result += source.slice(cursor); break }
+		const end = source.indexOf('>', start)
+		if (end < 0) { result += source.slice(cursor); break }
+		result += source.slice(cursor, start)
+		let tag = source.slice(start, end + 1)
+		if (/^<blockquote(?:\s|>)/i.test(tag)) depth++
+		else if (/^<\/blockquote\s*>/i.test(tag)) depth--
+		else if (depth > 0) {
+			if (/^<p(?:\s|>)/i.test(tag)) {
+				let style = paragraphStyle
+				if (/<blockquote[^>]*>\s*$/i.test(source.slice(0, start))) style += 'margin-top:0;'
+				const paragraphEnd = source.indexOf('</p>', end + 1)
+				if (paragraphEnd >= 0 && /^\s*<\/blockquote/i.test(source.slice(paragraphEnd + 4))) style += 'margin-bottom:0;'
+				tag = appendTagStyle(tag, style)
+			}
+			else if (/^<(?:ul|ol)(?:\s|>)/i.test(tag)) {
+				lists.push(/^<ol/i.test(tag) ? 1 : 0)
+				tag = '<div style="margin:12px 0;">'
+			} else if (/^<\/(?:ul|ol)\s*>/i.test(tag)) {
+				if (lists.length > 0) lists.pop()
+				tag = '</div>'
+			} else if (/^<li(?:\s|>)/i.test(tag)) {
+				const index = lists.length - 1
+				const ordered = index >= 0 && lists[index] > 0
+				const marker = ordered ? lists[index].toString() + '.' : '•'
+				if (ordered) lists[index]++
+				tag = '<p style="' + paragraphStyle + 'margin:14px 0;"><span style="color:#8b8d93;">' + marker + '</span>&#160; '
+			} else if (/^<\/li\s*>/i.test(tag)) tag = '</p>'
+		}
+		result += tag
+		cursor = end + 1
+	}
+	return result
+}
+
+function nativeQuoteHtml(source: string, theme: string): string {
+	// 部分原生 Markdown 引擎已将 blockquote 转为带 border-left 的 div。
+	let normalized = ''
+	let offset = 0
+	const divQuotes = [] as boolean[]
+	while (offset < source.length) {
+		const start = source.indexOf('<', offset)
+		if (start < 0) { normalized += source.slice(offset); break }
+		const end = source.indexOf('>', start)
+		if (end < 0) { normalized += source.slice(offset); break }
+		normalized += source.slice(offset, start)
+		let tag = source.slice(start, end + 1)
+		if (/^<div(?:\s|>)/i.test(tag)) {
+			const quote = tag.indexOf('border-left:3px') >= 0
+			divQuotes.push(quote)
+			if (quote) tag = '<blockquote>'
+		} else if (/^<\/div\s*>/i.test(tag) && divQuotes.length > 0) {
+			if (divQuotes.pop() == true) tag = '</blockquote>'
+		}
+		normalized += tag
+		offset = end + 1
+	}
+	source = nativeQuoteContentHtml(normalized, theme)
+	const lineColor = theme == 'dark' ? '#4a4a4a' : '#e5e5e5'
+	let result = ''
+	let cursor = 0
+	let depth = 0
+	while (cursor < source.length) {
+		const open = findOpenTag(source, 'blockquote', cursor)
+		const close = source.indexOf('</blockquote', cursor)
+		const opening = open >= 0 && (close < 0 || open < close)
+		const start = opening ? open : close
+		if (start < 0) { result += source.slice(cursor); break }
+		const end = source.indexOf('>', start)
+		if (end < 0) { result += source.slice(cursor); break }
+		result += source.slice(cursor, start)
+		if (opening) {
+			result += '<table style="width:100%;border-collapse:collapse;margin:' + (depth == 0 ? '12px 0' : '0') + ';"><tr>'
+				+ '<td style="width:3px;padding:0;background-color:' + lineColor + ';">'
+				+ '<div style="width:3px;background-color:' + lineColor + ';">&#8203;</div></td>'
+				+ '<td style="width:10px;padding:0;"><div style="width:10px;">&#8203;</div></td>'
+				+ '<td style="padding:0;"><div>'
+			depth++
+		} else {
+			if (depth > 0) depth--
+			result += '</div></td></tr></table>'
+		}
+		cursor = end + 1
+	}
+	return result
+}
+
 export function prepareUniAiMdHtml(html: string, isDone: boolean = false, theme: string = 'light'): string {
 	let result = prepareRichMarkdownHtml(html, isDone)
 	const textColor = theme == 'dark' ? '#f3f4f6' : '#1b1c24'
@@ -618,13 +714,14 @@ export function prepareUniAiMdHtml(html: string, isDone: boolean = false, theme:
 	result = styleOpenTags(result, 'p', 'font-size:17px;line-height:28px;color:' + textColor + ';margin:8px 0;')
 	result = styleOpenTags(result, 'li', 'font-size:17px;line-height:28px;color:' + textColor + ';margin:6px 0;')
 	result = styleOpenTags(result, 'hr', 'margin:24px 0;border-color:rgba(127,127,127,0.14);')
-	result = styleOpenTags(result, 'blockquote', 'margin:6px 0;padding-left:10px;border-left:3px solid rgba(127,127,127,0.38);')
 	result = styleOpenTags(result, 'a', 'color:#2979ff;')
 	result = styleOpenTags(result, 'table', 'border-collapse:collapse;margin:4px 0;')
 	result = styleOpenTags(result, 'th', 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;')
 	result = styleOpenTags(result, 'td', 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;')
 	result = styleOpenTags(result, 'img', 'max-width:100%;')
-	return result
+	// 原生富文本不支持 blockquote 和 div 的 Flex 横排，以两列容器让竖线随正文撑高。
+	// 在普通表格样式处理后插入，避免引用容器带上数据表格的边框和间距。
+	return nativeQuoteHtml(result, theme)
 }
 
 function tagAttribute(openTag: string, name: string): string {
