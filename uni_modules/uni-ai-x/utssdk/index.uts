@@ -64,7 +64,7 @@ import {
 } from './worker/index.uts'
 // #endif
 
-// 原生展示实现 v34：同步入口摘要，使自定义基座的插件缓存识别 worker 子目录的改动。
+// 原生展示实现 v35：同步入口摘要，使自定义基座的插件缓存识别 worker 子目录的改动。
 export * from './runtime/interface.uts'
 export * from './worker/index.uts'
 // #ifdef APP-ANDROID || APP-HARMONY

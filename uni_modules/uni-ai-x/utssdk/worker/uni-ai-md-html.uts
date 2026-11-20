@@ -356,11 +356,16 @@ export class UniAiMdHtmlStreamAdapter {
 					entry.blockIndex = this.tailIndex
 					result.push(entry)
 				} else {
-					const entry = this.newEntry('html', key)
-					entry.html = this.tailContent
+					// 连续 HTML 提交时会合并回前一块。预览也必须使用同一个尾块，
+					// 否则展示层会把前缀当作已有后继的稳定块冻结，永久漏掉随后合并的内容。
+					const last = result.length > 0 ? result[result.length - 1] : null
+					const mergeTail = this.mergeHtml && last != null && last!.kind == 'html'
+					const entry = this.newEntry('html', mergeTail ? last!.key : key)
+					entry.html = (mergeTail ? last!.html : '') + this.tailContent
 					entry.isComplete = false
-					entry.blockIndex = this.tailIndex
-					result.push(entry)
+					entry.blockIndex = mergeTail ? last!.blockIndex : this.tailIndex
+					if (mergeTail) result[result.length - 1] = entry
+					else result.push(entry)
 				}
 			}
 			if (this.pendingSource.length > 0) {
