@@ -1,6 +1,14 @@
 <template>
 	<view class="user-msg uni-theme-root">
-		<text class="user-msg-text" flatten>{{msg.body}}</text>
+		<view class="user-msg-bubble" :class="expanded ? 'user-msg-bubble-expanded' : ''">
+			<view class="user-msg-body">
+				<text class="user-msg-text" :max-lines="expanded ? -1 : collapsedLines" flatten>{{msg.body}}</text>
+				<text ref="measureRef" class="user-msg-text user-msg-measure">{{msg.body}}</text>
+			</view>
+			<view v-if="showToggle" class="user-msg-toggle" @click.stop="expanded = !expanded">
+				<view class="user-msg-toggle-icon"><uni-ai-icon :name="expanded ? 'chevron-up-outline' : 'chevron-down-outline'" size="16" color="var(--text-secondary)" /></view>
+			</view>
+		</view>
 		<text v-for="file in documentFiles" :key="file.id" class="user-file-name">{{file.name}}</text>
 		<view class="user-msg-img-group" v-if="msg.img_url_list != null">
 			<image class="user-msg-img" v-for="(img, index) in msg.img_url_list" @click="previewImage(index)" :key="index" :src="img" mode="aspectFill"></image>
@@ -11,11 +19,52 @@
 <script lang="uts" setup>
 	import { MsgItem } from '@/uni_modules/uni-ai-x/sdk'
 	import { DocumentAttachment } from '@/uni_modules/uni-ai-x/types.uts'
+	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 
 	type UniAiUserMsgProps = {
 		msg: MsgItem
 	}
 	const props = defineProps<UniAiUserMsgProps>()
+	const collapsedLines = 8
+	const textLineHeight = 26
+	const expanded = ref(false)
+	const showToggle = ref(false)
+	const measureRef = ref<UniElement | null>(null)
+	// #ifdef WEB
+	let resizeObserver: ResizeObserver | null = null
+	// #endif
+	// #ifndef WEB
+	let resizeObserver: UniResizeObserver | null = null
+	// #endif
+
+	function checkOverflow() {
+		const measure = measureRef.value
+		if (measure == null) return
+		showToggle.value = measure.getBoundingClientRect().height > collapsedLines * textLineHeight + 1
+	}
+
+	onMounted(() => {
+		nextTick(() => {
+			checkOverflow()
+			const measure = measureRef.value
+			if (measure == null) return
+			// #ifdef WEB
+			resizeObserver = new ResizeObserver(() => { checkOverflow() })
+			// #endif
+			// #ifndef WEB
+			resizeObserver = new UniResizeObserver((_entries: UniResizeObserverEntry[]) => { checkOverflow() })
+			// #endif
+			resizeObserver!.observe(measure)
+		})
+	})
+	onUnmounted(() => {
+		resizeObserver?.disconnect()
+		resizeObserver = null
+	})
+	watch(() => props.msg.body, () => {
+		expanded.value = false
+		nextTick(() => { checkOverflow() })
+	})
 	const documentFiles = computed<DocumentAttachment[]>(() => props.msg.file_list ?? [])
 	function previewImage(index: number) {
 		if (props.msg.img_url_list == null) return
@@ -31,21 +80,53 @@
 
 .user-msg {
 	align-items: flex-end;
-	padding: 10px 14px;
+	padding: 18px 14px 10px;
 }
 .user-file-name { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
-.user-msg-text {
-	font-size: 15px;
-	max-width: 600rpx;
-	padding: 10px 14px;
+.user-msg-bubble {
+	position: relative;
+	max-width: 590rpx;
+	padding: 10px 16px;
 	border-radius: 18px 18px 5px 18px;
 	background-color: var(--user-msg-bg);
+}
+
+.user-msg-bubble-expanded { padding-bottom: 44px; }
+
+.user-msg-body {
+	position: relative;
+}
+
+.user-msg-text {
+	font-size: 17px;
+	line-height: 26px;
 	color: var(--text-primary);
 	/* #ifdef WEB */
 	user-select: text;
 	/* #endif */
 }
+
+.user-msg-measure {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+.user-msg-toggle {
+	position: absolute;
+	right: 10px;
+	bottom: 4px;
+	width: 40px;
+	height: 40px;
+	align-items: center;
+	justify-content: center;
+}
+
+.user-msg-toggle-icon { width: 28px; height: 28px; border-radius: 14px; background-color: var(--bg-primary); align-items: center; justify-content: center; }
 
 .user-msg-img-group {
 	flex-direction: row;
