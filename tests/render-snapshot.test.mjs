@@ -92,6 +92,15 @@ test('message image layout reserves the same proportional height independent of 
   assert.equal(messageImageStyle(640, 320, 0), 'width:100%;height:135px;');
 });
 
+test('diagram previews fit tall charts, preserve wide charts and never enlarge small charts', () => {
+  const { mermaidPreviewStyle } = loadUts('uni_modules/uni-ai-x/sdk/image-layout.uts', ['mermaidPreviewStyle']);
+  assert.equal(mermaidPreviewStyle(240, 900, 411), 'width:100%;height:360px;');
+  assert.equal(mermaidPreviewStyle(1000, 200, 422), 'width:100%;height:70px;');
+  assert.equal(mermaidPreviewStyle(100, 80, 414), 'width:100%;height:80px;');
+  assert.equal(mermaidPreviewStyle(0, 0, 414), 'width:100%;height:120px;');
+  assert.equal(mermaidPreviewStyle(240, 900, 60), 'width:100%;height:3.75px;');
+});
+
 test('WebView generated Mermaid retains dimensions before notifying persistence', () => {
   const { prepareNativeMermaidBlocks } = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
     ...renderTasks,

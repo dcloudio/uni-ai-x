@@ -4,3 +4,12 @@ export function messageImageStyle(sourceWidth: number, sourceHeight: number, win
 	const height = sourceWidth > 0 && sourceHeight > 0 ? width * sourceHeight / sourceWidth : 120
 	return 'width:100%;height:' + height.toString() + 'px;'
 }
+
+// Fit tall diagrams into a compact preview without enlarging small source diagrams.
+// The image uses aspectFit; its full-width box keeps narrow diagrams centered.
+export function mermaidPreviewStyle(sourceWidth: number, sourceHeight: number, windowWidth: number): string {
+	const width = Math.max(1, Math.min(windowWidth > 0 ? windowWidth : 360, 800) - 72)
+	const height = sourceWidth > 0 && sourceHeight > 0
+		? Math.min(360, sourceHeight, width * sourceHeight / sourceWidth) : 120
+	return 'width:100%;height:' + height.toString() + 'px;'
+}

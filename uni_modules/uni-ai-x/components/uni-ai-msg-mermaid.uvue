@@ -28,7 +28,7 @@ import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
-import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
+import { mermaidPreviewStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
 import { useMessageRenderTask } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
 
 const props = withDefaults(defineProps<{
@@ -76,8 +76,8 @@ function onImageFailed() {
 useMessageRenderTask(() => props.messageId ?? '', () => 'mermaid-image:' + props.identity + ':' + props.src,
 	() => !showSource.value && settledImage.value != props.identity + ':' + props.src,
 	() => props.src.length > 0 ? uiTheme.value + ':' + props.src : '')
-const imageStyle = computed<string>(() => messageImageStyle(props.imageWidth ?? 0, props.imageHeight ?? 0,
-	mathWindowWidth.value > 0 ? mathWindowWidth.value : uni.getWindowInfo().windowWidth, 2))
+const imageStyle = computed<string>(() => mermaidPreviewStyle(props.imageWidth ?? 0, props.imageHeight ?? 0,
+	mathWindowWidth.value > 0 ? mathWindowWidth.value : uni.getWindowInfo().windowWidth))
 const pendingImageStyle = computed<string>(() => imageStyle.value + 'align-items:center;justify-content:center;')
 
 function previewMermaidImage() {
@@ -106,15 +106,15 @@ function copyCode() {
 	width: 100%;
 	margin: 6px 0;
 	background-color: var(--mermaid-surface);
-	border: 1px solid var(--mermaid-border);
+	border-radius: 12px;
 	overflow: hidden;
 }
 
 .uni-mermaid-msg-root.uni-theme-light {
-	--mermaid-surface: #ffffff;
+	--mermaid-surface: #fafafa;
 	--mermaid-border: #d8dee8;
-	--mermaid-header: #eef2f7;
-	--mermaid-switch: #e2e8f0;
+	--mermaid-header: #fafafa;
+	--mermaid-switch: #eeeeee;
 	--mermaid-switch-text: #64748b;
 	--mermaid-active: #ffffff;
 	--mermaid-active-text: #0f172a;
@@ -124,9 +124,9 @@ function copyCode() {
 }
 
 .uni-mermaid-msg-root.uni-theme-dark {
-	--mermaid-surface: #111827;
+	--mermaid-surface: #171717;
 	--mermaid-border: #374151;
-	--mermaid-header: #0d0d0d;
+	--mermaid-header: #171717;
 	--mermaid-switch: #262626;
 	--mermaid-switch-text: #a3a3a3;
 	--mermaid-active: #f5f5f5;
@@ -152,7 +152,7 @@ function copyCode() {
 	height: 30px;
 	flex-direction: row;
 	padding: 2px;
-	border-radius: 5px;
+	border-radius: 10px;
 	background-color: var(--mermaid-switch);
 }
 
@@ -160,7 +160,7 @@ function copyCode() {
 	height: 26px;
 	line-height: 26px;
 	padding: 0 10px;
-	border-radius: 4px;
+	border-radius: 8px;
 	font-size: 12px;
 	color: var(--mermaid-switch-text);
 }
@@ -192,6 +192,7 @@ function copyCode() {
 .uni-mermaid-msg-stage {
 	position: relative;
 	width: 100%;
+	padding: 12px;
 	overflow: hidden;
 	background-color: var(--bg-primary);
 }
