@@ -596,9 +596,13 @@
 		const version = bottomScrollVersion
 		const chatId = chatActiveId.value
 		let bottomChecks = 0
+		const targetMessage = uniAi.lastAiMsg
+		const targetBody = targetMessage?.body ?? ''
+		const waitForPreparedReply = targetMessage?.rendered == true
+		const deadline = Date.now() + 16000
 		// A single click owns this bounded operation. Newly mounted virtual items
 		// can correct scrollHeight, so measure again instead of keeping a bottom anchor.
-		for (let attempt = 0; attempt < 30; attempt++) {
+		while (Date.now() < deadline) {
 			await nextTick()
 			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value || msgList.value.length == 0) return
 			let remaining = 0
@@ -621,7 +625,10 @@
 				})
 			})
 			// #endif
-			bottomChecks = remaining <= 1 ? bottomChecks + 1 : 0
+			// Finish a completed reply's pending presentation, but never follow new output.
+			if ((uniAi.lastAiMsg?._id ?? '') != (targetMessage?._id ?? '') || (targetMessage?.body ?? '') != targetBody) break
+			const presentationPending = waitForPreparedReply && targetMessage != null && displayStates.get(targetMessage!._id)?.final == null
+			bottomChecks = remaining <= 1 && !presentationPending ? bottomChecks + 1 : 0
 			if (bottomChecks >= 2) break
 			if (remaining > 1) {
 				scrollTop.value = top
@@ -629,7 +636,7 @@
 				if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
 				scrollTop.value = top + remaining
 			}
-			await new Promise<void>((resolve) => { setTimeout(() => { resolve() }, 16) })
+			await new Promise<void>((resolve) => { setTimeout(() => { resolve() }, presentationPending ? 50 : 16) })
 		}
 		setIsInScrollBottom()
 	}
