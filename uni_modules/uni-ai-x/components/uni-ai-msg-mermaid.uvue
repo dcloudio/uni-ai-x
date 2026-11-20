@@ -106,6 +106,7 @@ function copyCode() {
 	width: 100%;
 	margin: 6px 0;
 	background-color: var(--mermaid-surface);
+	border: 1px solid var(--mermaid-border);
 	border-radius: 12px;
 	overflow: hidden;
 }
