@@ -10,8 +10,8 @@ export type RenderSnapshot = {
 	blocks: MarkdownTextRenderBlock[]
 }
 
-// v34 引用对齐 DeepSeek 实机截图的浅色竖线、列表标记、嵌套引用与正文间距。
-export const RENDER_SNAPSHOT_VERSION = 34
+// v35 rebuilds heading spacing after removing overlapping component and section gaps.
+export const RENDER_SNAPSHOT_VERSION = 35
 export const RENDER_ASSET_PREFIX = 'uni-ai-asset://'
 type RenderSourceMapper = (source: string) => string
 

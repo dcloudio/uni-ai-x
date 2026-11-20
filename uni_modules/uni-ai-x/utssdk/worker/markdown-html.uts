@@ -489,21 +489,39 @@ function markCodeBlocks(source: string, isDone: boolean): string {
 	return result
 }
 
+// Heading spacing belongs to the heading, not to its following table/code component.
+// Native rich-text and separate component roots cannot rely on CSS margin collapse.
+function styleHeadingSpacing(html: string): string {
+	const tags = html.match(/<h[1-6]\b[^>]*>/gi) ?? []
+	let result = ''
+	let cursor = 0
+	for (const rawTag of tags) {
+		const tag = rawTag as string
+		const start = html.indexOf(tag, cursor)
+		if (start < 0) continue
+		const level = parseInt(tag.charAt(2))
+		const before = html.slice(0, start).trim()
+		let top = level == 1 ? 32 : level == 2 ? 28 : level == 3 ? 24 : level == 4 ? 20 : 16
+		// A block boundary already has the previous component's bottom spacing.
+		if (before.length == 0) top = 14
+		else if (/<\/h[1-6]>$/i.test(before)) top = 12
+		else if (/<hr\b[^>]*>$/i.test(before)) top = 12
+		result += html.slice(cursor, start) + appendTagStyle(tag, 'margin:' + top.toString() + 'px 0 8px;')
+		cursor = start + tag.length
+	}
+	return result + html.slice(cursor)
+}
+
 function prepareRichMarkdownHtml(html: string, isDone: boolean): string {
 	let result = replaceTaskInputs(html)
 	result = styleTaskListItems(result)
-	result = styleOpenTags(result, 'h1', 'font-size:26px;line-height:36px;font-weight:600;margin:56px 0 16px;')
-	result = styleOpenTags(result, 'h2', 'font-size:22px;line-height:32px;font-weight:600;margin:60px 0 14px;')
-	result = styleOpenTags(result, 'h3', 'font-size:20px;line-height:30px;font-weight:600;margin:40px 0 12px;')
-	result = styleOpenTags(result, 'h4', 'font-size:18px;line-height:28px;font-weight:600;margin:32px 0 10px;')
-	result = styleOpenTags(result, 'h5', 'font-size:16px;line-height:26px;font-weight:600;margin:28px 0 8px;')
-	result = styleOpenTags(result, 'h6', 'font-size:16px;line-height:26px;font-weight:600;margin:24px 0 8px;')
-	// The document title starts the response; section headings receive more breathing room.
-	const titleStart = findOpenTag(result, 'h1', 0)
-	if (titleStart >= 0) {
-		const titleEnd = result.indexOf('>', titleStart)
-		if (titleEnd >= 0) result = result.slice(0, titleStart) + appendTagStyle(result.slice(titleStart, titleEnd + 1), 'margin-top:14px;') + result.slice(titleEnd + 1)
-	}
+	result = styleOpenTags(result, 'h1', 'font-size:26px;line-height:36px;font-weight:600;')
+	result = styleOpenTags(result, 'h2', 'font-size:22px;line-height:32px;font-weight:600;')
+	result = styleOpenTags(result, 'h3', 'font-size:20px;line-height:30px;font-weight:600;')
+	result = styleOpenTags(result, 'h4', 'font-size:18px;line-height:28px;font-weight:600;')
+	result = styleOpenTags(result, 'h5', 'font-size:16px;line-height:26px;font-weight:600;')
+	result = styleOpenTags(result, 'h6', 'font-size:16px;line-height:26px;font-weight:600;')
+	result = styleHeadingSpacing(result)
 	result = styleOpenTags(result, 'ul', 'margin:4px 0;padding-left:24px;')
 	result = styleOpenTags(result, 'ol', 'margin:4px 0;padding-left:24px;')
 	result = styleOpenTags(result, 'li', 'margin:2px 0;line-height:26px;')
@@ -713,7 +731,7 @@ export function prepareUniAiMdHtml(html: string, isDone: boolean = false, theme:
 	for (let level = 1; level <= 6; level++) result = styleOpenTags(result, 'h' + level.toString(), 'color:' + textColor + ';')
 	result = styleOpenTags(result, 'p', 'font-size:17px;line-height:28px;color:' + textColor + ';margin:8px 0;')
 	result = styleOpenTags(result, 'li', 'font-size:17px;line-height:28px;color:' + textColor + ';margin:6px 0;')
-	result = styleOpenTags(result, 'hr', 'margin:24px 0;border-color:rgba(127,127,127,0.14);')
+	result = styleOpenTags(result, 'hr', 'margin:16px 0;border-color:rgba(127,127,127,0.14);')
 	result = styleOpenTags(result, 'a', 'color:#2979ff;')
 	result = styleOpenTags(result, 'table', 'border-collapse:collapse;margin:4px 0;')
 	result = styleOpenTags(result, 'th', 'border:1px solid rgba(127,127,127,0.38);padding:6px 8px;')

@@ -9,6 +9,17 @@ const { prepareUniAiMdHtml, prepareMarkdownHtml } = loadUts(
 );
 const checkbox = '<input type="checkbox" checked disabled>';
 
+test('heading spacing follows adjacent content instead of treating every first h1 as a title', () => {
+  const source = '<h2>Tables</h2><h3>Normal</h3><p>Body</p><h1>Later</h1><hr /><h2>Next</h2>';
+  const html = prepareUniAiMdHtml(source, true);
+  const tags = html.match(/<h[1-6]\b[^>]*>/g);
+  assert.deepEqual(tags.map(tag => /margin:([^;]+);/.exec(tag)[1]),
+    ['14px 0 8px', '12px 0 8px', '32px 0 8px', '12px 0 8px']);
+  assert.ok(!html.includes('margin-top:14px'));
+  const repeated = prepareUniAiMdHtml(html, true);
+  assert.ok(!repeated.includes('margin:60px'));
+});
+
 test('typography preserves self-closing rules and text in both themes', () => {
   const source = '<h1>Title</h1><hr /><p>Body</p>';
   for (const theme of ['light', 'dark']) {
