@@ -1,12 +1,12 @@
 <template>
-	<view class="source-overlay uni-theme-root">
-		<view class="source-mask" @click="emit('close')"></view>
-		<view class="source-sheet">
+	<view class="source-overlay uni-theme-root" :style="{ opacity: isReady ? 1 : 0 }">
+		<view class="source-mask" :class="{ 'source-mask-visible': isReady }" @click="emit('close')"></view>
+		<view class="source-sheet" :class="{ 'source-sheet-visible': isReady }">
 			<view class="sheet-header">
 				<text class="sheet-title">{{tr('搜索结果', 'Search results')}}</text>
 				<view class="sheet-close" @click="emit('close')"><uni-ai-icon name="close-outline" size="23" color="#888" /></view>
 			</view>
-			<scroll-view class="sheet-scroll" direction="vertical" :scroll-into-view="scrollTarget">
+			<scroll-view id="source-sheet-scroll" class="sheet-scroll" direction="vertical" :scroll-into-view="scrollTarget" :scroll-with-animation="false">
 				<view v-for="source in sources" :key="source.id" :id="'search-result-' + source.id" class="sheet-source" hover-class="sheet-source-pressed" @click="openWebLink(source.url)">
 					<view class="source-meta">
 						<view class="site-icon">
@@ -41,6 +41,57 @@
 	const failedPreviews = ref<number[]>([])
 	function previewFailed(id: number) { if (!failedPreviews.value.includes(id)) failedPreviews.value.push(id) }
 	const scrollTarget = ref('')
+	const isReady = ref(false)
+	let positionFrame = 0
+	let stableFrames = 0
+	let positionRequested = false
+	let positionChecks = 0
+	// Keep the panel hidden until native layout and the initial scroll agree.
+	// Rect differences also work while the whole panel is translated offscreen.
+	function checkInitialPosition() {
+		positionChecks++
+		if (props.sources.length == 0) { isReady.value = true; return }
+		const viewport = uni.getElementById('source-sheet-scroll')?.getBoundingClientRect()
+		const first = uni.getElementById('search-result-' + props.sources[0].id)?.getBoundingClientRect()
+		const last = uni.getElementById('search-result-' + props.sources[props.sources.length - 1].id)?.getBoundingClientRect()
+		const targetId = props.sources.some((source: SearchSource): boolean => source.id == props.selectedId) ? props.selectedId : props.sources[0].id
+		const target = uni.getElementById('search-result-' + targetId)?.getBoundingClientRect()
+		if (viewport != null && first != null && last != null && target != null && viewport.height > 0 && target.height > 0) {
+			const offset = target.top - first.top
+			const contentHeight = last.bottom - first.top
+			// Near the end, scrolling stops at the bottom rather than aligning the target to the top.
+			const expectedScroll = Math.min(offset, Math.max(0, contentHeight - viewport.height))
+			const expectedTop = offset - expectedScroll
+			if (!positionRequested) {
+				positionRequested = true
+				scrollTarget.value = 'search-result-' + targetId
+			}
+			const positioned = Math.abs(target.top - viewport.top - expectedTop) < 1
+			stableFrames = positioned ? stableFrames + 1 : 0
+			if (stableFrames >= 2) {
+				isReady.value = true
+				return
+			}
+		}
+		// A platform failing to expose geometry must not leave an invisible blocking overlay.
+		if (positionChecks >= 120) {
+			console.warn('[source-sheet] Initial position could not be confirmed')
+			isReady.value = true
+			return
+		}
+		positionFrame = requestAnimationFrame(checkInitialPosition)
+	}
+	function prepareInitialPosition() {
+		cancelAnimationFrame(positionFrame)
+		isReady.value = false
+		stableFrames = 0
+		positionRequested = false
+		positionChecks = 0
+		scrollTarget.value = ''
+		positionFrame = requestAnimationFrame(checkInitialPosition)
+	}
+	onMounted(prepareInitialPosition)
+	onUnmounted(() => { cancelAnimationFrame(positionFrame) })
 	function siteOrigin(url: string): string {
 		const match = /^https?:\/\/[^/?#]+/i.exec(url)
 		return match == null ? '' : match[0]
@@ -49,17 +100,16 @@
 	function iconFailed(id: number) {
 		if (!failedIcons.value.includes(id)) failedIcons.value.push(id)
 	}
-	watch(() => props.selectedId, () => {
-		scrollTarget.value = ''
-		nextTick(() => { scrollTarget.value = props.selectedId > 0 ? 'search-result-' + props.selectedId : '' })
-	}, { immediate: true })
+	watch(() => props.selectedId, prepareInitialPosition)
 </script>
 
 <style lang="scss">
 	@import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 	.source-overlay { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 110; justify-content: flex-end; }
-	.source-mask { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.35); }
-	.source-sheet { height: 90%; width: 100%; max-width: 720px; align-self: center; background-color: var(--bg-primary); border-top-left-radius: 8px; border-top-right-radius: 8px; padding-bottom: env(safe-area-inset-bottom); }
+	.source-mask { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.35); opacity: 0; transition: opacity 260ms ease-out; }
+	.source-mask-visible { opacity: 1; }
+	.source-sheet { height: 90%; width: 100%; max-width: 720px; align-self: center; background-color: var(--bg-primary); border-top-left-radius: 8px; border-top-right-radius: 8px; padding-bottom: env(safe-area-inset-bottom); transform: translateY(100%); transition: transform 260ms ease-out; }
+	.source-sheet-visible { transform: translateY(0); }
 	.sheet-header { height: 64px; flex-shrink: 0; justify-content: center; align-items: center; padding: 0 60px; }
 	.sheet-title { font-size: 18px; font-weight: bold; color: var(--text-primary); }
 	.sheet-close { position: absolute; right: 12px; top: 10px; width: 44px; height: 44px; border-radius: 22px; background-color: var(--bg-secondary); justify-content: center; align-items: center; }
