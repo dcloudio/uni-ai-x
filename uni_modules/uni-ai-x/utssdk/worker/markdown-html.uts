@@ -228,7 +228,8 @@ function appendTagStyle(openTag: string, style: string): string {
 	}
 	const closeIndex = openTag.lastIndexOf('>')
 	if (closeIndex < 0) return openTag
-	return openTag.slice(0, closeIndex) + ' style="' + style + '"' + openTag.slice(closeIndex)
+	const insertIndex = openTag.charAt(closeIndex - 1) == '/' ? closeIndex - 1 : closeIndex
+	return openTag.slice(0, insertIndex) + ' style="' + style + '"' + openTag.slice(insertIndex)
 }
 
 function appendTagAttributes(openTag: string, attributes: string): string {
@@ -491,12 +492,18 @@ function markCodeBlocks(source: string, isDone: boolean): string {
 function prepareRichMarkdownHtml(html: string, isDone: boolean): string {
 	let result = replaceTaskInputs(html)
 	result = styleTaskListItems(result)
-	result = styleOpenTags(result, 'h1', 'font-size:30px;line-height:36px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h2', 'font-size:26px;line-height:34px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h3', 'font-size:22px;line-height:32px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h4', 'font-size:20px;line-height:30px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h5', 'font-size:18px;line-height:28px;font-weight:700;margin:8px 0 6px;')
-	result = styleOpenTags(result, 'h6', 'font-size:16px;line-height:24px;font-weight:700;margin:8px 0 6px;')
+	result = styleOpenTags(result, 'h1', 'font-size:26px;line-height:36px;font-weight:600;margin:56px 0 16px;')
+	result = styleOpenTags(result, 'h2', 'font-size:22px;line-height:32px;font-weight:600;margin:60px 0 14px;')
+	result = styleOpenTags(result, 'h3', 'font-size:20px;line-height:30px;font-weight:600;margin:40px 0 12px;')
+	result = styleOpenTags(result, 'h4', 'font-size:18px;line-height:28px;font-weight:600;margin:32px 0 10px;')
+	result = styleOpenTags(result, 'h5', 'font-size:16px;line-height:26px;font-weight:600;margin:28px 0 8px;')
+	result = styleOpenTags(result, 'h6', 'font-size:16px;line-height:26px;font-weight:600;margin:24px 0 8px;')
+	// The document title starts the response; section headings receive more breathing room.
+	const titleStart = findOpenTag(result, 'h1', 0)
+	if (titleStart >= 0) {
+		const titleEnd = result.indexOf('>', titleStart)
+		if (titleEnd >= 0) result = result.slice(0, titleStart) + appendTagStyle(result.slice(titleStart, titleEnd + 1), 'margin-top:14px;') + result.slice(titleEnd + 1)
+	}
 	result = styleOpenTags(result, 'ul', 'margin:4px 0;padding-left:24px;')
 	result = styleOpenTags(result, 'ol', 'margin:4px 0;padding-left:24px;')
 	result = styleOpenTags(result, 'li', 'margin:2px 0;line-height:26px;')
@@ -604,9 +611,13 @@ export function prepareMarkdownHtml(html: string, isDone: boolean = false): stri
 // uni-ai-md 输出流专用预处理：在富文本基础样式上补充段落 / 引用 / 表格 / 链接 / 图片的
 // 中性色样式。表格不参与列宽占位符处理：未闭合表格由 rich-text 自然布局，
 // 闭合后由表格组件按 prepareMarkdownTable 独立处理。
-export function prepareUniAiMdHtml(html: string, isDone: boolean = false): string {
+export function prepareUniAiMdHtml(html: string, isDone: boolean = false, theme: string = 'light'): string {
 	let result = prepareRichMarkdownHtml(html, isDone)
-	result = styleOpenTags(result, 'p', 'margin:4px 0;')
+	const textColor = theme == 'dark' ? '#f3f4f6' : '#1b1c24'
+	for (let level = 1; level <= 6; level++) result = styleOpenTags(result, 'h' + level.toString(), 'color:' + textColor + ';')
+	result = styleOpenTags(result, 'p', 'font-size:17px;line-height:28px;color:' + textColor + ';margin:8px 0;')
+	result = styleOpenTags(result, 'li', 'font-size:17px;line-height:28px;color:' + textColor + ';margin:6px 0;')
+	result = styleOpenTags(result, 'hr', 'margin:24px 0;border-color:rgba(127,127,127,0.14);')
 	result = styleOpenTags(result, 'blockquote', 'margin:6px 0;padding-left:10px;border-left:3px solid rgba(127,127,127,0.38);')
 	result = styleOpenTags(result, 'a', 'color:#2979ff;')
 	result = styleOpenTags(result, 'table', 'border-collapse:collapse;margin:4px 0;')

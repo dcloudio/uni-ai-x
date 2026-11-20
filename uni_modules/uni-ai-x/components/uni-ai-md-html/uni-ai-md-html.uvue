@@ -29,14 +29,14 @@
 		// #endif
 		// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (props.html.length == 0) return ''
-		return prepareUniAiMdHtml(props.html, props.isComplete)
+		return prepareUniAiMdHtml(props.html, props.isComplete, uiTheme.value)
 		// #endif
 	})
 
 	const richTextStyle = computed<string>(() => {
-		const textColor = uiTheme.value == 'dark' ? '#ffffff' : '#333333'
+		const textColor = uiTheme.value == 'dark' ? '#f3f4f6' : '#1b1c24'
 		const backgroundColor = uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
-		return 'width:100%;font-size:14px;line-height:20px;color:' + textColor
+		return 'width:100%;font-size:17px;line-height:28px;color:' + textColor
 			+ ';background-color:' + backgroundColor + ';'
 	})
 

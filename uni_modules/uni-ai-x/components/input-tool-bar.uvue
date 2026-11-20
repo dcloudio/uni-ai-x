@@ -6,17 +6,17 @@
 					:title="thinkingTitle"
 					<!-- #endif -->
 				>
-            <uni-ai-icon name="think-outline" size="16" :color="!canThinking ? 'var(--text-disabled)' : (thinkingActive ? '#3c76e4' : 'var(--text-secondary)')" />
+            <uni-ai-icon name="think-outline" size="17" :color="!canThinking ? 'var(--text-disabled)' : (thinkingActive ? '#3c76e4' : 'var(--text-primary)')" />
             <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', !canThinking ? 'input-tool-bar-text-disable' : '']">{{tr('深度思考', 'Think')}}</text>
 		</view>
 			<view class="input-tool-bar-btn input-tool-bar-search" :class="[webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
-            <uni-ai-icon name="globe-outline" size="16" :color="webSearch ? '#3c76e4' : 'var(--text-secondary)'" />
+            <uni-ai-icon name="globe-outline" size="17" :color="webSearch ? '#3c76e4' : 'var(--text-primary)'" />
             <text class="input-tool-bar-text" :class="[webSearch ? 'input-tool-bar-text-active' : '']">{{tr('联网搜索', 'Search web')}}</text>
 			</view>
         </view>
         <view class="composer-actions">
-            <view class="composer-toggle" @click="toggleAttachments"><uni-ai-icon :name="composerState.attachments ? 'close-circle-outline' : 'plus-circle-outline'" size="26" color="var(--text-secondary)" /></view>
-            <view class="composer-toggle" @click="toggleVoice"><uni-ai-icon :name="composerState.voice ? 'keyboard-outline' : 'voice-outline'" size="26" color="var(--text-secondary)" /></view>
+            <view class="composer-toggle" @click="toggleAttachments"><uni-ai-icon :name="composerState.attachments ? 'close-circle-outline' : 'plus-circle-outline'" size="26" color="var(--text-primary)" /></view>
+            <view class="composer-toggle" @click="toggleVoice"><uni-ai-icon :name="composerState.voice ? 'keyboard-outline' : 'voice-outline'" size="26" color="var(--text-primary)" /></view>
 		<view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active"
 			@click="stop">
             <uni-ai-icon name="stop-fill" color="#FFF" size="14" />
@@ -197,12 +197,12 @@ onMounted(() => {
 .input-tool-bar-btn {
     flex-direction: row;
     align-items: center;
-    height: 30px;
-    padding: 0 9px;
+    height: 32px;
+    padding: 0 10px;
     border: 1px solid var(--border-secondary);
     flex-shrink: 0;
     border-radius: 30px;
-    margin-right: 6px;
+    margin-right: 8px;
     background-color: var(--bg-primary);
 }
 
@@ -217,8 +217,8 @@ onMounted(() => {
 }
 
 .input-tool-bar-text {
-    font-size: 12px;
-    color: var(--text-secondary);
+    font-size: 14px;
+    color: var(--text-primary);
     margin-left: 3px;
 }
 

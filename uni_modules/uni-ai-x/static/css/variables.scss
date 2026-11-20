@@ -3,7 +3,7 @@
   --bg-primary: #ffffff;        // 主背景色，用于页面主体区域
   --bg-secondary: #f5f5f5;      // 次要背景色，用于卡片、面板等容器
   --bg-tertiary: #efefef;       // 第三级背景色，用于分割线、hover状态等
-  --text-primary: #333333;      // 主要文本颜色，用于标题、重要内容
+  --text-primary: #1b1c24;      // 主要文本颜色，用于标题、重要内容
   --text-secondary: #666666;    // 次要文本颜色，用于正文、描述文字
   --text-tertiary: #999999;     // 第三级文本颜色，用于辅助信息、占位符
   --text-disabled: #cccccc;     // 禁用状态文本颜色
@@ -24,7 +24,7 @@
   --menu-bg: #f9fbff;
   --menu-active-bg: #eef3ff;
   --menu-border: #e6ecf5;
-  --user-msg-bg: #f9fbff;
+  --user-msg-bg: #edf3ff;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -293,7 +293,7 @@ function finishRefreshEntry(entry: UniAiMdStreamEntry, prepared: MarkdownTextRen
 			if (block.kind != 'html' && block.kind != 'table') continue
 			block.html = linkMarkdownFootnotes(block.html, entry.message?.body ?? '')
 			if (entry.message?.search != null) block.html = linkSearchCitations(block.html, entry.message!.search!.sources)
-			if (block.kind == 'html') block.html = prepareUniAiMdHtml(block.html, block.isComplete)
+			if (block.kind == 'html') block.html = prepareUniAiMdHtml(block.html, block.isComplete, presentationTheme)
 			else block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, presentationTheme)
 		}
 		// #endif

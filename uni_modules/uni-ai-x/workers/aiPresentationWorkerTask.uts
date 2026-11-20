@@ -149,7 +149,7 @@ export class AiPresentationWorkerTask extends WorkerTaskImpl {
 				block.html = linkSearchCitations(block.html, entry.citationIds)
 				const tags = block.html.match(/<img\b[^>]*>/g) ?? []
 			}
-			if (block.kind == 'html') block.html = prepareUniAiMdHtml(block.html, block.isComplete)
+			if (block.kind == 'html') block.html = prepareUniAiMdHtml(block.html, block.isComplete, entry.theme)
 			if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, entry.theme)
 			blocks.push(block)
 		}

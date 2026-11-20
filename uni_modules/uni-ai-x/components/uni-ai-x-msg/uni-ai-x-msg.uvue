@@ -260,7 +260,7 @@
 
 	// A zero-height pending row can be recycled before its quiet-period timer fires.
 	// Reserve the final toolbar height so readiness does not depend on list visibility.
-	const msgSegmentStyle = computed<string>(() => 'width:100%;min-height:' + (isToolbarSegment.value ? '42px' : '0') + ';box-sizing:border-box;padding-left:20px;padding-right:20px;')
+	const msgSegmentStyle = computed<string>(() => 'width:100%;min-height:' + (isToolbarSegment.value ? '42px' : '0') + ';box-sizing:border-box;padding-left:24px;padding-right:24px;')
 
 	const changeThinkContent = () => {
 		hideThinkContent.value = !hideThinkContent.value

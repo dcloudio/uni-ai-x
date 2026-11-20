@@ -1,6 +1,6 @@
 <template>
 	<view id="chat-composer-shell" class="composer-shell">
-    <view v-show="keyboardHeight == 0 && !isFullscreenLayout && !voiceHolding" class="composer-bottom-mask" :style="{height: (46 + composerSafeBottom) + 'px'}" />
+    <view v-show="keyboardHeight == 0 && !isFullscreenLayout && !voiceHolding" class="composer-bottom-mask" :style="{height: (56 + composerSafeBottom) + 'px'}" />
 	<view id="chat-input-container" class="chat-input" :class="[isFullscreenLayout ? 'chat-input-fullscreen' : '', voiceHolding ? (composerState.voiceCancel ? 'chat-input-canceling' : 'chat-input-recording') : '', keyboardHeight > 0 ? 'chat-input-keyboard-open' : '']"
 		:style="{height: chatInputHeight, width: isFullscreenLayout ? fullscreenInputWidth : 'auto'}">
 		<uni-ai-draft-images v-if="uniAi.imgList.length > 0 && !voiceHolding" />
@@ -39,7 +39,7 @@
 			:style="{height: keyboardHeight + 'px'}"></view>
 	</view>
     <uni-ai-attachment-panel v-show="composerState.attachments && !voiceHolding && !isFullscreen" />
-    <view v-show="keyboardHeight == 0 && !isFullscreenLayout && !voiceHolding" class="composer-footer" :style="{height: (22 + composerSafeBottom) + 'px', paddingBottom: composerSafeBottom + 'px'}">
+    <view v-show="keyboardHeight == 0 && !isFullscreenLayout && !voiceHolding" class="composer-footer" :style="{height: (32 + composerSafeBottom) + 'px', paddingBottom: composerSafeBottom + 'px'}">
         <text class="composer-footer-text">{{tr('内容由 AI 生成，请仔细甄别', 'AI generated content. Please verify.')}}</text>
     </view>
     </view>
@@ -210,7 +210,7 @@
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 .composer-shell { position: relative; z-index: 30; flex-shrink: 0; background-color: transparent; }
 .composer-bottom-mask { position: absolute; left: 0; right: 0; bottom: 0; background-color: var(--bg-primary); }
-.composer-footer { position: relative; height: 22px; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; background-color: var(--bg-primary); }
+.composer-footer { position: relative; height: 32px; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; background-color: var(--bg-primary); }
 .composer-footer-text { font-size: 10px; line-height: 14px; color: var(--text-tertiary); }
 
 .chat-input {
@@ -226,8 +226,9 @@
 	background-color: var(--bg-primary);
 	padding: 10px 10px 8px;
 	margin: 6px 12px 0;
-	border-radius: 24px;
-	border: 1px solid var(--border-color);
+	border-radius: 32px;
+	border: 1px solid var(--border-secondary);
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 	box-sizing: border-box;
 	overflow: hidden;
 	z-index: 30;
@@ -262,7 +263,7 @@
 	max-height: 200px;
 	width: 100%;
 	padding: 2px 28px 2px 6px;
-	font-size: 15px;
+	font-size: 17px;
 	line-height: 23px;
 	box-sizing: border-box;
 	color: var(--text-primary);

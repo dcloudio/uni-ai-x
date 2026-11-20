@@ -10,8 +10,8 @@ export type RenderSnapshot = {
 	blocks: MarkdownTextRenderBlock[]
 }
 
-// v19 invalidates task marker HTML cached during local alignment trials.
-export const RENDER_SNAPSHOT_VERSION = 19
+// v25 rebuilds persisted HTML with the final typography, theme colors and styled void tags.
+export const RENDER_SNAPSHOT_VERSION = 25
 export const RENDER_ASSET_PREFIX = 'uni-ai-asset://'
 type RenderSourceMapper = (source: string) => string
 

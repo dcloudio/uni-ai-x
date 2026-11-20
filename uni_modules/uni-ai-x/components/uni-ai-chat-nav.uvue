@@ -28,7 +28,7 @@
 		const chatTitle = (uniAi.currentChat?.title ?? '').replace(/\r\n|\n|\r/g, ' ').trim()
 		if (chatTitle == '新对话') return tr('新对话', 'New chat')
 		if (chatTitle.length > 0) {
-			return chatTitle.length > 10 ? chatTitle.slice(0, 10) + '...' : chatTitle
+			return chatTitle
 		}
 		return tr('新对话', 'New chat')
 	})
@@ -45,8 +45,8 @@
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	padding: 6px 12px;
-	min-height: 52px;
+	padding: 4px 8px;
+	min-height: 48px;
 }
 
 .chat-nav-action { width: 40px; height: 40px; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -54,8 +54,8 @@
 .chat-nav-title {
 	flex: 1;
 	margin: 0 4px;
-	font-size: 15px;
-	font-weight: 500;
+	font-size: 16px;
+	font-weight: 400;
 	color: var(--text-primary);
 	text-align: left;
 	overflow: hidden;
