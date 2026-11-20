@@ -75,3 +75,44 @@ test('a new last message cancels the old click', async () => {
   await api.scrollToLastMsg();
   assert.equal(api.display.final, null);
 });
+
+function initialController() {
+  const full = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-chat.uvue', import.meta.url), 'utf8');
+  const source = full.slice(full.indexOf('async function positionInitialHistory'), full.indexOf('\n\tlet bottomScrollVersion'));
+  const commands = [], timers = [];
+  const context = {
+    bottomScrollVersion: 0, viewDisposed: false, chatActiveId: { value: 'chat' },
+    initialPositioning: { value: true }, nextTick: () => Promise.resolve(),
+    setTimeout: callback => timers.push(callback),
+    console: { log() {} },
+    scrollTop: { set value(top) { commands.push(top); } },
+    uni: { getElementById: () => ({ scrollHeight: commands.length === 0 ? 1000 : 3000,
+      getBoundingClientRect: () => ({ height: 500 }) }) },
+  };
+  const run = vm.runInNewContext(stripTypeScriptTypes(source) + ';positionInitialHistory', context);
+  const tick = async () => { await Promise.resolve(); timers.shift()?.(); await Promise.resolve(); };
+  return { context, commands, timers, run, tick };
+}
+
+test('initial positioning reveals corrected history within a fixed budget without waiting for resources', async () => {
+  const api = initialController();
+  const pending = api.run('chat');
+  for (let i = 0; i < 20 && api.context.initialPositioning.value; i++) await api.tick();
+  await pending;
+  assert.equal(api.context.initialPositioning.value, false);
+  assert.equal(api.commands.at(-1), 2500);
+  assert.equal(api.timers.length, 0);
+  const count = api.commands.length;
+  await api.tick();
+  assert.equal(api.commands.length, count);
+});
+
+test('touch cancels initial correction and reveals history without issuing another jump', async () => {
+  const api = initialController();
+  const pending = api.run('chat');
+  api.context.bottomScrollVersion++;
+  for (let i = 0; i < 20 && api.context.initialPositioning.value; i++) await api.tick();
+  await pending;
+  assert.equal(api.commands.length, 0);
+  assert.equal(api.context.initialPositioning.value, false);
+});

@@ -23,6 +23,7 @@
 					</view>
 				</view>
 				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
+					:initial-scroll-bottom="true" :style="{ opacity: initialPositioning ? 0 : 1 }"
 					:scroll-with-animation="false" @scroll="onScroll" @scrollend="setIsInScrollBottom" @touchstart="cancelBottomScroll" @touchend="setIsInScrollBottom"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
@@ -588,6 +589,29 @@
 	const chatActiveId = computed<string>(() => {
 		return uniAi.chat.activeId
 	})
+	const initialPositioning = ref(true)
+	let initializedScrollChatId = ''
+	watch(renderItemList, (items: ChatRenderItem[]) => {
+		const chatId = chatActiveId.value
+		if (items.length == 0 || initializedScrollChatId == chatId) return
+		initializedScrollChatId = chatId
+		positionInitialHistory(chatId)
+	}, { flush: 'post' })
+	async function positionInitialHistory(chatId: string) {
+		const version = bottomScrollVersion
+		// Only settle the first native layouts; never wait for rendering tasks or images.
+		for (let frame = 0; frame < 3; frame++) {
+			await nextTick()
+			await new Promise<void>((resolve) => { setTimeout(resolve, 16) })
+			if (viewDisposed || chatActiveId.value != chatId) return
+			if (version != bottomScrollVersion) break
+			// #ifndef MP-WEIXIN
+			const list = uni.getElementById('msg-list')
+			if (list != null) scrollTop.value = Math.max(0, list.scrollHeight - list.getBoundingClientRect().height)
+			// #endif
+		}
+		initialPositioning.value = false
+	}
 	
 	let bottomScrollVersion = 0
 	function cancelBottomScroll() { bottomScrollVersion += 1 }
@@ -706,6 +730,8 @@
 	
 	watch(chatActiveId, () => {
 		cancelBottomScroll()
+		initialPositioning.value = true
+		initializedScrollChatId = ''
 		displayStates.clear()
 		messageComputations.clear()
 		markdownBlockCache.clear()
