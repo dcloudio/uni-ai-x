@@ -1,7 +1,7 @@
 <template>
 	<view class="msg-segment uni-theme-root" :class="isFirst ? 'msg-segment-first' : ''" :style="msgSegmentStyle">
 		<template v-for="(part, partIndex) in parts" :key="partRenderKey(part, partIndex)">
-		<uni-ai-search-status v-if="part.kind == 'search'" :msg="msg" @open="openSource" />
+		<uni-ai-search-status v-if="part.kind == 'search'" :search="part.search" @open="openSource" />
 		<uni-ai-search-sources v-else-if="part.kind == 'sources'" :msg="msg" @open="openSource" />
 		<image v-else-if="part.kind == 'stress-svg'" class="msg-stress-svg" :src="msg.stressSvgSource!" mode="aspectFit" flatten />
 		<template v-else-if="part.kind == 'think'">
@@ -11,7 +11,7 @@
 					<uni-ai-icon :name="hideThinkContent ? 'chevron-down-outline' : 'chevron-up-outline'" size="14" color="#888" />
 				</view>
 				<view class="msg-root-think-content-text-box" :class="hideThinkContent ? 'msg-root-think-content-text-box-hide' : ''">
-					<text class="msg-root-think-content-text" flatten>{{msg.thinkContent}}</text>
+					<text class="msg-root-think-content-text" flatten>{{part.text ?? msg.thinkContent}}</text>
 				</view>
 			</view>
 		</template>
@@ -26,7 +26,7 @@
 				<text class="weather-tool-card-retry-text" flatten>{{tr('重试', 'Retry')}}</text>
 			</view>
 		</view>
-		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{msg.error_msg}}</text>
+		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{part.text ?? msg.error_msg}}</text>
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
@@ -55,7 +55,7 @@
 			<text class="weather-tool-card-source" flatten>{{toolStatusSource}}</text>
 		</view>
 		<text v-else-if="part.kind == 'tool-status'" class="msg-root-plain-text" flatten>{{msg.toolStatus}}</text>
-		<text v-else-if="part.kind == 'tool-result'" class="msg-root-plain-text" flatten>{{msg.toolResultText}}</text>
+		<text v-else-if="part.kind == 'tool-result'" class="msg-root-plain-text" flatten>{{part.text ?? msg.toolResultText}}</text>
 		<view v-else-if="part.kind == 'restoring'" style="height:44px;justify-content:center;"><loading class="msg-root-loging-icon" :paused="loadingPaused" /></view>
 		<template v-else-if="part.kind == 'empty'">
 			<text v-if="state == 'stop'" class="msg-root-stop-text" flatten>{{tr('回答被终止', 'Response stopped')}}</text>
@@ -77,16 +77,16 @@
 <script lang="uts" setup>
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import {uniAi, MsgItem, messageToolBarVisible, calendarConfirmationRevision, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
+	import type { MessageSearch } from '@/uni_modules/uni-ai-x/types.uts'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { messageImageStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
 	import { hasMessageRenderTasks, messageRenderTaskRevision } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
 	import { readMessagePresentationRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
 	import { uniAiMdStreamGetRevision, uniAiMdStreamIsSettled } from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
-	import { mathWindowWidth, updateMathLayout } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+	import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	const loadingPaused = ref<boolean>(true)
 	onMounted(() => {
-		updateMathLayout(uni.getWindowInfo().windowWidth)
 		nextTick(() => { loadingPaused.value = false })
 	})
 	function blockImageStyle(block: MarkdownTextRenderBlock): string {
@@ -121,6 +121,9 @@
 		key: string
 		kind: string
 		block?: MarkdownTextRenderBlock
+		text?: string
+		search?: MessageSearch | null
+		ready?: boolean
 	}
 
 	const props = withDefaults(defineProps<UniAiXMsgProps>(), {
@@ -142,8 +145,15 @@
 	const emit = defineEmits<{
 		'changeThinkContent': [hideThinkContent: boolean]
 		'source': [messageId: string, id: number]
+		'restore': [messageId: string]
 	}>()
+	watch(() => props.msg._id + ':' + parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'restoring').toString(), () => {
+		if (!parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'restoring')) return
+		const id = props.msg._id
+		nextTick(() => { if (props.msg._id == id) emit('restore', id) })
+	}, { immediate: true })
 	const hideThinkContent = ref<boolean>(false)
+	watch(() => props.msg._id, () => { hideThinkContent.value = false })
 	function openSource(id: number) { emit('source', props.msg._id, id) }
 	function openFootnote(href: string) {
 		const label = footnoteLabel(href)
@@ -167,15 +177,16 @@
 		: (msg.value.toolStatus ?? '').replace('天气查询工具', '').trim())
 	const toolStatusDetail = computed<string>(() => toolStatusParts.value.length >= 3 ? toolStatusParts.value[2] : '')
 	const toolStatusSource = computed<string>(() => isWeatherToolStatus.value ? tr('天气查询工具 · MCP', 'Weather tool · MCP') : tr('MCP 工具', 'MCP tool'))
+	const terminalErrorText = computed<string>(() => parts.value.find((part: AiMsgRenderPart): boolean => part.kind == 'error')?.text ?? msg.value.error_msg ?? '')
 	const isWeatherToolError = computed<boolean>(() => {
-		const error = msg.value.error_msg ?? ''
+		const error = terminalErrorText.value
 		return error.includes('天气查询工具连续三次调用失败')
 	})
 	const isToolErrorCard = computed<boolean>(() => {
-		const error = msg.value.error_msg ?? ''
+		const error = terminalErrorText.value
 		return isWeatherToolError.value || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
 	})
-	const weatherErrorText = computed<string>(() => (msg.value.error_msg ?? '').replace('Error: ', ''))
+	const weatherErrorText = computed<string>(() => terminalErrorText.value.replace('Error: ', ''))
 	const retryWeather = async () => {
 		if (!isLastAiMsg.value || state.value == 'processing') return
 		uniAi.resetMsg(msg.value)
@@ -196,8 +207,9 @@
 		// #endif
 	})
 	const toolbarCanSettle = computed<boolean>(() => {
+		if (parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar' && part.ready == false)) return false
 		if (state.value == 'processing' || msg.value.toolConfirmation != null || !messageToolBarVisible.value || hasMessageRenderTasks(msg.value._id)) return false
-		if (!msg.value.rendered && (msg.value.toolResultText ?? '').length == 0) return false
+		if (!msg.value.rendered && msg.value.error_msg == null && (msg.value.toolResultText ?? '').length == 0) return false
 		// Tool-only and error replies have no Markdown presentation to settle.
 		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (msg.value.body.trim().length > 0 && msg.value.error_msg == null && !uniAiMdStreamIsSettled(msg.value._id)) return false
@@ -222,7 +234,7 @@
 		toolbarDelayReady.value = false
 		if (!isToolbarSegment.value) return
 		if (!isLastAiMsg.value) {
-			toolbarDelayReady.value = true
+			toolbarDelayReady.value = !parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar' && part.ready == false)
 			return
 		}
 		if (!toolbarCanSettle.value) return
@@ -243,7 +255,7 @@
 
 	const shouldShowToolBar = computed<boolean>(() => {
 		calendarConfirmationRevision.value
-		return msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && (msg.value.rendered || (msg.value.toolResultText ?? '').length > 0)))
+		return !parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar' && part.ready == false) && msg.value.toolConfirmation == null && messageToolBarVisible.value && toolbarDelayReady.value && (!isLastAiMsg.value || state.value == 'stop' || (state.value != 'processing' && (msg.value.rendered || msg.value.error_msg != null || (msg.value.toolResultText ?? '').length > 0)))
 	})
 
 	// A zero-height pending row can be recycled before its quiet-period timer fires.

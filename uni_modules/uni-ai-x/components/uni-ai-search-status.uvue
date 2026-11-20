@@ -1,6 +1,6 @@
 <template>
-	<view v-if="msg.search != null" class="search-status" @click="openSources">
-		<template v-if="msg.search!.status == 'searching'">
+	<view v-if="search != null" class="search-status" @click="openSources">
+		<template v-if="search!.status == 'searching'">
 			<!-- #ifdef APP-HARMONY -->
 			<view class="search-spinner" />
 			<!-- #endif -->
@@ -10,23 +10,24 @@
 		</template>
 		<uni-ai-icon v-else name="search-outline" size="16" color="#6283a9" />
 		<text class="search-label">{{label}}</text>
-		<uni-ai-icon v-if="msg.search!.sources.length > 0" name="chevron-right-outline" size="14" color="#888" />
+		<uni-ai-icon v-if="search!.sources.length > 0" name="chevron-right-outline" size="14" color="#888" />
 	</view>
 </template>
 
 <script setup lang="uts">
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
-	import { MsgItem } from '@/uni_modules/uni-ai-x/types.uts'
+	import { MessageSearch } from '@/uni_modules/uni-ai-x/types.uts'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
-	const props = defineProps<{ msg: MsgItem }>()
+	const props = defineProps<{ search?: MessageSearch | null }>()
 	const emit = defineEmits<{ 'open': [id: number] }>()
-	const msg = computed<MsgItem>(() => props.msg)
+	const search = computed<MessageSearch | null>(() => props.search ?? null)
 	const loadingPaused = ref<boolean>(true)
 	onMounted(() => { nextTick(() => { loadingPaused.value = false }) })
 	const label = computed<string>(() => {
-		const search = props.msg.search
+		const search = props.search
 		if (search == null) return ''
 		if (search.status == 'searching') return tr('正在搜索网页', 'Searching the web')
+		if (search.status == 'snapshot') return tr('联网搜索', 'Web search')
 		if (search.status == 'cancelled') return tr('搜索已停止', 'Search stopped')
 		if (search.status == 'failed') {
 			if (search.error == '联网搜索失败，将直接回答') return tr('联网搜索失败，将直接回答', 'Web search failed. Answering directly.')
@@ -37,7 +38,7 @@
 		return tr('已检索 ', 'Found ') + search.sources.length.toString() + tr(' 个网页', ' pages')
 	})
 	function openSources() {
-		if ((props.msg.search?.sources.length ?? 0) > 0) emit('open', 0)
+		if ((props.search?.sources.length ?? 0) > 0) emit('open', 0)
 	}
 </script>
 

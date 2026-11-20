@@ -1,0 +1,146 @@
+import type { MarkdownTextRenderBlock } from './markdown-text.uts'
+import type { MsgItem, MessageSearch, SearchSource } from '../types.uts'
+import { isMessageViewResourceSettled } from './message-render-tasks.uts'
+
+export type MessageDisplay = {
+	blocks: MarkdownTextRenderBlock[]
+	think: string
+	search: MessageSearch | null
+	toolStatus: string
+	lateThink: string
+	lateSearch: MessageSearch | null
+	complete: boolean
+	tailMessage: MsgItem
+}
+
+// State belongs to a message, never to a recycled row. Only the visible tail
+// may change; successors wait for the preceding block's terminal presentation.
+export class MessageDisplayState {
+	searchSealed = false
+	searchSnapshot: MessageSearch | null = null
+	thinkSealed = false
+	thinkSnapshot = ''
+	frozen: MarkdownTextRenderBlock[] = []
+	header: MessageDisplay | null = null
+	theme = ''
+	width = 0
+	bodyLength = 0
+	rendered = false
+	final: MessageDisplay | null = null
+	visible: MarkdownTextRenderBlock[] = []
+}
+
+function copySearch(search: MessageSearch | null): MessageSearch | null {
+	if (search == null) return null
+	return { ...search, sources: search.sources.map((source: SearchSource): SearchSource => ({ ...source } as SearchSource)) } as MessageSearch
+}
+
+function ready(block: MarkdownTextRenderBlock, messageId: string, theme: string): boolean {
+	if (!block.isComplete) return false
+	if (block.kind == 'code') return (block.codeHighlightedText ?? '') == block.text.replace(/\r\n/g, '\n')
+	// #ifdef MP-WEIXIN
+	if (block.kind == 'math' || block.kind == 'mermaid') return true
+	// #endif
+	if (block.kind == 'mermaid') return block.mermaidRenderFailed == true ||
+		((block.mermaidImageSource ?? '').length > 0 && block.svgWidth > 0 && block.svgHeight > 0 &&
+			isMessageViewResourceSettled(messageId, theme + ':' + block.mermaidImageSource!))
+	if (block.kind == 'math') {
+		const prepared = (block.svgSource.length > 0 && block.svgWidth > 0 && block.svgHeight > 0) ||
+			((block.math?.src ?? '').length > 0 && (block.math?.width ?? 0) > 0 && (block.math?.height ?? 0) > 0)
+		return prepared && isMessageViewResourceSettled(messageId, theme + ':' + (block.math?.src ?? '') + ':' + block.svgSource + ':' + block.text)
+	}
+	return true
+}
+
+function snapshot(block: MarkdownTextRenderBlock): MarkdownTextRenderBlock {
+	const result = { ...block } as MarkdownTextRenderBlock
+	if (block.math != null) result.math = { ...block.math! }
+	if (block.table != null) result.table = { ...block.table! }
+	return result
+}
+
+function sameSearch(a: MessageSearch | null, b: MessageSearch | null): boolean {
+	if (a == null || b == null) return a == b
+	if (a.status != b.status || a.error != b.error || a.query != b.query || a.sources.length != b.sources.length) return false
+	for (let i = 0; i < a.sources.length; i++) {
+		if (a.sources[i].id != b.sources[i].id || a.sources[i].title != b.sources[i].title || a.sources[i].url != b.sources[i].url) return false
+	}
+	return true
+}
+
+export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
+	blocks: MarkdownTextRenderBlock[], finished: boolean, theme: string, width: number): MessageDisplay {
+	if (state.theme != theme || state.width != width || msg.body.length < state.bodyLength || (state.rendered && !msg.rendered)) {
+		state.searchSealed = false
+		state.searchSnapshot = null
+		state.thinkSealed = false
+		state.thinkSnapshot = ''
+		state.frozen = []
+		state.header = null
+		state.visible = []
+		state.final = null
+	}
+	state.theme = theme
+	state.width = width
+	state.bodyLength = msg.body.length
+	state.rendered = msg.rendered
+	if (state.final != null) return state.final!
+	const visible = state.frozen.slice()
+	for (let i = state.frozen.length; i < blocks.length; i++) {
+		let block = blocks[i]
+		// An interrupted/unclosed special block has a source-text terminal state.
+		if (finished && !block.isComplete) {
+			block = snapshot(block)
+			block.kind = 'data-text'
+			block.isComplete = true
+		}
+		visible.push(block)
+		if (!ready(block, msg._id, theme)) break
+		if (i + 1 < blocks.length || finished) {
+			const stable = snapshot(block)
+			state.frozen.push(stable)
+			visible[visible.length - 1] = stable
+		}
+	}
+	if (visible.length != state.visible.length || visible.some((block: MarkdownTextRenderBlock, index: number): boolean => block != state.visible[index])) state.visible = visible
+	const display: MessageDisplay = {
+		blocks: state.visible, think: msg.thinkContent ?? '', search: copySearch(msg.search ?? null),
+		toolStatus: msg.toolStatus ?? '', lateThink: '', lateSearch: null,
+		tailMessage: msg,
+		complete: finished && (msg.body.trim().length == 0 || blocks.length > 0 || ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length == 0)) && visible.length == blocks.length && visible.every((block: MarkdownTextRenderBlock): boolean => ready(block, msg._id, theme))
+	}
+	// Seal each prelude slot before its successor is visible. A search arriving
+	// after thinking, or thinking arriving after tool progress, belongs at the end.
+	const hasBody = visible.length > 0 || msg.body.trim().length > 0
+	if (!state.searchSealed && (display.think.length > 0 || display.toolStatus.length > 0 || hasBody)) {
+		state.searchSealed = true
+		state.searchSnapshot = copySearch(display.search)
+		if (state.searchSnapshot?.status == 'searching') state.searchSnapshot!.status = 'snapshot'
+	}
+	if (!state.thinkSealed && (display.toolStatus.length > 0 || hasBody)) {
+		state.thinkSealed = true
+		state.thinkSnapshot = display.think
+	}
+	if (state.searchSealed) display.search = state.searchSnapshot
+	if (state.thinkSealed) display.think = state.thinkSnapshot
+	if (state.header == null && hasBody) {
+		state.header = { ...display, blocks: [], toolStatus: '' } as MessageDisplay
+		if (state.header!.search?.status == 'searching') state.header!.search!.status = 'snapshot'
+	}
+	const header = state.header
+	if (header != null) {
+		display.think = header.think
+		display.search = header.search
+		// Progress shown before the first body is sealed before releasing the body.
+		display.toolStatus = ''
+	}
+	if (display.complete) {
+		const thinking = msg.thinkContent ?? ''
+		display.lateThink = thinking.startsWith(display.think) ? thinking.slice(display.think.length) : thinking
+		if (!sameSearch(display.search, msg.search ?? null)) display.lateSearch = copySearch(msg.search ?? null)
+		display.toolStatus = ''
+		display.tailMessage = { ...msg, search: copySearch(msg.search ?? null) ?? undefined } as MsgItem
+		state.final = display
+	}
+	return display
+}

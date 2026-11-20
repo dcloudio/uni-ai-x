@@ -1,10 +1,25 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { stripTypeScriptTypes } from 'node:module';
 
 const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg.uvue', import.meta.url), 'utf8');
-const expression = source.match(/<template v-for="part in parts" :key="([^"]+)"/)[1];
-const key = new Function('parts', 'part', 'isUniAiMdPlatform = false', `return ${expression}`);
+function renderKey(platform = 'WEB') {
+  const enabled = [true];
+  const code = source.slice(source.indexOf('function partRenderKey('), source.indexOf('const isFirst ='))
+    .split('\n').filter(line => {
+      const directive = /^\s*\/\/\s*#(ifdef|ifndef|endif)\b\s*(.*)/.exec(line);
+      if (!directive) return enabled.at(-1);
+      if (directive[1] === 'endif') { enabled.pop(); return false; }
+      const matches = directive[2].split('||').some(flag => flag.trim() === platform);
+      enabled.push(enabled.at(-1) && (directive[1] === 'ifdef' ? matches : !matches));
+      return false;
+    }).join('\n');
+  return new Function('parts', 'part', 'isUniAiMdPlatform = false', 'index = 0',
+    stripTypeScriptTypes(code) + '\nreturn partRenderKey(part, index);');
+}
+const callKey = renderKey();
+const key = (parts, part, native = false) => callKey({ value: parts }, part, native);
 const part = (kind, id) => ({ key: id, block: { kind, key: id } });
 
 test('single image and rich-text rows preserve display identity when rebound', () => {
@@ -42,4 +57,12 @@ test('native Mermaid rendering retains source identity across recycled messages'
   const b = part('mermaid', 'b');
   assert.equal(key([a], a, true), 'a');
   assert.equal(key([b], b, true), 'b');
+});
+
+
+test('Android recycled slots retain identity but remain distinct within mixed rows', () => {
+  const androidKey = renderKey('APP-ANDROID');
+  const a = part('html', 'first'), b = part('html', 'second');
+  assert.equal(androidKey({ value: [a] }, a, true, 0), androidKey({ value: [b] }, b, true, 0));
+  assert.notEqual(androidKey({ value: [a, b] }, a, true, 0), androidKey({ value: [a, b] }, b, true, 1));
 });

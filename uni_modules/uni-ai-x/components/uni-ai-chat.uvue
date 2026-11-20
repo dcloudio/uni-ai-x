@@ -27,7 +27,7 @@
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
 						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
-							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent" @source="openSource"></uni-ai-x-msg>
+							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent" @source="openSource" @restore="restoreMessage"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
 					<list-item id="msg-list-bottom"><view :style="{height: bottomSpacerHeight + 'px', flexShrink: 0}" /></list-item>
@@ -65,18 +65,18 @@
 	import {uniAi, MsgItem, uiTheme, calendarConfirmationRevision} from '@/uni_modules/uni-ai-x/sdk/'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { llmModelMap, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
+	import { MessageDisplayState, readMessageDisplay } from '@/uni_modules/uni-ai-x/sdk/message-display.uts'
+	import { hasMessageRenderTasks } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
+	import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
+	import type { MessageSearch } from '@/uni_modules/uni-ai-x/types.uts'
 	import { MarkdownTextRenderBlock } from '@/uni_modules/uni-ai-x/sdk/markdown-text.uts'
 	import { readMessagePresentation, readMessageLayoutRevision } from '@/uni_modules/uni-ai-x/sdk/message-presentation.uts'
-	import { prepareTablePresentation } from '@/uni_modules/uni-ai-x/sdk/table-presentation.uts'
-	import { linkSearchCitations } from '@/uni_modules/uni-ai-x/sdk/search-citations.uts'
-	import { linkMarkdownFootnotes } from '@/uni_modules/uni-ai-x/sdk/markdown-footnotes.uts'
 	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	import {
 		uniAiMdStreamApplyRebuild,
-		uniAiMdPresentationRevision,
 		uniAiMdStreamGetRevision,
 		uniAiMdStreamGetBlocks,
-		uniAiMdStreamRequestRebuild
+		uniAiMdStreamIsSettled
 	} from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
 	import { setAiWorkerRebuildListener } from '@/uni_modules/uni-ai-x'
 	import type { AiWorkerRebuildResult } from '@/uni_modules/uni-ai-x'
@@ -156,9 +156,7 @@
 	function blockCalendarOverlay() {}
 
 	type MarkdownBlockCache = {
-		body: string
 		theme: string
-		sources: string
 		uniAiMdRevision: number
 		complete: boolean
 		rebuildVersion: number
@@ -213,15 +211,21 @@
 		key: string
 		kind: string
 		block?: MarkdownTextRenderBlock
+		text?: string
+		search?: MessageSearch | null
+		ready?: boolean
 	}
 
 	type MessageRowCache = {
 		msg: MsgItem
 		structure: string
+		search: MessageSearch | null
+		lateSearch: MessageSearch | null
 		blocks: MarkdownTextRenderBlock[]
 		rows: ChatRenderItem[]
 	}
 	const messageRowCache = new Map<string, MessageRowCache>()
+	const displayStates = new Map<string, MessageDisplayState>()
 	const rowCache = new Map<string, ChatRenderItem>()
 	const noBlocks = [] as MarkdownTextRenderBlock[]
 
@@ -260,34 +264,22 @@
 		const revision = msg.uniAiMdRevision ?? 0
 			const version = uniAiMdStreamGetRevision(msg._id)
 		const theme = uiTheme.value
-		// Android presentation revisions already represent visible content; raw body changes alone must not rebuild rows.
-		// #ifdef APP-ANDROID
-		const cacheBody = ''
-		// #endif
-		// #ifndef APP-ANDROID
-		const cacheBody = msg.body
-		// #endif
-		// #ifdef APP-ANDROID
-		const sources = ''
-		// #endif
-		// #ifndef APP-ANDROID
-		const sources = JSON.stringify(msg.search?.sources ?? []) ?? ''
-		// #endif
 		const cached = markdownBlockCache.get(msg._id)
-		if (cached != null && cached.body == cacheBody && cached.theme == theme && cached.sources == sources &&
+		if (cached != null && cached.theme == theme &&
 			cached.uniAiMdRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
 		const blocks = uniAiMdStreamGetBlocks(msg._id)
-		if (blocks.length == 0 && msg.body.trim().length > 0 && msg.rendered) {
-			uniAi.prepareMessagePresentation(msg)
-			uniAiMdStreamRequestRebuild(msg._id, msg.body)
-		}
 		markdownBlockCache.set(msg._id, {
-			body: cacheBody, theme: theme, sources: sources, uniAiMdRevision: revision,
+			theme: theme, uniAiMdRevision: revision,
 			complete: msg.rendered, rebuildVersion: version, blocks: blocks
 		} as MarkdownBlockCache)
 		return blocks
 		// #endif
 	}
+
+    function restoreMessage(messageId: string) {
+        const msg = msgList.value.find((item: MsgItem): boolean => item._id == messageId)
+        if (msg != null) uniAi.prepareMessagePresentation(msg)
+    }
 
 	function markdownBlockItemType(block: MarkdownTextRenderBlock): number {
 		if (block.kind == 'table') return RENDER_ITEM_TYPE_AI_TABLE
@@ -308,7 +300,7 @@
 			for (let i = 0; i < parts.length; i++) {
 				const previous = cached.parts[i]
 				const next = parts[i]
-				if (previous.key != next.key || previous.kind != next.kind || previous.block != next.block) {
+				if (previous.key != next.key || previous.kind != next.kind || previous.block != next.block || previous.text != next.text || previous.search != next.search || previous.ready != next.ready) {
 					unchanged = false
 					break
 				}
@@ -370,17 +362,30 @@
 		const items: ChatRenderItem[] = []
 			const emptyState = msg.from_uid == 'uni-ai' && uniAi.lastAiMsg?._id == msg._id ? state.value : ''
 			const hasBody = msg.body.trim().length > 0
-			const blocks = msg.from_uid == 'uni-ai' ? getMarkdownBlocks(msg) : noBlocks
+			const prepared = msg.from_uid == 'uni-ai' ? getMarkdownBlocks(msg) : noBlocks
+			let finished = emptyState != 'processing' && (msg.rendered || msg.error_msg != null)
+			// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
+			if (msg.body.trim().length > 0 && !uniAiMdStreamIsSettled(msg._id)) finished = false
+			// #endif
+			if (hasMessageRenderTasks(msg._id)) finished = false
+			let displayState = displayStates.get(msg._id)
+			if (displayState == null) {
+				displayState = new MessageDisplayState()
+				displayStates.set(msg._id, displayState)
+			}
+			const display = readMessageDisplay(displayState, msg, prepared, finished, uiTheme.value, mathWindowWidth.value)
+			const blocks = display.blocks
 			const hasMarkdown = blocks.length > 0 || (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || canRebuildMarkdownFromBody(msg)
 			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()
-				+ ':' + ((msg.thinkContent ?? '').length > 0).toString() + ':' + hasBody.toString()
-				+ ':' + ((msg.toolStatus ?? '').length > 0).toString()
-				+ ':' + ((msg.toolResultText ?? '').length > 0).toString()
+				+ ':' + display.think + ':' + hasBody.toString()
+				+ ':' + display.toolStatus
+				+ ':' + (display.tailMessage.toolResultText ?? '') + ':' + (display.tailMessage.error_msg ?? '')
 				+ ':' + ((msg.stressSvgSource ?? '').length > 0).toString() + ':' + hasMarkdown.toString()
 				+ ':' + (msg.search?.status ?? '') + ':' + (msg.search?.sources.length ?? 0).toString() + ':' + msg.rendered.toString()
-				+ ':' + emptyState
+				+ ':' + emptyState + ':' + display.complete.toString() + ':' + display.lateThink
+				+ ':' + (display.search?.status ?? '') + ':' + (display.lateSearch?.status ?? '')
 			const cached = messageRowCache.get(msg._id)
-			if (cached != null && cached.msg == msg && cached.blocks == blocks && cached.structure == structure) {
+			if (cached != null && cached.msg == msg && cached.blocks == blocks && cached.structure == structure && cached.search == display.search && cached.lateSearch == display.lateSearch) {
 				return cached.rows
 			}
 			const rowStart = items.length
@@ -394,7 +399,7 @@
 					isAi: false,
 					isFirst: true
 				} as ChatRenderItem)
-				messageRowCache.set(msg._id, { msg: msg, structure: structure, blocks: blocks, rows: items.slice(rowStart) } as MessageRowCache)
+				messageRowCache.set(msg._id, { msg: msg, structure: structure, search: display.search, lateSearch: display.lateSearch, blocks: blocks, rows: items.slice(rowStart) } as MessageRowCache)
 				return items
 			}
 
@@ -429,8 +434,10 @@
 					[aiRenderPart(block.kind, blockKey, block)] as AiMsgRenderPart[])
 				hasAiSegment = true
 			}
-			if (msg.search != null) {
-				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SEARCH, true, 'search', [aiRenderPart('search', 'search')])
+			if (display.search != null) {
+				const searchPart = aiRenderPart('search', 'search')
+				searchPart.search = display.search
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SEARCH, true, 'search', [searchPart])
 				hasAiSegment = true
 			}
 			const stressSvgSource = msg.stressSvgSource ?? ''
@@ -439,12 +446,11 @@
 					[aiRenderPart('stress-svg', 'stress-svg')] as AiMsgRenderPart[])
 				hasAiSegment = true
 			}
-			if (msg.error_msg != null) {
-				appendNormalPart(aiRenderPart('error', 'error'))
-			} else {
-				if (msg.thinkContent != null && msg.thinkContent!.length > 0) {
-					appendNormalPart(aiRenderPart('think', 'think'))
-				}
+			if (display.think.length > 0) {
+				const thought = aiRenderPart('think', 'think')
+				thought.text = display.think
+				appendNormalPart(thought)
+			}
 				if (hasMarkdown) {
 					if (blocks.length > 0) {
 						for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
@@ -460,33 +466,56 @@
 						appendNormalPart(aiRenderPart('restoring', 'restoring'))
 						// #endif
 						// #ifndef APP-ANDROID || APP-HARMONY || APP-IOS
-						appendNormalPart(aiRenderPart('plain', 'plain'))
+						appendNormalPart(aiRenderPart(msg.rendered || msg.error_msg != null ? 'plain' : 'restoring', 'plain'))
 						// #endif
 					}
 				} else if (hasBody) {
 					// #ifdef APP-ANDROID
-					appendNormalPart(aiRenderPart('plain', 'plain'))
+					appendNormalPart(aiRenderPart(msg.rendered || msg.error_msg != null ? 'plain' : 'restoring', 'plain'))
 					// #endif
 					// #ifndef APP-ANDROID
-					appendNormalPart(aiRenderPart('plain', 'plain'))
+					appendNormalPart(aiRenderPart(msg.rendered || msg.error_msg != null ? 'plain' : 'restoring', 'plain'))
 					// #endif
 				} else if (emptyState != '' && emptyState != 'completed' && stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && (msg.toolStatus ?? '').length == 0 && (msg.toolResultText ?? '').length == 0 && msg.search?.status != 'searching') {
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
+			if (display.toolStatus.length > 0) appendNormalPart(aiRenderPart('tool-status', 'tool-status'))
+			if (display.complete) {
+				if (display.lateThink.length > 0) {
+					flushNormalParts()
+					const thought = aiRenderPart('think', 'late-think')
+					thought.text = display.lateThink
+					appendNormalPart(thought)
+				}
+				if ((display.tailMessage.toolResultText ?? '').length > 0) {
+					const result = aiRenderPart('tool-result', 'tool-result')
+					result.text = display.tailMessage.toolResultText ?? ''
+					appendNormalPart(result)
+				}
+				if (display.tailMessage.error_msg != null) {
+					const error = aiRenderPart('error', 'error')
+					error.text = display.tailMessage.error_msg ?? ''
+					appendNormalPart(error)
+				}
 			}
-			if ((msg.toolStatus ?? '').length > 0) appendNormalPart(aiRenderPart('tool-status', 'tool-status'))
-			if ((msg.toolResultText ?? '').length > 0) appendNormalPart(aiRenderPart('tool-result', 'tool-result'))
 			if (normalParts.length > 0) flushNormalParts()
-			if (msg.rendered && (msg.search?.sources.length ?? 0) > 0) {
-				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SOURCES, false, 'sources', [aiRenderPart('sources', 'sources')])
+			if (display.complete && (display.tailMessage.search?.sources.length ?? 0) > 0) {
+				appendAiRenderItem(items, display.tailMessage, RENDER_ITEM_TYPE_AI_SOURCES, false, 'sources', [aiRenderPart('sources', 'sources')])
+			}
+			if (display.complete && display.lateSearch != null) {
+				const searchPart = aiRenderPart('search', 'late-search')
+				searchPart.search = display.lateSearch
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_SEARCH, !hasAiSegment, 'late-search', [searchPart])
+				hasAiSegment = true
 			}
 			if (hasAiSegment) {
 				// 工具栏独立成消息后的列表项，避免被富文本块的原生布局挤到顶部。
-				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_TOOLBAR, false, 'toolbar',
-					[aiRenderPart('toolbar', 'toolbar')])
+				const toolbar = aiRenderPart('toolbar', 'toolbar')
+				toolbar.ready = display.complete
+				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_TOOLBAR, false, 'toolbar', [toolbar])
 			}
 			const rows = items.slice(rowStart)
-			messageRowCache.set(msg._id, { msg: msg, structure: structure, blocks: blocks, rows: rows } as MessageRowCache)
+			messageRowCache.set(msg._id, { msg: msg, structure: structure, search: display.search, lateSearch: display.lateSearch, blocks: blocks, rows: rows } as MessageRowCache)
 			if (cached != null) {
 				const liveKeys = new Set<string>()
 				rows.forEach((row: ChatRenderItem) => { liveKeys.add(row.key) })
@@ -497,23 +526,14 @@
 
 	const messageComputations = new Map<string, { msg: MsgItem, rows: ComputedRef<ChatRenderItem[]> }>()
 	const renderItemList = computed<ChatRenderItem[]>(() => {
-		// #ifdef APP-HARMONY || APP-IOS
-		uniAiMdPresentationRevision.value
-		rebuildVersion.value
-		// #endif
 		const items: ChatRenderItem[] = []
 		for (const msg of msgList.value) {
-			// #ifdef APP-ANDROID
 			let cached = messageComputations.get(msg._id)
 			if (cached == null || cached.msg != msg) {
 				cached = { msg: msg, rows: computed<ChatRenderItem[]>(() => buildMessageRows(msg)) }
 				messageComputations.set(msg._id, cached)
 			}
 			items.push(...cached.rows.value)
-			// #endif
-			// #ifndef APP-ANDROID
-			items.push(...buildMessageRows(msg))
-			// #endif
 		}
 		return items
 	})
@@ -678,6 +698,7 @@
 	
 	watch(chatActiveId, () => {
 		cancelBottomScroll()
+		displayStates.clear()
 		messageComputations.clear()
 		markdownBlockCache.clear()
 		messageRowCache.clear()
@@ -702,6 +723,7 @@
 		msgList.value.forEach((msg: MsgItem) => { activeIds.add(msg._id) })
 		messageRowCache.forEach((cached: MessageRowCache, id: string) => {
 			if (activeIds.has(id)) return
+			displayStates.delete(id)
 			messageComputations.delete(id)
 			cached.rows.forEach((row: ChatRenderItem) => { rowCache.delete(row.key) })
 			messageRowCache.delete(id)
@@ -863,6 +885,9 @@
 		uniAi.currentChat!.inputContent = ''
 	}
 	
+
+
+
 	onMounted(() => {
 		// #ifdef APP-IOS
 		pollRebuildResults()
@@ -882,6 +907,7 @@
 	onBeforeUnmount(() => {
 		viewDisposed = true
 		cancelBottomScroll()
+		displayStates.clear()
 		messageComputations.clear()
 		if (state.value == 'processing') uniAi.abortRequest()
 		// #ifdef APP-IOS
