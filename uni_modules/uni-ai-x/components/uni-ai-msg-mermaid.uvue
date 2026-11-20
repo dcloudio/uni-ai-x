@@ -10,7 +10,7 @@
 				<text class="uni-mermaid-msg-copy-text" flatten>{{tr('复制代码', 'Copy code')}}</text>
 			</view>
 		</view>
-		<view class="uni-mermaid-msg-stage">
+		<view class="uni-mermaid-msg-stage" :class="showSource ? 'uni-mermaid-msg-stage-code' : ''">
 			<!-- #ifdef APP-ANDROID -->
 			<view v-if="sourceSelection != props.identity && props.src.length == 0 && !props.renderFailed && !showSource" :style="pendingImageStyle"><loading /></view>
 			<!-- #endif -->
@@ -113,15 +113,15 @@ function copyCode() {
 
 .uni-mermaid-msg-root.uni-theme-light {
 	--mermaid-surface: #fafafa;
-	--mermaid-border: #d8dee8;
+	--mermaid-border: #eeeeee;
 	--mermaid-header: #fafafa;
 	--mermaid-switch: #eeeeee;
 	--mermaid-switch-text: #64748b;
 	--mermaid-active: #ffffff;
 	--mermaid-active-text: #0f172a;
 	--mermaid-copy: #334155;
-	--mermaid-code-surface: #f8fafc;
-	--mermaid-code-text: #334155;
+	--mermaid-code-surface: #fafafa;
+	--mermaid-code-text: #1b1c24;
 }
 
 .uni-mermaid-msg-root.uni-theme-dark {
@@ -133,8 +133,8 @@ function copyCode() {
 	--mermaid-active: #f5f5f5;
 	--mermaid-active-text: #171717;
 	--mermaid-copy: #f4f4f4;
-	--mermaid-code-surface: #111827;
-	--mermaid-code-text: #d1fae5;
+	--mermaid-code-surface: #171717;
+	--mermaid-code-text: #f3f4f6;
 }
 
 .uni-mermaid-msg-code-header {
@@ -193,12 +193,12 @@ function copyCode() {
 .uni-mermaid-msg-stage {
 	position: relative;
 	width: 100%;
-	padding: 12px;
+	padding: 16px;
 	overflow: hidden;
 	background-color: var(--bg-primary);
 }
 
-
+.uni-mermaid-msg-stage-code { background-color: var(--mermaid-code-surface); }
 
 .uni-mermaid-msg-code-source {
 	width: 100%;
@@ -209,7 +209,7 @@ function copyCode() {
 	font-size: 14px;
 	line-height: 22px;
 	font-family: monospace;
-	margin-left: 15px;
+	margin-left: 0;
 	color: var(--mermaid-code-text);
 	white-space: pre-wrap;
 	word-break: break-all;
