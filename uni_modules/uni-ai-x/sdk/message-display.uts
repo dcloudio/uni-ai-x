@@ -16,6 +16,7 @@ export type MessageDisplay = {
 // State belongs to a message, never to a recycled row. Only the visible tail
 // may change; successors wait for the preceding block's terminal presentation.
 export class MessageDisplayState {
+	wasStreaming = false
 	searchSealed = false
 	searchSnapshot: MessageSearch | null = null
 	thinkSealed = false
@@ -35,7 +36,7 @@ function copySearch(search: MessageSearch | null): MessageSearch | null {
 	return { ...search, sources: search.sources.map((source: SearchSource): SearchSource => ({ ...source } as SearchSource)) } as MessageSearch
 }
 
-function ready(block: MarkdownTextRenderBlock, messageId: string, theme: string): boolean {
+function ready(block: MarkdownTextRenderBlock, messageId: string, theme: string, waitForViewResources: boolean = true): boolean {
 	if (!block.isComplete) return false
 	if (block.kind == 'code') return (block.codeHighlightedText ?? '') == block.text.replace(/\r\n/g, '\n')
 	// #ifdef MP-WEIXIN
@@ -43,11 +44,11 @@ function ready(block: MarkdownTextRenderBlock, messageId: string, theme: string)
 	// #endif
 	if (block.kind == 'mermaid') return block.mermaidRenderFailed == true ||
 		((block.mermaidImageSource ?? '').length > 0 && block.svgWidth > 0 && block.svgHeight > 0 &&
-			isMessageViewResourceSettled(messageId, theme + ':' + block.mermaidImageSource!))
+			(!waitForViewResources || isMessageViewResourceSettled(messageId, theme + ':' + block.mermaidImageSource!)))
 	if (block.kind == 'math') {
 		const prepared = (block.svgSource.length > 0 && block.svgWidth > 0 && block.svgHeight > 0) ||
 			((block.math?.src ?? '').length > 0 && (block.math?.width ?? 0) > 0 && (block.math?.height ?? 0) > 0)
-		return prepared && isMessageViewResourceSettled(messageId, theme + ':' + (block.math?.src ?? '') + ':' + block.svgSource + ':' + block.text)
+		return prepared && (!waitForViewResources || isMessageViewResourceSettled(messageId, theme + ':' + (block.math?.src ?? '') + ':' + block.svgSource + ':' + block.text))
 	}
 	return true
 }
@@ -69,7 +70,7 @@ function sameSearch(a: MessageSearch | null, b: MessageSearch | null): boolean {
 }
 
 export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
-	blocks: MarkdownTextRenderBlock[], finished: boolean, theme: string, width: number): MessageDisplay {
+	blocks: MarkdownTextRenderBlock[], finished: boolean, theme: string, width: number, waitForViewResources: boolean = true): MessageDisplay {
 	if (state.theme != theme || state.width != width || msg.body.length < state.bodyLength || (state.rendered && !msg.rendered)) {
 		state.searchSealed = false
 		state.searchSnapshot = null
@@ -95,7 +96,7 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 			block.isComplete = true
 		}
 		visible.push(block)
-		if (!ready(block, msg._id, theme)) break
+		if (!ready(block, msg._id, theme, waitForViewResources)) break
 		if (i + 1 < blocks.length || finished) {
 			const stable = snapshot(block)
 			state.frozen.push(stable)
@@ -107,7 +108,7 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 		blocks: state.visible, think: msg.thinkContent ?? '', search: copySearch(msg.search ?? null),
 		toolStatus: msg.toolStatus ?? '', lateThink: '', lateSearch: null,
 		tailMessage: msg,
-		complete: finished && (msg.body.trim().length == 0 || blocks.length > 0 || ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length == 0)) && visible.length == blocks.length && visible.every((block: MarkdownTextRenderBlock): boolean => ready(block, msg._id, theme))
+		complete: finished && (msg.body.trim().length == 0 || blocks.length > 0 || ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length == 0)) && visible.length == blocks.length && visible.every((block: MarkdownTextRenderBlock): boolean => ready(block, msg._id, theme, waitForViewResources))
 	}
 	// Seal each prelude slot before its successor is visible. A search arriving
 	// after thinking, or thinking arriving after tool progress, belongs at the end.

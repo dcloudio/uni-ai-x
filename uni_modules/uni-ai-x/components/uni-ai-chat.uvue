@@ -373,7 +373,8 @@
 				displayState = new MessageDisplayState()
 				displayStates.set(msg._id, displayState)
 			}
-			const display = readMessageDisplay(displayState, msg, prepared, finished, uiTheme.value, mathWindowWidth.value)
+			if (emptyState == 'processing') displayState.wasStreaming = true
+			const display = readMessageDisplay(displayState, msg, prepared, finished, uiTheme.value, mathWindowWidth.value, displayState.wasStreaming)
 			const blocks = display.blocks
 			const hasMarkdown = blocks.length > 0 || (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || canRebuildMarkdownFromBody(msg)
 			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()

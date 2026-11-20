@@ -11,7 +11,7 @@ function display() {
   });
   const state = new api.MessageDisplayState();
   const msg = { _id: 'm', body: '', rendered: false };
-  return { msg, resources, read: (blocks, finished = false) => api.readMessageDisplay(state, msg, blocks, finished, 'light', 390) };
+  return { msg, resources, read: (blocks, finished = false, waitForViewResources = true) => api.readMessageDisplay(state, msg, blocks, finished, 'light', 390, waitForViewResources) };
 }
 const search = (status, sources = []) => ({ status, sources, query: 'query', error: '' });
 
@@ -51,6 +51,28 @@ test('successors wait for image termination and committed prefixes ignore later 
   assert.equal(submitted.blocks.length, 2);
   const changed = block('diagram', { kind: 'data-text', text: 'rewritten' });
   assert.equal(api.read([changed, end]).blocks[0].kind, 'mermaid');
+});
+
+test('prepared historical diagrams and formulae release all successors without mounted image callbacks', () => {
+  const api = display(); api.msg.body = 'history'; api.msg.rendered = true;
+  const diagram = block('diagram', { kind: 'mermaid', mermaidImageSource: '/diagram', svgWidth: 100, svgHeight: 50 });
+  const formula = block('formula', { kind: 'math', svgSource: '/formula', svgWidth: 80, svgHeight: 30 });
+  const result = api.read([diagram, formula, block('end')], true, false);
+  assert.equal(result.blocks.length, 3);
+  assert.equal(result.complete, true);
+});
+
+test('history still waits for generated dimensions and highlighted code before committing successors', () => {
+  for (const pending of [
+    block('diagram', { kind: 'mermaid', mermaidImageSource: '/diagram' }),
+    block('formula', { kind: 'math', svgSource: '/formula' }),
+    block('code', { kind: 'code', text: 'let value = 1' }),
+  ]) {
+    const api = display(); api.msg.body = 'history'; api.msg.rendered = true;
+    const result = api.read([pending, block('end')], true, false);
+    assert.equal(result.blocks.length, 1);
+    assert.equal(result.complete, false);
+  }
 });
 
 test('final error and sources snapshots preserve body and cannot change under the toolbar', () => {
