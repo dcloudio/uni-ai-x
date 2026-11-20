@@ -4,7 +4,7 @@
 		<view class="source-sheet" :class="{ 'source-sheet-visible': isReady }">
 			<view class="sheet-header">
 				<text class="sheet-title">{{tr('搜索结果', 'Search results')}}</text>
-				<view class="sheet-close" @click="emit('close')"><uni-ai-icon name="close-outline" size="23" color="#888" /></view>
+				<view class="sheet-close" @click="emit('close')"><uni-ai-icon name="close-outline" size="20" color="#888" /></view>
 			</view>
 			<scroll-view id="source-sheet-scroll" class="sheet-scroll" direction="vertical" :scroll-into-view="scrollTarget" :scroll-with-animation="false">
 				<view v-for="source in sources" :key="source.id" :id="'search-result-' + source.id" class="sheet-source" hover-class="sheet-source-pressed" @click="openWebLink(source.url)">
@@ -112,7 +112,7 @@
 	.source-sheet-visible { transform: translateY(0); }
 	.sheet-header { height: 64px; flex-shrink: 0; justify-content: center; align-items: center; padding: 0 60px; }
 	.sheet-title { font-size: 18px; font-weight: bold; color: var(--text-primary); }
-	.sheet-close { position: absolute; right: 12px; top: 10px; width: 44px; height: 44px; border-radius: 22px; background-color: var(--bg-secondary); justify-content: center; align-items: center; }
+	.sheet-close { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; justify-content: center; align-items: center; }
 	.sheet-scroll { flex: 1; min-height: 0; }
 	.sheet-source { padding: 16px 16px 22px; }
 	.sheet-source-pressed { background-color: var(--bg-secondary); }
