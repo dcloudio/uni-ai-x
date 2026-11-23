@@ -192,7 +192,7 @@ test('native Mermaid uses its SVG; fallback publishes into the separate Mermaid 
   assert.equal(api.uniAiMdStreamGetBlocks('g')[0].mermaidImageSource, '/gantt.svg');
 });
 
-test('code view keeps one rich-text node with prepared HTML and Mermaid retains its original source inset', () => {
+test('code view keeps one rich-text node with prepared HTML and Mermaid source uses the stage inset', () => {
   const source = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-code/uni-ai-msg-code.uvue', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /requestCachedCodeText|highlightCode|renderMermaid|watch\s*\(/);
   assert.match(source, /:nodes="preparedHtml"/);
@@ -200,7 +200,8 @@ test('code view keeps one rich-text node with prepared HTML and Mermaid retains 
   assert.doesNotMatch(source, /preparedLines/);
   assert.equal((source.match(/<rich-text\b/g) ?? []).length, 1);
   const mermaid = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-msg-mermaid.uvue', import.meta.url), 'utf8');
-  assert.match(mermaid, /margin-left: 15px/);
+  assert.match(mermaid, /\.uni-mermaid-msg-stage\s*\{[^}]*padding: 16px;/);
+  assert.match(mermaid, /\.uni-mermaid-msg-code-text\s*\{[^}]*margin-left: 0;/);
 });
 
 test('empty code lines retain a visible layout placeholder before and after highlighting', () => {

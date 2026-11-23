@@ -1,13 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { stripTypeScriptTypes } from 'node:module';
-import vm from 'node:vm';
+import { loadUts } from './uts-loader.mjs';
 import test from 'node:test';
 
-const source = readFileSync(new URL('../uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts', import.meta.url), 'utf8')
-  .replace(/^import .*$/gm, '').replace(/^export /gm, '');
-const api = vm.createContext({});
-vm.runInContext(stripTypeScriptTypes(source), api);
+const api = loadUts('uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts', ['markdownTableNaturalHeight'], { Number: Object.assign(value => Number(value), { from: value => Number(value) }) });
 
 test('nowrap table height follows actual rows instead of simulated text wrapping', () => {
   const cell = 'Very long text '.repeat(100);
