@@ -615,7 +615,8 @@ class QiniuToolAdapter extends AgentToolAdapter {
 
 export function installAgentTools() {
 	registerCustomProvider('qiniu', new QiniuToolAdapter())
-	if (llmModelMap.get('deepseek')?.baseURL == 'https://api.deepseek.com/chat/completions') {
-		registerCustomProvider('deepseek', new AgentToolAdapter('deepseek'))
-	}
+	// 官方直连仅作示例，不注册到前端；网关下的 DeepSeek 模型仍使用 qiniu。
+	// if (llmModelMap.get('deepseek')?.baseURL == 'https://api.deepseek.com/chat/completions') {
+	// registerCustomProvider('deepseek', new AgentToolAdapter('deepseek'))
+	// }
 }

@@ -8,9 +8,10 @@ function configWithGateway() {
   return { config, install };
 }
 
-test('adding gateway alongside official DeepSeek retains the original seven-model catalogue', () => {
+test('default gateway retains the seven-model catalogue without enabling official direct access', () => {
   const { config, install } = configWithGateway();
-  const official = config.llmModelMap.get('deepseek');
+  assert.equal(config.llmModelMap.has('deepseek'), false);
+  assert.equal(config.defaultLLM.provider, 'qiniu');
   const initialDefault = { ...config.defaultLLM };
   install();
   assert.deepEqual(Array.from(config.llmModelMap.get('qiniu').models, m => m.modelId), [
@@ -18,7 +19,7 @@ test('adding gateway alongside official DeepSeek retains the original seven-mode
     'bytedance/doubao-seed-2-1-pro', 'bytedance/doubao-seed-2-1-turbo',
     'z-ai/glm-5.3', 'z-ai/glm-5.3-flash', 'minimax/minimax-m2.7',
   ]);
-  assert.equal(config.llmModelMap.get('deepseek'), official);
+  assert.equal(config.llmModelMap.has('deepseek'), false);
   assert.deepEqual({ ...config.defaultLLM }, initialDefault);
   install();
   assert.equal(config.providerNameList.filter(p => p === 'qiniu').length, 1);
@@ -27,7 +28,7 @@ test('adding gateway alongside official DeepSeek retains the original seven-mode
 test('optional gateway installation preserves an existing custom gateway configuration', () => {
   const { config, install } = configWithGateway();
   const custom = { models: [{ modelId: 'custom-model' }] };
-  config.registerOptionalProvider('qiniu', custom);
+  config.llmModelMap.set('qiniu', custom);
   install();
   assert.equal(config.llmModelMap.get('qiniu'), custom);
 });

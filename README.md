@@ -103,6 +103,9 @@ web pc端：
 
 - 配置服务商与模型
 请直接参考插件预置配置信息 `llmModelMap` 下的内容
+
+DeepSeek 官方前端直连仅为已禁用的接口示例，Key 使用星号占位；生产接入须在云函数或自有后端保存 Key 并中转。Uni AI 网关内的 DeepSeek 模型仍可正常选择。详见[安全接入说明](docs/deepseek-server-proxy.md)。
+
 **注意：** OpenClaw，需配合[uni-ai-openclaw-channel-plugin](https://gitcode.com/dcloud/uni-ai-openclaw-channel-plugin)插件使用
 
 **Provider 服务商** @Provider

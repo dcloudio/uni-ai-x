@@ -1286,7 +1286,7 @@ index 1befe4b0..839beeaa 100644
 -				const tmpToken = res.getString('data.token', '')
 -				return tmpToken
 -				*/
-+				return 'sk-8059d17cf0e44d0bba795e5e4455257e'
++				return '********'
  			}
  		}
  	]

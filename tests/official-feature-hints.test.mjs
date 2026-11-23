@@ -1,53 +1,35 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
-import {stripTypeScriptTypes} from 'node:module';
+import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
-import {loadUts} from './uts-loader.mjs';
-const {supportsDeepSeekApps}=loadUts('uni_modules/uni-ai-x/sdk/deepseek-app-api.uts',['supportsDeepSeekApps'],{
- llmModelMap:new Map([['deepseek',{baseURL:'https://api.deepseek.com/chat/completions'}]]),
-});
-for (const kind of ['file','ocr','speech']) {
- test(`${kind}: gateway DeepSeek name cannot enable an official-only tool; hint explains the connection`,()=>{
-  const name=kind==='speech'?'uni-ai-speech-output':'uni-ai-document-input';
-  const source=readFileSync(`uni_modules/uni-ai-x/components/${name}.uvue`,'utf8').split('<script setup lang="uts">')[1].split('</script>')[0].replace(/^import[^\n]*\n/gm,'');
-  const ai={llm:{provider:'qiniu',model:'deepseek/deepseek-v4.1-flash'}};
-  const modals=[];
-  const {requestOfficialFeatureSwitch}=loadUts('uni_modules/uni-ai-x/sdk/official-feature-switch.uts',['requestOfficialFeatureSwitch'],{
-   reactive:value=>value,uniAi:ai,supportsDeepSeekApps,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
-   uni:{showModal:options=>modals.push(options)},
-  },['WEB']);
-  const sdk=vm.runInNewContext('(function(){'+stripTypeScriptTypes(source)+'\nreturn {available,run:'+(kind==='speech'?'toggle':'chooseAction')+'};})()',{
-   uniAi:ai,supportsDeepSeekApps,requestOfficialFeatureSwitch,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
-   computed:fn=>({get value(){return fn();}}),ref:value=>({value}),watch(){},onUnmounted(){},
-   defineProps:()=>({ocr:kind==='ocr',messageId:'answer'}),withDefaults:(props,defaults)=>Object.assign({},defaults,props),speechPlayback:{owner:''},
-   uni:{showModal:options=>modals.push(options),chooseFile(){assert.fail('unavailable tool must not open picker');}},
-  });
-  assert.equal(sdk.available.value,false);sdk.run();
-  assert.match(modals[0].content,/Uni AI 网关 · DeepSeek Flash/);
-  assert.match(modals[0].content,/DeepSeek 官方直连 · DeepSeek Flash/);
-  assert.equal(modals[0].cancelText,'暂不切换');
-  assert.equal(modals[0].confirmText,'立即切换');
-  modals[0].success({confirm:false,cancel:true});
-  assert.equal(ai.llm.provider,'qiniu');
-  modals[0].success({confirm:true,cancel:false});
-  assert.equal(ai.llm.provider,'deepseek');
-  assert.equal(ai.llm.model,'deepseek-flash');
-  assert.equal(modals[0].title,'功能使用限制');
-  ai.llm={provider:'deepseek',model:'deepseek-flash'};
-  assert.equal(sdk.available.value,true);
- });
-}
+import { loadUts } from './uts-loader.mjs';
 
-test('Android restriction closes locally and preserves flags when switching, without opening a native dialog',()=>{
- const ai={llm:{provider:'qiniu',model:'deepseek/deepseek-v4.1-flash',thinking:true,webSearch:true}};
- const {requestOfficialFeatureSwitch,resolveOfficialFeatureSwitch,officialFeatureSwitch}=loadUts('uni_modules/uni-ai-x/sdk/official-feature-switch.uts',['requestOfficialFeatureSwitch','resolveOfficialFeatureSwitch','officialFeatureSwitch'],{
-  reactive:value=>value,uniAi:ai,supportsDeepSeekApps,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
-  uni:{hideKeyboard(){},showModal(){assert.fail('Android must use the page confirmation');}},
- });
- requestOfficialFeatureSwitch();assert.equal(officialFeatureSwitch.visible,true);
- resolveOfficialFeatureSwitch(false);assert.equal(officialFeatureSwitch.visible,false);assert.equal(ai.llm.provider,'qiniu');
- requestOfficialFeatureSwitch();resolveOfficialFeatureSwitch(true);
- assert.equal(officialFeatureSwitch.visible,false);assert.equal(ai.llm.provider,'deepseek');
- assert.equal(ai.llm.thinking,true);assert.equal(ai.llm.webSearch,true);
-});
+for (const kind of ['file', 'ocr', 'speech']) {
+  test(`${kind}: unavailable official feature explains the server proxy without switching the gateway model`, () => {
+    const name = kind === 'speech' ? 'uni-ai-speech-output' : 'uni-ai-document-input';
+    const source = readFileSync(`uni_modules/uni-ai-x/components/${name}.uvue`, 'utf8')
+      .split('<script setup lang="uts">')[1].split('</script>')[0].replace(/^import[^\n]*\n/gm, '');
+    const ai = { llm: { provider: 'qiniu', model: 'deepseek/deepseek-v4.1-flash' } };
+    const toasts = [];
+    const switching = loadUts('uni_modules/uni-ai-x/sdk/official-feature-switch.uts',
+      ['requestOfficialFeatureSwitch', 'resolveOfficialFeatureSwitch', 'officialFeatureSwitch'], {
+        reactive: value => value, tr: cn => cn,
+        uni: { showToast: options => toasts.push(options) },
+      });
+    const sdk = vm.runInNewContext('(function(){' + stripTypeScriptTypes(source) + '\nreturn {available,run:' + (kind === 'speech' ? 'toggle' : 'chooseAction') + '};})()', {
+      uniAi: ai, supportsDeepSeekApps: () => false, ...switching, tr: cn => cn,
+      computed: fn => ({ get value() { return fn(); } }), ref: value => ({ value }), watch() {}, onUnmounted() {},
+      defineProps: () => ({ ocr: kind === 'ocr', messageId: 'answer' }),
+      withDefaults: (props, defaults) => Object.assign({}, defaults, props), speechPlayback: { owner: '' },
+      uni: { chooseFile() { assert.fail('disabled feature must not open a file picker'); } },
+    });
+    assert.equal(sdk.available.value, false);
+    sdk.run();
+    assert.match(toasts[0].title, /云端中转/);
+    assert.equal(switching.officialFeatureSwitch.visible, false);
+    switching.resolveOfficialFeatureSwitch(true);
+    assert.equal(ai.llm.provider, 'qiniu');
+    assert.equal(ai.llm.model, 'deepseek/deepseek-v4.1-flash');
+  });
+}

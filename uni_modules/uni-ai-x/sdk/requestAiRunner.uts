@@ -3,7 +3,8 @@ import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, Cale
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
 import { prepareProviderMessages } from './message-builder.uts'
 import { supportsDeepSeekApps } from './deepseek-app-api.uts'
-import { installDeepSeekApps } from './deepseek-app-adapter.uts'
+// 官方直连注册已禁用，保留云端网关调用。
+// import { installDeepSeekApps } from './deepseek-app-adapter.uts'
 import { installAgentTools } from '@/uni_modules/uni-ai-x/sdk/agent-tools.uts'
 import { SseStreamParser } from '@/uni_modules/uni-ai-x/sdk/sse.uts'
 import {
@@ -329,7 +330,7 @@ class RequestAiRunner {
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
-		installDeepSeekApps()
+		// installDeepSeekApps()
 		installAgentTools()
 		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		if (getCustomProvider(llm.provider) == null) {

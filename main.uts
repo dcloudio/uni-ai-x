@@ -1,12 +1,13 @@
 import App from './App.uvue'
 import '@/uni_modules/uni-ai-x/sdk/install-qiniu.uts'
-import { installDeepSeekApps } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-adapter.uts'
+// 官方直连仅作示例，生产接入应走云端中转。
+// import { installDeepSeekApps } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-adapter.uts'
 // import '@/demo/markdown/install.uts' // 取消注释以启用 Markdown 演示模式
 // import '@/uni_modules/uni-ai-x-uni-assistant/install.uts'
 
 import { createSSRApp } from 'vue'
 export function createApp() {
-	installDeepSeekApps()
+	// installDeepSeekApps()
 	const app = createSSRApp(App)
 	return {
 		app

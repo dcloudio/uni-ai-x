@@ -166,11 +166,12 @@ export class DeepSeekAppAdapter extends CustomProviderAdapter {
 }
 
 export function installDeepSeekApps() {
-	if (!supportsDeepSeekApps('deepseek', 'deepseek-flash')) return
-	const officialProvider = llmModelMap.get('deepseek')!
-	const flash = officialProvider.models.find((model) => model.modelId == 'deepseek-flash')
-	if (flash != null) flash.image = true
-	registerCustomProvider('deepseek', new DeepSeekAppAdapter())
+	// 官方直连示例默认禁用；请在服务端保存 Key 并通过中转接入。
+	// if (!supportsDeepSeekApps('deepseek', 'deepseek-flash')) return
+	// const officialProvider = llmModelMap.get('deepseek')!
+	// const flash = officialProvider.models.find((model) => model.modelId == 'deepseek-flash')
+	// if (flash != null) flash.image = true
+	// registerCustomProvider('deepseek', new DeepSeekAppAdapter())
 }
 
-installDeepSeekApps()
+// installDeepSeekApps()
