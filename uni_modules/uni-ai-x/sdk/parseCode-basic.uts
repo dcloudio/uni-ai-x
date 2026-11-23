@@ -1,6 +1,6 @@
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
 import basicHighlighter from '@/uni_modules/uni-highlight/utssdk/mp-weixin/basic-code-tokenizer.js'
-import { measureCodePerformance } from './code-performance.uts'
+// import { measureCodePerformance } from './code-performance.uts'
 
 export { MarkdownToken }
 export type ParseCodeTextRes = {
@@ -64,8 +64,8 @@ export function requestCachedCodeText(callback: ParseCodeTextCallBack, messageId
 }
 
 export function parseCodeText(callback: ParseCodeTextCallBack, codeSource: string, language: string) {
-	const startedAt = Date.now()
+	// const startedAt = Date.now()
 	const normalizedLanguage = language == 'js' ? 'javascript' : language
 	callback({ lines: highlight(codeSource, normalizedLanguage), language: normalizedLanguage, error: null })
-	measureCodePerformance('parseCodeText', startedAt, normalizedLanguage)
+	// measureCodePerformance('parseCodeText', startedAt, normalizedLanguage)
 }

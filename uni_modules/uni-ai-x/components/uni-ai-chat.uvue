@@ -41,8 +41,9 @@
 					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
 			</view>
-			<uni-ai-chat-extension-input v-if="hasInputExtension" />
-			<uni-ai-chat-input v-else @scroll-to-last-msg="scrollToLastMsg" />
+			<!-- 发测包禁用压测面板，保留欢迎页 Markdown 示例。 -->
+			<!-- <uni-ai-chat-extension-input v-if="hasInputExtension" /> -->
+			<uni-ai-chat-input @scroll-to-last-msg="scrollToLastMsg" />
 			<text v-if="showComposerTip" class="chat-box-tip" flatten>{{tr('内容由ai生成，仅供参考', 'AI generated content may be inaccurate')}}</text>
 		</view>
 		<view v-if="pendingCalendarMessage != null" class="calendar-confirmation-overlay" @click.stop="blockCalendarOverlay">
@@ -88,9 +89,9 @@
 	// #endif
 	import uniAiChatNav from '@/uni_modules/uni-ai-x/components/uni-ai-chat-nav.uvue'
 	import uniAiChatInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-input/uni-ai-chat-input.uvue'
-	import uniAiChatExtensionInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-extension-input/uni-ai-chat-extension-input.uvue'
+	// import uniAiChatExtensionInput from '@/uni_modules/uni-ai-x/components/uni-ai-chat-extension-input/uni-ai-chat-extension-input.uvue'
 	import uniAiUserMsg from '@/uni_modules/uni-ai-x/components/uni-ai-user-msg.uvue'
-	import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
+	// import { getChatInputExtension } from '@/uni_modules/uni-ai-x/sdk/chat-extension.uts'
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 	import { runFullMarkdownDemo } from '@/demo/markdown/run-full-markdown.uts'
 	function openSource(messageId: string, id: number) {
@@ -121,7 +122,7 @@
 	// #endif
 	let scrollingT = 0
 	let scrollBottomCheckQueued = false
-	const hasInputExtension = getChatInputExtension() != null
+	const hasInputExtension = false // 发测包不启用压测输入扩展
     let showComposerTip = true
     // #ifdef WEB || APP-ANDROID
     showComposerTip = hasInputExtension

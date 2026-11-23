@@ -325,7 +325,7 @@ class RequestAiRunner {
 		}
 		this.searchTask = null
 		if (this.userAbort || version != this.searchVersion) return
-		console.log('[uni-ai-x][search-timing]', this.activeSearch?.status, Date.now() - startedAt)
+		// console.log('[uni-ai-x][search-timing]', this.activeSearch?.status, Date.now() - startedAt)
 		this.requestRemoteAi(requestMessages, llm, chat_id)
 	}
 	requestRemoteAi(messages : RequestAiCoMessage[], llm : Llm, chat_id : string) {
@@ -462,7 +462,7 @@ class RequestAiRunner {
 		if (phase != 'error' && snapshotVersion <= this.workerSnapshotVersion) return
 		if (snapshotVersion > this.workerSnapshotVersion) this.workerSnapshotVersion = snapshotVersion
 		if (phase == 'error') {
-			console.log('[uni-ai-x][AI Worker] error', JSON.stringify({
+			console.error('[uni-ai-x][AI Worker] error', JSON.stringify({
 				requestVersion: requestVersion,
 				snapshotVersion: snapshotVersion,
 				eventCount: readSnapshotNumber(snapshot, 'eventCount'),
@@ -490,17 +490,17 @@ class RequestAiRunner {
 		}
 		const isDone = phase == 'complete' || readSnapshotBoolean(snapshot, 'isDone')
 		if (isDone) {
-			console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
-				requestVersion: requestVersion,
-				snapshotVersion: snapshotVersion,
-				eventCount: readSnapshotNumber(snapshot, 'eventCount'),
-				networkChunkCount: readSnapshotNumber(snapshot, 'networkChunkCount'),
-				receivedBytes: readSnapshotNumber(snapshot, 'receivedBytes'),
-				renderMode: renderMode,
-				htmlLength: readSnapshotNumber(snapshot, 'htmlLength'),
-				terminalSource: readSnapshotString(snapshot, 'terminalSource'),
-				elapsed: readSnapshotNumber(snapshot, 'elapsed')
-			}))
+			// console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
+				// requestVersion: requestVersion,
+				// snapshotVersion: snapshotVersion,
+				// eventCount: readSnapshotNumber(snapshot, 'eventCount'),
+				// networkChunkCount: readSnapshotNumber(snapshot, 'networkChunkCount'),
+				// receivedBytes: readSnapshotNumber(snapshot, 'receivedBytes'),
+				// renderMode: renderMode,
+				// htmlLength: readSnapshotNumber(snapshot, 'htmlLength'),
+				// terminalSource: readSnapshotString(snapshot, 'terminalSource'),
+				// elapsed: readSnapshotNumber(snapshot, 'elapsed')
+			// }))
 		this.stopWorkerRuntime(false)
 	}
 		this.callbacks?.onMarkdownBlocks(readSnapshotString(snapshot, 'blocks', '[]'))
@@ -526,7 +526,7 @@ class RequestAiRunner {
 		if (phase != 'error' && snapshotVersion <= this.workerSnapshotVersion) return
 		if (snapshotVersion > this.workerSnapshotVersion) this.workerSnapshotVersion = snapshotVersion
 		if (phase == 'error') {
-			console.log('[uni-ai-x][AI Worker] error', JSON.stringify({
+			console.error('[uni-ai-x][AI Worker] error', JSON.stringify({
 				requestVersion: requestVersion,
 				snapshotVersion: snapshotVersion,
 				eventCount: readSnapshotNumber(state, 'eventCount'),
@@ -547,14 +547,14 @@ class RequestAiRunner {
 		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
 		if (phase != 'complete') return
-		console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
-			requestVersion: requestVersion,
-			snapshotVersion: snapshotVersion,
-			eventCount: readSnapshotNumber(state, 'eventCount'),
-			networkChunkCount: readSnapshotNumber(state, 'networkChunkCount'),
-			receivedBytes: readSnapshotNumber(state, 'receivedBytes'),
-			elapsed: readSnapshotNumber(state, 'elapsed')
-		}))
+		// console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
+			// requestVersion: requestVersion,
+			// snapshotVersion: snapshotVersion,
+			// eventCount: readSnapshotNumber(state, 'eventCount'),
+			// networkChunkCount: readSnapshotNumber(state, 'networkChunkCount'),
+			// receivedBytes: readSnapshotNumber(state, 'receivedBytes'),
+			// elapsed: readSnapshotNumber(state, 'elapsed')
+		// }))
 		this.stopWorkerRuntime(false)
 		this.currentChatState = 'completed'
 		try {
@@ -865,7 +865,7 @@ class RequestAiRunner {
 				const newTitle = (message?.content ?? '').trim()
 				if (newTitle.length == 0) {
 					// 返回内容为空时保留原临时标题，避免标题被清空
-					console.log('updateChatTitle 返回内容为空，保留原标题')
+					// console.log('updateChatTitle 返回内容为空，保留原标题')
 					return
 				}
 				this.callbacks?.onChatTitle(newTitle)

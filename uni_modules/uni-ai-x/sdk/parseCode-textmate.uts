@@ -34,7 +34,7 @@ import { createHighLighter } from "@/uni_modules/uni-highlight"
 // #endif
 import { CreateHighLighterRes, ILineTokens } from '@/uni_modules/uni-highlight/utssdk/interface.uts'
 import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
-import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
+// import { measureCodePerformance } from '@/uni_modules/uni-ai-x/sdk/code-performance.uts'
 // #ifdef MP-WEIXIN
 import grammarBundle, { grammarBundleId } from './grammar-bundle.js'
 // #endif
@@ -435,7 +435,7 @@ function initUniCodeHighlighter(callBack: () => void, onError: (message: string)
 }
 
 export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, codeSource: string, language: string) {
-	const startedAt = Date.now()
+	// const startedAt = Date.now()
 	if (language == 'js') language = "javascript"
 	try {
 		// 判断这个language是否在支持的列表中
@@ -446,7 +446,7 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 				language: language,
 				error: '不支持解析的语言类型'
 			}
-			measureCodePerformance('parseCodeText', startedAt, language)
+			// measureCodePerformance('parseCodeText', startedAt, language)
 			parseCodeTextCallBack(res)
 			return
 		}
@@ -477,19 +477,19 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 					}
 					utils.runOnDispatcher('main', () => {
 						parseCodeTextCallBack(res)
-						measureCodePerformance('parseCodeText', startedAt, language)
+						// measureCodePerformance('parseCodeText', startedAt, language)
 					})
 				});
 			}).catch((error: any) => {
 				const res: ParseCodeTextRes = { lines: [], language: language, error: error.message }
 				utils.runOnDispatcher('main', () => {
 					parseCodeTextCallBack(res)
-					measureCodePerformance('parseCodeText', startedAt, language)
+					// measureCodePerformance('parseCodeText', startedAt, language)
 				})
 			})
 		}, (message: string) => {
 			parseCodeTextCallBack({ lines: [], language: language, error: message })
-			measureCodePerformance('parseCodeText', startedAt, language)
+			// measureCodePerformance('parseCodeText', startedAt, language)
 		})
 	} catch (error) {
 		const res: ParseCodeTextRes = {
@@ -503,6 +503,6 @@ export function parseCodeText(parseCodeTextCallBack: ParseCodeTextCallBack, code
 			// #endif
 		}
 		parseCodeTextCallBack(res)
-		measureCodePerformance('parseCodeText', startedAt, language)
+		// measureCodePerformance('parseCodeText', startedAt, language)
 	}
 }

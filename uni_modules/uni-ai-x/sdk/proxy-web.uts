@@ -118,7 +118,7 @@ class ProxyWeb {
 	markReady() {
 		if (this.webviewContext == null) return
 		this.isInit = true
-		console.log('[proxy-web] ready: WebView 已就绪')
+		// console.log('[proxy-web] ready: WebView 已就绪')
 	}
 	// 会话切换时释放：作废在途请求、清空回调与上下文，等待下次按需重建
 	release() {
@@ -129,7 +129,7 @@ class ProxyWeb {
 		this.encodedRequests.clear()
 		this.encodingSequence = 0
 		this.deliverySequence = 0
-		console.log('[proxy-web] release: 释放 WebView')
+		// console.log('[proxy-web] release: 释放 WebView')
 	}
 	onWebMsg(e : UniWebViewMessageEvent) {
 		const event = e.detail.data[0] as UTSJSONObject

@@ -61,7 +61,7 @@ export class McpClient {
 	private request(message: UTSJSONObject, id: number | null): Promise<UTSJSONObject | null> {
 		return new Promise<UTSJSONObject | null>((resolve, reject) => {
 			const startedAt = Date.now()
-			console.log('[uni-ai-x][mcp] request', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], id: id, params: message['params'] }))
+			// console.log('[uni-ai-x][mcp] request', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], id: id, params: message['params'] }))
 			const hadSession = this.sessionId.length > 0
 			const headers: UTSJSONObject = {
 				'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ export class McpClient {
 				success: (response: RequestSuccess<any>) => {
 					const responseHeaders = response.header == null ? {} as UTSJSONObject : JSON.parse<UTSJSONObject>(JSON.stringify(response.header)) as UTSJSONObject
 					const body = typeof response.data == 'string' ? response.data as string : JSON.stringify(response.data)
-					console.log('[uni-ai-x][mcp] response', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], id: id, status: response.statusCode, durationMs: Date.now() - startedAt, bodyLength: body.length }))
+					// console.log('[uni-ai-x][mcp] response', JSON.stringify({ server: this.config.id, url: this.config.url, method: message['method'], id: id, status: response.statusCode, durationMs: Date.now() - startedAt, bodyLength: body.length }))
 					const sessionId = headerValue(responseHeaders, 'mcp-session-id')
 					if (sessionId.length > 0) this.sessionId = sessionId
 					if (hadSession && (response.statusCode == 404 || response.statusCode == 410)) {
@@ -153,7 +153,7 @@ export class McpClient {
 			if (page == 19) throw new McpRequestError('MCP 工具列表分页超过上限')
 		}
 		this.tools = tools
-		console.log('[uni-ai-x][mcp] connected', JSON.stringify({ server: this.config.id, url: this.config.url, tools: tools.map((tool): string => tool['name'] as string) }))
+		// console.log('[uni-ai-x][mcp] connected', JSON.stringify({ server: this.config.id, url: this.config.url, tools: tools.map((tool): string => tool['name'] as string) }))
 		return tools
 	}
 

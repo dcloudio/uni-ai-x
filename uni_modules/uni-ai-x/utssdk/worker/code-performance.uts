@@ -9,7 +9,7 @@ let enabled = false
 const stats = new Map<string, CodePerfStat>()
 
 export function setCodePerformanceLogging(value: boolean) {
-	enabled = value
+	// enabled = value // 发测包禁用性能统计
 }
 
 export function measureCodePerformance(name: string, startedAt: number, identity: string = '') {
@@ -26,8 +26,8 @@ export function measureCodePerformance(name: string, startedAt: number, identity
 	}
 	// 每 20 次输出一次聚合值，滚动期间不会产生逐 token/逐帧日志。
 	if (current != null && current.count % 20 == 0) {
-		console.info('[uni-ai-x][code-perf]', key, 'count=' + current.count.toString(),
-			'totalMs=' + current.totalMs.toString(), 'maxMs=' + current.maxMs.toString())
+		// console.info('[uni-ai-x][code-perf]', key, 'count=' + current.count.toString(),
+			// 'totalMs=' + current.totalMs.toString(), 'maxMs=' + current.maxMs.toString())
 	}
 }
 

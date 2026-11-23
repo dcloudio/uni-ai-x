@@ -6,7 +6,7 @@
 			<uni-ai-menu @close-menu="closeMenu" @open-setting="openSetting"></uni-ai-menu>
 			<uni-ai-chat :show-menu="showMenu" @change-menu="changeMenu" @close-menu="closeMenu" @source="openSource"></uni-ai-chat>
 			<view v-if="showMenu" class="uni-ai-menu-mask uni-ai-menu-mask-show" @click="closeMenu"></view>
-			<fps v-if="showFps" />
+			<!-- <fps v-if="showFps" /> -->
 			<!-- #ifdef APP || WEB -->
 			<web-view v-if="showProxyWeb" class="uni-ai-proxy-web" id="proxy-web"
 				:src="proxyWebUrl"
@@ -28,7 +28,7 @@
 	import { officialFeatureSwitch, resolveOfficialFeatureSwitch } from '@/uni_modules/uni-ai-x/sdk/official-feature-switch.uts'
 	// #endif
 	import uniAiChat from '@/uni_modules/uni-ai-x/components/uni-ai-chat.uvue'
-	import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
+	// import fps from '@/uni_modules/uni-ai-x/components/fps/fps.uvue'
 	import { uniAi } from '@/uni_modules/uni-ai-x/sdk'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	uniAi.initializeSettings()
@@ -80,7 +80,7 @@
 	
 	const showMenu = ref<boolean>(false)
 	// 仅供聊天组件判断遮罩状态
-	const showFps: boolean = false
+	// const showFps: boolean = false
 	const uniAiXSettingRef = ref<ComponentPublicInstance | null>(null)
 	onBackPress((): boolean => {
 		// #ifdef APP-ANDROID
@@ -229,7 +229,7 @@
 		cancelProxyWebRelease()
 		if (showProxyWeb.value) return
 		proxyWebMountToken += 1
-		console.log('[proxy-web] load: 会话需要渲染公式/图表，创建 WebView')
+		// console.log('[proxy-web] load: 会话需要渲染公式/图表，创建 WebView')
 		showProxyWeb.value = true
 		pollProxyWebContext(proxyWebMountToken, 0)
 	}
@@ -244,7 +244,7 @@
 			proxyWebReleasePending = false
 			proxyWebMountToken += 1
 			if (showProxyWeb.value) {
-				console.log('[proxy-web] release: 会话切换释放 WebView ' + oldId + ' -> ' + newId)
+				// console.log('[proxy-web] release: 会话切换释放 WebView ' + oldId + ' -> ' + newId)
 			}
 			showProxyWeb.value = false
 			proxyWeb.release()

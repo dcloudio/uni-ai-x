@@ -260,12 +260,12 @@ export function logBlockPayload(kind: string, payload: string, index: number,
 	op: number, unchanged: boolean): void {
 	if (!uniAiMdBlockLogEnabled) return
 	const compact = truncateDataUris(payload)
-	console.log(padLogLine(`[uni-ai-md]BLOCK ${opKindName(op)} [${kind}] #${index}` +
-		(unchanged ? ' (unchanged)' : '')))
+	// console.log(padLogLine(`[uni-ai-md]BLOCK ${opKindName(op)} [${kind}] #${index}` +
+		// (unchanged ? ' (unchanged)' : '')))
 	// 内容未变的提交不再重复打印内容。
 	if (unchanged) return
 	const lines = formatBlockLogLines(kind, compact)
 	for (let i = 0; i < lines.length; i++) {
-		console.log(padLogLine(`[uni-ai-md]${limitLogLine(lines[i])}`))
+		// console.log(padLogLine(`[uni-ai-md]${limitLogLine(lines[i])}`))
 	}
 }

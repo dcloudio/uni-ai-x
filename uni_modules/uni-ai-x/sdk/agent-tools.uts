@@ -191,7 +191,7 @@ function toolDefinitions(): UTSJSONObject[] {
 function requestModel(url: string, token: string, data: UTSJSONObject, callbacks: CustomProviderCallbacks, onVisibleChunk: () => void): Promise<UTSJSONObject> {
 	return new Promise<UTSJSONObject>((resolve, reject) => {
 		const startedAt = Date.now()
-		console.log('[uni-ai-x][model] request', JSON.stringify({ url: url, model: data['model'], messageCount: (data['messages'] as UTSJSONObject[]).length, toolChoice: data['tool_choice'] }))
+		// console.log('[uni-ai-x][model] request', JSON.stringify({ url: url, model: data['model'], messageCount: (data['messages'] as UTSJSONObject[]).length, toolChoice: data['tool_choice'] }))
 		let settled = false
 		let chunkReceived = false
 		let content = ''
@@ -250,7 +250,7 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 			success: (response: RequestSuccess<any>) => {
 				const responseText = typeof response.data == 'string' ? response.data as string : ''
 				const errorBody = response.statusCode >= 400 ? (responseText.length > 0 ? responseText : JSON.stringify(response.data)) : ''
-				console.log('[uni-ai-x][model] response', JSON.stringify({ url: url, model: data['model'], status: response.statusCode, durationMs: Date.now() - startedAt, responseBody: errorBody }))
+				// console.log('[uni-ai-x][model] response', JSON.stringify({ url: url, model: data['model'], status: response.statusCode, durationMs: Date.now() - startedAt, responseBody: errorBody }))
 				if (response.statusCode < 200 || response.statusCode >= 300) {
 					if (!settled) {
 						settled = true
@@ -301,9 +301,9 @@ async function executeMcpTool(binding: McpToolBinding, argumentText: string, cal
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
 			if (attempt == 1) callbacks.onToolStatus?.(`${source} · ${step} · ${isWeather ? '正在查询' : '正在调用'}`)
-			console.log('[uni-ai-x][mcp] tool call', JSON.stringify({ server: binding.client.config.id, url: binding.client.config.url, tool: binding.remoteName, attempt: attempt, arguments: args }))
+			// console.log('[uni-ai-x][mcp] tool call', JSON.stringify({ server: binding.client.config.id, url: binding.client.config.url, tool: binding.remoteName, attempt: attempt, arguments: args }))
 			const result = await binding.client.callTool(binding.remoteName, args)
-			console.log('[uni-ai-x][mcp] tool result', JSON.stringify({ server: binding.client.config.id, tool: binding.remoteName, result: result }))
+			// console.log('[uni-ai-x][mcp] tool result', JSON.stringify({ server: binding.client.config.id, tool: binding.remoteName, result: result }))
 			if (binding.client.config.id == 'weather') {
 				const structured = result['structuredContent'] as UTSJSONObject | null
 				const toolError = structured?.['error'] as UTSJSONObject | null

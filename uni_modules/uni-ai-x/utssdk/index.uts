@@ -1,3 +1,4 @@
+// Release testing: disable Worker diagnostic logs and code-performance probes.
 // Snapshot schema v35: rebuild the native Worker together with the JS snapshot producer.
 import {
 	AiWorkerDataListener,

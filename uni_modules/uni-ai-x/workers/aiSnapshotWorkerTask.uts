@@ -80,11 +80,11 @@ export class AiSnapshotWorkerTask extends WorkerTaskImpl {
 			if (action == 'persist') {
 				snapshot.bodyKey = renderContentKey(body)
 				const stored = persistRenderAssets(request['messageId'] as string, snapshot, assetRoot, assetCacheRoot)
-				if (stored.assets.length > 0) console.info('[render-snapshot] assets saved: message=' + (request['messageId'] as string) + ' count=' + stored.assets.length)
+				// if (stored.assets.length > 0) console.info('[render-snapshot] assets saved: message=' + (request['messageId'] as string) + ' count=' + stored.assets.length)
 				this.postMessage({ id: id, snapshot: stored } as UTSJSONObject)
 			} else {
 				const restored = restoreRenderAssets(snapshot, body, assetRoot, assetDisplayRoot)
-				if (restored != null && restored.assets.length > 0) console.info('[render-snapshot] assets restored: count=' + restored.assets.length)
+				// if (restored != null && restored.assets.length > 0) console.info('[render-snapshot] assets restored: count=' + restored.assets.length)
 				this.postMessage({ id: id, snapshot: restored } as UTSJSONObject)
 			}
 		} catch (error) {
