@@ -3,7 +3,7 @@
 		<view class="user-msg-bubble" :class="expanded ? 'user-msg-bubble-expanded' : ''">
 			<view class="user-msg-body">
 				<text class="user-msg-text" :max-lines="expanded ? -1 : collapsedLines" flatten>{{msg.body}}</text>
-				<text ref="measureRef" class="user-msg-text user-msg-measure">{{msg.body}}</text>
+				<text :id="measureId" ref="measureRef" class="user-msg-text user-msg-measure">{{msg.body}}</text>
 			</view>
 			<view v-if="showToggle" class="user-msg-toggle" @click.stop="expanded = !expanded">
 				<view class="user-msg-toggle-icon"><uni-ai-icon :name="expanded ? 'chevron-up-outline' : 'chevron-down-outline'" size="16" color="var(--text-secondary)" /></view>
@@ -30,6 +30,8 @@
 	const expanded = ref(false)
 	const showToggle = ref(false)
 	const measureRef = ref<UniElement | null>(null)
+	const measureId = 'user-msg-measure-' + props.msg._id
+	let disposed = false
 	// #ifdef WEB
 	let resizeObserver: ResizeObserver | null = null
 	// #endif
@@ -38,15 +40,26 @@
 	// #endif
 
 	function checkOverflow() {
-		const measure = measureRef.value
+		if (disposed) return
+		const measure = getMeasureElement()
 		if (measure == null) return
 		showToggle.value = measure.getBoundingClientRect().height > collapsedLines * textLineHeight + 1
+	}
+	function getMeasureElement(): UniElement | null {
+		// Native list recycling can leave a non-null ref whose element is detached.
+		// #ifdef WEB
+		return measureRef.value
+		// #endif
+		// #ifndef WEB
+		return uni.getElementById(measureId)
+		// #endif
 	}
 
 	onMounted(() => {
 		nextTick(() => {
+			if (disposed) return
 			checkOverflow()
-			const measure = measureRef.value
+			const measure = getMeasureElement()
 			if (measure == null) return
 			// #ifdef WEB
 			resizeObserver = new ResizeObserver(() => { checkOverflow() })
@@ -57,7 +70,8 @@
 			resizeObserver!.observe(measure)
 		})
 	})
-	onUnmounted(() => {
+	onBeforeUnmount(() => {
+		disposed = true
 		resizeObserver?.disconnect()
 		resizeObserver = null
 	})
