@@ -31,14 +31,34 @@ test('search arriving after thinking and thinking arriving after body appear onl
   assert.equal(final.lateSearch.status, 'completed');
 });
 
-test('tool progress seals thought and disappears before a body successor is visible', () => {
+test('tool progress seals thought and remains at the tail until the next model content', () => {
   const api = display();
   api.msg.toolStatus = 'working';
   assert.equal(api.read([]).toolStatus, 'working');
   api.msg.thinkContent = 'late thinking';
   assert.equal(api.read([]).think, '');
   api.msg.body = 'answer';
+  assert.equal(api.read([block('body')]).toolStatus, 'working');
+  api.msg.toolStatus = '';
   assert.equal(api.read([block('body')]).toolStatus, '');
+});
+
+test('retry invalidates an empty failure snapshot even when the reset render was batched away', () => {
+  const api = display();
+  api.msg.rendered = true;
+  api.msg.error_msg = '天气查询超时';
+  assert.equal(api.read([], true).tailMessage.error_msg, '天气查询超时');
+  api.msg.answerAttempt = 1;
+  api.msg.rendered = false;
+  api.msg.error_msg = null;
+  api.msg.toolStatus = '正在连接';
+  const retry = api.read([]);
+  assert.equal(retry.complete, false);
+  assert.equal(retry.tailMessage.error_msg, null);
+  assert.equal(retry.toolStatus, '正在连接');
+  api.msg.body = '新的天气结果';
+  api.msg.rendered = true;
+  assert.equal(api.read([block('new')], true).tailMessage.body, '新的天气结果');
 });
 
 test('successors wait for image termination and committed prefixes ignore later rewrites', () => {
@@ -86,6 +106,21 @@ test('final error and sources snapshots preserve body and cannot change under th
   assert.equal(later.blocks[0].html, '<p>body</p>');
   assert.equal(later.tailMessage.search.sources[0].title, 'old');
   assert.equal(later.tailMessage.error_msg, 'interrupted');
+});
+
+test('a calendar outcome updates after completion without reopening committed body', () => {
+  const api = display(); api.msg.body = 'answer'; api.msg.rendered = true;
+  api.msg.toolResultText = '准备创建提醒';
+  const final = api.read([block('body')], true);
+  api.msg.toolStatus = '正在创建';
+  assert.equal(api.read([block('body')], true).toolStatus, '正在创建');
+  api.msg.toolStatus = '';
+  api.msg.toolResultText = '已取消创建提醒';
+  const canceled = api.read([block('body', { html: 'rewritten' })], true);
+  assert.equal(canceled.toolStatus, '');
+  assert.equal(canceled.tailMessage.toolResultText, '已取消创建提醒');
+  assert.equal(canceled.blocks, final.blocks);
+  assert.equal(canceled.blocks[0].html, '<p>body</p>');
 });
 
 test('interrupted special tails have a source terminal state', () => {

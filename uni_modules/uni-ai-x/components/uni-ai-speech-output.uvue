@@ -12,10 +12,11 @@ import { requestOfficialFeatureSwitch } from '@/uni_modules/uni-ai-x/sdk/officia
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import { supportsDeepSeekApps } from '@/uni_modules/uni-ai-x/sdk/deepseek-app-api.uts'
 import { speechPlayback, stopAnswerSpeech, playAnswerSpeech } from '@/uni_modules/uni-ai-x/sdk/speech-output.uts'
-const props = defineProps<{ messageId: string, text: string }>()
+const props = withDefaults(defineProps<{ messageId: string, text: string, enabled?: boolean }>(), { enabled: true })
 const available = computed<boolean>(() => supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model))
 const active = computed<boolean>(() => speechPlayback.owner == props.messageId)
 function toggle() {
+	if (!props.enabled) return
 	if (speechPlayback.owner == props.messageId) { stopAnswerSpeech(props.messageId); return }
 	if (!available.value) {
 		requestOfficialFeatureSwitch(); return

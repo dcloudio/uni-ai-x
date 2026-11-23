@@ -10,7 +10,7 @@ const taskApi = () => loadUts('uni_modules/uni-ai-x/sdk/message-render-tasks.uts
   { reactive: value => value });
 
 // Execute the actual toolbar watcher with a controlled UI queue and clock.
-function toolbar(platform = 'APP-ANDROID', chatState = 'completed') {
+function toolbar(platform = 'APP-ANDROID', chatState = 'completed', embedded = false) {
   const full = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-x-msg/uni-ai-x-msg.uvue', import.meta.url), 'utf8');
   const enabled = [true];
   const source = full.slice(full.indexOf('const toolbarDelayReady'), full.indexOf('const shouldShowToolBar'))
@@ -30,7 +30,7 @@ function toolbar(platform = 'APP-ANDROID', chatState = 'completed') {
   let now = 0, sequence = 0;
   const ref = value => ({ value });
   const api = vm.runInNewContext('(function(){' + stripTypeScriptTypes(source) + '\nreturn { toolbarDelayReady };})()', {
-    msg, state, parts: ref([{ kind: 'toolbar' }]), ref, computed: getter => ({ get value() { return getter(); } }),
+    msg, state, props: { toolbar: embedded }, parts: ref(embedded ? [{ kind: 'html' }] : [{ kind: 'toolbar' }]), ref, computed: getter => ({ get value() { return getter(); } }),
     isLastAiMsg: ref(true), calendarConfirmationRevision: ref(0), uiTheme: ref('light'), messageToolBarVisible: ref(true),
     ...tasks, uniAiMdStreamIsSettled: () => presentation.settled,
     uniAiMdStreamGetRevision: () => presentation.revision, readMessagePresentationRevision: () => presentation.revision,
@@ -64,6 +64,30 @@ test('network completion waits for native presentation, then a full quiet second
   api.advance(5000);
   assert.equal(api.toolbarDelayReady.value, false);
   api.presentation.settled = true;
+  api.advance(999);
+  assert.equal(api.toolbarDelayReady.value, false);
+  api.advance(1);
+  assert.equal(api.toolbarDelayReady.value, true);
+});
+
+test('actions embedded after an Android body retain the native readiness and quiet-period gates', () => {
+  const api = toolbar('APP-ANDROID', 'completed', true);
+  api.advance(3000);
+  assert.equal(api.toolbarDelayReady.value, false);
+  api.presentation.settled = true;
+  api.advance(999);
+  assert.equal(api.toolbarDelayReady.value, false);
+  api.advance(1);
+  assert.equal(api.toolbarDelayReady.value, true);
+});
+
+test('a local calendar action after the model completes blocks actions until its outcome settles', () => {
+  const api = toolbar('APP-ANDROID', 'completed', true);
+  api.presentation.settled = true;
+  api.msg.value.toolStatus = '正在创建提醒';
+  api.advance(3000);
+  assert.equal(api.toolbarDelayReady.value, false);
+  api.msg.value.toolStatus = '';
   api.advance(999);
   assert.equal(api.toolbarDelayReady.value, false);
   api.advance(1);

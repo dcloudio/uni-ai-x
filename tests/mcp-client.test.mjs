@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { loadUts } from './uts-loader.mjs';
+import { loadUts as loadRawUts } from './uts-loader.mjs';
+const loadUts = (path, names, dependencies = {}, flags) => loadRawUts(path, names, { setTimeout, clearTimeout, ...dependencies }, flags);
 
 function sse(message, prefix = '') {
   return prefix + 'event: message\n' + 'data: ' + JSON.stringify(message) + '\n\n';

@@ -648,6 +648,7 @@ class RequestAiRunner {
 			webSearch: options.llm.webSearch,
 			onSearch: (search: MessageSearch) => { if (!isCancelled()) this.callbacks?.onSearch?.(search) },
 			onTaskCreate: (task: RequestTask) => { if (isCancelled()) task.abort(); else options.onTaskCreate?.(task) },
+			onTaskComplete: (task: RequestTask) => { if (this.requestTask == task) this.requestTask = null },
 			isCancelled: isCancelled,
 			onChunk: (chunk: Chunk) => { if (!isCancelled()) options.onChunk?.(chunk) },
 			onToolStatus: (status: string) => { if (!isCancelled()) this.callbacks?.onToolStatus?.(status) },
@@ -875,22 +876,28 @@ class RequestAiRunner {
 		})
 	}
 	abortRequest() {
+		this.userAbort = true
 		this.searchVersion += 1
-		this.searchTask?.abort()
+		const searchTask = this.searchTask
 		this.searchTask = null
+		try { searchTask?.abort() } catch (_error) { /* Native task may already be released. */ }
 		if (this.activeSearch?.status == 'searching') {
 			this.callbacks?.onSearch?.({ status: 'cancelled', query: this.activeSearch!.query, sources: [] as SearchSource[], error: '' })
 		}
 		if (this.bodyEmitTimer != 0) clearTimeout(this.bodyEmitTimer)
 		this.bodyEmitTimer = 0
 		this.clearPendingTitleUpdate()
-		this.userAbort = true
 		this.streamParser = null
 		this.stopWorkerRuntime(true)
 		this.workerRequestVersion += 1
-		this.requestTask?.abort()
-		this.callbacks?.onState('stop')
-		this.callbacks = null
+		const requestTask = this.requestTask
+		this.requestTask = null
+		try { requestTask?.abort() } catch (_error) { /* Always finish cancellation even if the native handle expired. */ }
+		try {
+			this.callbacks?.onState('stop')
+		} finally {
+			this.callbacks = null
+		}
 	}
 }
 export default RequestAiRunner;

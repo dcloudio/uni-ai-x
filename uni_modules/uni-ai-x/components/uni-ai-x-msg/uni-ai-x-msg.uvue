@@ -69,8 +69,8 @@
 				<!-- #endif -->
 			</template>
 		</template>
-		<msg-tool-bar v-else-if="part.kind == 'toolbar' && shouldShowToolBar" :msg="msg" />
 		</template>
+		<msg-tool-bar v-if="isToolbarSegment" :msg="msg" :visible="shouldShowToolBar" />
 	</view>
 </template>
 
@@ -114,6 +114,7 @@
 	type UniAiXMsgProps = {
 		msg: MsgItem
 		parts: AiMsgRenderPart[]
+		toolbar?: boolean
 		isFirst?: boolean
 	}
 
@@ -127,7 +128,8 @@
 	}
 
 	const props = withDefaults(defineProps<UniAiXMsgProps>(), {
-		isFirst: false
+		isFirst: false,
+		toolbar: false
 	})
 	const msg = computed<MsgItem>(() => props.msg)
 	const parts = computed<AiMsgRenderPart[]>(() => props.parts)
@@ -180,24 +182,23 @@
 	const terminalErrorText = computed<string>(() => parts.value.find((part: AiMsgRenderPart): boolean => part.kind == 'error')?.text ?? msg.value.error_msg ?? '')
 	const isWeatherToolError = computed<boolean>(() => {
 		const error = terminalErrorText.value
-		return error.includes('天气查询工具连续三次调用失败')
+		return error.includes('天气查询工具连续三次调用失败') || error.includes('天气查询超时')
 	})
 	const isToolErrorCard = computed<boolean>(() => {
 		const error = terminalErrorText.value
-		return isWeatherToolError.value || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
+		return isWeatherToolError.value || error.includes('MCP 请求超时') || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
 	})
 	const weatherErrorText = computed<string>(() => terminalErrorText.value.replace('Error: ', ''))
-	const retryWeather = async () => {
+	const retryWeather = () => {
 		if (!isLastAiMsg.value || state.value == 'processing') return
 		uniAi.resetMsg(msg.value)
-		await nextTick()
 		uniAi.answerQuestion(msg.value)
 	}
 
 	const toolbarDelayReady = ref<boolean>(false)
 	let toolbarDelayTimer = 0
 	let toolbarDelayVersion = 0
-	const isToolbarSegment = computed<boolean>(() => parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar'))
+	const isToolbarSegment = computed<boolean>(() => props.toolbar || parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar'))
 	const toolbarPresentationStamp = computed<string>(() => {
 		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
 		return uniAiMdStreamGetRevision(msg.value._id).toString() + ':' + uniAiMdStreamIsSettled(msg.value._id).toString()
@@ -208,7 +209,7 @@
 	})
 	const toolbarCanSettle = computed<boolean>(() => {
 		if (parts.value.some((part: AiMsgRenderPart): boolean => part.kind == 'toolbar' && part.ready == false)) return false
-		if (state.value == 'processing' || msg.value.toolConfirmation != null || !messageToolBarVisible.value || hasMessageRenderTasks(msg.value._id)) return false
+		if (state.value == 'processing' || msg.value.toolConfirmation != null || (msg.value.toolStatus ?? '').length > 0 || !messageToolBarVisible.value || hasMessageRenderTasks(msg.value._id)) return false
 		if (!msg.value.rendered && msg.value.error_msg == null && (msg.value.toolResultText ?? '').length == 0) return false
 		// Tool-only and error replies have no Markdown presentation to settle.
 		// #ifdef APP-ANDROID || APP-HARMONY || APP-IOS
@@ -260,7 +261,7 @@
 
 	// A zero-height pending row can be recycled before its quiet-period timer fires.
 	// Reserve the final toolbar height so readiness does not depend on list visibility.
-	const msgSegmentStyle = computed<string>(() => 'width:100%;min-height:' + (isToolbarSegment.value ? '42px' : '0') + ';box-sizing:border-box;padding-left:24px;padding-right:24px;')
+	const msgSegmentStyle = computed<string>(() => 'width:100%;min-height:' + (isToolbarSegment.value && parts.value.length == 1 ? '42px' : '0') + ';box-sizing:border-box;padding-left:24px;padding-right:24px;')
 
 	const changeThinkContent = () => {
 		hideThinkContent.value = !hideThinkContent.value

@@ -1018,6 +1018,15 @@ class UniAi {
 		this.streamingAiMsg = null
 		if (this.currentChat?.state == 'processing') this.currentChat!.state = 'stop'
 		if (streamingMsg?.search?.status == 'searching') streamingMsg!.search!.status = 'cancelled'
+		if (streamingMsg != null) {
+			streamingMsg.toolStatus = ''
+			// Generation invalidation below intentionally ignores old runner callbacks.
+			// Finalize the native stream here rather than relying on that callback.
+			// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+			uniAiMdStreamMarkComplete(streamingMsg._id)
+			streamingMsg.uniAiMdRevision = (streamingMsg.uniAiMdRevision ?? 0) + 1
+			// #endif
+		}
 		if (streamingMsg != null && streamingMsg.rendered != true) {
 			streamingMsg.rendered = true
 			this.flushMsg2Storage(streamingMsg)
@@ -1096,6 +1105,7 @@ class UniAi {
 		return this.answerQuestion(aiMsgItem)
 	}
 	resetMsg(msg: MsgItem) {
+		msg.rendered = false
 		msg.serverToolCalls = undefined
 		msg.renderSnapshot = undefined
 		msg.search = null
@@ -1114,6 +1124,7 @@ class UniAi {
 		msg.markdownAst = ''
 		msg.markdownBlocks = ''
 		msg.uniAiMdRevision = 0
+		msg.answerAttempt = (msg.answerAttempt ?? 0) + 1
 		this.flushMsg2Storage(msg)
 	}
 	

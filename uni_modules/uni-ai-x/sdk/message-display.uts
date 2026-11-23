@@ -27,6 +27,7 @@ export class MessageDisplayState {
 	width = 0
 	bodyLength = 0
 	rendered = false
+	answerAttempt = 0
 	final: MessageDisplay | null = null
 	visible: MarkdownTextRenderBlock[] = []
 }
@@ -71,7 +72,7 @@ function sameSearch(a: MessageSearch | null, b: MessageSearch | null): boolean {
 
 export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 	blocks: MarkdownTextRenderBlock[], finished: boolean, theme: string, width: number, waitForViewResources: boolean = true): MessageDisplay {
-	if (state.theme != theme || state.width != width || msg.body.length < state.bodyLength || (state.rendered && !msg.rendered)) {
+	if (state.answerAttempt != (msg.answerAttempt ?? 0) || state.theme != theme || state.width != width || msg.body.length < state.bodyLength || (state.rendered && !msg.rendered)) {
 		state.searchSealed = false
 		state.searchSnapshot = null
 		state.thinkSealed = false
@@ -85,7 +86,18 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 	state.width = width
 	state.bodyLength = msg.body.length
 	state.rendered = msg.rendered
-	if (state.final != null) return state.final!
+	state.answerAttempt = msg.answerAttempt ?? 0
+	if (state.final != null) {
+		const final = state.final!
+		// A confirmed/canceled local action completes after the model response.
+		// Update that outcome without reopening committed body/search/error blocks.
+		if ((final.tailMessage.toolResultText ?? '') != (msg.toolResultText ?? '') || final.toolStatus != (msg.toolStatus ?? '')) {
+			state.final = { ...final, toolStatus: msg.toolStatus ?? '', tailMessage: {
+				...final.tailMessage, toolResultText: msg.toolResultText, toolConfirmation: msg.toolConfirmation
+			} as MsgItem } as MessageDisplay
+		}
+		return state.final!
+	}
 	const visible = state.frozen.slice()
 	for (let i = state.frozen.length; i < blocks.length; i++) {
 		let block = blocks[i]
@@ -132,8 +144,8 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 	if (header != null) {
 		display.think = header.think
 		display.search = header.search
-		// Progress shown before the first body is sealed before releasing the body.
-		display.toolStatus = ''
+		// A later tool round remains visible at the current tail until its next
+		// content chunk arrives. It must not reopen the sealed prelude.
 	}
 	if (display.complete) {
 		const thinking = msg.thinkContent ?? ''

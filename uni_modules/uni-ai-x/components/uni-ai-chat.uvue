@@ -27,7 +27,7 @@
 					:scroll-with-animation="false" @scroll="onScroll" @scrollend="setIsInScrollBottom" @touchstart="cancelBottomScroll" @touchend="setIsInScrollBottom"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
-						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts"
+						<uni-ai-x-msg v-if="renderItem.isAi" :msg="renderItem.msg" :parts="renderItem.parts" :toolbar="renderItem.toolbar ?? false"
 							:is-first="renderItem.isFirst" @changeThinkContent="changeThinkContent" @source="openSource" @restore="restoreMessage"></uni-ai-x-msg>
 						<uni-ai-user-msg v-else :msg="renderItem.msg" />
 					</list-item>
@@ -205,6 +205,7 @@
 		itemType: number
 		msg: MsgItem
 		parts: AiMsgRenderPart[]
+		toolbar?: boolean
 		isAi: boolean
 		isFirst: boolean
 	}
@@ -294,7 +295,7 @@
 
 	function appendAiRenderItem(items: ChatRenderItem[], msg: MsgItem, itemType: number,
 		isFirst: boolean, suffix: string, parts: AiMsgRenderPart[]) {
-		const key = msg._id + '-' + suffix
+		const key = msg._id + '-' + (msg.answerAttempt ?? 0).toString() + '-' + suffix
 		const type = itemType + (isFirst ? RENDER_ITEM_FIRST_OFFSET : 0)
 		const cached = rowCache.get(key)
 		if (cached != null && cached.msg == msg && cached.itemType == type && cached.parts.length == parts.length) {
@@ -379,7 +380,7 @@
 			const display = readMessageDisplay(displayState, msg, prepared, finished, uiTheme.value, mathWindowWidth.value, displayState.wasStreaming)
 			const blocks = display.blocks
 			const hasMarkdown = blocks.length > 0 || (msg.markdownBlocks ?? '').length > 0 || (msg.markdownHtml ?? '').length > 0 || canRebuildMarkdownFromBody(msg)
-			const structure = msg.from_uid + ':' + (msg.error_msg != null).toString()
+			const structure = msg.from_uid + ':' + (msg.answerAttempt ?? 0).toString() + ':' + (msg.error_msg != null).toString()
 				+ ':' + display.think + ':' + hasBody.toString()
 				+ ':' + display.toolStatus
 				+ ':' + (display.tailMessage.toolResultText ?? '') + ':' + (display.tailMessage.error_msg ?? '')
@@ -479,7 +480,7 @@
 					// #ifndef APP-ANDROID
 					appendNormalPart(aiRenderPart(msg.rendered || msg.error_msg != null ? 'plain' : 'restoring', 'plain'))
 					// #endif
-				} else if (emptyState != '' && emptyState != 'completed' && stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && (msg.toolStatus ?? '').length == 0 && (msg.toolResultText ?? '').length == 0 && msg.search?.status != 'searching') {
+				} else if (msg.error_msg == null && emptyState != '' && emptyState != 'completed' && stressSvgSource.length == 0 && (msg.thinkContent ?? '').length == 0 && (msg.toolStatus ?? '').length == 0 && (msg.toolResultText ?? '').length == 0 && msg.search?.status != 'searching') {
 					appendNormalPart(aiRenderPart('empty', 'empty'))
 				}
 			if (display.toolStatus.length > 0) appendNormalPart(aiRenderPart('tool-status', 'tool-status'))
@@ -512,10 +513,20 @@
 				hasAiSegment = true
 			}
 			if (hasAiSegment) {
-				// 工具栏独立成消息后的列表项，避免被富文本块的原生布局挤到顶部。
 				const toolbar = aiRenderPart('toolbar', 'toolbar')
 				toolbar.ready = display.complete
+				// #ifdef APP-ANDROID
+				// Commit actions in the mounted tail row. A new virtual row created
+				// during native stream completion can remain detached on Android.
+				if (display.complete) {
+					const tailIndex = items.length - 1
+					const tail = items[tailIndex]
+					items[tailIndex] = { ...tail, toolbar: true } as ChatRenderItem
+				}
+				// #endif
+				// #ifndef APP-ANDROID
 				appendAiRenderItem(items, msg, RENDER_ITEM_TYPE_AI_TOOLBAR, false, 'toolbar', [toolbar])
+				// #endif
 			}
 			const rows = items.slice(rowStart)
 			messageRowCache.set(msg._id, { msg: msg, structure: structure, search: display.search, lateSearch: display.lateSearch, blocks: blocks, rows: rows } as MessageRowCache)
@@ -910,8 +921,8 @@
 		return prompts
 	})
 	const showToolExamples = computed<boolean>(() => {
-		if (uniAi.llm.provider != 'qiniu') return false
-		const model = llmModelMap.get('qiniu')?.models.find((item) => item.modelId == uniAi.llm.model)
+		if (uniAi.llm.provider != 'qiniu' && uniAi.llm.provider != 'deepseek') return false
+		const model = llmModelMap.get(uniAi.llm.provider)?.models.find((item) => item.modelId == uniAi.llm.model)
 		return model?.toolCall == true
 	})
 	const sendWelcomePrompt = (prompt: string) => {

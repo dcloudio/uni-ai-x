@@ -1,5 +1,5 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
-import { Chunk, CustomProviderAdapter, CustomProviderCallbacks, RequestAiCoMessage, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
+import { Chunk, ChunkToolCall, CustomProviderAdapter, CustomProviderCallbacks, RequestAiCoMessage, SearchSource } from '@/uni_modules/uni-ai-x/types.uts'
 import { registerCustomProvider } from './provider-registry.uts'
 import { SseStreamParser } from './sse.uts'
 import { supportsDeepSeekApps } from './deepseek-app-api.uts'
@@ -24,6 +24,10 @@ export function buildDeepSeekAppBody(messages: RequestAiCoMessage[], model: stri
 
 export class DeepSeekAppAdapter extends CustomProviderAdapter {
 	override async request(messages: RequestAiCoMessage[], model: string, _chatId: string, callbacks: CustomProviderCallbacks, thinking?: boolean): Promise<boolean> {
+		return await this.requestWithTools(messages, model, callbacks, thinking, [], null)
+	}
+
+	async requestWithTools(messages: RequestAiCoMessage[], model: string, callbacks: CustomProviderCallbacks, thinking: boolean | undefined, tools: UTSJSONObject[], onMessage: ((message: UTSJSONObject) => void) | null): Promise<boolean> {
 		let safetyRefused = false
 		try {
 			const provider = llmModelMap.get('deepseek')
@@ -31,12 +35,19 @@ export class DeepSeekAppAdapter extends CustomProviderAdapter {
 			const token = await provider.getToken!()
 			if (callbacks.isCancelled?.() == true) return false
 			const body = buildDeepSeekAppBody(messages, model, callbacks.webSearch == true, thinking)
+			// Agent tools use the official Search/Fetch APIs; server web tools cannot
+			// be combined reliably with client functions. Keep plain chat native tools.
+			if (tools.length > 0) body['tools'] = tools
 			return await new Promise<boolean>((resolve, reject) => {
 				let settled = false
 				let chunkReceived = false
 				let refused = false
 				let visible = false
 				const sources: SearchSource[] = []
+				const calls = new Map<number, UTSJSONObject>()
+				let content = ''
+				let reasoning = ''
+				const serverCalls: UTSJSONObject[] = []
 				const addSource = (value: UTSJSONObject) => {
 					const url = value['url'] as string | null
 					if (url == null || !/^https?:\/\//i.test(url) || sources.some((source) => source.url == url)) return
@@ -65,12 +76,24 @@ export class DeepSeekAppAdapter extends CustomProviderAdapter {
 					const delta = choice.delta
 					if (delta == null) return
 					if (delta.server_tool_calls != null) {
+						serverCalls.push(...delta.server_tool_calls!)
 						collectCalls(delta.server_tool_calls!)
 						callbacks.onServerTools?.(delta.server_tool_calls!)
 					}
 					delta.annotations?.forEach((annotation) => {
 						const citation = annotation['url_citation'] as UTSJSONObject | null
 						if (citation != null) addSource(citation)
+					})
+					content += delta.content ?? ''
+					reasoning += delta.reasoning_content ?? ''
+					const fragments = delta.tool_calls ?? [] as ChunkToolCall[]
+					fragments.forEach((fragment: ChunkToolCall) => {
+						const call = calls.get(fragment.index) ?? { id: '', type: 'function', function: { name: '', arguments: '' } } as UTSJSONObject
+						if (fragment.id != null) call['id'] = fragment.id
+						const fn = call['function'] as UTSJSONObject
+						fn['name'] = (fn['name'] as string) + (fragment.function?.name ?? '')
+						fn['arguments'] = (fn['arguments'] as string) + (fragment.function?.arguments ?? '')
+						calls.set(fragment.index, call)
 					})
 					if ((delta.content ?? '').length > 0) visible = true
 					callbacks.onChunk?.(chunk)
@@ -88,13 +111,21 @@ export class DeepSeekAppAdapter extends CustomProviderAdapter {
 						reject(new Error('内容安全审核未通过，请调整问题后重试'))
 						return
 					}
-					if (!visible) { reject(new Error('模型没有生成回答，请重试')); return }
+					if (!visible && calls.size == 0) { reject(new Error('模型没有生成回答，请重试')); return }
 					if (sources.length > 0) {
 						callbacks.onSearch?.({ status: 'complete', query: '', sources: sources, error: '' })
 						callbacks.onChunk?.({ choices: [{ delta: { content: '\n\n来源：' + sources.map((source) => '[' + source.id.toString() + ']').join(' ') } }] })
 					}
 					callbacks.onToolStatus?.('')
-					callbacks.onDone?.({})
+					if (onMessage != null) {
+						const message: UTSJSONObject = { role: 'assistant', content: content }
+						if (reasoning.length > 0) message['reasoning_content'] = reasoning
+						if (serverCalls.length > 0) message['server_tool_calls'] = serverCalls
+						if (calls.size > 0) message['tool_calls'] = Array.from(calls.keys()).sort((a, b) => a - b).map((index: number): UTSJSONObject => calls.get(index)!)
+						onMessage(message)
+					} else {
+						callbacks.onDone?.({})
+					}
 					resolve(true)
 				})
 				const task = uni.request({
@@ -118,7 +149,8 @@ export class DeepSeekAppAdapter extends CustomProviderAdapter {
 						}
 						if (!chunkReceived && typeof response.data == 'string') parser.pushText(response.data as string)
 						parser.finish()
-					}, fail: (_error) => { if (!settled) { settled = true; reject(new Error('DeepSeek 网络请求失败')) } }
+					}, fail: (_error) => { if (!settled) { settled = true; reject(new Error('DeepSeek 网络请求失败')) } },
+					complete: () => { callbacks.onTaskComplete?.(task) }
 				})
 				// @ts-ignore
 				task.onChunkReceived((chunk: RequestTaskOnChunkReceivedListenerResult) => { chunkReceived = true; parser.push(chunk.data) })

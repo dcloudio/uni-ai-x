@@ -132,6 +132,7 @@ type StoredRenderSnapshot = {
 export type MsgItem = {
 	_id: string
 	body: string
+	answerAttempt?: number
 	toolStatus?: string
 	toolConfirmation?: CalendarToolConfirmation | null
 	toolResultText?: string
@@ -257,6 +258,7 @@ export type CustomProviderCallbacks = {
 	webSearch ?: boolean,
 	onSearch ?: (search: MessageSearch) => void,
 	onTaskCreate ?: (task: RequestTask) => void,
+	onTaskComplete ?: (task: RequestTask) => void,
 	isCancelled ?: () => boolean,
 	onChunk ?: (chunkObj : Chunk) => void,
 	onToolStatus ?: (status : string) => void,

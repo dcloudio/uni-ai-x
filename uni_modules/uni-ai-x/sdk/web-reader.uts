@@ -1,7 +1,7 @@
 import { CustomProviderCallbacks } from '@/uni_modules/uni-ai-x/types.uts'
 
-// Fetch is a separate Qiniu API, not a model-specific built-in tool.
-export async function readWebLink(argumentsText: string, token: string, callbacks: CustomProviderCallbacks): Promise<string> {
+// Fetch is a separate provider API, not a model-specific built-in tool.
+export async function readWebLink(argumentsText: string, token: string, callbacks: CustomProviderCallbacks, endpoint: string = 'https://api.qnaigc.com/v1/tools/fetch'): Promise<string> {
 	let url = ''
 	try {
 		const args = JSON.parse<UTSJSONObject>(argumentsText) as UTSJSONObject
@@ -16,7 +16,7 @@ export async function readWebLink(argumentsText: string, token: string, callback
 	callbacks.onToolStatus?.('正在阅读网页')
 	return await new Promise<string>((resolve) => {
 		const task = uni.request({
-			url: 'https://api.qnaigc.com/v1/tools/fetch',
+			url: endpoint,
 			// #ifdef APP-ANDROID
 			firstIpv4: true,
 			// #endif

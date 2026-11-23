@@ -4,7 +4,7 @@
 		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="copy">
 			<uni-ai-icon name="copy-outline" size="20" :color="toolBarIconColor" />
 		</view>
-		<uni-ai-speech-output v-if="msg.from_uid == 'uni-ai' && msg.body.length > 0" :messageId="msg._id" :text="msg.body" />
+		<uni-ai-speech-output v-if="msg.from_uid == 'uni-ai' && msg.body.length > 0" :messageId="msg._id" :text="msg.body" :enabled="props.visible" />
 		<view class="uni-ai-tool-bar-btn uni-ai-tool-bar-retry" :style="toolBarButtonStyle + 'margin-left:auto;margin-right:0;'" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg && !isWeatherToolError">
 			<uni-ai-icon name="refresh-outline" size="20" :color="toolBarIconColor" />
 		</view>
@@ -21,9 +21,10 @@
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts';
 	
-	const props = defineProps<{
+	const props = withDefaults(defineProps<{
 		msg: MsgItem
-	}>()
+		visible?: boolean
+	}>(), { visible: true })
 	
 	const msg = props.msg as MsgItem;
 	
@@ -36,7 +37,7 @@
 	})
 	const isWeatherToolError = computed<boolean>(() => {
 		const error = msg.error_msg ?? ''
-		return error.includes('天气查询工具连续三次调用失败') || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
+		return error.includes('天气查询超时') || error.includes('MCP 请求超时') || error.includes('天气查询工具连续三次调用失败') || error.includes('MCP 服务连续三次连接失败') || error.includes('MCP 工具连续三次调用失败')
 	})
 	
 	const toolBarBackgroundColor = computed<string>(() => {
@@ -48,7 +49,7 @@
 	})
 
 	const toolBarStyle = computed<string>(() => {
-		return 'width:100%;flex-direction:row;background-color:' + toolBarBackgroundColor.value + ';'
+		return 'width:100%;height:42px;flex-direction:row;opacity:' + (props.visible ? '1' : '0') + ';background-color:' + toolBarBackgroundColor.value + ';'
 	})
 
 	const toolBarButtonStyle = computed<string>(() => {
@@ -69,6 +70,7 @@
 	}
 	
 	const copy = () => {
+		if (!props.visible) return
 		// 请求出错时错误信息存放于 error_msg，优先复制错误信息，便于用户反馈问题
 		const errorMsg = msg.error_msg
 		if (errorMsg != null && errorMsg.length > 0) {
@@ -83,12 +85,8 @@
 		copyToClipboard(result.length > 0 ? (msg.body.length > 0 ? msg.body + '\n' : '') + result : msg.body)
 	}
 	
-	const loop = async () => {
-		if (uniAi.currentChat!.state == 'processing') {
-			uniAi.currentChat!.state = 'stop'
-			uniAi.abortRequest()
-		}
-		await nextTick()
+	const loop = () => {
+		if (!props.visible || uniAi.currentChat!.state == 'processing') return
 		uniAi.resetMsg(msg)
 		uniAi.answerQuestion(msg)
 	}

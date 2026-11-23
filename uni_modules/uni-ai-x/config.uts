@@ -42,8 +42,8 @@ const llmModelMap = new Map<string, Provider>([
 	[
 		'deepseek', {
 			models: [
-				{ modelId: 'deepseek-flash', name: 'DeepSeek Flash', thinking: true },
-				{ modelId: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', thinking: true }
+				{ modelId: 'deepseek-flash', name: 'DeepSeek Flash', thinking: true, toolCall: true },
+				{ modelId: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', thinking: true, toolCall: true }
 			],
 			baseURL: 'https://api.deepseek.com/chat/completions',
 			async getToken(): Promise<string> {

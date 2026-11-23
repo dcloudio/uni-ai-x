@@ -20,7 +20,7 @@ for (const kind of ['file','ocr','speech']) {
   const sdk=vm.runInNewContext('(function(){'+stripTypeScriptTypes(source)+'\nreturn {available,run:'+(kind==='speech'?'toggle':'chooseAction')+'};})()',{
    uniAi:ai,supportsDeepSeekApps,requestOfficialFeatureSwitch,getLlmDisplayName:()=> 'DeepSeek Flash',tr:cn=>cn,
    computed:fn=>({get value(){return fn();}}),ref:value=>({value}),watch(){},onUnmounted(){},
-   defineProps:()=>({ocr:kind==='ocr',messageId:'answer'}),withDefaults:props=>props,speechPlayback:{owner:''},
+   defineProps:()=>({ocr:kind==='ocr',messageId:'answer'}),withDefaults:(props,defaults)=>Object.assign({},defaults,props),speechPlayback:{owner:''},
    uni:{showModal:options=>modals.push(options),chooseFile(){assert.fail('unavailable tool must not open picker');}},
   });
   assert.equal(sdk.available.value,false);sdk.run();
