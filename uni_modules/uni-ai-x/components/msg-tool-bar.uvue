@@ -4,7 +4,7 @@
 		<view class="uni-ai-tool-bar-btn" :style="toolBarButtonStyle" @click="copy">
 			<uni-ai-icon name="copy-outline" size="20" :color="toolBarIconColor" />
 		</view>
-		<uni-ai-speech-output v-if="msg.from_uid == 'uni-ai' && msg.body.length > 0" :messageId="msg._id" :text="msg.body" :enabled="props.visible" />
+		<uni-ai-speech-output v-if="canSpeak && msg.from_uid == 'uni-ai' && msg.body.length > 0" :messageId="msg._id" :text="msg.body" :enabled="props.visible" />
 		<view class="uni-ai-tool-bar-btn uni-ai-tool-bar-retry" :style="toolBarButtonStyle + 'margin-left:auto;margin-right:0;'" @click="loop" v-if="msg.from_uid == 'uni-ai' && isLastAiMsg && !isWeatherToolError">
 			<uni-ai-icon name="refresh-outline" size="20" :color="toolBarIconColor" />
 		</view>
@@ -20,6 +20,8 @@
 	import uniAiSpeechOutput from '@/uni_modules/uni-ai-x/components/uni-ai-speech-output.uvue'
 	import {uniAi, MsgItem, uiTheme} from '@/uni_modules/uni-ai-x/sdk';
 	import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts';
+	import { getModelCapabilities } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts'
+	const canSpeak = computed<boolean>(() => getModelCapabilities(uniAi.llm.provider, uniAi.llm.model).speechOutput)
 	
 	const props = withDefaults(defineProps<{
 		msg: MsgItem

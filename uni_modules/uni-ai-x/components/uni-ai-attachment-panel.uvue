@@ -1,15 +1,15 @@
 <template>
-	<view class="attachment-panel">
-		<view class="attachment-entry" @click="chooseImage('camera')">
+	<view v-if="capabilities.images || capabilities.documents" class="attachment-panel">
+		<view v-if="capabilities.images" class="attachment-entry" @click="chooseImage('camera')">
 			<uni-ai-icon name="camera-outline" size="24" color="var(--text-secondary)" />
 			<text class="attachment-label">{{tr('拍照', 'Camera')}}</text>
 		</view>
-		<view class="attachment-entry" @click="chooseImage('album')">
+		<view v-if="capabilities.images" class="attachment-entry" @click="chooseImage('album')">
 			<uni-ai-icon name="photo-outline" size="24" color="var(--text-secondary)" />
 			<text class="attachment-label">{{tr('相册', 'Photos')}}</text>
 		</view>
-		<view class="attachment-entry"><uni-ai-document-input /></view>
-		<view class="attachment-entry"><uni-ai-document-input :ocr="true" /></view>
+		<view v-if="capabilities.documents" class="attachment-entry"><uni-ai-document-input /></view>
+		<view v-if="capabilities.documents" class="attachment-entry"><uni-ai-document-input :ocr="true" /></view>
 	</view>
 </template>
 <script setup lang="uts">
@@ -18,9 +18,12 @@ import { llmModelMap, type LLMModel } from '../config'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
 import { uploadDraftImages } from '@/uni_modules/uni-ai-x/sdk/image-upload.uts'
+import { getModelCapabilities } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts'
 import uniAiIcon from './uni-ai-icon/uni-ai-icon.uvue'
 import uniAiDocumentInput from './uni-ai-document-input.uvue'
+const capabilities = computed(() => getModelCapabilities(uniAi.llm.provider, uniAi.llm.model))
 function chooseImage(source: string) {
+	if (!capabilities.value.images) return
 	const provider = llmModelMap.get(uniAi.llm.provider)
 	const model = provider?.models.find(item => item.modelId == uniAi.llm.model)
 	if (model == null) return

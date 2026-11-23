@@ -29,8 +29,10 @@ export const currentUser: Userinfo = reactive<Userinfo>({})
 // 	}
 // }, {deep: true, immediate: true})
 
-// 2. 点击左侧菜单区域下方的用户头像信息后跳转的页面路径
-export const userCenterPage = '/uni_modules/uni-id-pages-x/pages/userinfo/userinfo?showLoginManage=true'
+// 2. 用户中心入口：未接入时留空并隐藏入口，避免跳转到不存在的页面。
+// 接入用户中心并在 pages.json 注册后填写，例如：
+// '/uni_modules/uni-id-pages-x/pages/userinfo/userinfo?showLoginManage=true'
+export const userCenterPage = ''
 
 // 3. 配置大语言模型
 /** 

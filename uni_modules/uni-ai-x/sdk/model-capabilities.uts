@@ -1,4 +1,39 @@
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts'
+import { supportsDeepSeekApps } from './deepseek-app-api.uts'
+
+export type ModelCapabilities = {
+	images: boolean
+	thinking: boolean
+	webSearch: boolean
+	speechInput: boolean
+	documents: boolean
+	speechOutput: boolean
+}
+
+// Entry visibility follows the implemented request paths, not the model name.
+export function getModelCapabilities(providerId: string, modelId: string): ModelCapabilities {
+	const provider = llmModelMap.get(providerId)
+	const model = provider?.models.find(item => item.modelId == modelId)
+	const configured = model != null
+	const authenticated = provider?.getToken != null
+	const officialApps = configured && authenticated && supportsDeepSeekApps(providerId, modelId)
+	let canRecord = false
+	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY || MP-WEIXIN || MP-ALIPAY
+	canRecord = true
+	// #endif
+	// #ifdef WEB
+	canRecord = typeof MediaRecorder != 'undefined' && typeof AudioContext != 'undefined'
+		&& typeof navigator != 'undefined' && navigator.mediaDevices != null
+	// #endif
+	return {
+		images: configured && model?.image == true,
+		thinking: configured && providerId != 'openClaw' && model?.thinking == true,
+		webSearch: configured && authenticated && (officialApps || (providerId == 'qiniu' && model?.toolCall == true) || (provider?.webSearchURL ?? '').length > 0),
+		speechInput: canRecord && configured && authenticated && (providerId == 'qiniu' || officialApps),
+		documents: officialApps,
+		speechOutput: officialApps
+	} as ModelCapabilities
+}
 
 export type ModelCapabilitySummary = {
 	// 配置的所有模型中是否存在支持图片理解的模型

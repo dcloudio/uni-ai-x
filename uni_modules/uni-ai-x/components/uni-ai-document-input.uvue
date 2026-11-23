@@ -1,5 +1,5 @@
 <template>
-	<view class="document-input" @click="chooseAction">
+	<view v-if="available" class="document-input" @click="chooseAction">
         <uni-ai-icon :name="ocr ? 'checklist-outline' : 'paperclip-outline'" size="24" :color="available ? 'var(--text-secondary)' : 'var(--text-disabled)'" />
         <text class="document-label" :class="!available ? 'document-label-disabled' : ''">{{busy ? tr('解析中', 'Processing') : ocr ? tr('识字', 'OCR') : tr('文件', 'File')}}</text>
     </view>

@@ -1,5 +1,5 @@
 <template>
-	<view class="speech-output" @click="toggle">
+	<view v-if="available" class="speech-output" @click="toggle">
         <uni-ai-audio-indicator v-if="active" :loading="speechPlayback.phase == 'loading'" :color="speechPlayback.phase == 'loading' ? '#969ba5' : '#536dfe'" />
         <uni-ai-icon v-else name="waveform-outline" size="20" :color="!available ? 'var(--text-disabled)' : uiTheme == 'dark' ? '#b0b0b0' : '#8a8a8a'" />
     </view>

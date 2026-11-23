@@ -1,7 +1,7 @@
 <template>
 	<view class="input-tool-bar uni-theme-root">
         <view class="composer-modes">
-		<view class="input-tool-bar-btn" :class="[thinkingActive ? 'input-tool-bar-btn-active' : '', !canThinking ? 'input-tool-bar-btn-disable' : '']" @click="setThinking"
+		<view v-if="canThinking" class="input-tool-bar-btn" :class="[thinkingActive ? 'input-tool-bar-btn-active' : '', !canThinking ? 'input-tool-bar-btn-disable' : '']" @click="setThinking"
 					<!-- #ifdef WEB -->
 					:title="thinkingTitle"
 					<!-- #endif -->
@@ -9,14 +9,14 @@
             <uni-ai-icon name="think-outline" size="17" :color="!canThinking ? 'var(--text-disabled)' : (thinkingActive ? '#3c76e4' : 'var(--text-primary)')" />
             <text class="input-tool-bar-text" :class="[thinkingActive ? 'input-tool-bar-text-active' : '', !canThinking ? 'input-tool-bar-text-disable' : '']">{{tr('深度思考', 'Think')}}</text>
 		</view>
-			<view class="input-tool-bar-btn input-tool-bar-search" :class="[webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
+			<view v-if="capabilities.webSearch" class="input-tool-bar-btn input-tool-bar-search" :class="[webSearch ? 'input-tool-bar-btn-active' : '']" @click="setWebSearch">
             <uni-ai-icon name="globe-outline" size="17" :color="webSearch ? '#3c76e4' : 'var(--text-primary)'" />
             <text class="input-tool-bar-text" :class="[webSearch ? 'input-tool-bar-text-active' : '']">{{tr('联网搜索', 'Search web')}}</text>
 			</view>
         </view>
         <view class="composer-actions">
-            <view class="composer-toggle" @click="toggleAttachments"><uni-ai-icon :name="composerState.attachments ? 'close-circle-outline' : 'plus-circle-outline'" size="26" color="var(--text-primary)" /></view>
-            <view class="composer-toggle" @click="toggleVoice"><uni-ai-icon :name="composerState.voice ? 'keyboard-outline' : 'voice-outline'" size="26" color="var(--text-primary)" /></view>
+            <view v-if="canAttach" class="composer-toggle" @click="toggleAttachments"><uni-ai-icon :name="composerState.attachments ? 'close-circle-outline' : 'plus-circle-outline'" size="26" color="var(--text-primary)" /></view>
+            <view v-if="capabilities.speechInput" class="composer-toggle" @click="toggleVoice"><uni-ai-icon :name="composerState.voice ? 'keyboard-outline' : 'voice-outline'" size="26" color="var(--text-primary)" /></view>
 		<view v-if="aiState == 'processing'" class="input-tool-bar-stop input-tool-bar-stop-active"
 			@click="stop">
             <uni-ai-icon name="stop-fill" color="#FFF" size="14" />
@@ -36,8 +36,17 @@ import { composerState } from '@/uni_modules/uni-ai-x/sdk/composer-state.uts'
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 import uniAi from '@/uni_modules/uni-ai-x/sdk';
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
-import {llmModelMap, type LLMModel} from '../config';
+import {llmModelMap} from '../config';
 import { documentDrafts } from '@/uni_modules/uni-ai-x/sdk/document-drafts.uts'
+import { getModelCapabilities } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts'
+
+const capabilities = computed(() => getModelCapabilities(uniAi.llm.provider, uniAi.llm.model))
+const canAttach = computed<boolean>(() => capabilities.value.images || capabilities.value.documents)
+watch(() => [canAttach.value, capabilities.value.speechInput, capabilities.value.webSearch], () => {
+    if (!canAttach.value) composerState.attachments = false
+    if (!capabilities.value.speechInput) composerState.voice = false
+    if (!capabilities.value.webSearch) uniAi.llm.webSearch = false
+}, { immediate: true })
 
 const isOpenClaw = computed<boolean>(() => {
     return uniAi.llm.provider == 'openClaw';
@@ -58,16 +67,6 @@ const inputContent = computed<string>({
         }
     }
 })
-
-const currentLLMModel = computed<LLMModel>(() => {
-    const provider = uniAi.llm.provider
-    const model = uniAi.llm.model
-    const currentProviderInfo = llmModelMap.get(provider)
-    if (currentProviderInfo == null) {
-        return { modelId: model } as LLMModel
-    }
-    return currentProviderInfo.models.find(m => m.modelId == model) ?? currentProviderInfo.models[0]!
-});
 
 let unavailableModelWarned = false
 watch((): string => uniAi.llm.provider + '/' + uniAi.llm.model, (): void => {
@@ -116,7 +115,7 @@ const send = async () => {
 };
 
 const canThinking = computed<boolean>(() => {
-    return currentLLMModel.value.thinking ?? false;
+    return capabilities.value.thinking;
 });
 
 // 深度思考当前是否开启：模型支持思考，且用户未显式关闭（未设置时默认开启）
@@ -153,15 +152,18 @@ const setThinking = () => {
 };
 
 const setWebSearch = () => {
+    if (!capabilities.value.webSearch) return
     uniAi.llm.webSearch = !webSearch.value;
 };
 
 function toggleAttachments() {
+    if (!canAttach.value) return
     if (composerState.voicePhase != 'idle') return
     composerState.attachments = !composerState.attachments
     uni.getElementById('chat-input-textarea')?.blur()
 }
 function toggleVoice() {
+    if (!capabilities.value.speechInput) return
     if (composerState.voicePhase != 'idle') return
     composerState.voice = !composerState.voice
     composerState.attachments = false

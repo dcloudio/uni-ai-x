@@ -14,7 +14,7 @@
 			</list-item>
 		</list-view>
 		<view class="menu-box-bottom">
-			<view class="menu-box-user-info" @click="toUCenter">
+			<view v-if="userCenterPage.length > 0" class="menu-box-user-info" @click="toUCenter">
 				<image class="menu-box-avatar" :src="currentUser.avatar_file?.url ?? '/uni_modules/uni-ai-x/static/default-avatar.png'"/>
 				<text v-if="currentUser._id != null" class="menu-box-name">{{currentUser.nickname ?? tr('未设置', 'Not set')}}</text>
 				<text v-else class="menu-box-to-login">{{tr('未登录', 'Sign in')}}</text>
@@ -58,6 +58,7 @@
 	})
 	
 	const toUCenter = () => {
+		if (userCenterPage.length == 0) return
 		uni.navigateTo({
 			url: userCenterPage,
 			fail: (err) => {
@@ -176,6 +177,8 @@
 	align-items: center;
 	padding: 10px;
 }
+
+.menu-box-btn-group { margin-left: auto; }
 
 .menu-box-user-info {
 	flex-direction: row;

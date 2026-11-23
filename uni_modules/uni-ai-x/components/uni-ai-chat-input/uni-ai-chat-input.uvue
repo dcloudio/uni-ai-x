@@ -11,7 +11,7 @@
 				<text class="chat-input-edit-tip-cancel-text">{{tr('取消', 'Cancel')}}</text>
 			</view>
 		</view>
-		<uni-ai-voice-input v-if="composerState.voice" />
+		<uni-ai-voice-input v-if="capabilities.speechInput && composerState.voice" />
 		<view v-else class="chat-input-editor">
 		<view v-if="chatInputContent.length > 0 || isFullscreen" class="chat-input-fullscreen-btn" @click.stop="toggleFullscreen"
 			@touchstart.stop="prepareFullscreenToggle"
@@ -25,7 +25,7 @@
 			<uni-ai-icon :name="isFullscreen ? 'compact-outline' : 'fullscreen-outline'" size="16" color="#9b9b9b" />
 		</view>
 		<textarea id="chat-input-textarea" class="chat-input-textarea" :class="isFullscreen ? 'chat-input-textarea-expanded' : ''"
-			:style="{height: isFullscreen ? expandedTextareaHeight : '46px'}" v-model="chatInputContent" :placeholder="tr('发消息或按住说话', 'Message or hold to talk')"
+			:style="{height: isFullscreen ? expandedTextareaHeight : '46px'}" v-model="chatInputContent" :placeholder="capabilities.speechInput ? tr('发消息或按住说话', 'Message or hold to talk') : tr('发消息', 'Message')"
 			:adjust-position="false" :hold-keyboard="isFullscreen || keepKeyboardForToggle" @keyboardheightchange="onKeyboardheightchange" placeholder-class="chat-input-placeholder"
 			:focus="inputFocused" @focus="onInputFocus" @blur="onInputBlur" :auto-height="false"
 		></textarea>
@@ -56,6 +56,8 @@
 	import uniAiDraftImages from '@/uni_modules/uni-ai-x/components/uni-ai-draft-images.uvue'
 
 	import uniAiDraftDocuments from '@/uni_modules/uni-ai-x/components/uni-ai-draft-documents.uvue'
+	import { getModelCapabilities } from '@/uni_modules/uni-ai-x/sdk/model-capabilities.uts'
+	const capabilities = computed(() => getModelCapabilities(uniAi.llm.provider, uniAi.llm.model))
 
 	const emit = defineEmits<{
 		'scroll-to-last-msg': []
