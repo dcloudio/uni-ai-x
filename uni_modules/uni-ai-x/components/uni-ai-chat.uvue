@@ -8,9 +8,14 @@
 					<text class="chat-box-welcome-title" flatten>{{tr('嗨！我是 UNI-AI', 'Hi, I am UNI-AI')}}</text>
 					<text class="chat-box-welcome-text" flatten>{{tr('问答、编程、翻译与创作。', 'Ask, code, translate, create.')}}</text>
 					<view class="chat-box-welcome-actions">
-						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo">
+						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo(false)">
 							<uni-ai-icon class="chat-box-welcome-demo-icon" name="checklist-outline" size="20" color="var(--accent-primary)" />
 							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例', 'Explore the Markdown demo')}}</text>
+							<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
+						</view>
+						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo(true)">
+							<uni-ai-icon class="chat-box-welcome-demo-icon" name="checklist-outline" size="20" color="var(--accent-primary)" />
+							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例（节流版）', 'Explore the Markdown demo (slow)')}}</text>
 							<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
 						</view>
 						<template v-if="showToolExamples">
@@ -894,10 +899,10 @@
 		}, 180)
 	}
 
-	const runMarkdownDemo = async () => {
+	const runMarkdownDemo = async (throttled: boolean) => {
 		if (state.value == 'processing') return
 		try {
-			await runFullMarkdownDemo()
+			await runFullMarkdownDemo(throttled)
 		} catch (error) {
 			console.error('[uni-ai-x][Markdown示例] 运行失败', error)
 		}

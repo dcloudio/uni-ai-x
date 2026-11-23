@@ -8,17 +8,17 @@ import MarkdownDemoRunner from '@/demo/markdown/markdown-demo-runner.uts'
 import { FULL_MARKDOWN_SCENARIO_ID, selectDemoMarkdownScenario } from '@/demo/markdown/demo-chat.uts'
 
 // 一次性运行“完整的 Markdown 测试示例”，运行结束后恢复正常的 AI 请求。
-export async function runFullMarkdownDemo(): Promise<void> {
+export async function runFullMarkdownDemo(throttled: boolean = false): Promise<void> {
 	if (uniAi.currentChat?.state == 'processing') return
 	const scenario = selectDemoMarkdownScenario(FULL_MARKDOWN_SCENARIO_ID)
 	if (scenario == null) return
 	registerAiRequestRunnerFactory((callbacks) => {
-		const runner = new MarkdownDemoRunner(callbacks)
+		const runner = new MarkdownDemoRunner(callbacks, throttled)
 		runner.start()
 		return runner as AiRequestRunnerHandle
 	})
 	try {
-		await uniAi.sendMsg(scenario.prompt)
+		await uniAi.sendMsg(scenario.prompt + (throttled ? '（节流版）' : ''))
 	} finally {
 		unregisterAiRequestRunnerFactory()
 	}

@@ -65,9 +65,11 @@ export default class MarkdownDemoRunner {
 	private completedBlockCount: number = 0
 	private nextBlockAt: number = 0
 	private stopped: boolean = false
+	private throttled: boolean = false
 
-	constructor(callbacks: RequestAiRunnerCallbacks) {
+	constructor(callbacks: RequestAiRunnerCallbacks, throttled: boolean = false) {
 		this.callbacks = callbacks
+		this.throttled = throttled
 	}
 
 	start() {
@@ -122,7 +124,7 @@ export default class MarkdownDemoRunner {
 		// #endif
 		this.streamTimer = setInterval(() => {
 			this.emitDemoChunk()
-		}, activeDemoMarkdownScenarioId() == FULL_MARKDOWN_SCENARIO_ID ? FULL_DEMO_STREAM_INTERVAL : DEMO_STREAM_INTERVAL)
+		}, activeDemoMarkdownScenarioId() == FULL_MARKDOWN_SCENARIO_ID && !this.throttled ? FULL_DEMO_STREAM_INTERVAL : DEMO_STREAM_INTERVAL)
 	}
 
 	private emitDemoChunk() {
@@ -146,8 +148,8 @@ export default class MarkdownDemoRunner {
 			return
 		}
 
-		// Keep the full demo near four seconds, including the final render flush.
-		const chunkSize = scenarioId == FULL_MARKDOWN_SCENARIO_ID
+		// 快速版约 3.5 秒发完；节流版沿用改版前每 200 毫秒输出 10 字符的速度。
+		const chunkSize = scenarioId == FULL_MARKDOWN_SCENARIO_ID && !this.throttled
 			? Math.ceil(this.blockText.length * FULL_DEMO_STREAM_INTERVAL / FULL_DEMO_STREAM_DURATION)
 			: (scenarioId == 'math' ? this.blockText.length : DEMO_STREAM_BATCH_SIZE)
 		const endOffset = Math.min(this.blockOffset + chunkSize, this.blockText.length)
