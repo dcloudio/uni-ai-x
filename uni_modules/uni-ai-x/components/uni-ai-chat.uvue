@@ -13,11 +13,14 @@
 							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例', 'Explore the Markdown demo')}}</text>
 							<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
 						</view>
-						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo(true)">
-							<uni-ai-icon class="chat-box-welcome-demo-icon" name="checklist-outline" size="20" color="var(--accent-primary)" />
-							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例（节流版）', 'Explore the Markdown demo (slow)')}}</text>
-							<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
-						</view>
+						<!-- 内部测试入口：注释下面整个 template 块即可隐藏。 -->
+						<template v-if="true">
+							<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo(true)">
+								<uni-ai-icon class="chat-box-welcome-demo-icon" name="checklist-outline" size="20" color="var(--accent-primary)" />
+								<text class="chat-box-welcome-demo-btn-text">{{tr('Markdown 放慢演示（内部测试）', 'Slow Markdown demo (internal testing)')}}</text>
+								<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
+							</view>
+						</template>
 						<template v-if="showToolExamples">
 							<view v-for="item in welcomePrompts" :key="item.label" class="chat-box-welcome-demo-btn" @click="sendWelcomePrompt(item.prompt)">
 								<uni-ai-icon class="chat-box-welcome-demo-icon" :name="item.icon" size="20" color="var(--accent-primary)" />
