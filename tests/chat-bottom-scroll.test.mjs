@@ -7,7 +7,8 @@ import test from 'node:test';
 function controller(pendingPresentation = false) {
   const full = readFileSync(new URL('../uni_modules/uni-ai-x/components/uni-ai-chat.uvue', import.meta.url), 'utf8');
   const source = full.slice(full.indexOf('let bottomScrollVersion'), full.indexOf('\n\tfunction clearTimer'))
-    .replace(/\/\/ #ifdef MP-WEIXIN[\s\S]*?\/\/ #endif/g, '');
+    .replace(/\/\/ #ifdef MP-WEIXIN[\s\S]*?\/\/ #endif/g, '')
+    + full.slice(full.indexOf('\twatch(state,'), full.indexOf('\n\tfunction resetScrollStateForEmptyChat'));
   const message = { _id: 'm', body: 'initial', rendered: pendingPresentation };
   const display = { final: pendingPresentation ? null : {} };
   const layout = { height: 1000, top: 0 }, chatActiveId = { value: 'chat' };
@@ -18,15 +19,19 @@ function controller(pendingPresentation = false) {
     if (top === 500) layout.height = 3000;
   } };
   const uniAi = { lastAiMsg: message };
+  const state = { value: 'processing' };
+  let stateChanged;
   const api = vm.runInNewContext('(function(){' + stripTypeScriptTypes(source) +
-    '\nreturn { scrollToLastMsg, cancelBottomScroll }; })()', {
+    '\nreturn { scrollToLastMsg, cancelBottomScroll, resumeDemoBottomScroll, startInternalDemo() { internalDemoChatId = chatActiveId.value; startDemoBottomFollow(); } }; })()', {
     viewDisposed: false, chatActiveId, scrollTop, currentScrollTop: 0,
     uniAi, displayStates: new Map([['m', display]]),
-    msgList: { value: [{}] }, setIsInScrollBottom() {}, nextTick: () => Promise.resolve(), setTimeout,
+    msgList: { value: [{}] }, state, watch: (_source, callback) => { stateChanged = callback; },
+    setIsInScrollBottom() {}, nextTick: () => Promise.resolve(), setTimeout, setInterval, clearInterval,
     uni: { getElementById: () => ({ get scrollHeight() { return layout.height; },
       get scrollTop() { return layout.top; }, getBoundingClientRect: () => ({ height: 500 }) }) },
   });
-  return { ...api, layout, chatActiveId, commands, message, display, uniAi };
+  return { ...api, layout, chatActiveId, commands, message, display, uniAi,
+    setState(value) { state.value = value; stateChanged(value); } };
 }
 
 test('one click reaches the corrected virtual bottom and later output does not follow', async () => {
@@ -40,6 +45,33 @@ test('one click reaches the corrected virtual bottom and later output does not f
   assert.equal(api.layout.top, 4500);
 });
 
+test('internal demo follows height changes and allows repeated interruption and explicit resumption', async () => {
+  const api = controller();
+  const wait = () => new Promise(resolve => setTimeout(resolve, 240));
+  try {
+    api.startInternalDemo();
+    await wait();
+    assert.equal(api.layout.top, 2500);
+    for (let i = 0; i < 2; i++) {
+      api.cancelBottomScroll();
+      const heldTop = api.layout.top;
+      api.message.body += ' more output';
+      api.layout.height += 500;
+      await wait();
+      assert.equal(api.layout.top, heldTop);
+      api.resumeDemoBottomScroll();
+      await wait();
+      assert.equal(api.layout.top, api.layout.height - 500);
+      api.message.body += ' continuing output';
+      api.layout.height += 500;
+      await wait();
+      assert.equal(api.layout.top, api.layout.height - 500);
+    }
+  } finally {
+    api.cancelBottomScroll();
+  }
+});
+
 test('touch or chat changes cancel an outstanding click before another scroll command', async () => {
   for (const reason of ['touch', 'chat']) {
     const api = controller();
@@ -48,6 +80,26 @@ test('touch or chat changes cancel an outstanding click before another scroll co
     else api.chatActiveId.value = 'other';
     await pending;
     assert.equal(api.commands.length, 0);
+  }
+});
+
+test('completion settles the final layout once and stop never restarts following', async () => {
+  for (const terminal of ['completed', 'stop']) {
+    const api = controller();
+    try {
+      api.startInternalDemo();
+      await new Promise(resolve => setTimeout(resolve, 200));
+      api.layout.height += 500;
+      api.setState(terminal);
+      await new Promise(resolve => setTimeout(resolve, 150));
+      assert.equal(api.layout.top, terminal === 'completed' ? 3000 : 2500);
+      const finalTop = api.layout.top;
+      api.layout.height += 500;
+      await new Promise(resolve => setTimeout(resolve, 150));
+      assert.equal(api.layout.top, finalTop);
+    } finally {
+      api.cancelBottomScroll();
+    }
   }
 });
 

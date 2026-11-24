@@ -45,7 +45,7 @@
 				<loading v-if="showPendingLoading && pendingSpinnerVisible" class="chat-box-pending-loading" :style="pendingSpinnerStyle" :paused="false" />
 				<!-- #endif -->
 
-				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: '10px'}" @click="scrollToLastMsg">
+				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: '10px'}" @click="resumeDemoBottomScroll">
 					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
 			</view>
@@ -634,10 +634,39 @@
 	}
 	
 	let bottomScrollVersion = 0
-	function cancelBottomScroll() { bottomScrollVersion += 1 }
+	let demoFollowEnabled = false
+	let internalDemoChatId = ''
+	let demoFollowTimer = 0
+	let demoFollowBusy = false
+	function cancelBottomScroll() {
+		bottomScrollVersion += 1
+		demoFollowEnabled = false
+		if (demoFollowTimer != 0) clearInterval(demoFollowTimer)
+		demoFollowTimer = 0
+	}
+
+	function startDemoBottomFollow() {
+		if (demoFollowEnabled || internalDemoChatId.length == 0 || internalDemoChatId != chatActiveId.value) return
+		demoFollowEnabled = true
+		// Measure native layouts as well as new output, including virtual item height corrections.
+		demoFollowTimer = setInterval(async () => {
+			if (!demoFollowEnabled || demoFollowBusy || msgList.value.length == 0) return
+			demoFollowBusy = true
+			try {
+				await scrollToLastMsg()
+			} finally {
+				demoFollowBusy = false
+			}
+		}, 80)
+	}
+
+	function resumeDemoBottomScroll() {
+		if (internalDemoChatId == chatActiveId.value && state.value == 'processing') startDemoBottomFollow()
+		scrollToLastMsg()
+	}
 
 	async function scrollToLastMsg() {
-		cancelBottomScroll()
+		bottomScrollVersion += 1
 		const version = bottomScrollVersion
 		const chatId = chatActiveId.value
 		let bottomChecks = 0
@@ -693,8 +722,18 @@
 		return 0
 	}
 
+	watch(state, (value: string) => {
+		if (value == 'processing' || internalDemoChatId.length == 0) return
+		const settleFinalLayout = value == 'completed' && demoFollowEnabled
+		cancelBottomScroll()
+		internalDemoChatId = ''
+		// The completed message adds its toolbar; settle that final layout once.
+		if (settleFinalLayout) scrollToLastMsg()
+	}, { flush: 'post' })
+
 	function resetScrollStateForEmptyChat() {
 		cancelBottomScroll()
+		internalDemoChatId = ''
 		currentScrollTop = 0
 		scrollTop.value = 0
 		scrollInBottom.value = true
@@ -750,6 +789,7 @@
 	
 	watch(chatActiveId, () => {
 		cancelBottomScroll()
+		internalDemoChatId = ''
 		initialPositioning.value = true
 		initializedScrollChatId = ''
 		displayStates.clear()
@@ -904,9 +944,14 @@
 
 	const runMarkdownDemo = async (throttled: boolean) => {
 		if (state.value == 'processing') return
+		cancelBottomScroll()
+		internalDemoChatId = throttled ? chatActiveId.value : ''
+		if (throttled) startDemoBottomFollow()
 		try {
 			await runFullMarkdownDemo(throttled)
 		} catch (error) {
+			cancelBottomScroll()
+			internalDemoChatId = ''
 			console.error('[uni-ai-x][Markdown示例] 运行失败', error)
 		}
 	}
