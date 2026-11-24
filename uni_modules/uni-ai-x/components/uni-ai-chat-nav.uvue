@@ -1,6 +1,6 @@
 <template>
 	<view class="chat-nav">
-		<view class="chat-nav-action" @click="changeMenu"><uni-ai-icon name="menu-outline" color="var(--text-primary)" size="20" /></view>
+		<view class="chat-nav-action" @click="changeMenu"><uni-ai-icon name="menu-outline" color="var(--text-primary)" size="22" /></view>
 		<text class="chat-nav-title" :max-lines="1" flatten>{{title}}</text>
 		<!-- #ifndef MP-WEIXIN -->
 		<add-chat class="chat-nav-action" />

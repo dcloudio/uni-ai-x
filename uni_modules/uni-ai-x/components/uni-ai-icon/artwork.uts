@@ -1,6 +1,6 @@
 // DeepSeek Harness, MIT. Source and license: ../../static/icons/deepseek/README.md
 export const artwork = new Map<string, string>([
-  ["menu-outline", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"><path d=\"M3 7H21M3 17H13\"/></svg>"],
+  ["menu-outline", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M3 7H21M3 17H13\"/></svg>"],
   ["waveform-outline", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4\"/></svg>"],
   ["close-circle-outline", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"11.25\"/><path d=\"M8.5 8.5l7 7M15.5 8.5l-7 7\"/></svg>"],
   ["plus-circle-outline", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"11.25\"/><path d=\"M7.5 12h9M12 7.5v9\"/></svg>"],
