@@ -1,3 +1,4 @@
+import type { AiWorkerMarkdownStartOptions } from '@/uni_modules/uni-ai-x/utssdk/runtime/interface.uts'
 import { llmModelMap } from '@/uni_modules/uni-ai-x/config.uts';
 import { Chunk, Provider, RequestAiCoMessage, Llm, CustomProviderCallbacks, CalendarToolConfirmation, MessageSearch, SearchSource } from '@/uni_modules/uni-ai-x/types.uts';
 import { getCustomProvider } from '@/uni_modules/uni-ai-x/sdk/provider-registry.uts'
@@ -606,12 +607,13 @@ class RequestAiRunner {
 		startAiWorkerMarkdownByValues(requestVersion, MARKDOWN_RENDER_INTERVAL, this.pluginDarkMode, this.pluginBackground)
 		// #endif
 		// #ifndef APP-IOS
-		startAiWorkerMarkdown({
+		const workerOptions: AiWorkerMarkdownStartOptions = {
 			requestVersion: requestVersion,
 			renderInterval: MARKDOWN_RENDER_INTERVAL,
 			darkMode: this.pluginDarkMode,
 			background: this.pluginBackground
-		})
+		}
+		startAiWorkerMarkdown(workerOptions)
 		// #endif
 		// #ifdef APP-IOS || MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {

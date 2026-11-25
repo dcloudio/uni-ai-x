@@ -1,3 +1,4 @@
+import type { AiWorkerMarkdownStartOptions } from '@/uni_modules/uni-ai-x/utssdk/runtime/interface.uts'
 import testMarkdownText from '@/demo/markdown/testMarkdownText.uts'
 import {
 	activeDemoMarkdownScenarioId,
@@ -105,12 +106,13 @@ export default class MarkdownDemoRunner {
 		startAiWorkerMarkdownByValues(this.requestVersion, DEMO_RENDER_INTERVAL, uiTheme.value == 'dark', pluginBackgroundFor(uiTheme.value))
 		// #endif
 		// #ifndef APP-IOS
-		startAiWorkerMarkdown({
+		const workerOptions: AiWorkerMarkdownStartOptions = {
 			requestVersion: this.requestVersion,
 			renderInterval: DEMO_RENDER_INTERVAL,
 			darkMode: uiTheme.value == 'dark',
 			background: pluginBackgroundFor(uiTheme.value)
-		})
+		}
+		startAiWorkerMarkdown(workerOptions)
 		// #endif
 		// #ifdef APP-IOS || MP-WEIXIN
 		this.workerPollTimer = setInterval(() => {
