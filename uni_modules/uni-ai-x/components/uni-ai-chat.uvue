@@ -8,7 +8,7 @@
 					<text class="chat-box-welcome-title" flatten>{{tr('嗨！我是 UNI-AI', 'Hi, I am UNI-AI')}}</text>
 					<text class="chat-box-welcome-text" flatten>{{tr('问答、编程、翻译与创作。', 'Ask, code, translate, create.')}}</text>
 					<view class="chat-box-welcome-actions">
-						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo(false)">
+						<view class="chat-box-welcome-demo-btn" @click="runMarkdownDemo()">
 							<uni-ai-icon class="chat-box-welcome-demo-icon" name="checklist-outline" size="20" color="var(--accent-primary)" />
 							<text class="chat-box-welcome-demo-btn-text">{{tr('体验完整Markdown示例', 'Explore the Markdown demo')}}</text>
 							<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
@@ -20,17 +20,7 @@
 								<uni-ai-icon name="chevron-right-outline" size="16" color="var(--text-tertiary)" />
 							</view>
 						</template>
-						<!-- 内部测试入口：注释下面整个 template 块即可隐藏。 -->
-						<template v-if="true">
-							<view class="chat-box-internal-tests">
-								<text class="chat-box-internal-title">{{tr('内测面板', 'Internal test panel')}}</text>
-								<text class="chat-box-internal-hint">{{tr('相同 Markdown · 每 50 毫秒输出 10 字符', 'Same Markdown · 10 characters / 50 ms')}}</text>
-								<view v-for="mode in internalScrollModes" :key="mode.id" class="chat-box-internal-mode" @click="runInternalMarkdownDemo(mode.id)">
-									<text class="chat-box-welcome-demo-btn-text">{{mode.label}}</text>
-									<text class="chat-box-internal-mode-hint">{{mode.description}}</text>
-								</view>
-							</view>
-						</template>
+
 					</view>
 				</view>
 				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
@@ -48,7 +38,7 @@
 				<loading v-if="showPendingLoading && pendingSpinnerVisible" class="chat-box-pending-loading" :style="pendingSpinnerStyle" :paused="false" />
 				<!-- #endif -->
 
-				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: '10px'}" @click="resumeDemoBottomScroll">
+				<view v-if="msgList.length > 0 && showScrollToBottom" class="chat-box-scroll-to-bottom" :style="{bottom: '10px'}" @click="resumeBottomFollow">
 					<uni-ai-icon name="chevron-down-outline" size="15" color="var(--text-secondary)" />
 				</view>
 			</view>
@@ -647,40 +637,34 @@
 	}
 	
 	let bottomScrollVersion = 0
-	const INTERNAL_READING_SCROLL_SPEED = 200
-	let internalScrollMode = 'smooth'
-	const internalScrollModes = computed(() => [
-		{ id: 'buffered', label: tr('平缓跟随（默认）', 'Buffered follow (default)'), description: tr('末尾保留约三分之一屏，输出结束后平缓追到底。', 'Keep a third-screen buffer, then settle to the bottom.') },
-		{ id: 'instant', label: tr('每次加载都滚到底', 'Jump on every update'), description: tr('新增内容直接贴底，手动滑动可打断。', 'Follow immediately; touch to interrupt.') },
-		{ id: 'smooth', label: tr('缓动跟随', 'Smooth follow'), description: tr('距离越远追得越快，接近底部时放慢。', 'Catch up quickly, then slow near the bottom.') },
-		{ id: 'constant', label: tr('匀速跟随 · 200 px/秒', 'Constant follow · 200 px/s'), description: tr('有内容就匀速阅读，到底等待，输出完继续读。', 'Read at a steady speed; wait at the bottom.') }
-	])
-	let demoFollowEnabled = false
-	let internalDemoChatId = ''
-	let demoFollowTimer = 0
-	let demoFollowBusy = false
+	let bottomFollowEnabled = false
+	let followChatId = ''
+	// #ifdef MP-WEIXIN
+	let bottomFollowTimer = 0
+	let bottomFollowBusy = false
+	// #endif
 	let followStableHeight = -1
 	let followStableSince = 0
 	let followFinalReady = false
 	let enteredStreamingChat = false
 	// #ifndef MP-WEIXIN
-	let demoFollowFrame = 0
-	let demoFollowLastTime = 0
-	let demoFollowPosition = -1
+	let bottomFollowFrame = 0
+	let bottomFollowLastTime = 0
 	// #endif
 	function cancelBottomScroll() {
 		bottomScrollVersion += 1
-		demoFollowEnabled = false
-		if (demoFollowTimer != 0) clearInterval(demoFollowTimer)
-		demoFollowTimer = 0
+		bottomFollowEnabled = false
+		// #ifdef MP-WEIXIN
+		if (bottomFollowTimer != 0) clearInterval(bottomFollowTimer)
+		bottomFollowTimer = 0
+		// #endif
 		followStableHeight = -1
 		followStableSince = 0
 		followFinalReady = false
 		// #ifndef MP-WEIXIN
-		if (demoFollowFrame != 0) cancelAnimationFrame(demoFollowFrame)
-		demoFollowFrame = 0
-		demoFollowLastTime = 0
-		demoFollowPosition = -1
+		if (bottomFollowFrame != 0) cancelAnimationFrame(bottomFollowFrame)
+		bottomFollowFrame = 0
+		bottomFollowLastTime = 0
 		// #endif
 	}
 
@@ -699,71 +683,58 @@
 	}
 
 	// #ifndef MP-WEIXIN
-	function advanceDemoBottomFollow(timestamp: number) {
-		demoFollowFrame = 0
-		if (!demoFollowEnabled || viewDisposed || internalDemoChatId != chatActiveId.value) return
-		const elapsed = demoFollowLastTime == 0 ? 16 : Math.min(32, Math.max(1, timestamp - demoFollowLastTime))
-		demoFollowLastTime = timestamp
+	function advanceBottomFollow(timestamp: number) {
+		bottomFollowFrame = 0
+		if (!bottomFollowEnabled || viewDisposed || followChatId != chatActiveId.value) return
+		const elapsed = bottomFollowLastTime == 0 ? 16 : Math.min(32, Math.max(1, timestamp - bottomFollowLastTime))
+		bottomFollowLastTime = timestamp
 		const list = uni.getElementById('msg-list')
 		if (list != null && msgList.value.length > 0) {
 			const top = list.scrollTop
 			const viewportHeight = list.getBoundingClientRect().height
 			const realBottom = Math.max(0, list.scrollHeight - viewportHeight)
-			const bottom = internalScrollMode == 'buffered' ? bufferedFollowTarget(realBottom, viewportHeight, timestamp) : realBottom
+			const bottom = bufferedFollowTarget(realBottom, viewportHeight, timestamp)
 			const remaining = bottom - top
-			if (demoFollowPosition < 0) demoFollowPosition = top
 			if (remaining > 0) {
 				// Follow the latest measured bottom without restarting a fixed-duration animation.
-				const step = internalScrollMode == 'constant'
-					? INTERNAL_READING_SCROLL_SPEED * elapsed / 1000
-					: (remaining <= 1 ? remaining : Math.max(1, remaining * (1 - Math.exp(-elapsed / 60))))
-				// Accumulate fractional pixels so native rounding cannot stall slow reading.
-				demoFollowPosition = Math.min(bottom, (internalScrollMode == 'constant' ? demoFollowPosition : top) + step)
-				scrollTop.value = demoFollowPosition
+				const step = remaining <= 1 ? remaining : Math.max(1, remaining * (1 - Math.exp(-elapsed / 60)))
+				scrollTop.value = Math.min(bottom, top + step)
 			}
-			if (internalScrollMode == 'constant' && remaining <= 0) demoFollowPosition = bottom
-			if (internalScrollMode == 'constant' && state.value == 'completed' && remaining <= 1 && demoFollowPosition >= bottom) {
+			if (followFinalReady && remaining <= 1) {
 				cancelBottomScroll()
-				internalDemoChatId = ''
-				return
-			}
-			if (internalScrollMode == 'buffered' && followFinalReady && remaining <= 1) {
-				cancelBottomScroll()
-				internalDemoChatId = ''
+				followChatId = ''
 				return
 			}
 		}
-		demoFollowFrame = requestAnimationFrame(advanceDemoBottomFollow)
+		bottomFollowFrame = requestAnimationFrame(advanceBottomFollow)
 	}
 	// #endif
 
-	function startDemoBottomFollow() {
-		if (demoFollowEnabled || internalDemoChatId.length == 0 || internalDemoChatId != chatActiveId.value) return
-		demoFollowEnabled = true
+	function startBottomFollow() {
+		if (bottomFollowEnabled || followChatId.length == 0 || followChatId != chatActiveId.value) return
+		bottomFollowEnabled = true
 		// #ifndef MP-WEIXIN
-		if (internalScrollMode != 'instant') {
-			demoFollowLastTime = 0
-			demoFollowPosition = -1
-			demoFollowFrame = requestAnimationFrame(advanceDemoBottomFollow)
-			return
-		}
+		bottomFollowLastTime = 0
+		bottomFollowFrame = requestAnimationFrame(advanceBottomFollow)
 		// #endif
-		// Measure native layouts as well as new output, including virtual item height corrections.
-		demoFollowTimer = setInterval(async () => {
-			if (!demoFollowEnabled || demoFollowBusy || msgList.value.length == 0) return
-			demoFollowBusy = true
+		// #ifdef MP-WEIXIN
+		// Mini-programs use selector queries to measure the same buffered target.
+		bottomFollowTimer = setInterval(async () => {
+			if (!bottomFollowEnabled || bottomFollowBusy || msgList.value.length == 0) return
+			bottomFollowBusy = true
 			try {
 				await scrollToLastMsg()
 			} finally {
-				demoFollowBusy = false
+				bottomFollowBusy = false
 			}
 		}, 80)
+		// #endif
 	}
 
-	function resumeDemoBottomScroll() {
-		if (internalDemoChatId == chatActiveId.value
-			&& (state.value == 'processing' || ((internalScrollMode == 'constant' || internalScrollMode == 'buffered') && state.value == 'completed'))) {
-			startDemoBottomFollow()
+	function resumeBottomFollow() {
+		if (followChatId == chatActiveId.value
+			&& (state.value == 'processing' || state.value == 'completed')) {
+			startBottomFollow()
 			return
 		}
 		scrollToLastMsg()
@@ -771,7 +742,7 @@
 
 	function onComposerScrollRequest() {
 		// Focus/keyboard events must neither bypass the buffer nor resume an interrupted reply.
-		if (internalDemoChatId == chatActiveId.value && internalScrollMode == 'buffered') return
+		if (followChatId == chatActiveId.value) return
 		scrollToLastMsg()
 	}
 
@@ -823,13 +794,13 @@
 			})
 			// #endif
 			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
-			const buffered = !forceBottom && internalScrollMode == 'buffered' && internalDemoChatId == chatId && demoFollowEnabled
+			const buffered = !forceBottom && followChatId == chatId && bottomFollowEnabled
 			if (buffered) {
 				const bottom = top + remaining
 				remaining = Math.max(0, bufferedFollowTarget(bottom, viewportHeight, Date.now()) - top)
 				if (followFinalReady && remaining <= 1) {
 					cancelBottomScroll()
-					internalDemoChatId = ''
+					followChatId = ''
 					return
 				}
 			}
@@ -862,23 +833,17 @@
 		if (value == 'processing') {
 			// Opening an already streaming conversation is navigation, not a new send.
 			if (enteredStreamingChat) return
-			if (internalDemoChatId.length == 0 || internalScrollMode == 'buffered') {
-				cancelBottomScroll()
-				internalScrollMode = 'buffered'
-				internalDemoChatId = chatActiveId.value
-				startDemoBottomFollow()
-			}
+			cancelBottomScroll()
+			followChatId = chatActiveId.value
+			startBottomFollow()
 			return
 		}
 		enteredStreamingChat = false
-		if (internalDemoChatId.length == 0) return
-		// Reading mode drains the remaining content at the same speed after output finishes.
-		if (value == 'completed' && (internalScrollMode == 'constant' || (internalScrollMode == 'buffered' && demoFollowEnabled))) return
-		const settleFinalLayout = value == 'completed' && demoFollowEnabled
+		if (followChatId.length == 0) return
+		// Keep the buffer until the completed reply finishes rendering and settles.
+		if (value == 'completed' && bottomFollowEnabled) return
 		cancelBottomScroll()
-		internalDemoChatId = ''
-		// The completed message adds its toolbar; settle that final layout once.
-		if (settleFinalLayout) scrollToLastMsg()
+		followChatId = ''
 	}, { flush: 'post' })
 
 	const lastUserMessageId = computed<string>(() => {
@@ -895,7 +860,7 @@
 
 	function resetScrollStateForEmptyChat() {
 		cancelBottomScroll()
-		internalDemoChatId = ''
+		followChatId = ''
 		currentScrollTop = 0
 		scrollTop.value = 0
 		scrollInBottom.value = true
@@ -952,7 +917,7 @@
 	watch(chatActiveId, () => {
 		cancelBottomScroll()
 		enteredStreamingChat = state.value == 'processing'
-		internalDemoChatId = ''
+		followChatId = ''
 		initialPositioning.value = true
 		initializedScrollChatId = ''
 		displayStates.clear()
@@ -1106,21 +1071,15 @@
 		}, 180)
 	}
 
-	const runInternalMarkdownDemo = (mode: string) => {
-		if (state.value == 'processing') return
-		internalScrollMode = mode
-		runMarkdownDemo(true)
-	}
-	const runMarkdownDemo = async (throttled: boolean) => {
+	const runMarkdownDemo = async () => {
 		if (state.value == 'processing') return
 		cancelBottomScroll()
-		internalDemoChatId = throttled ? chatActiveId.value : ''
-		if (throttled) startDemoBottomFollow()
+		followChatId = ''
 		try {
-			await runFullMarkdownDemo(throttled)
+			await runFullMarkdownDemo()
 		} catch (error) {
 			cancelBottomScroll()
-			internalDemoChatId = ''
+			followChatId = ''
 			console.error('[uni-ai-x][Markdown示例] 运行失败', error)
 		}
 	}
@@ -1372,43 +1331,6 @@
 .chat-box-welcome-demo-icon {
 	width: 28px;
 	margin-right: 8px;
-}
-
-.chat-box-internal-tests {
-	margin: 5px 0;
-	padding: 10px 12px;
-	border: 1px solid var(--border-color);
-	border-radius: 16px;
-	background-color: var(--bg-primary);
-}
-
-.chat-box-internal-title {
-	font-size: 14px;
-	font-weight: bold;
-	color: var(--text-primary);
-}
-
-.chat-box-internal-hint {
-	font-size: 12px;
-	line-height: 18px;
-	color: var(--text-secondary);
-	margin: 4px 0;
-}
-
-.chat-box-internal-mode {
-	min-height: 48px;
-	margin-top: 6px;
-	padding: 6px 10px;
-	border: 1px solid var(--border-color);
-	border-radius: 10px;
-	flex-direction: column;
-	justify-content: center;
-}
-
-.chat-box-internal-mode-hint {
-	font-size: 11px;
-	line-height: 16px;
-	color: var(--text-secondary);
 }
 
 .chat-box-welcome-demo-btn-text {

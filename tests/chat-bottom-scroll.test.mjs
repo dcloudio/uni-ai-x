@@ -25,7 +25,7 @@ function controller(pendingPresentation = false, quantizedScroll = false) {
   const frames = new Map();
   let frameId = 0, frameTime = 0;
   const api = vm.runInNewContext('(function(){' + stripTypeScriptTypes(source) +
-    '\nreturn { scrollToLastMsg, cancelBottomScroll, resumeDemoBottomScroll, startInternalDemo(mode = "smooth") { internalScrollMode = mode; internalDemoChatId = chatActiveId.value; startDemoBottomFollow(); }, setNavigatingStreaming(value) { enteredStreamingChat = value; } }; })()', {
+    '\nreturn { scrollToLastMsg, cancelBottomScroll, resumeBottomFollow, startFollow() { followChatId = chatActiveId.value; startBottomFollow(); }, setNavigatingStreaming(value) { enteredStreamingChat = value; } }; })()', {
     viewDisposed: false, chatActiveId, scrollTop, currentScrollTop: 0,
     uniAi, displayStates: new Map([['m', display]]),
     msgList, state, watch: (source, callback) => {
@@ -121,13 +121,14 @@ test('one click reaches the corrected virtual bottom and later output does not f
   assert.equal(api.layout.top, 4500);
 });
 
-test('internal demo follows height changes and allows repeated interruption and explicit resumption', async () => {
+test('buffered follow tracks height changes and allows repeated interruption and explicit resumption', async () => {
   const api = controller();
   const wait = async () => { api.frames(60); };
   try {
-    api.startInternalDemo();
+    api.layout.height = 3000;
+    api.startFollow();
     await wait();
-    assert.equal(api.layout.top, 2500);
+    assert.ok(Math.abs(api.layout.top - (2500 - 500 / 3)) <= 1);
     for (let i = 0; i < 2; i++) {
       api.cancelBottomScroll();
       const heldTop = api.layout.top;
@@ -135,13 +136,13 @@ test('internal demo follows height changes and allows repeated interruption and 
       api.layout.height += 500;
       await wait();
       assert.equal(api.layout.top, heldTop);
-      api.resumeDemoBottomScroll();
+      api.resumeBottomFollow();
       await wait();
-      assert.equal(api.layout.top, api.layout.height - 500);
+      assert.ok(Math.abs(api.layout.top - (api.layout.height - 500 - 500 / 3)) <= 1);
       api.message.body += ' continuing output';
       api.layout.height += 500;
       await wait();
-      assert.equal(api.layout.top, api.layout.height - 500);
+      assert.ok(Math.abs(api.layout.top - (api.layout.height - 500 - 500 / 3)) <= 1);
     }
   } finally {
     api.cancelBottomScroll();
@@ -159,16 +160,16 @@ test('touch or chat changes cancel an outstanding click before another scroll co
   }
 });
 
-test('smooth follow approaches moving content over multiple frames and touch stops all motion', async () => {
+test('buffered follow approaches moving content over multiple frames and touch stops all motion', async () => {
   const api = controller();
   try {
-    api.startInternalDemo();
+    api.startFollow();
     api.frames(2);
     assert.ok(api.layout.top > 0 && api.layout.top < 500);
     api.layout.height = 4000;
     api.message.body += ' output during animation';
     api.frames(60);
-    assert.equal(api.layout.top, 3500);
+    assert.ok(Math.abs(api.layout.top - (3500 - 500 / 3)) <= 1);
     assert.ok(api.commands.filter(top => top > 500 && top < 3500).length > 3);
     api.cancelBottomScroll();
     const count = api.commands.length;
@@ -177,65 +178,6 @@ test('smooth follow approaches moving content over multiple frames and touch sto
     assert.equal(api.commands.length, count);
   } finally {
     api.cancelBottomScroll();
-  }
-});
-
-test('constant reading speed is independent of backlog and survives native pixel rounding', () => {
-  for (const height of [1000, 8000]) {
-    const api = controller(false, true);
-    try {
-      api.layout.height = height;
-      api.startInternalDemo('constant');
-      api.frames(60);
-      assert.ok(Math.abs(api.layout.top - 200 * 0.960) < 0.3);
-      api.layout.height += 1000;
-      api.message.body += ' faster output';
-      api.frames(60);
-      assert.ok(Math.abs(api.layout.top - 200 * 1.920) < 0.3);
-    } finally {
-      api.cancelBottomScroll();
-    }
-  }
-});
-
-test('constant mode waits for content, resumes after touch, and drains completed output before stopping', () => {
-  const api = controller(false, true);
-  try {
-    api.layout.height = 500;
-    api.startInternalDemo('constant');
-    api.frames(60);
-    assert.equal(api.commands.length, 0);
-    api.layout.height = 1500;
-    api.frames(60);
-    assert.ok(api.layout.top > 185 && api.layout.top < 200);
-    api.cancelBottomScroll();
-    const heldTop = api.layout.top;
-    api.setState('completed');
-    api.frames(60);
-    assert.equal(api.layout.top, heldTop);
-    api.resumeDemoBottomScroll();
-    api.frames(400);
-    assert.equal(api.layout.top, 1000);
-    const count = api.commands.length;
-    api.layout.height += 500;
-    api.frames(60);
-    assert.equal(api.commands.length, count);
-  } finally {
-    api.cancelBottomScroll();
-  }
-});
-
-test('original instant follow remains selectable', async () => {
-  const instant = controller();
-  try {
-    instant.startInternalDemo('instant');
-    await new Promise(resolve => setTimeout(resolve, 200));
-    assert.equal(instant.layout.top, 2500);
-    instant.layout.height += 500;
-    await new Promise(resolve => setTimeout(resolve, 150));
-    assert.equal(instant.layout.top, 3000);
-  } finally {
-    instant.cancelBottomScroll();
   }
 });
 
@@ -283,26 +225,26 @@ test('interrupting default follow prevents output and completion from resuming m
   }
 });
 
-test('completion settles the final layout once and stop never restarts following', async () => {
+test('completion drains the final buffer and stop never restarts following', () => {
   for (const terminal of ['completed', 'stop']) {
     const api = controller();
     try {
-      api.startInternalDemo();
+      api.layout.height = 3000;
+      api.startFollow();
       api.frames(60);
+      const held = api.layout.top;
       api.layout.height += 500;
+      api.message.rendered = true;
       api.setState(terminal);
-      await new Promise(resolve => setTimeout(resolve, 150));
-      assert.equal(api.layout.top, terminal === 'completed' ? 3000 : 2500);
+      api.frames(60);
+      assert.ok(Math.abs(api.layout.top - (terminal === 'completed' ? 3000 : held)) <= 1);
       const finalTop = api.layout.top;
       api.layout.height += 500;
-      await new Promise(resolve => setTimeout(resolve, 150));
+      api.frames(60);
       assert.equal(api.layout.top, finalTop);
-    } finally {
-      api.cancelBottomScroll();
-    }
+    } finally { api.cancelBottomScroll(); }
   }
 });
-
 
 test('a completed reply waits for delayed image commits within the same click', async () => {
   const api = controller(true);
