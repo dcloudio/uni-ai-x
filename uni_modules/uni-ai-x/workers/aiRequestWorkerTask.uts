@@ -1,3 +1,6 @@
+// #ifdef WEB
+import { toWebWorkerMessage } from '../utssdk/runtime/web-worker-message.js'
+// #endif
 // #ifdef APP-ANDROID
 import { createSession, feedChunk, finishSession, destroySession } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
 import type { UniAiMdEvent, UniAiMdOp } from '@/uni_modules/uni-ai-md/utssdk/app-android/index.uts'
@@ -101,24 +104,33 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		super()
 	}
 
+	private postProtocolMessage(message: UTSJSONObject): void {
+		// #ifdef WEB
+		this.postMessage(toWebWorkerMessage(message))
+		// #endif
+		// #ifndef WEB
+		this.postMessage(message)
+		// #endif
+	}
+
 	override entry() {
 		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-		this.postMessage({ phase: 'ready' } as UTSJSONObject)
+		this.postProtocolMessage({ phase: 'ready' } as UTSJSONObject)
 		return
 		// #endif
 		// #ifdef WEB || MP-WEIXIN
 		initMd2html().then(() => {
-			this.postMessage({ phase: 'ready' } as UTSJSONObject)
+			this.postProtocolMessage({ phase: 'ready' } as UTSJSONObject)
 		}).catch((error) => {
 			const errMsg = error instanceof Error ? error.message : 'cmark-gfm WebAssembly 初始化失败'
-			this.postMessage({
+			this.postProtocolMessage({
 				phase: 'init-error',
 				errMsg: errMsg
 			} as UTSJSONObject)
 		})
 		return
 		// #endif
-		this.postMessage({ phase: 'ready' } as UTSJSONObject)
+		this.postProtocolMessage({ phase: 'ready' } as UTSJSONObject)
 	}
 
 	override onMessage(message: any) {
@@ -223,7 +235,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			} as UTSJSONObject)
 			this.uniAiMdPendingOpOffset += 1
 		}
-		this.postMessage({
+		this.postProtocolMessage({
 			tag: 'uni-ai-md-op-batch',
 			requestVersion: this.requestVersion,
 			ops: ops
@@ -311,7 +323,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			if (this.finished) return
 		}
 		this.finished = true
-		this.postMessage({ phase: 'uni-ai-md-complete', requestVersion: this.requestVersion } as UTSJSONObject)
+		this.postProtocolMessage({ phase: 'uni-ai-md-complete', requestVersion: this.requestVersion } as UTSJSONObject)
 		if (!this.content.endsWith('\n')) this.content += '\n'
 		this.publishSnapshot(true)
 	}
@@ -346,7 +358,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.renderTimer = 0
 		this.destroyUniAiMdSession()
 		this.resetUniAiMdProtocol()
-		this.postMessage({
+		this.postProtocolMessage({
 			phase: 'uni-ai-md-error',
 			requestVersion: this.requestVersion,
 			errCode: code,
@@ -458,7 +470,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 	}
 
 	private postRebuildOps(msgId: string, ops: UTSJSONObject[]) {
-		this.postMessage({
+		this.postProtocolMessage({
 			tag: 'uni-ai-md-rebuild-ops',
 			msgId: msgId,
 			ops: ops
@@ -669,7 +681,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 		this.postMessage(state, { harmonySendable: true } as WorkerPostMessageOptions)
 		// #endif
 		// #ifdef APP-ANDROID || APP-IOS
-		this.postMessage({
+		this.postProtocolMessage({
 			tag: 'ai-worker-state',
 			requestVersion: this.requestVersion,
 			snapshotVersion: this.snapshotVersion,
@@ -741,7 +753,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			errCode: '',
 			errMsg: ''
 		} as UTSJSONObject
-		this.postMessage({
+		this.postProtocolMessage({
 			phase: 'snapshot',
 			snapshotJson: JSON.stringify(snapshot) ?? ''
 		} as UTSJSONObject)
@@ -802,7 +814,7 @@ export class AiRequestWorkerTask extends WorkerTaskImpl {
 			errCode: code,
 			errMsg: message
 		} as UTSJSONObject
-		this.postMessage({
+		this.postProtocolMessage({
 			phase: 'snapshot',
 			snapshotJson: JSON.stringify(snapshot) ?? ''
 		} as UTSJSONObject)

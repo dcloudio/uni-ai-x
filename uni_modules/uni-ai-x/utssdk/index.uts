@@ -1,3 +1,6 @@
+// #ifdef WEB
+import { toWebWorkerMessage } from './runtime/web-worker-message.js'
+// #endif
 // Release testing: disable Worker diagnostic logs and code-performance probes.
 // Snapshot schema v35: rebuild the native Worker together with the JS snapshot producer.
 import {
@@ -130,6 +133,15 @@ function resolveAppLanguage(): string | null {
 	return appLanguageCache
 }
 
+function postProtocolMessage(message: UTSJSONObject): void {
+	// #ifdef WEB
+	worker?.postMessage(toWebWorkerMessage(message), null)
+	// #endif
+	// #ifndef WEB
+	worker?.postMessage(message, null)
+	// #endif
+}
+
 function postStart(options: AiWorkerStartOptions): void {
 	if (worker == null || !workerReady) return
 	const message = new UTSJSONObject()
@@ -149,7 +161,7 @@ function postStart(options: AiWorkerStartOptions): void {
 	message.language = resolveAppLanguage()
 	message.darkMode = options.darkMode ?? false
 	message.background = options.background ?? ''
-	worker!.postMessage(message, null)
+	postProtocolMessage(message)
 }
 
 function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
@@ -158,7 +170,7 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 	pendingUniAiMdOps = [] as AiWorkerOp[]
 	latestUniAiMdState = null
 	// #endif
-	worker!.postMessage({
+	postProtocolMessage({
 		action: 'start-markdown',
 		renderProtocolVersion: WORKER_RENDER_PROTOCOL_VERSION,
 		requestVersion: options.requestVersion,
@@ -166,7 +178,7 @@ function postMarkdownStart(options: AiWorkerMarkdownStartOptions): void {
 		language: resolveAppLanguage(),
 		darkMode: options.darkMode ?? false,
 		background: options.background ?? ''
-	}, null)
+	})
 	if (pendingMarkdownContent.length > 0 || pendingMarkdownReasoning.length > 0) {
 		postMarkdownChunk(options.requestVersion, pendingMarkdownContent, pendingMarkdownReasoning)
 		pendingMarkdownContent = ''
@@ -187,19 +199,19 @@ function postMarkdownChunk(requestVersion: number, content: string, reasoningCon
 	worker?.postMessage(chunk, { harmonySendable: true })
 	return
 	// #endif
-	worker?.postMessage({
+	postProtocolMessage({
 		action: 'append-markdown',
 		requestVersion: requestVersion,
 		content: content,
 		reasoningContent: reasoningContent
-	}, null)
+	})
 }
 
 function postMarkdownComplete(requestVersion: number): void {
-	worker?.postMessage({
+	postProtocolMessage({
 		action: 'complete-markdown',
 		requestVersion: requestVersion
-	}, null)
+	})
 }
 
 // #ifdef APP-HARMONY
@@ -263,14 +275,14 @@ function receiveRebuildResult(message: UTSJSONObject): void {
 
 function postRebuildRequest(request: AiWorkerRebuildRequest): void {
 	if (worker == null || !workerReady) return
-	worker!.postMessage({
+	postProtocolMessage({
 		action: 'rebuild-markdown',
 		msgId: request.msgId,
 		content: request.content,
 		language: resolveAppLanguage(),
 		darkMode: request.darkMode,
 		background: request.background
-	}, null)
+	})
 }
 
 function flushPendingRebuildRequests(): void {
@@ -464,10 +476,10 @@ const cancelWorkerRequest: CancelAiWorkerRequest = function (requestVersion: num
 	currentRequestVersion = 0
 	// #endif
 	if (worker == null || !workerReady) return
-	worker!.postMessage({
+	postProtocolMessage({
 		action: 'cancel',
 		requestVersion: requestVersion
-	}, null)
+	})
 }
 
 const destroyWorkerRuntime: DestroyAiWorkerRuntime = function (): void {
