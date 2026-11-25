@@ -262,9 +262,12 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 				parser.finish()
 			},
 			fail: (error: RequestFail) => {
-				console.error('[uni-ai-x][model] network failure', JSON.stringify({ url: url, model: data['model'], durationMs: Date.now() - startedAt, error: error.errMsg }))
 				if (settled) return
 				settled = true
+				// User cancellation also invokes fail; it is not a network failure.
+				if (callbacks.isCancelled?.() != true) {
+					console.error('[uni-ai-x][model] network failure', JSON.stringify({ url: url, model: data['model'], durationMs: Date.now() - startedAt, error: error.errMsg }))
+				}
 				reject(new Error(error.errMsg))
 			},
 			complete: () => { callbacks.onTaskComplete?.(task) }
