@@ -1127,7 +1127,20 @@
 
 
 
+	// #ifdef WEB
+	let webScrollBox: HTMLElement | null = null
+	// Desktop scrolling does not emit touchstart. Keep interruption local to this chat.
+	function interruptWebFollow() {
+		cancelBottomScroll()
+	}
+	// #endif
+
 	onMounted(() => {
+		// #ifdef WEB
+		webScrollBox = document.getElementById('chat-scroll-box')
+		webScrollBox?.addEventListener('wheel', interruptWebFollow, { passive: true })
+		webScrollBox?.addEventListener('pointerdown', interruptWebFollow, { passive: true })
+		// #endif
 		// #ifdef APP-IOS
 		pollRebuildResults()
 		rebuildPollTimer = setInterval(pollRebuildResults, 100)
@@ -1144,6 +1157,11 @@
 	})
 
 	onBeforeUnmount(() => {
+		// #ifdef WEB
+		webScrollBox?.removeEventListener('wheel', interruptWebFollow)
+		webScrollBox?.removeEventListener('pointerdown', interruptWebFollow)
+		webScrollBox = null
+		// #endif
 		viewDisposed = true
 		cancelBottomScroll()
 		displayStates.clear()
