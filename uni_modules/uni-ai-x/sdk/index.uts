@@ -460,7 +460,8 @@ class UniAi {
 		}
 		// 选中新创建的会话
 		nextTick(() => {
-			this.chat.activeId = activeId
+			// New-chat navigation owns the same cancellation boundary as history selection.
+			this.selectChat(activeId)
 		})
 	}
 	
