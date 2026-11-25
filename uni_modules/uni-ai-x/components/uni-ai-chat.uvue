@@ -75,9 +75,6 @@
 <script lang="uts" setup>
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
 	import type { ComputedRef } from 'vue'
-	// #ifdef WEB
-	import { observeWebListItemSizes } from '@/uni_modules/uni-ai-x/sdk/web-list-view-size.js'
-	// #endif
 	import {uniAi, MsgItem, uiTheme, calendarConfirmationRevision} from '@/uni_modules/uni-ai-x/sdk/'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { llmModelMap, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
@@ -1137,7 +1134,6 @@
 
 	// #ifdef WEB
 	let webScrollBox: HTMLElement | null = null
-	let stopWebListSizeObserver: (() => void) | null = null
 	// Desktop scrolling does not emit touchstart. Keep interruption local to this chat.
 	function interruptWebFollow() {
 		cancelBottomScroll()
@@ -1147,7 +1143,6 @@
 	onMounted(() => {
 		// #ifdef WEB
 		webScrollBox = document.getElementById('chat-scroll-box')
-		if (webScrollBox != null) stopWebListSizeObserver = observeWebListItemSizes(webScrollBox)
 		webScrollBox?.addEventListener('wheel', interruptWebFollow, { passive: true })
 		webScrollBox?.addEventListener('pointerdown', interruptWebFollow, { passive: true })
 		// #endif
@@ -1168,8 +1163,6 @@
 
 	onBeforeUnmount(() => {
 		// #ifdef WEB
-		stopWebListSizeObserver?.()
-		stopWebListSizeObserver = null
 		webScrollBox?.removeEventListener('wheel', interruptWebFollow)
 		webScrollBox?.removeEventListener('pointerdown', interruptWebFollow)
 		webScrollBox = null
