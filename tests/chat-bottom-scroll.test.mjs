@@ -9,7 +9,8 @@ function controller(pendingPresentation = false, quantizedScroll = false) {
   const source = full.slice(full.indexOf('let bottomScrollVersion'), full.indexOf('\n\tfunction clearTimer'))
     .replace(/\/\/ #ifdef MP-WEIXIN[\s\S]*?\/\/ #endif/g, '')
     + full.slice(full.indexOf('\twatch(state,'), full.indexOf('\n\tfunction resetScrollStateForEmptyChat'));
-  const message = { _id: 'm', body: 'initial', rendered: pendingPresentation };
+  const message = { _id: 'm', from_uid: 'uni-ai', body: 'initial', rendered: pendingPresentation };
+  const msgList = { value: [{ _id: 'user', from_uid: 'user' }, message] };
   const display = { final: pendingPresentation ? null : {} };
   const layout = { height: 1000, top: 0 }, chatActiveId = { value: 'chat' };
   const commands = [];
@@ -20,14 +21,17 @@ function controller(pendingPresentation = false, quantizedScroll = false) {
   } };
   const uniAi = { lastAiMsg: message };
   const state = { value: 'processing' };
-  let stateChanged;
+  let stateChanged, userMessageChanged;
   const frames = new Map();
   let frameId = 0, frameTime = 0;
   const api = vm.runInNewContext('(function(){' + stripTypeScriptTypes(source) +
-    '\nreturn { scrollToLastMsg, cancelBottomScroll, resumeDemoBottomScroll, startInternalDemo(mode = "smooth") { internalScrollMode = mode; internalDemoChatId = chatActiveId.value; startDemoBottomFollow(); } }; })()', {
+    '\nreturn { scrollToLastMsg, cancelBottomScroll, resumeDemoBottomScroll, startInternalDemo(mode = "smooth") { internalScrollMode = mode; internalDemoChatId = chatActiveId.value; startDemoBottomFollow(); }, setNavigatingStreaming(value) { enteredStreamingChat = value; } }; })()', {
     viewDisposed: false, chatActiveId, scrollTop, currentScrollTop: 0,
     uniAi, displayStates: new Map([['m', display]]),
-    msgList: { value: [{}] }, state, watch: (_source, callback) => { stateChanged = callback; },
+    msgList, state, watch: (source, callback) => {
+      if (source === state) stateChanged = callback;
+      else userMessageChanged = callback;
+    },
     computed: getter => ({ get value() { return getter(); } }), tr: text => text,
     hasMessageRenderTasks: () => false,
     setIsInScrollBottom() {}, nextTick: () => Promise.resolve(), setTimeout, setInterval, clearInterval,
@@ -45,8 +49,66 @@ function controller(pendingPresentation = false, quantizedScroll = false) {
         pending.forEach(callback => callback(frameTime));
       }
     },
-    setState(value) { state.value = value; stateChanged(value); } };
+    setState(value) { state.value = value; stateChanged(value); },
+    sendUserMessage(id = 'user-2') {
+      msgList.value.splice(msgList.value.length - 1, 0, { _id: id, from_uid: 'user' });
+      return userMessageChanged(id);
+    } };
 }
+
+test('sending a user message jumps to the true bottom while later output retains the reading buffer', async () => {
+  const api = controller();
+  try {
+    api.layout.height = 3500;
+    api.setState('processing');
+    await api.sendUserMessage();
+    assert.equal(api.layout.top, 3000);
+    api.layout.height += 1000;
+    api.message.body += ' subsequent reply';
+    api.frames(60);
+    assert.ok(Math.abs(api.layout.top - (4000 - 500 / 3)) <= 1);
+    api.cancelBottomScroll();
+    const held = api.layout.top;
+    api.layout.height += 1000;
+    api.frames(30);
+    assert.equal(api.layout.top, held);
+  } finally { api.cancelBottomScroll(); }
+});
+
+test('new sends restore visibility after interruption but streaming navigation does not jump', async () => {
+  const api = controller();
+  try {
+    api.layout.height = 3500;
+    api.setState('processing');
+    api.cancelBottomScroll();
+    await api.sendUserMessage();
+    assert.equal(api.layout.top, 3000);
+    const count = api.commands.length;
+    api.setNavigatingStreaming(true);
+    await api.sendUserMessage('loaded-history');
+    assert.equal(api.commands.length, count);
+  } finally { api.cancelBottomScroll(); }
+});
+
+test('a fast first reply chunk cannot cancel the initial send jump', async () => {
+  const api = controller();
+  try {
+    api.layout.height = 3500;
+    api.setState('processing');
+    const pending = api.scrollToLastMsg(true);
+    api.message.body += ' first chunk before layout tick';
+    await pending;
+    assert.equal(api.layout.top, 3000);
+  } finally { api.cancelBottomScroll(); }
+});
+
+test('switching chats cancels a queued send jump before it issues scroll commands', async () => {
+  const api = controller();
+  const pending = api.sendUserMessage();
+  api.chatActiveId.value = 'other-chat';
+  await pending;
+  assert.equal(api.commands.length, 0);
+});
 
 test('one click reaches the corrected virtual bottom and later output does not follow', async () => {
   const api = controller();

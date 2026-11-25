@@ -775,11 +775,21 @@
 		scrollToLastMsg()
 	}
 
-	async function scrollToLastMsg() {
+	async function positionSentUserMessage(messageId: string) {
+		const chatId = chatActiveId.value
+		// The processing-state watcher first installs the output follow controller.
+		// Wait for that flush and the user's list-item before issuing the one-off jump.
+		await nextTick()
+		if (viewDisposed || chatActiveId.value != chatId || lastUserMessageId.value != messageId) return
+		await scrollToLastMsg(true)
+	}
+
+	async function scrollToLastMsg(forceBottom: boolean = false) {
 		bottomScrollVersion += 1
 		const version = bottomScrollVersion
 		const chatId = chatActiveId.value
 		let bottomChecks = 0
+		let positioned = false
 		const targetMessage = uniAi.lastAiMsg
 		const targetBody = targetMessage?.body ?? ''
 		const waitForPreparedReply = targetMessage?.rendered == true
@@ -813,7 +823,7 @@
 			})
 			// #endif
 			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
-			const buffered = internalScrollMode == 'buffered' && internalDemoChatId == chatId && demoFollowEnabled
+			const buffered = !forceBottom && internalScrollMode == 'buffered' && internalDemoChatId == chatId && demoFollowEnabled
 			if (buffered) {
 				const bottom = top + remaining
 				remaining = Math.max(0, bufferedFollowTarget(bottom, viewportHeight, Date.now()) - top)
@@ -824,7 +834,8 @@
 				}
 			}
 			// Finish a completed reply's pending presentation, but never follow new output.
-			if ((uniAi.lastAiMsg?._id ?? '') != (targetMessage?._id ?? '') || (targetMessage?.body ?? '') != targetBody) break
+			if ((uniAi.lastAiMsg?._id ?? '') != (targetMessage?._id ?? '')) break
+			if ((targetMessage?.body ?? '') != targetBody && (!forceBottom || positioned)) break
 			const presentationPending = waitForPreparedReply && targetMessage != null && displayStates.get(targetMessage!._id)?.final == null
 			bottomChecks = remaining <= 1 && !presentationPending ? bottomChecks + 1 : 0
 			if (bottomChecks >= 2) break
@@ -834,6 +845,7 @@
 				if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
 				scrollTop.value = top + (buffered ? Math.min(remaining, Math.max(1, remaining * (1 - Math.exp(-80 / 60)))) : remaining)
 			}
+			positioned = true
 			await new Promise<void>((resolve) => { setTimeout(() => { resolve() }, presentationPending ? 50 : 16) })
 		}
 		setIsInScrollBottom()
@@ -867,6 +879,18 @@
 		internalDemoChatId = ''
 		// The completed message adds its toolbar; settle that final layout once.
 		if (settleFinalLayout) scrollToLastMsg()
+	}, { flush: 'post' })
+
+	const lastUserMessageId = computed<string>(() => {
+		for (let index = msgList.value.length - 1; index >= 0; index--) {
+			const msg = msgList.value[index]
+			if (msg.from_uid != 'uni-ai') return msg._id
+		}
+		return ''
+	})
+	watch(lastUserMessageId, async (messageId: string) => {
+		if (messageId.length == 0 || state.value != 'processing' || enteredStreamingChat) return
+		await positionSentUserMessage(messageId)
 	}, { flush: 'post' })
 
 	function resetScrollStateForEmptyChat() {
