@@ -38,7 +38,7 @@ test('agent searches repeatedly, reads a result, and preserves stable citation I
     TextDecoder, Uint8Array, utils: { runOnDispatcher(_name, fn) { fn(); } }, console,
   });
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
-    uni, console, ...webSearchModule, readWebLink, SseStreamParser,
+    uni, requestWebStream: uni.request, console, ...webSearchModule, readWebLink, SseStreamParser,
     CustomProviderAdapter: class {}, mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true, thinking: true }] }]]),
   }, ['WEB']);

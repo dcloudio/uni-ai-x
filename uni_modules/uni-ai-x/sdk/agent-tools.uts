@@ -1,3 +1,6 @@
+// #ifdef WEB
+import { requestWebStream } from './web-stream-request.js'
+// #endif
 import { llmModelMap, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
 import { Chunk, ChunkToolCall, CustomProviderAdapter, CustomProviderCallbacks, CalendarToolConfirmation, RequestAiCoMessage } from '@/uni_modules/uni-ai-x/types.uts'
 import { registerCustomProvider } from './provider-registry.uts'
@@ -235,7 +238,12 @@ function requestModel(url: string, token: string, data: UTSJSONObject, callbacks
 			})
 			resolve({ choices: [{ message: { role: 'assistant', content: content, tool_calls: toolCalls } }] } as UTSJSONObject)
 		})
+		// #ifdef WEB
+		const task = requestWebStream({
+		// #endif
+		// #ifndef WEB
 		const task = uni.request({
+		// #endif
 			url: url,
 			method: 'POST',
 			// #ifdef APP-ANDROID

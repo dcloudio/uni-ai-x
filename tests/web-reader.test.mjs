@@ -77,7 +77,7 @@ test('model tool call fetches the page and returns its content before streaming 
     TextDecoder, Uint8Array, utils: { runOnDispatcher(_name, fn) { fn(); } }, console,
   });
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
-    uni, console, SseStreamParser, readWebLink: reader(uni), CustomProviderAdapter: class {},
+    uni, requestWebStream: uni.request, console, SseStreamParser, readWebLink: reader(uni), CustomProviderAdapter: class {},
     mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
     llmModelMap: new Map([['qiniu', { baseURL: 'https://api.qnaigc.com/v1/chat/completions', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
   }, ['WEB']);
@@ -118,7 +118,7 @@ test('cancelling a streamed answer ignores late chunks and does not start anothe
     TextDecoder, Uint8Array, utils: { runOnDispatcher(_name, fn) { fn(); } }, console,
   });
   const { QiniuToolAdapter } = loadUts('uni_modules/uni-ai-x/sdk/agent-tools.uts', ['QiniuToolAdapter'], {
-    uni, console, SseStreamParser, CustomProviderAdapter: class {},
+    uni, requestWebStream: uni.request, console, SseStreamParser, CustomProviderAdapter: class {},
     mcpServers: [], McpClient: class {}, McpRequestError: class extends Error {},
     llmModelMap: new Map([['qiniu', { baseURL: '/chat', getToken: async () => 'token', models: [{ modelId: 'test', toolCall: true }] }]]),
   }, ['WEB']);
