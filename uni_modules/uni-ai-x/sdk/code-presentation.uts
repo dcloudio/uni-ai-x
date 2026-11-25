@@ -87,7 +87,37 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		ready(blocks.map((block: MarkdownTextRenderBlock): MarkdownTextRenderBlock => {
 			if (block.kind != 'code') return block
 			prepareCodeHtml(block, htmlSnapshots.get(block.key) ?? null)
-			const snapshot = { ...block }
+			// UTS 会把对象展开推断为 UTSJSONObject；显式构建同类型浅快照，
+			// 保留数组及行对象的共享引用，不做 JSON 序列化或强制类型转换。
+			const snapshot: MarkdownTextRenderBlock = {
+				kind: block.kind,
+				key: block.key,
+				html: block.html,
+				text: block.text,
+				language: block.language,
+				isComplete: block.isComplete,
+				columnWidths: block.columnWidths,
+				rowTextWidths: block.rowTextWidths,
+				codeTokens: block.codeTokens,
+				level: block.level,
+				indent: block.indent,
+				marker: block.marker,
+				quoteDepth: block.quoteDepth,
+				mermaidImageSource: block.mermaidImageSource,
+				mermaidRenderTheme: block.mermaidRenderTheme,
+				mermaidRenderFailed: block.mermaidRenderFailed,
+				codeHeight: block.codeHeight,
+				codeHtml: block.codeHtml,
+				codeContentHeight: block.codeContentHeight,
+				codeLines: block.codeLines,
+				codeCompleteLines: block.codeCompleteLines,
+				codeHighlightedText: block.codeHighlightedText,
+				table: block.table,
+				math: block.math,
+				svgSource: block.svgSource,
+				svgWidth: block.svgWidth,
+				svgHeight: block.svgHeight
+			}
 			htmlSnapshots.set(block.key, snapshot)
 			return snapshot
 		}))
@@ -125,9 +155,10 @@ export function prepareCodeBlocks(messageId: string, blocks: MarkdownTextRenderB
 		const texts = block.text.replace(/\r\n/g, '\n').split('\n')
 		const count = block.isComplete ? texts.length : Math.min(texts.length, block.codeCompleteLines ?? texts.length - 1)
 		const completedText = texts.slice(0, count).join('\n')
-		if (completedText.length == 0 || completedText == block.codeHighlightedText) return
-		const highlightedCount = block.codeHighlightedText.length == 0 ? 0 : block.codeHighlightedText.split('\n').length
-		const unchangedCount = completedText.startsWith(block.codeHighlightedText + '\n') ? highlightedCount : 0
+		const highlightedText = block.codeHighlightedText ?? ''
+		if (completedText.length == 0 || completedText == highlightedText) return
+		const highlightedCount = highlightedText.length == 0 ? 0 : highlightedText.split('\n').length
+		const unchangedCount = completedText.startsWith(highlightedText + '\n') ? highlightedCount : 0
 		const requestRevision = requestRevisions.get(block.key) ?? 0
 		const requestText = block.text
 		const taskKey = 'code:' + block.key

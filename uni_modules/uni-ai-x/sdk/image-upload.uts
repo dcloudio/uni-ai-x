@@ -76,7 +76,7 @@ export function uploadDraftImages(currentModel: LLMModel, source: string = '') {
 	}
 
 	uniCloud.chooseAndUploadFile({
-		sourceType: source.length > 0 ? [source] : ['album', 'camera'],
+		sourceType: source == 'camera' ? ['camera'] : (source == 'album' ? ['album'] : ['album', 'camera']),
 		count: 9 - uniAi.imgList.length,
 		sizeType: ['compressed'],
 		type: 'image',

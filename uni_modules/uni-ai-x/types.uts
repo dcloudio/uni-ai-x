@@ -63,14 +63,15 @@ export type EditState = {
 }
 
 // 流式响应分块
+export type ChunkToolCallFunction = {
+	name?: string,
+	arguments?: string
+}
 export type ChunkToolCall = {
 	index: number,
 	id?: string,
 	type?: string,
-	function?: {
-		name?: string,
-		arguments?: string
-	}
+	function?: ChunkToolCallFunction
 }
 export type ChunkChoiceDelta = {
 	content: string,
