@@ -550,12 +550,17 @@
 	}
 
 	const messageComputations = new Map<string, { msg: MsgItem, rows: ComputedRef<ChatRenderItem[]> }>()
+	function createMessageRows(msg: MsgItem): ComputedRef<ChatRenderItem[]> {
+		// UTS Web lowers for-of bindings to var. Capture an invocation parameter,
+		// otherwise invalidated historical rows read the loop's final message.
+		return computed<ChatRenderItem[]>(() => buildMessageRows(msg))
+	}
 	const renderItemList = computed<ChatRenderItem[]>(() => {
 		const items: ChatRenderItem[] = []
 		for (const msg of msgList.value) {
 			let cached = messageComputations.get(msg._id)
 			if (cached == null || cached.msg != msg) {
-				cached = { msg: msg, rows: computed<ChatRenderItem[]>(() => buildMessageRows(msg)) }
+				cached = { msg: msg, rows: createMessageRows(msg) }
 				messageComputations.set(msg._id, cached)
 			}
 			items.push(...cached.rows.value)
