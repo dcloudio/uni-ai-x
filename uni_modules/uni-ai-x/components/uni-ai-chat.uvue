@@ -24,7 +24,7 @@
 						<template v-if="true">
 							<view class="chat-box-internal-tests">
 								<text class="chat-box-internal-title">{{tr('内测面板', 'Internal test panel')}}</text>
-								<text class="chat-box-internal-hint">{{tr('相同 Markdown · 每 100 毫秒输出 10 字符', 'Same Markdown · 10 characters / 100 ms')}}</text>
+								<text class="chat-box-internal-hint">{{tr('相同 Markdown · 每 50 毫秒输出 10 字符', 'Same Markdown · 10 characters / 50 ms')}}</text>
 								<view v-for="mode in internalScrollModes" :key="mode.id" class="chat-box-internal-mode" @click="runInternalMarkdownDemo(mode.id)">
 									<text class="chat-box-welcome-demo-btn-text">{{mode.label}}</text>
 									<text class="chat-box-internal-mode-hint">{{mode.description}}</text>
@@ -34,7 +34,7 @@
 					</view>
 				</view>
 				<list-view v-if="msgList.length > 0" :key="chatActiveId" direction="vertical" class="chat-box-msg-list" :scroll-top="scrollTop" id="msg-list"
-					:initial-scroll-bottom="true" :style="{ opacity: initialPositioning ? 0 : 1 }"
+					:initial-scroll-bottom="state != 'processing'" :style="{ opacity: initialPositioning ? 0 : 1 }"
 					:scroll-with-animation="false" @scroll="onScroll" @scrollend="setIsInScrollBottom" @touchstart="cancelBottomScroll" @touchend="setIsInScrollBottom"
 				>
 					<list-item v-for="renderItem in renderItemList" :key="renderItem.key" :id="renderItem.id" @longpress="onlongTapMsg(renderItem.msg)" :type="renderItem.itemType">
@@ -54,7 +54,7 @@
 			</view>
 			<!-- 发测包禁用压测面板，保留欢迎页 Markdown 示例。 -->
 			<!-- <uni-ai-chat-extension-input v-if="hasInputExtension" /> -->
-			<uni-ai-chat-input @scroll-to-last-msg="scrollToLastMsg" />
+			<uni-ai-chat-input @scroll-to-last-msg="onComposerScrollRequest" />
 			<text v-if="showComposerTip" class="chat-box-tip" flatten>{{tr('内容由ai生成，仅供参考', 'AI generated content may be inaccurate')}}</text>
 		</view>
 		<view v-if="pendingCalendarMessage != null" class="calendar-confirmation-overlay" @click.stop="blockCalendarOverlay">
@@ -621,6 +621,11 @@
 		positionInitialHistory(chatId)
 	}, { flush: 'post' })
 	async function positionInitialHistory(chatId: string) {
+		// A newly streaming reply belongs to the follow controller, not history positioning.
+		if (state.value == 'processing') {
+			initialPositioning.value = false
+			return
+		}
 		const version = bottomScrollVersion
 		// Only settle the first native layouts; never wait for rendering tasks or images.
 		for (let frame = 0; frame < 3; frame++) {
@@ -640,6 +645,7 @@
 	const INTERNAL_READING_SCROLL_SPEED = 200
 	let internalScrollMode = 'smooth'
 	const internalScrollModes = computed(() => [
+		{ id: 'buffered', label: tr('平缓跟随（默认）', 'Buffered follow (default)'), description: tr('末尾保留约三分之一屏，输出结束后平缓追到底。', 'Keep a third-screen buffer, then settle to the bottom.') },
 		{ id: 'instant', label: tr('每次加载都滚到底', 'Jump on every update'), description: tr('新增内容直接贴底，手动滑动可打断。', 'Follow immediately; touch to interrupt.') },
 		{ id: 'smooth', label: tr('缓动跟随', 'Smooth follow'), description: tr('距离越远追得越快，接近底部时放慢。', 'Catch up quickly, then slow near the bottom.') },
 		{ id: 'constant', label: tr('匀速跟随 · 200 px/秒', 'Constant follow · 200 px/s'), description: tr('有内容就匀速阅读，到底等待，输出完继续读。', 'Read at a steady speed; wait at the bottom.') }
@@ -648,6 +654,10 @@
 	let internalDemoChatId = ''
 	let demoFollowTimer = 0
 	let demoFollowBusy = false
+	let followStableHeight = -1
+	let followStableSince = 0
+	let followFinalReady = false
+	let enteredStreamingChat = false
 	// #ifndef MP-WEIXIN
 	let demoFollowFrame = 0
 	let demoFollowLastTime = 0
@@ -658,12 +668,29 @@
 		demoFollowEnabled = false
 		if (demoFollowTimer != 0) clearInterval(demoFollowTimer)
 		demoFollowTimer = 0
+		followStableHeight = -1
+		followStableSince = 0
+		followFinalReady = false
 		// #ifndef MP-WEIXIN
 		if (demoFollowFrame != 0) cancelAnimationFrame(demoFollowFrame)
 		demoFollowFrame = 0
 		demoFollowLastTime = 0
 		demoFollowPosition = -1
 		// #endif
+	}
+
+	function bufferedFollowTarget(bottom: number, viewportHeight: number, timestamp: number): number {
+		const msg = uniAi.lastAiMsg
+		const finished = state.value == 'completed' && msg != null && msg.rendered == true
+			&& displayStates.get(msg!._id)?.final != null && !hasMessageRenderTasks(msg!._id)
+		if (!finished || Math.abs(bottom - followStableHeight) > 1) {
+			followStableHeight = bottom
+			followStableSince = timestamp
+			followFinalReady = false
+		} else if (timestamp - followStableSince >= 150) {
+			followFinalReady = true
+		}
+		return followFinalReady ? bottom : Math.max(0, bottom - viewportHeight / 3)
 	}
 
 	// #ifndef MP-WEIXIN
@@ -675,7 +702,9 @@
 		const list = uni.getElementById('msg-list')
 		if (list != null && msgList.value.length > 0) {
 			const top = list.scrollTop
-			const bottom = Math.max(0, list.scrollHeight - list.getBoundingClientRect().height)
+			const viewportHeight = list.getBoundingClientRect().height
+			const realBottom = Math.max(0, list.scrollHeight - viewportHeight)
+			const bottom = internalScrollMode == 'buffered' ? bufferedFollowTarget(realBottom, viewportHeight, timestamp) : realBottom
 			const remaining = bottom - top
 			if (demoFollowPosition < 0) demoFollowPosition = top
 			if (remaining > 0) {
@@ -689,6 +718,11 @@
 			}
 			if (internalScrollMode == 'constant' && remaining <= 0) demoFollowPosition = bottom
 			if (internalScrollMode == 'constant' && state.value == 'completed' && remaining <= 1 && demoFollowPosition >= bottom) {
+				cancelBottomScroll()
+				internalDemoChatId = ''
+				return
+			}
+			if (internalScrollMode == 'buffered' && followFinalReady && remaining <= 1) {
 				cancelBottomScroll()
 				internalDemoChatId = ''
 				return
@@ -723,10 +757,16 @@
 
 	function resumeDemoBottomScroll() {
 		if (internalDemoChatId == chatActiveId.value
-			&& (state.value == 'processing' || (internalScrollMode == 'constant' && state.value == 'completed'))) {
+			&& (state.value == 'processing' || ((internalScrollMode == 'constant' || internalScrollMode == 'buffered') && state.value == 'completed'))) {
 			startDemoBottomFollow()
 			return
 		}
+		scrollToLastMsg()
+	}
+
+	function onComposerScrollRequest() {
+		// Focus/keyboard events must neither bypass the buffer nor resume an interrupted reply.
+		if (internalDemoChatId == chatActiveId.value && internalScrollMode == 'buffered') return
 		scrollToLastMsg()
 	}
 
@@ -746,11 +786,13 @@
 			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value || msgList.value.length == 0) return
 			let remaining = 0
 			let top = currentScrollTop
+			let viewportHeight = 0
 			// #ifndef MP-WEIXIN
 			const list = uni.getElementById('msg-list')
 			if (list == null) return
 			top = list.scrollTop
-			remaining = Math.max(0, list.scrollHeight - list.getBoundingClientRect().height - top)
+			viewportHeight = list.getBoundingClientRect().height
+			remaining = Math.max(0, list.scrollHeight - viewportHeight - top)
 			// #endif
 			// #ifdef MP-WEIXIN
 			remaining = await new Promise<number>((resolve) => {
@@ -760,10 +802,22 @@
 				query.exec((result) => {
 					const list = result[0] as NodeInfo | null
 					const bottom = result[1] as NodeInfo | null
+					viewportHeight = list?.height ?? 0
 					resolve(Math.max(0, (bottom?.bottom ?? 0) - (list?.bottom ?? 0)))
 				})
 			})
 			// #endif
+			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
+			const buffered = internalScrollMode == 'buffered' && internalDemoChatId == chatId && demoFollowEnabled
+			if (buffered) {
+				const bottom = top + remaining
+				remaining = Math.max(0, bufferedFollowTarget(bottom, viewportHeight, Date.now()) - top)
+				if (followFinalReady && remaining <= 1) {
+					cancelBottomScroll()
+					internalDemoChatId = ''
+					return
+				}
+			}
 			// Finish a completed reply's pending presentation, but never follow new output.
 			if ((uniAi.lastAiMsg?._id ?? '') != (targetMessage?._id ?? '') || (targetMessage?.body ?? '') != targetBody) break
 			const presentationPending = waitForPreparedReply && targetMessage != null && displayStates.get(targetMessage!._id)?.final == null
@@ -773,7 +827,7 @@
 				scrollTop.value = top
 				await nextTick()
 				if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
-				scrollTop.value = top + remaining
+				scrollTop.value = top + (buffered ? Math.min(remaining, Math.max(1, remaining * (1 - Math.exp(-80 / 60)))) : remaining)
 			}
 			await new Promise<void>((resolve) => { setTimeout(() => { resolve() }, presentationPending ? 50 : 16) })
 		}
@@ -788,9 +842,21 @@
 	}
 
 	watch(state, (value: string) => {
-		if (value == 'processing' || internalDemoChatId.length == 0) return
+		if (value == 'processing') {
+			// Opening an already streaming conversation is navigation, not a new send.
+			if (enteredStreamingChat) return
+			if (internalDemoChatId.length == 0 || internalScrollMode == 'buffered') {
+				cancelBottomScroll()
+				internalScrollMode = 'buffered'
+				internalDemoChatId = chatActiveId.value
+				startDemoBottomFollow()
+			}
+			return
+		}
+		enteredStreamingChat = false
+		if (internalDemoChatId.length == 0) return
 		// Reading mode drains the remaining content at the same speed after output finishes.
-		if (value == 'completed' && internalScrollMode == 'constant') return
+		if (value == 'completed' && (internalScrollMode == 'constant' || (internalScrollMode == 'buffered' && demoFollowEnabled))) return
 		const settleFinalLayout = value == 'completed' && demoFollowEnabled
 		cancelBottomScroll()
 		internalDemoChatId = ''
@@ -856,6 +922,7 @@
 	
 	watch(chatActiveId, () => {
 		cancelBottomScroll()
+		enteredStreamingChat = state.value == 'processing'
 		internalDemoChatId = ''
 		initialPositioning.value = true
 		initializedScrollChatId = ''

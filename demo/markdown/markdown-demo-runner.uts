@@ -34,7 +34,7 @@ import { logBlockPayload } from '@/uni_modules/uni-ai-x/utssdk/worker/uni-ai-md-
 const DEMO_RENDER_INTERVAL = 300
 const DEMO_STREAM_BATCH_SIZE = 10
 const INTERNAL_DEMO_STREAM_BATCH_SIZE = 10
-const INTERNAL_DEMO_STREAM_INTERVAL = 100
+const INTERNAL_DEMO_STREAM_INTERVAL = 50
 const DEMO_STREAM_INTERVAL = 200
 const FULL_DEMO_STREAM_INTERVAL = 50
 const FULL_DEMO_STREAM_DURATION = 3500
@@ -152,7 +152,7 @@ export default class MarkdownDemoRunner {
 			return
 		}
 
-		// 快速版约 3.5 秒发完；内部演示每 100 毫秒输出 10 字符，理论约 100 字符/秒。
+		// 快速版约 3.5 秒发完；内部演示每 50 毫秒输出 10 字符，理论约 200 字符/秒。
 		const chunkSize = scenarioId == FULL_MARKDOWN_SCENARIO_ID && !this.throttled
 			? Math.ceil(this.blockText.length * FULL_DEMO_STREAM_INTERVAL / FULL_DEMO_STREAM_DURATION)
 			: (scenarioId == FULL_MARKDOWN_SCENARIO_ID && this.throttled

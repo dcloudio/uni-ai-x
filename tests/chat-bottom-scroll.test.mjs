@@ -29,6 +29,7 @@ function controller(pendingPresentation = false, quantizedScroll = false) {
     uniAi, displayStates: new Map([['m', display]]),
     msgList: { value: [{}] }, state, watch: (_source, callback) => { stateChanged = callback; },
     computed: getter => ({ get value() { return getter(); } }), tr: text => text,
+    hasMessageRenderTasks: () => false,
     setIsInScrollBottom() {}, nextTick: () => Promise.resolve(), setTimeout, setInterval, clearInterval,
     requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
     cancelAnimationFrame: id => frames.delete(id),
@@ -176,6 +177,50 @@ test('original instant follow remains selectable', async () => {
   }
 });
 
+test('default follow keeps a third-screen buffer and settles smoothly only after completed layout stabilizes', () => {
+  const api = controller();
+  try {
+    api.layout.height = 3500;
+    api.setState('processing');
+    api.frames(60);
+    assert.ok(Math.abs(api.layout.top - (3000 - 500 / 3)) <= 1);
+    api.message.body += ' more output';
+    api.layout.height += 500;
+    api.frames(60);
+    assert.ok(Math.abs(api.layout.top - (3500 - 500 / 3)) <= 1);
+    api.setState('completed');
+    api.frames(5);
+    assert.ok(api.layout.top < 3500);
+    // Completion state arrives before the final rendered callback in the real runner.
+    api.message.rendered = true;
+    api.frames(60);
+    assert.ok(Math.abs(api.layout.top - 3500) <= 1);
+    const count = api.commands.length;
+    api.frames(10);
+    assert.equal(api.commands.length, count);
+  } finally {
+    api.cancelBottomScroll();
+  }
+});
+
+test('interrupting default follow prevents output and completion from resuming motion', () => {
+  const api = controller();
+  try {
+    api.setState('processing');
+    api.frames(10);
+    api.cancelBottomScroll();
+    const count = api.commands.length;
+    api.layout.height += 1000;
+    api.message.body += ' new output';
+    api.frames(30);
+    api.setState('completed');
+    api.frames(30);
+    assert.equal(api.commands.length, count);
+  } finally {
+    api.cancelBottomScroll();
+  }
+});
+
 test('completion settles the final layout once and stop never restarts following', async () => {
   for (const terminal of ['completed', 'stop']) {
     const api = controller();
@@ -227,6 +272,7 @@ function initialController() {
   const commands = [], timers = [];
   const context = {
     bottomScrollVersion: 0, viewDisposed: false, chatActiveId: { value: 'chat' },
+    state: { value: 'completed' },
     initialPositioning: { value: true }, nextTick: () => Promise.resolve(),
     setTimeout: callback => timers.push(callback),
     console: { log() {} },
