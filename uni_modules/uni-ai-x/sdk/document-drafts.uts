@@ -56,11 +56,13 @@ export function addPendingDocument(chatId: string, path: string, name: string) {
 	void retryPendingDocument(key)
 }
 
-watch(() => uniAi.llm.provider + ':' + uniAi.llm.model, () => {
+export function watchDocumentDraftModel() {
+	watch(() => uniAi.llm.provider + ':' + uniAi.llm.model, () => {
 	if (supportsDeepSeekApps(uniAi.llm.provider, uniAi.llm.model)) return
 	documentDrafts.pending.forEach((item) => {
 		if (item.phase != 'uploading' && item.phase != 'parsing') return
 		tasks.get(item.key)?.abort()
 		item.phase = 'failed'; item.error = '方案已切换，文档上传已停止'
 	})
-})
+	})
+}
