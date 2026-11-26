@@ -375,13 +375,13 @@ function sendAndroidEntry(entry: UniAiMdStreamEntry, ops: AiWorkerOp[], done: bo
 		if (streamEntries.get(entry.messageId) != entry || entry.failed) return
 		if (message['action'] == 'error') {
 			// Stop retrying the broken worker path. Keep already delivered content,
-			// settle unfinished special blocks as source, and leave copying available.
+			// Keep special-block failures compact; source remains available on request.
 			entry.failed = true
 			entry.settled = true
 			entry.textBlocks = entry.textBlocks.map((block: MarkdownTextRenderBlock): MarkdownTextRenderBlock => {
 				const fallback = cloneBlock(block)
-				if ((block.kind == 'code' && (block.codeHighlightedText ?? '') != block.text.replace(/\r\n/g, '\n')) ||
-					block.kind == 'math' || block.kind == 'mermaid') fallback.kind = 'data-text'
+				if (block.kind == 'math' || block.kind == 'mermaid') fallback.kind = block.kind + '-fallback'
+				else if (block.kind == 'code' && (block.codeHighlightedText ?? '') != block.text.replace(/\r\n/g, '\n')) fallback.kind = 'data-text'
 				fallback.isComplete = true
 				return fallback
 			})

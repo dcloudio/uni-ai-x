@@ -48,7 +48,7 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 		// #ifdef APP || WEB
 			if (block.text.trim().length == 0) {
 				block.mermaidRenderFailed = true
-				if (block.kind == 'math') block.kind = 'data-text'
+				if (block.kind == 'math') block.kind = 'math-fallback'
 				changed()
 				continue
 			}
@@ -60,7 +60,7 @@ export function prepareNativeMermaidBlocks(blocks: MarkdownTextRenderBlock[], th
 			finishMessageRenderTask(messageId, taskKey, taskToken)
 				if (result.imageSource.length == 0) {
 					block.mermaidRenderFailed = true
-					if (block.kind == 'math') block.kind = 'data-text'
+					if (block.kind == 'math') block.kind = 'math-fallback'
 					changed()
 					return
 				}

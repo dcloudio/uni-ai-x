@@ -123,9 +123,16 @@ test('a calendar outcome updates after completion without reopening committed bo
   assert.equal(canceled.blocks[0].html, '<p>body</p>');
 });
 
-test('interrupted special tails have a source terminal state', () => {
-  const api = display(); api.msg.body = 'unfinished'; api.msg.rendered = true;
-  const final = api.read([block('formula', { kind: 'math', text: 'x^', isComplete: false })], true);
-  assert.equal(final.complete, true);
-  assert.equal(final.blocks[0].kind, 'data-text');
+test('interrupted formulae and diagrams terminate compactly and retain source for explicit viewing', () => {
+  for (const kind of ['math', 'mermaid']) {
+    const api = display(); api.msg.body = 'unfinished'; api.msg.rendered = true;
+    const source = block(kind, { kind, text: 'unfinished source', isComplete: false });
+    assert.equal(api.read([source]).complete, false);
+    const final = api.read([source, block('end')], true);
+    assert.equal(final.complete, true);
+    assert.equal(final.blocks[0].kind, kind + '-fallback');
+    assert.equal(final.blocks[0].text, source.text);
+    assert.equal(source.isComplete, false);
+    assert.equal(final.blocks.length, 2);
+  }
 });

@@ -1,0 +1,45 @@
+<template>
+	<view class="generation-status">
+		<text class="generation-status-label">{{label}}</text>
+		<view v-if="pending" class="generation-status-dots">
+			<view class="generation-status-dot generation-status-dot-one" />
+			<view class="generation-status-dot generation-status-dot-two" />
+			<view class="generation-status-dot generation-status-dot-three" />
+		</view>
+		<text v-else-if="source.length > 0" class="generation-status-source" @click.stop="showSource">{{tr('查看源码', 'View source')}}</text>
+	</view>
+</template>
+
+<script lang="uts" setup>
+	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+	const props = withDefaults(defineProps<{ label: string, pending?: boolean, source?: string }>(), {
+		pending: true, source: ''
+	})
+	function showSource() {
+		uni.showModal({ title: tr('源码', 'Source'), content: props.source, showCancel: false })
+	}
+</script>
+
+<style lang="scss" scoped>
+	.generation-status {
+		width: 100%;
+		height: 32px;
+		min-height: 32px;
+		flex-shrink: 0;
+		flex-direction: row;
+		align-items: center;
+		padding: 0 10px;
+		background-color: var(--bg-secondary, #f5f5f5);
+		border-radius: 6px;
+	}
+	.generation-status-label { font-size: 12px; line-height: 18px; color: #888888; }
+	.generation-status-dots { flex-direction: row; align-items: center; margin-left: 6px; }
+	.generation-status-dot { width: 4px; height: 4px; border-radius: 2px; margin-left: 3px; background-color: #bbbbbb; }
+	.generation-status-dot-one { animation: generation-dot-one 1.2s linear infinite; }
+	.generation-status-dot-two { animation: generation-dot-two 1.2s linear infinite; }
+	.generation-status-dot-three { animation: generation-dot-three 1.2s linear infinite; }
+	.generation-status-source { margin-left: 12px; font-size: 12px; line-height: 18px; color: #888888; }
+	@keyframes generation-dot-one { 0%, 32% { background-color: #666666; } 33%, 100% { background-color: #bbbbbb; } }
+	@keyframes generation-dot-two { 0%, 32% { background-color: #bbbbbb; } 33%, 65% { background-color: #666666; } 66%, 100% { background-color: #bbbbbb; } }
+	@keyframes generation-dot-three { 0%, 65% { background-color: #bbbbbb; } 66%, 100% { background-color: #666666; } }
+</style>

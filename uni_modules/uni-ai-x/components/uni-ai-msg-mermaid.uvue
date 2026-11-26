@@ -1,6 +1,7 @@
 <template>
 	<view class="uni-mermaid-msg-root" :class="uiTheme == 'dark' ? 'uni-theme-dark' : 'uni-theme-light'">
-		<view class="uni-mermaid-msg-code-header">
+		<uni-ai-generation-status v-if="!showSource && !imageReady" :style="hasPreparedLayout ? 'position:absolute;left:0;top:0;z-index:3;' : ''" :label="generationFailed ? tr('图表生成失败', 'Diagram generation failed') : tr('图表正在生成中', 'Generating diagram')" :pending="!generationFailed" :source="props.codeText" />
+		<view v-if="showSource || hasPreparedLayout" class="uni-mermaid-msg-code-header" :style="!showSource && !imageReady ? 'opacity:0;' : ''">
 			<view class="uni-mermaid-msg-switch" flatten>
 				<text class="uni-mermaid-msg-switch-item" :class="!showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = ''">{{tr('图表', 'Diagram')}}</text>
 				<text class="uni-mermaid-msg-switch-item" :class="showSource ? 'uni-mermaid-msg-switch-item-active' : ''" @click.stop="sourceSelection = props.identity">{{tr('代码', 'Code')}}</text>
@@ -10,10 +11,7 @@
 				<text class="uni-mermaid-msg-copy-text" flatten>{{tr('复制代码', 'Copy code')}}</text>
 			</view>
 		</view>
-		<view class="uni-mermaid-msg-stage" :class="showSource ? 'uni-mermaid-msg-stage-code' : ''">
-			<!-- #ifdef APP-ANDROID -->
-			<view v-if="sourceSelection != props.identity && props.src.length == 0 && !props.renderFailed && !showSource" :style="pendingImageStyle"><loading /></view>
-			<!-- #endif -->
+		<view class="uni-mermaid-msg-stage" :class="showSource ? 'uni-mermaid-msg-stage-code' : ''" :style="!showSource && !hasPreparedLayout ? 'position:absolute;height:1px;padding:0;opacity:0;' : ''">
 			<image v-if="!showSource && props.src.length > 0" :key="imageIdentity" class="uni-mermaid-msg-image" :style="imageStyle" :src="props.src" mode="aspectFit" @load="onImageSettled" @error="onImageFailed" @click.stop="previewMermaidImage" />
 			<view v-else-if="showSource" class="uni-mermaid-msg-code-source">
 				<text class="uni-mermaid-msg-code-text">{{props.codeText}}</text>
@@ -24,8 +22,10 @@
 
 <script lang="uts" setup>
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
+import uniAiGenerationStatus from '@/uni_modules/uni-ai-x/components/uni-ai-generation-status.uvue'
 import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
 import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+
 import utils from '@/uni_modules/uni-ai-x/sdk/utils.uts'
 import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 import { mermaidPreviewStyle } from '@/uni_modules/uni-ai-x/sdk/image-layout.uts'
@@ -49,36 +49,22 @@ const sourceSelection = ref<string>('')
 const imageIdentity = computed<string>(() => props.identity + ':' + props.src)
 const failedImage = ref<string>('')
 const showSource = computed<boolean>(() => {
-	return sourceSelection.value == props.identity || props.src.length == 0 || props.renderFailed == true || failedImage.value == imageIdentity.value
+	return sourceSelection.value == props.identity
 })
-const settledImage = ref<string>('')
-let imageLoadTimer = 0
-function clearImageLoadTimer() {
-    if (imageLoadTimer != 0) clearTimeout(imageLoadTimer)
-    imageLoadTimer = 0
+const generationFailed = computed<boolean>(() => props.renderFailed == true || failedImage.value == imageIdentity.value)
+const imageReady = computed<boolean>(() => props.src.length > 0 && !generationFailed.value)
+const hasPreparedLayout = computed<boolean>(() => props.src.length > 0 && (props.imageWidth ?? 0) > 0 && (props.imageHeight ?? 0) > 0)
+function onImageSettled() {
+	if (failedImage.value == imageIdentity.value) failedImage.value = ''
 }
-watch(() => [imageIdentity.value, showSource.value.toString()], () => {
-    clearImageLoadTimer()
-    if (showSource.value || settledImage.value == imageIdentity.value) return
-    const identity = imageIdentity.value
-    imageLoadTimer = setTimeout(() => {
-        imageLoadTimer = 0
-        if (imageIdentity.value != identity) return
-        onImageFailed()
-    }, 15000)
-}, { immediate: true })
-onUnmounted(clearImageLoadTimer)
-function onImageSettled() { clearImageLoadTimer(); settledImage.value = imageIdentity.value }
 function onImageFailed() {
 	failedImage.value = imageIdentity.value
-	onImageSettled()
 }
 useMessageRenderTask(() => props.messageId ?? '', () => 'mermaid-image:' + props.identity + ':' + props.src,
-	() => !showSource.value && settledImage.value != props.identity + ':' + props.src,
+	() => false,
 	() => props.src.length > 0 ? uiTheme.value + ':' + props.src : '')
 const imageStyle = computed<string>(() => mermaidPreviewStyle(props.imageWidth ?? 0, props.imageHeight ?? 0,
 	mathWindowWidth.value > 0 ? mathWindowWidth.value : uni.getWindowInfo().windowWidth))
-const pendingImageStyle = computed<string>(() => imageStyle.value + 'align-items:center;justify-content:center;')
 
 function previewMermaidImage() {
 	// #ifdef WEB
@@ -103,7 +89,9 @@ function copyCode() {
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 
 .uni-mermaid-msg-root {
+	position: relative;
 	width: 100%;
+	min-height: 32px;
 	margin: 6px 0;
 	background-color: var(--mermaid-surface);
 	border: 1px solid var(--mermaid-border);

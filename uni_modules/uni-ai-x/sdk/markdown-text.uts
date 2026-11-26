@@ -112,7 +112,7 @@ export function markdownHtmlBlocksToTextBlocks(blocks: MarkdownHtmlBlock[], them
 	for (let index = 0; index < blocks.length; index++) {
 		const block = blocks[index]
 		if (block.kind == 'math' && ((block.mathRenderFailed == true && block.mathRenderTheme == theme) || (block.isComplete && block.text.trim().length == 0))) {
-			result.push(createSpecialBlock('data-text', block.key, '', block.text))
+			result.push(createSpecialBlock('math-fallback', block.key, '', block.text))
 			continue
 		}
 		if (block.kind == 'table' || block.kind == 'code' || block.kind == 'mermaid') {

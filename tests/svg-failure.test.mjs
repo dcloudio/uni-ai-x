@@ -38,7 +38,7 @@ for (const method of ['renderMathSvgForTheme', 'renderMermaidSvgForTheme']) {
   });
 }
 
-test('native math and Mermaid failures settle as source and do not restart on refresh', () => {
+test('native math and Mermaid failures settle compactly and do not restart on refresh', () => {
   const active = new Set();
   let requests = 0, changes = 0;
   const fail = (_text, _theme, callback) => { requests++; callback({ imageSource: '', width: 0, height: 0 }); };
@@ -50,7 +50,8 @@ test('native math and Mermaid failures settle as source and do not restart on re
   const blocks = ['math', 'mermaid'].map(kind => ({ kind, key: kind, text: 'invalid', isComplete: true, svgSource: '' }));
   const changed = () => { changes++; };
   prepareNativeMermaidBlocks(blocks, 'light', changed, 'message');
-  assert.equal(blocks[0].kind, 'data-text');
+  assert.equal(blocks[0].kind, 'math-fallback');
+  assert.equal(blocks[0].text, 'invalid');
   assert.equal(blocks[1].mermaidRenderFailed, true);
   assert.equal(active.size, 0);
   prepareNativeMermaidBlocks(blocks, 'light', changed, 'message');

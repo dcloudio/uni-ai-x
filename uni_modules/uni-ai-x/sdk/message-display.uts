@@ -101,10 +101,10 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 	const visible = state.frozen.slice()
 	for (let i = state.frozen.length; i < blocks.length; i++) {
 		let block = blocks[i]
-		// An interrupted/unclosed special block has a source-text terminal state.
+		// Preserve compact terminal feedback for unfinished formulae/diagrams.
 		if (finished && !block.isComplete) {
 			block = snapshot(block)
-			block.kind = 'data-text'
+			block.kind = block.kind == 'math' || block.kind == 'mermaid' ? block.kind + '-fallback' : 'data-text'
 			block.isComplete = true
 		}
 		visible.push(block)

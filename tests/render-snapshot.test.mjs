@@ -189,7 +189,7 @@ test('asset retries stop after three retries and are cancelled when a message is
   }
 });
 
-test('failed native math becomes persistable source text and failed diagrams are not rendered again', () => {
+test('failed native math becomes a compact terminal block and failed diagrams are not rendered again', () => {
   let renders = 0;
   const { prepareNativeMermaidBlocks } = loadUts('uni_modules/uni-ai-x/sdk/mermaid-presentation.uts', ['prepareNativeMermaidBlocks'], {
     ...renderTasks,
@@ -200,7 +200,7 @@ test('failed native math becomes persistable source text and failed diagrams are
   prepareNativeMermaidBlocks(blocks, 'light', () => {});
   prepareNativeMermaidBlocks(blocks, 'light', () => {});
   assert.equal(renders, 2);
-  assert.equal(blocks[0].kind, 'data-text');
+  assert.equal(blocks[0].kind, 'math-fallback');
   assert.equal(blocks[0].text, 'invalid math');
   assert.equal(blocks[1].mermaidRenderFailed, true);
 });

@@ -1,5 +1,5 @@
 <template>
-    <scroll-view class="math-el uni-theme-root" :class="showMathSource ? 'math-el-source-pending' : 'math-el-image-ready math-el-scroll-image-ready'"
+    <scroll-view class="math-el uni-theme-root" :class="showMathPlaceholder ? 'math-el-source-pending' : 'math-el-image-ready math-el-scroll-image-ready'"
         :style="mathRootStyle"
         direction="horizontal" :show-scrollbar="false">
         <view class="math-el-content" :style="mathContentStyle" flatten>
@@ -7,7 +7,8 @@
                 :style="buffer0ImageStyle" @load="onMathBuffer0Load" @error="onMathBuffer0Error" />
             <image v-if="buffer1Href.length > 0" :key="buffer1Href" :src="buffer1Href" class="math-el-image" mode="scaleToFill"
                 :style="buffer1ImageStyle" @load="onMathBuffer1Load" @error="onMathBuffer1Error" />
-            <text v-if="showMathSource" class="math-el-source" :style="sourceTextStyle" flatten>{{props.text ?? ''}}</text>
+            <uni-ai-generation-status v-if="showMathPlaceholder" :label="mathImageLoadFailed ? tr('公式生成失败', 'Formula generation failed') : tr('公式正在生成中', 'Generating formula')"
+                :pending="!mathImageLoadFailed" :source="props.text ?? ''" />
         </view>
     </scroll-view>
 </template>
@@ -16,16 +17,14 @@
     import { MarkdownToken } from '@/uni_modules/uni-cmark/utssdk/interface.uts'
     import { uiTheme } from '@/uni_modules/uni-ai-x/sdk'
     import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
-    import { estimateMaxLineTextWidth } from '@/uni_modules/uni-ai-x/sdk/text-width.uts'
+    import uniAiGenerationStatus from '@/uni_modules/uni-ai-x/components/uni-ai-generation-status.uvue'
+    import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
+
     import { useMessageRenderTask } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
     const props = defineProps<{
         messageId?: string
         renderKey?: string
         href?: string
-        sourceWidth?: string
-        sourceHeight?: string
-        sourceIdentity?: string
-        sourceText?: string
 	        width?: number
 	        height?: number
 	        svgSource?: string
@@ -74,21 +73,24 @@
         return activeImageHref.value.length > 0 && loaded
     })
 
-    const showMathSource = computed<boolean>(() => {
-		return (props.isClose ?? 0) != 1 || !mathImageModeLatched.value || mathImageLoadFailed.value
+    const showMathPlaceholder = computed<boolean>(() => {
+		return (props.isClose ?? 0) != 1 || !mathImageModeLatched.value || !imageReady.value || mathImageLoadFailed.value
+    })
+    // Prepared dimensions belong to the block, not the recycled image instance.
+    // Reserve them before @load so re-entering the viewport cannot collapse the row.
+    const hasPreparedLayout = computed<boolean>(() => {
+        if ((props.isClose ?? 0) != 1) return false
+        return ((props.svgSource ?? '').length > 0 && (props.svgWidth ?? 0) > 0 && (props.svgHeight ?? 0) > 0) ||
+            ((props.href ?? '').length > 0 && (props.width ?? 0) > 0 && (props.height ?? 0) > 0)
     })
 
     const mathBackgroundColor = computed<string>(() => {
         return uiTheme.value == 'dark' ? '#25282c' : '#ffffff'
     })
 
-    const mathTextColor = computed<string>(() => {
-        return uiTheme.value == 'dark' ? '#ffffff' : '#333333'
-    })
-
     const mathRootStyle = computed<string>(() => {
-        const imagePadding = showMathSource.value ? '' : 'padding-top:10px;padding-bottom:10px;padding-left:12px;padding-right:12px;'
-        return 'width:100%;min-height:44px;margin-top:6px;margin-bottom:6px;border-radius:6px;overflow:hidden;background-color:'
+        const imagePadding = hasPreparedLayout.value ? 'padding-top:10px;padding-bottom:10px;padding-left:12px;padding-right:12px;' : ''
+        return 'width:100%;min-height:32px;margin-top:6px;margin-bottom:6px;border-radius:6px;overflow:hidden;background-color:'
             + mathBackgroundColor.value + ';' + imagePadding
     })
 
@@ -113,47 +115,11 @@
         return Math.max(160, Math.min(currentWindowWidth, 800) - 90)
     }
 
-    const sourceContentWidthValue = computed<number>(() => {
-        // #ifdef APP-ANDROID
-        return parseFloat(props.sourceWidth ?? '160px')
-        // #endif
-        // #ifndef APP-ANDROID
-        const sourceWidth = estimateMaxLineTextWidth((props.text ?? '').split('\n'), 14, 'mono') + 28
-        return Math.max(1, Math.min(sourceWidth, visibleMathWidth()))
-        // #endif
-    })
-
-    const sourceContentWidth = computed<string>(() => {
-        return sourceContentWidthValue.value.toString() + 'px'
-    })
-
-    const sourceContentHeight = computed<string>(() => {
-        // #ifdef APP-ANDROID
-        return props.sourceHeight ?? '44px'
-        // #endif
-        // #ifndef APP-ANDROID
-        const lines = (props.text ?? '').split('\n')
-        let visualLineCount = 0
-        for (let i = 0; i < lines.length; i++) {
-            const lineWidth = estimateMaxLineTextWidth([lines[i]] as string[], 14, 'mono') + 28
-            visualLineCount += Math.max(1, Math.ceil(lineWidth / sourceContentWidthValue.value))
-        }
-        return Math.max(44, visualLineCount * 22).toString() + 'px'
-        // #endif
-    })
-
-    const sourceTextStyle = computed<string>(() => {
-        return 'position:absolute;left:0;top:0;align-self:flex-start;white-space:pre-wrap;width:'
-            + sourceContentWidth.value + ';height:' + sourceContentHeight.value
-            + ';font-size:14px;line-height:22px;font-family:monospace;color:'
-            + mathTextColor.value + ';background-color:' + mathBackgroundColor.value + ';'
-    })
-
     const mathWidth = computed<string>(() => {
         let width = activeImageWidth.value
         if (activeImageHref.value.length == 0 && pendingBuffer.value == 0) width = buffer0Width.value
         if (activeImageHref.value.length == 0 && pendingBuffer.value == 1) width = buffer1Width.value
-        if (width <= 0) width = (props.svgWidth ?? 0) > 0 ? props.svgWidth! : ((props.width ?? 0) > 0 ? props.width! : sourceContentWidthValue.value)
+        if (width <= 0) width = (props.svgWidth ?? 0) > 0 ? props.svgWidth! : ((props.width ?? 0) > 0 ? props.width! : visibleMathWidth())
         return Math.max(1, Math.ceil(width)).toString() + 'px'
     })
 
@@ -166,11 +132,11 @@
     })
 
     const mathContentWidth = computed<string>(() => {
-        return showMathSource.value ? sourceContentWidth.value : mathWidth.value
+        return hasPreparedLayout.value ? Math.max(160, parseFloat(mathWidth.value)).toString() + 'px' : '100%'
     })
 
     const mathContentHeight = computed<string>(() => {
-        return showMathSource.value ? sourceContentHeight.value : mathHeight.value
+        return hasPreparedLayout.value ? Math.max(32, parseFloat(mathHeight.value)).toString() + 'px' : '32px'
     })
 
     const mathContentStyle = computed<string>(() => {
@@ -306,7 +272,7 @@
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
     .math-el {
         width: 100%;
-        min-height: 44px;
+        min-height: 32px;
         margin: 6px 0;
         border-radius: 6px;
         overflow: hidden;
@@ -338,11 +304,5 @@
         flex-shrink: 0;
     }
 
-    .math-el-source {
-        position: absolute;
-        left: 0;
-        top: 0;
-        align-self: flex-start;
-        white-space: pre-wrap;
-    }
+
 </style>

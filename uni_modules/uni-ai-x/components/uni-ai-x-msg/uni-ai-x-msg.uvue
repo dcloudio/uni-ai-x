@@ -27,6 +27,8 @@
 			</view>
 		</view>
 		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{part.text ?? msg.error_msg}}</text>
+		<uni-ai-generation-status v-else-if="part.block != null && (part.block.kind == 'math-fallback' || part.block.kind == 'mermaid-fallback')"
+			:label="part.block.kind == 'math-fallback' ? tr('公式未能生成', 'Formula unavailable') : tr('图表未能生成', 'Diagram unavailable')" :pending="false" :source="part.block.text" />
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
@@ -36,8 +38,6 @@
 		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
 			:message-id="msg._id" :render-key="part.key"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
-			:source-width="part.block.math?.sourceWidth ?? '160px'" :source-height="part.block.math?.sourceHeight ?? '44px'"
-			:source-identity="part.block.math?.sourceIdentity" :source-text="part.block.math?.sourceText"
 			:href="part.block.math?.src ?? ''" :width="part.block.math?.width ?? 0" :height="part.block.math?.height ?? 0" :render-theme="uiTheme"
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
 		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="aspectFit" :style="blockImageStyle(part.block)" />
@@ -76,6 +76,7 @@
 
 <script lang="uts" setup>
 	import uniAiIcon from '@/uni_modules/uni-ai-x/components/uni-ai-icon/uni-ai-icon.uvue'
+	import uniAiGenerationStatus from '@/uni_modules/uni-ai-x/components/uni-ai-generation-status.uvue'
 	import {uniAi, MsgItem, messageToolBarVisible, calendarConfirmationRevision, uiTheme} from '@/uni_modules/uni-ai-x/sdk'
 	import type { MessageSearch } from '@/uni_modules/uni-ai-x/types.uts'
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
