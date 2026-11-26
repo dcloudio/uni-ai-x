@@ -483,8 +483,8 @@ class RequestAiRunner {
 
 		this.msgBody = readSnapshotString(snapshot, 'msgBody', this.msgBody)
 		this.thinkContent = readSnapshotString(snapshot, 'thinkContent', this.thinkContent)
-		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
+		this.emitMsgBody(true)
 		const renderMode = readSnapshotString(snapshot, 'renderMode')
 		if (renderMode != 'html') {
 			this.handleWorkerSnapshotError('worker_html_required', 'Worker 必须返回 Markdown HTML')
@@ -546,8 +546,8 @@ class RequestAiRunner {
 		if (phase != 'snapshot' && phase != 'complete') return
 		this.msgBody = readSnapshotString(state, 'msgBody', this.msgBody)
 		this.thinkContent = readSnapshotString(state, 'thinkContent', this.thinkContent)
-		this.emitMsgBody(true)
 		this.callbacks?.onThinkContent(this.thinkContent)
+		this.emitMsgBody(true)
 		if (phase != 'complete') return
 		// console.log('[uni-ai-x][AI Worker] complete', JSON.stringify({
 			// requestVersion: requestVersion,

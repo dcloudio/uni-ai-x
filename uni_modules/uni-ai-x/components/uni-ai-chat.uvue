@@ -387,7 +387,7 @@
 				+ ':' + (display.tailMessage.toolResultText ?? '') + ':' + (display.tailMessage.error_msg ?? '')
 				+ ':' + ((msg.stressSvgSource ?? '').length > 0).toString() + ':' + hasMarkdown.toString()
 				+ ':' + (msg.search?.status ?? '') + ':' + (msg.search?.sources.length ?? 0).toString() + ':' + msg.rendered.toString()
-				+ ':' + emptyState + ':' + display.complete.toString() + ':' + display.lateThink
+				+ ':' + emptyState + ':' + display.complete.toString()
 				+ ':' + (display.search?.status ?? '') + ':' + (display.lateSearch?.status ?? '')
 			const cached = messageRowCache.get(msg._id)
 			if (cached != null && cached.msg == msg && cached.blocks == blocks && cached.structure == structure && cached.search == display.search && cached.lateSearch == display.lateSearch) {
@@ -486,12 +486,6 @@
 				}
 			if (display.toolStatus.length > 0) appendNormalPart(aiRenderPart('tool-status', 'tool-status'))
 			if (display.complete) {
-				if (display.lateThink.length > 0) {
-					flushNormalParts()
-					const thought = aiRenderPart('think', 'late-think')
-					thought.text = display.lateThink
-					appendNormalPart(thought)
-				}
 				if ((display.tailMessage.toolResultText ?? '').length > 0) {
 					const result = aiRenderPart('tool-result', 'tool-result')
 					result.text = display.tailMessage.toolResultText ?? ''

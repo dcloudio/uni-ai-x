@@ -7,7 +7,6 @@ export type MessageDisplay = {
 	think: string
 	search: MessageSearch | null
 	toolStatus: string
-	lateThink: string
 	lateSearch: MessageSearch | null
 	complete: boolean
 	tailMessage: MsgItem
@@ -19,8 +18,6 @@ export class MessageDisplayState {
 	wasStreaming = false
 	searchSealed = false
 	searchSnapshot: MessageSearch | null = null
-	thinkSealed = false
-	thinkSnapshot = ''
 	frozen: MarkdownTextRenderBlock[] = []
 	header: MessageDisplay | null = null
 	theme = ''
@@ -75,8 +72,6 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 	if (state.answerAttempt != (msg.answerAttempt ?? 0) || state.theme != theme || state.width != width || msg.body.length < state.bodyLength || (state.rendered && !msg.rendered)) {
 		state.searchSealed = false
 		state.searchSnapshot = null
-		state.thinkSealed = false
-		state.thinkSnapshot = ''
 		state.frozen = []
 		state.header = null
 		state.visible = []
@@ -118,38 +113,29 @@ export function readMessageDisplay(state: MessageDisplayState, msg: MsgItem,
 	if (visible.length != state.visible.length || visible.some((block: MarkdownTextRenderBlock, index: number): boolean => block != state.visible[index])) state.visible = visible
 	const display: MessageDisplay = {
 		blocks: state.visible, think: msg.thinkContent ?? '', search: copySearch(msg.search ?? null),
-		toolStatus: msg.toolStatus ?? '', lateThink: '', lateSearch: null,
+		toolStatus: msg.toolStatus ?? '', lateSearch: null,
 		tailMessage: msg,
 		complete: finished && (msg.body.trim().length == 0 || blocks.length > 0 || ((msg.markdownBlocks ?? '').length == 0 && (msg.markdownHtml ?? '').length == 0)) && visible.length == blocks.length && visible.every((block: MarkdownTextRenderBlock): boolean => ready(block, msg._id, theme, waitForViewResources))
 	}
-	// Seal each prelude slot before its successor is visible. A search arriving
-	// after thinking, or thinking arriving after tool progress, belongs at the end.
+	// Seal search before its successor is visible; thinking stays in the header.
 	const hasBody = visible.length > 0 || msg.body.trim().length > 0
 	if (!state.searchSealed && (display.think.length > 0 || display.toolStatus.length > 0 || hasBody)) {
 		state.searchSealed = true
 		state.searchSnapshot = copySearch(display.search)
 		if (state.searchSnapshot?.status == 'searching') state.searchSnapshot!.status = 'snapshot'
 	}
-	if (!state.thinkSealed && (display.toolStatus.length > 0 || hasBody)) {
-		state.thinkSealed = true
-		state.thinkSnapshot = display.think
-	}
 	if (state.searchSealed) display.search = state.searchSnapshot
-	if (state.thinkSealed) display.think = state.thinkSnapshot
 	if (state.header == null && hasBody) {
 		state.header = { ...display, blocks: [], toolStatus: '' } as MessageDisplay
 		if (state.header!.search?.status == 'searching') state.header!.search!.status = 'snapshot'
 	}
 	const header = state.header
 	if (header != null) {
-		display.think = header.think
 		display.search = header.search
 		// A later tool round remains visible at the current tail until its next
 		// content chunk arrives. It must not reopen the sealed prelude.
 	}
 	if (display.complete) {
-		const thinking = msg.thinkContent ?? ''
-		display.lateThink = thinking.startsWith(display.think) ? thinking.slice(display.think.length) : thinking
 		if (!sameSearch(display.search, msg.search ?? null)) display.lateSearch = copySearch(msg.search ?? null)
 		display.toolStatus = ''
 		display.tailMessage = { ...msg, search: copySearch(msg.search ?? null) ?? undefined } as MsgItem

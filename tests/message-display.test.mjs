@@ -15,7 +15,7 @@ function display() {
 }
 const search = (status, sources = []) => ({ status, sources, query: 'query', error: '' });
 
-test('search arriving after thinking and thinking arriving after body appear only at the end', () => {
+test('late thinking remains in the header while late search appears at the end', () => {
   const api = display();
   api.msg.thinkContent = 'first thought';
   assert.equal(api.read([]).think, 'first thought');
@@ -24,19 +24,19 @@ test('search arriving after thinking and thinking arriving after body appear onl
   api.msg.body = 'answer';
   api.read([block('body')]);
   api.msg.thinkContent += ' late thought';
-  assert.equal(api.read([block('body')]).think, 'first thought');
+  assert.equal(api.read([block('body')]).think, 'first thought late thought');
   api.msg.search.status = 'completed'; api.msg.rendered = true;
   const final = api.read([block('body')], true);
-  assert.equal(final.lateThink, ' late thought');
+  assert.equal(final.think, 'first thought late thought');
   assert.equal(final.lateSearch.status, 'completed');
 });
 
-test('tool progress seals thought and remains at the tail until the next model content', () => {
+test('thinking after tool progress remains in the header', () => {
   const api = display();
   api.msg.toolStatus = 'working';
   assert.equal(api.read([]).toolStatus, 'working');
   api.msg.thinkContent = 'late thinking';
-  assert.equal(api.read([]).think, '');
+  assert.equal(api.read([]).think, 'late thinking');
   api.msg.body = 'answer';
   assert.equal(api.read([block('body')]).toolStatus, 'working');
   api.msg.toolStatus = '';
