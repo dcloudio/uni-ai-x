@@ -75,7 +75,7 @@
 	const proxyWebUrl = '/static/app/proxy-web/proxy-web.html'
 	// #endif
 	// #ifdef WEB
-	const proxyWebUrl = '/static/web/proxy-web/proxy-web.html'
+	const proxyWebUrl = '/static/web/proxy-web/proxy-web.html?v=mermaid-size-3'
 	// #endif
 	
 	const showMenu = ref<boolean>(false)

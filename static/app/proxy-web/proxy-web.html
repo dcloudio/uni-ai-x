@@ -233,8 +233,8 @@
             return {
               svgText: new XMLSerializer().serializeToString(serializedElement),
               hasTextElements: serializedElement.querySelector('text') != null,
-              width: size.width,
-              height: size.height
+              width: options.viewBoxSize && viewBox != null ? viewBox[2] : size.width,
+              height: options.viewBoxSize && viewBox != null ? viewBox[3] : size.height
             };
           }
 
@@ -268,6 +268,7 @@
               const normalized = this.normalizeSvg(mermaidRenderResult.svg, {
                 theme: renderTheme,
                 background: renderTheme === 'dark' ? '#25282c' : '#ffffff',
+                viewBoxSize: true,
                 styleText: 'svg{background:transparent!important}',
                 actorTextColor: renderTheme === 'dark' ? '#f9fafb' : '#333333',
                 rasterScale,
