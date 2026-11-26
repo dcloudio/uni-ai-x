@@ -25,14 +25,14 @@ export function requestSnapshotWork(request: UTSJSONObject, callback: (result: U
 		created.onMessage((message: any) => {
 			if (generation != workerGeneration) return
 			const result = message as UTSJSONObject
-			if (result.getString('action') == 'ready') {
+			if ((result['action'] as string | null) == 'ready') {
 				ready = true
 				const queue = pending
 				pending = []
 				for (const task of queue) { created.postMessage(task, null) }
 				return
 			}
-			const id = result.getNumber('id') ?? 0
+			const id = (result['id'] as number | null) ?? 0
 			const timer = timers.get(id)
 			if (timer != null) clearTimeout(timer!)
 			timers.delete(id)
