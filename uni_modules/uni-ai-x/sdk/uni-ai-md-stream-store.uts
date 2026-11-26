@@ -209,6 +209,11 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 		entry.restoring = false
 		const restored = result['snapshot'] as RenderSnapshot | null
 		if (restored != null && restored.theme == presentationTheme && restored.width == presentationWidth) {
+			// #ifdef APP-HARMONY
+			for (const block of restored.blocks) {
+				if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, presentationTheme)
+			}
+			// #endif
 			entry.textBlocks = restored.blocks
 			entry.restored = true
 			entry.done = true

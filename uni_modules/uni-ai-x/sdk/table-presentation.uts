@@ -1,4 +1,4 @@
-import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableThemeColors, markdownTableNaturalHeight } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
+import { applyMarkdownTableColumnWidths, applyMarkdownTableTheme, markdownTableThemeColors, markdownTableNaturalHeight, markdownTableContentWidth } from '@/uni_modules/uni-ai-x/utssdk/worker/markdown-html.uts'
 
 export type TablePresentation = {
 	height: string
@@ -13,11 +13,15 @@ export const emptyTablePresentation: TablePresentation = { height: '0px', html: 
 export function prepareTablePresentation(html: string, columnWidths: number[], rowTextWidths: number[][], theme: string): TablePresentation {
 	const height = (markdownTableNaturalHeight(html) + 2).toString() + 'px'
 	const colors = markdownTableThemeColors(theme)
+	let widthStyle = ''
+	// #ifdef APP-HARMONY
+	widthStyle = 'width:' + Math.max(markdownTableContentWidth(columnWidths), uni.getWindowInfo().windowWidth - 48).toString() + 'px;'
+	// #endif
 	return {
 		height: height,
 		html: applyMarkdownTableTheme(applyMarkdownTableColumnWidths(html, columnWidths), theme),
 		containerStyle: 'width:100%;margin-top:6px;margin-bottom:6px;box-sizing:border-box;border-top-width:1px;border-right-width:1px;border-bottom-width:0;border-left-width:1px;border-style:solid;border-color:' + colors.border + ';',
 		scrollStyle: 'width:100%;height:' + height + ';box-sizing:border-box;flex-direction:row;',
-		richTextStyle: 'height:' + height + ';align-self:flex-start;flex-shrink:0;font-size:14px;line-height:22px;color:' + colors.text + ';'
+		richTextStyle: widthStyle + 'height:' + height + ';align-self:flex-start;flex-shrink:0;font-size:14px;line-height:22px;color:' + colors.text + ';'
 	} as TablePresentation
 }
