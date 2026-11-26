@@ -481,8 +481,14 @@ function markCodeBlocks(source: string, isDone: boolean): string {
 			break
 		}
 		result += source.slice(cursor, start)
+		// Streaming renderers may synthesize </pre> for the current tail. A
+		// subsequent rendered block proves this code block has actually ended.
+		const close = source.indexOf('</pre>', end + 1)
+		const after = close < 0 ? '' : source.slice(close + 6)
+			.replace(/<!--[\s\S]*?-->/g, '').replace(/<\/[a-zA-Z][^>]*>/g, '').trim()
+		const complete = isDone || after.length > 0
 		result += appendTagAttributes(source.slice(start, end + 1),
-			' data-uni-ai-code-key="code-' + blockIndex.toString() + '" data-uni-ai-complete="' + (isDone ? '1' : '0') + '"')
+			' data-uni-ai-code-key="code-' + blockIndex.toString() + '" data-uni-ai-complete="' + (complete ? '1' : '0') + '"')
 		cursor = end + 1
 		blockIndex += 1
 	}
