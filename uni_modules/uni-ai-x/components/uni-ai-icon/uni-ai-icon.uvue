@@ -37,7 +37,13 @@
 		const name = props.name.length > 0 ? props.name : (legacyNames.get(props.code) ?? '')
 		const svg = (artwork.get(name) ?? '').replaceAll('currentColor', color)
 		if (svg.length == 0) return ''
+		// #ifdef APP-HARMONY
+		const bytes = new TextEncoder().encode(svg)
+		return 'data:image/svg+xml;base64,' + uni.arrayBufferToBase64(bytes.buffer as ArrayBuffer)
+		// #endif
+		// #ifndef APP-HARMONY
 		return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+		// #endif
 	})
 </script>
 
