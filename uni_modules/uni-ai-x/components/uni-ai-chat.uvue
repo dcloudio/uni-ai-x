@@ -78,6 +78,7 @@
 	import {
 		uniAiMdStreamApplyRebuild,
 		uniAiMdStreamGetRevision,
+		uniAiMdPresentationRevision,
 		uniAiMdStreamGetBlocks,
 		uniAiMdStreamIsSettled
 	} from '@/uni_modules/uni-ai-x/sdk/uni-ai-md-stream-store.uts'
@@ -166,6 +167,9 @@
 		blocks: MarkdownTextRenderBlock[]
 	}
 	const markdownBlockCache = new Map<string, MarkdownBlockCache>()
+	// #ifdef APP-HARMONY
+	const themeRebuilds = new Set<string>()
+	// #endif
 
 	// Worker 重建完成后递增版本号，驱动渲染缓存失效与列表重算
 	const rebuildVersion = ref<number>(0)
@@ -265,10 +269,20 @@
 		return readMessagePresentation(msg._id)
 		// #endif
 		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
+		// #ifdef APP-HARMONY
+		uniAiMdPresentationRevision.value
+		// #endif
 		const revision = msg.uniAiMdRevision ?? 0
 			const version = uniAiMdStreamGetRevision(msg._id)
 		const theme = uiTheme.value
 		const cached = markdownBlockCache.get(msg._id)
+		// #ifdef APP-HARMONY
+		if (cached != null && cached.theme != theme) themeRebuilds.add(msg._id)
+		if (cached != null && themeRebuilds.has(msg._id) && cached.rebuildVersion != version) {
+			displayStates.delete(msg._id)
+			if (uniAiMdStreamIsSettled(msg._id)) themeRebuilds.delete(msg._id)
+		}
+		// #endif
 		if (cached != null && cached.theme == theme &&
 			cached.uniAiMdRevision == revision && cached.complete == msg.rendered && cached.rebuildVersion == version) return cached.blocks
 		const blocks = uniAiMdStreamGetBlocks(msg._id)

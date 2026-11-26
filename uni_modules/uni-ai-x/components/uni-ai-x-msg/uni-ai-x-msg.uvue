@@ -42,7 +42,7 @@
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
 		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="aspectFit" :style="blockImageStyle(part.block)" />
 		<text v-else-if="part.block != null && part.block.kind == 'data-text'" class="msg-root-plain-text">{{part.block.text}}</text>
-		<uni-ai-md-html v-else-if="part.block != null && part.block.kind == 'html'"
+		<uni-ai-md-html v-else-if="part.block != null && part.block.kind == 'html'" :key="htmlThemeKey(part.block.html)"
 			:html="part.block.html" :is-complete="part.block.isComplete" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-md-text v-else-if="part.block != null" :block="part.block" @citation="openSource" @footnote="openFootnote" />
 		<text v-else-if="part.kind == 'plain'" class="msg-root-plain-text" flatten>{{msg.body}}</text>
@@ -134,6 +134,14 @@
 	})
 	const msg = computed<MsgItem>(() => props.msg)
 	const parts = computed<AiMsgRenderPart[]>(() => props.parts)
+	function htmlThemeKey(html: string): string {
+		// #ifdef APP-HARMONY
+		return uiTheme.value + ':' + html.includes('#f3f4f6').toString()
+		// #endif
+		// #ifndef APP-HARMONY
+		return 'html'
+		// #endif
+	}
 	function partRenderKey(part: AiMsgRenderPart, index: number): string {
 		// Android bytecode keyed replacement can leave recycled message content stale.
 		// Keep the render slot alive; branch selection and child props carry its content.

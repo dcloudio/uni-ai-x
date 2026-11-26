@@ -121,9 +121,9 @@ function notifyEntry(entry: UniAiMdStreamEntry) {
 	// Never expose ready=true with a cached snapshot from the previous revision.
 	settledMessages.set(entry.messageId, false)
 	entry.presentationRevision = uniAiMdPresentationRevision.value + 1
-	uniAiMdPresentationRevision.value = entry.presentationRevision
 	messageRevisions.set(entry.messageId, entry.presentationRevision)
 	settledMessages.set(entry.messageId, !entry.restoring && !entry.preparationQueued && (entry.restored || (entry.done && entry.settled)))
+	uniAiMdPresentationRevision.value = entry.presentationRevision
 	persistCompleteEntry(entry)
 }
 
