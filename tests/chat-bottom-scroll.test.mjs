@@ -27,6 +27,7 @@ function controller(pendingPresentation = false, quantizedScroll = false) {
   const api = vm.runInNewContext('(function(){' + stripTypeScriptTypes(source) +
     '\nreturn { scrollToLastMsg, cancelBottomScroll, resumeBottomFollow, startFollow() { followChatId = chatActiveId.value; startBottomFollow(); }, setNavigatingStreaming(value) { enteredStreamingChat = value; } }; })()', {
     viewDisposed: false, chatActiveId, scrollTop, currentScrollTop: 0,
+    scrollDiagnostic() {}, SCROLL_DIAGNOSTICS_ENABLED: false,
     uniAi, displayStates: new Map([['m', display]]),
     msgList, state, watch: (source, callback) => {
       if (source === state) stateChanged = callback;
@@ -65,7 +66,7 @@ test('sending a user message jumps to the true bottom while later output retains
     assert.equal(api.layout.top, 3000);
     api.layout.height += 1000;
     api.message.body += ' subsequent reply';
-    api.frames(60);
+    api.frames(1600);
     assert.ok(Math.abs(api.layout.top - (4000 - 500 / 3)) <= 1);
     api.cancelBottomScroll();
     const held = api.layout.top;
@@ -123,7 +124,7 @@ test('one click reaches the corrected virtual bottom and later output does not f
 
 test('buffered follow tracks height changes and allows repeated interruption and explicit resumption', async () => {
   const api = controller();
-  const wait = async () => { api.frames(60); };
+  const wait = async () => { api.frames(1600); };
   try {
     api.layout.height = 3000;
     api.startFollow();
@@ -160,6 +161,25 @@ test('touch or chat changes cancel an outstanding click before another scroll co
   }
 });
 
+test('large output and completion both respect the follow speed limit', () => {
+  const api = controller();
+  try {
+    api.layout.height = 10000;
+    api.startFollow();
+    api.frames(100);
+    assert.ok(api.layout.top >= 1580 && api.layout.top <= 1600.01);
+    api.message.rendered = true;
+    api.setState('completed');
+    api.frames(100);
+    assert.ok(api.layout.top <= 3200.01);
+    assert.ok(api.commands.every((top, i) => top - (api.commands[i - 1] ?? 0) <= 16.001));
+    api.cancelBottomScroll();
+    const count = api.commands.length;
+    api.frames(100);
+    assert.equal(api.commands.length, count);
+  } finally { api.cancelBottomScroll(); }
+});
+
 test('buffered follow approaches moving content over multiple frames and touch stops all motion', async () => {
   const api = controller();
   try {
@@ -168,7 +188,7 @@ test('buffered follow approaches moving content over multiple frames and touch s
     assert.ok(api.layout.top > 0 && api.layout.top < 500);
     api.layout.height = 4000;
     api.message.body += ' output during animation';
-    api.frames(60);
+    api.frames(1600);
     assert.ok(Math.abs(api.layout.top - (3500 - 500 / 3)) <= 1);
     assert.ok(api.commands.filter(top => top > 500 && top < 3500).length > 3);
     api.cancelBottomScroll();
@@ -186,18 +206,18 @@ test('default follow keeps a third-screen buffer and settles smoothly only after
   try {
     api.layout.height = 3500;
     api.setState('processing');
-    api.frames(60);
+    api.frames(1600);
     assert.ok(Math.abs(api.layout.top - (3000 - 500 / 3)) <= 1);
     api.message.body += ' more output';
     api.layout.height += 500;
-    api.frames(60);
+    api.frames(1600);
     assert.ok(Math.abs(api.layout.top - (3500 - 500 / 3)) <= 1);
     api.setState('completed');
     api.frames(5);
     assert.ok(api.layout.top < 3500);
     // Completion state arrives before the final rendered callback in the real runner.
     api.message.rendered = true;
-    api.frames(60);
+    api.frames(1600);
     assert.ok(Math.abs(api.layout.top - 3500) <= 1);
     const count = api.commands.length;
     api.frames(10);
@@ -231,16 +251,16 @@ test('completion drains the final buffer and stop never restarts following', () 
     try {
       api.layout.height = 3000;
       api.startFollow();
-      api.frames(60);
+      api.frames(1600);
       const held = api.layout.top;
       api.layout.height += 500;
       api.message.rendered = true;
       api.setState(terminal);
-      api.frames(60);
+      api.frames(1600);
       assert.ok(Math.abs(api.layout.top - (terminal === 'completed' ? 3000 : held)) <= 1);
       const finalTop = api.layout.top;
       api.layout.height += 500;
-      api.frames(60);
+      api.frames(1600);
       assert.equal(api.layout.top, finalTop);
     } finally { api.cancelBottomScroll(); }
   }

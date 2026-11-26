@@ -637,6 +637,8 @@
 	}
 	
 	let bottomScrollVersion = 0
+	// Limit catch-up as well as final settling; a large output batch must not cause a rush.
+	const bottomFollowMaxSpeed = 1000
 	let bottomFollowEnabled = false
 	let followChatId = ''
 	// #ifdef MP-WEIXIN
@@ -697,7 +699,8 @@
 			const remaining = bottom - top
 			if (remaining > 0) {
 				// Follow the latest measured bottom without restarting a fixed-duration animation.
-				const step = remaining <= 1 ? remaining : Math.max(1, remaining * (1 - Math.exp(-elapsed / 60)))
+				const easedStep = remaining <= 1 ? remaining : Math.max(1, remaining * (1 - Math.exp(-elapsed / 60)))
+				const step = Math.min(easedStep, bottomFollowMaxSpeed * elapsed / 1000)
 				scrollTop.value = Math.min(bottom, top + step)
 			}
 			if (followFinalReady && remaining <= 1) {
