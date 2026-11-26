@@ -69,6 +69,9 @@
 	import { tr } from '@/uni_modules/uni-ai-x/sdk/locale.uts'
 	import { llmModelMap, mcpServers } from '@/uni_modules/uni-ai-x/config.uts'
 	import { MessageDisplayState, readMessageDisplay } from '@/uni_modules/uni-ai-x/sdk/message-display.uts'
+	// #ifdef APP-HARMONY
+	import { hasChangedCommittedBlocks } from '@/uni_modules/uni-ai-x/sdk/message-display.uts'
+	// #endif
 	import { hasMessageRenderTasks } from '@/uni_modules/uni-ai-x/sdk/message-render-tasks.uts'
 	import { mathWindowWidth } from '@/uni_modules/uni-ai-x/sdk/math-presentation.uts'
 	import type { MessageSearch } from '@/uni_modules/uni-ai-x/types.uts'
@@ -387,6 +390,14 @@
 			// #endif
 			if (hasMessageRenderTasks(msg._id)) finished = false
 			let displayState = displayStates.get(msg._id)
+			// #ifdef APP-HARMONY
+			if (displayState != null && hasChangedCommittedBlocks(displayState, prepared)) {
+				const wasStreaming = displayState.wasStreaming
+				displayState = new MessageDisplayState()
+				displayState.wasStreaming = wasStreaming
+				displayStates.set(msg._id, displayState)
+			}
+			// #endif
 			if (displayState == null) {
 				displayState = new MessageDisplayState()
 				displayStates.set(msg._id, displayState)

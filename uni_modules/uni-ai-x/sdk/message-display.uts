@@ -29,6 +29,18 @@ export class MessageDisplayState {
 	visible: MarkdownTextRenderBlock[] = []
 }
 
+// Harmony's streamed HTML adapter can merge a later tail into an already
+// committed block. Rebuild the display when that committed prefix changes.
+export function hasChangedCommittedBlocks(state: MessageDisplayState, blocks: MarkdownTextRenderBlock[]): boolean {
+	if (state.frozen.length > blocks.length) return true
+	for (let i = 0; i < state.frozen.length; i++) {
+		const previous = state.frozen[i]
+		const next = blocks[i]
+		if (previous.key != next.key || previous.kind != next.kind || (previous.kind == 'html' && previous.html != next.html)) return true
+	}
+	return false
+}
+
 function copySearch(search: MessageSearch | null): MessageSearch | null {
 	if (search == null) return null
 	return { ...search, sources: search.sources.map((source: SearchSource): SearchSource => ({ ...source } as SearchSource)) } as MessageSearch

@@ -61,6 +61,24 @@ test('retry invalidates an empty failure snapshot even when the reset render was
   assert.equal(api.read([block('new')], true).tailMessage.body, '新的天气结果');
 });
 
+test('merged streaming HTML invalidates a committed prefix', () => {
+  const { MessageDisplayState, readMessageDisplay, hasChangedCommittedBlocks } = loadUts(
+    'uni_modules/uni-ai-x/sdk/message-display.uts',
+    ['MessageDisplayState', 'readMessageDisplay', 'hasChangedCommittedBlocks'],
+    { isMessageViewResourceSettled: () => true },
+  );
+  const msg = { _id: 'retry', body: 'first and second', rendered: false };
+  const state = new MessageDisplayState();
+  const first = block('first');
+  readMessageDisplay(state, msg, [first, block('tail', { isComplete: false })], false, 'light', 390);
+  assert.equal(hasChangedCommittedBlocks(state, [first, block('tail')]), false);
+  const merged = block('first', { html: '<p>first and second</p>' });
+  assert.equal(hasChangedCommittedBlocks(state, [merged]), true);
+  const fresh = new MessageDisplayState();
+  const final = readMessageDisplay(fresh, { ...msg, rendered: true }, [merged], true, 'light', 390);
+  assert.equal(final.blocks[0].html, merged.html);
+});
+
 test('successors wait for image termination and committed prefixes ignore later rewrites', () => {
   const api = display(); api.msg.body = 'answer';
   const diagram = block('diagram', { kind: 'mermaid', text: 'graph LR; A-->B', mermaidImageSource: '/image', svgWidth: 100, svgHeight: 50 });
