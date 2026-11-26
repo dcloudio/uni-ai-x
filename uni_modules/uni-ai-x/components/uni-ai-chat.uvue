@@ -1383,7 +1383,7 @@
 }
 /* #endif */
 
-/* #ifdef H5 || APP-ANDROID */
+/* #ifdef H5 || APP-ANDROID || APP-HARMONY */
 .chat-box-chat,
 .chat-box-scroll-view-box {
 	min-height: 0;
