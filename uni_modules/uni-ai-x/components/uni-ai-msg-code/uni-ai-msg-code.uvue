@@ -38,6 +38,15 @@ const props = withDefaults(defineProps<{
 })
 
 const contentWidthStyle = computed((): string => {
+	// #ifdef APP-HARMONY
+	let longest = 0
+	for (const line of props.codeText.split('\n')) {
+		let width = 0
+		for (const char of line) width += char == '\t' ? 36 : ((char.codePointAt(0) ?? 0) > 255 ? 18 : 9)
+		longest = Math.max(longest, width)
+	}
+	return 'width:' + Math.max(Math.ceil(longest + 32), uni.getWindowInfo().windowWidth - 48).toString() + 'px;'
+	// #endif
 	// #ifdef APP-IOS
 	// Conservative 14px monospace estimate, including the HTML's horizontal margins.
 	let longest = 0
@@ -54,7 +63,7 @@ const contentWidthStyle = computed((): string => {
 	const width = Math.min(Math.ceil(longest + 32), maxWidth)
 	return 'width:' + width.toString() + 'px;'
 	// #endif
-	// #ifndef APP-IOS
+	// #ifndef APP-IOS || APP-HARMONY
 	return ''
 	// #endif
 })
