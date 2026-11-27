@@ -36,7 +36,7 @@
 			<input-tool-bar @scrollToLastMsg="scrollToLastMsg" @click.stop />
 		</view>
 		<view class="chat-input-keyboard-cover"
-			:class="keyboardHeight > 0 ? 'chat-input-keyboard-cover-keyboard' : ''"
+			:class="[isFullscreenLayout ? 'chat-input-keyboard-cover-fullscreen' : '', keyboardHeight > 0 ? 'chat-input-keyboard-cover-keyboard' : '']"
 			:style="{height: (isFullscreenLayout ? keyboardHeight : 0) + 'px'}"></view>
 	</view>
     <uni-ai-attachment-panel v-show="composerState.attachments && !voiceHolding && !isFullscreen" />
@@ -333,7 +333,7 @@
 	color: var(--text-tertiary);
 }
 
-.chat-input-keyboard-cover {
+.chat-input-keyboard-cover-fullscreen {
 	/* #ifdef APP-ANDROID */
 	margin-bottom: 0;
 	/* #endif */
