@@ -223,7 +223,7 @@
 
 .chat-input {
 	position: absolute;
-	/* #ifdef MP-WEIXIN || APP-HARMONY */
+	/* #ifdef MP-WEIXIN || APP-HARMONY || APP-IOS */
 	position: relative;
 	flex-shrink: 0;
 	/* #endif */
