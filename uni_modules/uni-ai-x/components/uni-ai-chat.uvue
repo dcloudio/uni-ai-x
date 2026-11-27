@@ -700,7 +700,12 @@
 		} else if (timestamp - followStableSince >= 150) {
 			followFinalReady = true
 		}
+		// #ifdef MP
+		return bottom
+		// #endif
+		// #ifndef MP
 		return followFinalReady ? bottom : Math.max(0, bottom - viewportHeight / 3)
+		// #endif
 	}
 
 	// #ifndef MP-WEIXIN
@@ -740,7 +745,7 @@
 		bottomFollowFrame = requestAnimationFrame(advanceBottomFollow)
 		// #endif
 		// #ifdef MP-WEIXIN
-		// Mini-programs use selector queries to measure the same buffered target.
+		// Mini-programs follow the measured bottom directly.
 		bottomFollowTimer = setInterval(async () => {
 			if (!bottomFollowEnabled || bottomFollowBusy || msgList.value.length == 0) return
 			bottomFollowBusy = true
@@ -816,7 +821,9 @@
 			})
 			// #endif
 			if (viewDisposed || version != bottomScrollVersion || chatId != chatActiveId.value) return
-			const buffered = !forceBottom && followChatId == chatId && bottomFollowEnabled
+			let buffered = false
+			// #ifndef MP-WEIXIN
+			buffered = !forceBottom && followChatId == chatId && bottomFollowEnabled
 			if (buffered) {
 				const bottom = top + remaining
 				remaining = Math.max(0, bufferedFollowTarget(bottom, viewportHeight, Date.now()) - top)
@@ -826,6 +833,16 @@
 					return
 				}
 			}
+			// #endif
+			// #ifdef MP-WEIXIN
+			if (!forceBottom && bottomFollowEnabled && remaining <= 1 && state.value == 'completed'
+				&& targetMessage != null && targetMessage!.rendered == true
+				&& displayStates.get(targetMessage!._id)?.final != null && !hasMessageRenderTasks(targetMessage!._id)) {
+				cancelBottomScroll()
+				followChatId = ''
+				return
+			}
+			// #endif
 			// Finish a completed reply's pending presentation, but never follow new output.
 			if ((uniAi.lastAiMsg?._id ?? '') != (targetMessage?._id ?? '')) break
 			if ((targetMessage?.body ?? '') != targetBody && (!forceBottom || positioned)) break
