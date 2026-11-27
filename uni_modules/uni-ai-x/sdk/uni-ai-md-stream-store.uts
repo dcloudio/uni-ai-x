@@ -210,6 +210,7 @@ export function uniAiMdStreamBindMessage(message: MsgItem, save: (message: MsgIt
 		const restored = result['snapshot'] as RenderSnapshot | null
 		if (restored != null && restored.theme == presentationTheme && restored.width == presentationWidth) {
 			// #ifdef APP-HARMONY
+			// Refresh persisted table styles, including snapshots made with an explicit width.
 			for (const block of restored.blocks) {
 				if (block.kind == 'table') block.table = prepareTablePresentation(block.html, block.columnWidths, block.rowTextWidths, presentationTheme)
 			}
