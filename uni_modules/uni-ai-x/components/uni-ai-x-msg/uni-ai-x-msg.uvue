@@ -27,19 +27,31 @@
 			</view>
 		</view>
 		<text v-else-if="part.kind == 'error'" class="msg-root-error-msg" flatten>{{part.text ?? msg.error_msg}}</text>
-		<uni-ai-generation-status v-else-if="part.block != null && (part.block.kind == 'math-fallback' || part.block.kind == 'mermaid-fallback')"
+		<template v-else-if="part.block != null && (part.block.kind == 'math-fallback' || part.block.kind == 'mermaid-fallback')">
+		<!-- #ifndef MP -->
+		<uni-ai-generation-status
 			:label="part.block.kind == 'math-fallback' ? tr('公式未能生成', 'Formula unavailable') : tr('图表未能生成', 'Diagram unavailable')" :pending="false" :source="part.block.text" />
+		<!-- #endif -->
+		</template>
 		<uni-ai-msg-html-table v-else-if="part.block != null && part.block.kind == 'table'"
 			:presentation="part.block.table ?? emptyTablePresentation" @citation="openSource" @footnote="openFootnote" />
 		<uni-ai-msg-code v-else-if="part.block != null && part.block.kind == 'code'"
 			:code-text="part.block.text" :prepared-html="part.block.codeHtml ?? ''" :prepared-content-height="part.block.codeContentHeight ?? '22px'" :prepared-height="part.block.codeHeight ?? '38px'" :language="part.block.language" />
-		<uni-ai-msg-mermaid v-else-if="part.block != null && part.block.kind == 'mermaid'"
+		<template v-else-if="part.block != null && part.block.kind == 'mermaid'">
+		<!-- #ifndef MP -->
+		<uni-ai-msg-mermaid
 			:message-id="msg._id" :src="part.block.mermaidImageSource" :identity="msg._id + ':' + part.key" :code-text="part.block.text" :image-width="part.block.svgWidth" :image-height="part.block.svgHeight" :render-failed="part.block.mermaidRenderFailed" />
-		<uni-ai-msg-math v-else-if="part.block != null && part.block.kind == 'math'"
+		<!-- #endif -->
+		</template>
+		<template v-else-if="part.block != null && part.block.kind == 'math'">
+		<!-- #ifndef MP -->
+		<uni-ai-msg-math
 			:message-id="msg._id" :render-key="part.key"
 			:text="part.block.text" :is-close="part.block.isComplete ? 1 : 0"
 			:href="part.block.math?.src ?? ''" :width="part.block.math?.width ?? 0" :height="part.block.math?.height ?? 0" :render-theme="uiTheme"
 			:svg-source="part.block.svgSource" :svg-width="part.block.svgWidth" :svg-height="part.block.svgHeight" />
+		<!-- #endif -->
+		</template>
 		<image v-else-if="part.block != null && part.block.kind == 'image'" :src="part.block.svgSource" mode="aspectFit" :style="blockImageStyle(part.block)" />
 		<text v-else-if="part.block != null && part.block.kind == 'data-text'" class="msg-root-plain-text">{{part.block.text}}</text>
 		<uni-ai-md-html v-else-if="part.block != null && part.block.kind == 'html'" :key="htmlThemeKey(part.block.html)"
