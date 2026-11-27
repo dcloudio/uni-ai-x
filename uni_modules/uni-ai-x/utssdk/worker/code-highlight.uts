@@ -334,7 +334,7 @@ function getTmlFile(filePaths: TmlFile[]) {
 	return res
 }
 
-function initUniCodeHighlighter(callBack: () => void, reportError: (message: string) => void){
+function initUniCodeHighlighter(callBack: () => void, onError: (message: string) => void){
 	if (uniCodeHighlighter == null) {
 		// #ifndef APP-ANDROID || APP-HARMONY
 		// 根据 grammarList 生成tmls
@@ -383,7 +383,7 @@ function initUniCodeHighlighter(callBack: () => void, reportError: (message: str
 			callBack()
 		}).catch((error: any) => {
 			highlighterInitialization = null
-			reportError(error.message ?? '代码高亮初始化失败')
+			onError(error.message ?? '代码高亮初始化失败')
 		})
 		// #endif
 	} else {
