@@ -101,6 +101,7 @@ function copyCode() {
 
 .uni-mermaid-msg-root.uni-theme-light {
 	--mermaid-surface: #fafafa;
+	--mermaid-image-surface: #ffffff;
 	--mermaid-border: #eeeeee;
 	--mermaid-header: #fafafa;
 	--mermaid-switch: #eeeeee;
@@ -114,6 +115,7 @@ function copyCode() {
 
 .uni-mermaid-msg-root.uni-theme-dark {
 	--mermaid-surface: #171717;
+	--mermaid-image-surface: #25282c;
 	--mermaid-border: #374151;
 	--mermaid-header: #171717;
 	--mermaid-switch: #262626;
@@ -175,7 +177,7 @@ function copyCode() {
 
 .uni-mermaid-msg-image {
 	width: 100%;
-	background-color: var(--bg-primary);
+	background-color: var(--mermaid-image-surface);
 }
 
 .uni-mermaid-msg-stage {
@@ -183,7 +185,7 @@ function copyCode() {
 	width: 100%;
 	padding: 16px;
 	overflow: hidden;
-	background-color: var(--bg-primary);
+	background-color: var(--mermaid-image-surface);
 }
 
 .uni-mermaid-msg-stage-code { background-color: var(--mermaid-code-surface); }

@@ -170,7 +170,7 @@
 		blocks: MarkdownTextRenderBlock[]
 	}
 	const markdownBlockCache = new Map<string, MarkdownBlockCache>()
-	// #ifdef APP-HARMONY
+	// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 	const themeRebuilds = new Set<string>()
 	// #endif
 
@@ -272,14 +272,14 @@
 		return readMessagePresentation(msg._id)
 		// #endif
 		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		uniAiMdPresentationRevision.value
 		// #endif
 		const revision = msg.uniAiMdRevision ?? 0
 			const version = uniAiMdStreamGetRevision(msg._id)
 		const theme = uiTheme.value
 		const cached = markdownBlockCache.get(msg._id)
-		// #ifdef APP-HARMONY
+		// #ifdef APP-HARMONY || APP-ANDROID || APP-IOS
 		if (cached != null && cached.theme != theme) themeRebuilds.add(msg._id)
 		if (cached != null && themeRebuilds.has(msg._id) && cached.rebuildVersion != version) {
 			displayStates.delete(msg._id)
