@@ -288,7 +288,7 @@
 <style lang="scss">
 @import '@/uni_modules/uni-ai-x/static/css/variables.scss';
 /* 蒸汽模式：仅单层 class */
-.uni-im-setting-page { flex: 1; height: 100%; background-color: var(--bg-secondary); }
+.uni-im-setting-page { flex: 1; height: 100%; background-color: var(--uni-page-include-card-group-bg); }
 .uni-im-setting-header { padding-top: var(--status-bar-height); flex-direction: row; align-items: center; }
 .uni-im-setting-back-slot, .uni-im-setting-header-spacer { width: 60px; height: 56px; align-items: center; justify-content: center; }
 .uni-im-setting-back { width: 36px; height: 36px; border-radius: 18px; background-color: var(--bg-tertiary); align-items: center; justify-content: center; }
@@ -296,7 +296,7 @@
 .uni-im-setting-scroll { flex: 1; }
 .uni-im-setting-content { padding: 4px 16px 24px; padding-bottom: env(safe-area-inset-bottom); }
 .uni-im-setting-section-title { font-size: 13px; color: var(--text-tertiary); margin: 20px 16px 10px; }
-.uni-im-setting-card { border-radius: 16px; background-color: var(--bg-primary); overflow: hidden; }
+.uni-im-setting-card { border-radius: 16px; background-color: var(--uni-card-group-bg); overflow: hidden; }
 .uni-im-setting-item { height: 52px; flex-shrink: 0; box-sizing: border-box; flex-direction: row; align-items: center; padding: 0 16px; }
 .uni-im-setting-item-active { background-color: var(--bg-tertiary); }
 .uni-im-setting-label { margin-left: 14px; margin-right: 16px; font-size: 16px; color: var(--text-primary); flex-shrink: 0; }
