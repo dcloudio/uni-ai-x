@@ -21,21 +21,21 @@ function component(path, props, exports) {
 }
 
 const math = props => component('uni-ai-msg-math/uni-ai-msg-math.uvue', props,
-  ['mathRootStyle', 'mathContentStyle', 'showMathPlaceholder', 'syncMathImageTheme', 'onMathBufferLoad']);
+  ['mathRootStyle', 'mathContentStyle', 'showMathPlaceholder', 'onMathImageLoad', 'onMathImageError']);
 
 test('prepared formula geometry survives initial load and recycled image instances', () => {
   const props = { messageId: 'm', renderKey: 'f', isClose: 1, svgSource: '/formula.svg', svgWidth: 180, svgHeight: 84, text: 'source' };
   const first = math(props);
-  first.syncMathImageTheme();
   const before = [first.mathRootStyle.value, first.mathContentStyle.value];
-  assert.equal(first.showMathPlaceholder.value, true);
+  assert.equal(first.showMathPlaceholder.value, false);
   assert.match(before[1], /height:84px/);
-  first.onMathBufferLoad(1);
+  first.onMathImageError({});
+  assert.equal(first.showMathPlaceholder.value, true);
+  first.onMathImageLoad({});
   assert.equal(first.showMathPlaceholder.value, false);
   assert.deepEqual([first.mathRootStyle.value, first.mathContentStyle.value], before);
   const recycled = math(props);
-  recycled.syncMathImageTheme();
-  assert.equal(recycled.showMathPlaceholder.value, true);
+  assert.equal(recycled.showMathPlaceholder.value, false);
   assert.deepEqual([recycled.mathRootStyle.value, recycled.mathContentStyle.value], before);
 });
 
@@ -44,10 +44,9 @@ test('unknown formula stays compact regardless of source length; tiny results ne
   const api = math(props);
   assert.match(api.mathContentStyle.value, /height:32px/);
   props.isClose = 1; props.svgSource = '/tiny.svg'; props.svgWidth = 20; props.svgHeight = 14;
-  api.syncMathImageTheme();
   const before = [api.mathRootStyle.value, api.mathContentStyle.value];
   assert.match(before[1], /height:32px/);
-  api.onMathBufferLoad(1);
+  api.onMathImageLoad({});
   assert.deepEqual([api.mathRootStyle.value, api.mathContentStyle.value], before);
 });
 
